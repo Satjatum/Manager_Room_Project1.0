@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:manager_room_project/views/sadmin/roomlist_ui.dart';
 import 'package:manager_room_project/views/widgets/mainnavbar.dart';
 import '../../models/user_models.dart';
@@ -1018,8 +1019,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.filter_list,
-                            size: 20, color: Colors.grey[700]),
+                        Icon(Icons.filter_list, size: 20, color: Colors.white),
                         SizedBox(width: 8),
                         Expanded(
                           child: DropdownButtonHideUnderline(
@@ -1078,11 +1078,19 @@ class _BranchlistUiState extends State<BranchlistUi> {
                           color: Color(0xFF10B981),
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              // ถ้าหน้าจอกว้างกว่า 600 ใช้ GridView
+                              final platform = Theme.of(context).platform;
+                              final bool isMobileApp = !kIsWeb &&
+                                  (platform == TargetPlatform.android ||
+                                      platform == TargetPlatform.iOS);
+
+                              // ทำตามแพทเทิร์นของ settingbranch_ui: ถ้าเป็นแอปมือถือ ให้ใช้ List เสมอ
+                              if (isMobileApp) {
+                                return _buildListView();
+                              }
+
                               if (constraints.maxWidth > 600) {
                                 return _buildGridView(constraints.maxWidth);
                               }
-                              // ถ้าหน้าจอเล็ก ใช้ ListView
                               return _buildListView();
                             },
                           ),
@@ -1148,6 +1156,24 @@ class _BranchlistUiState extends State<BranchlistUi> {
       crossAxisCount = 3;
     }
 
+    // คำนวณ childAspectRatio แบบไดนามิกเพื่อลดปัญหา overflow
+    const double horizontalPadding = 24; // ซ้าย/ขวา ของ GridView
+    const double crossSpacing = 16; // ระยะห่างคอลัมน์
+    final double availableWidth = screenWidth -
+        (horizontalPadding * 2) -
+        (crossSpacing * (crossAxisCount - 1));
+    final double tileWidth = availableWidth / crossAxisCount;
+
+    // imageHeight คิดแบบอนุรักษ์นิยมขึ้นเล็กน้อย เพื่อกัน overflow
+    final double imageHeight = (tileWidth * 0.45).clamp(120.0, 200.0);
+    // ประมาณความสูงส่วน header และ info ให้เผื่อเคสข้อความยาว
+    final double estHeader = tileWidth < 300 ? 120 : 100;
+    final double estInfo = tileWidth < 300 ? 180 : 150;
+    final double estimatedTileHeight = estHeader + imageHeight + estInfo;
+    double dynamicAspect = tileWidth / estimatedTileHeight; // width / height
+    // กันกรณีแคบ/กว้างเกินไป
+    dynamicAspect = dynamicAspect.clamp(0.55, 1.00);
+
     return GridView.builder(
       padding: EdgeInsets.symmetric(
         horizontal: 24,
@@ -1157,7 +1183,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
         crossAxisCount: crossAxisCount,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
-        childAspectRatio: 1.30,
+        childAspectRatio: dynamicAspect,
       ),
       itemCount: _filteredBranches.length,
       itemBuilder: (context, index) {
@@ -1202,303 +1228,374 @@ class _BranchlistUiState extends State<BranchlistUi> {
     final hasPhone = branch['branch_phone'] != null &&
         branch['branch_phone'].toString().trim().isNotEmpty;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _navigateToRoomList(
-          branch['branch_id'],
-          branch['branch_name'],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with Name, Code, Status, and Menu
-              Padding(
-                padding: EdgeInsets.fromLTRB(16, 12, 12, 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            branch['branch_name'] ?? 'ไม่มีชื่อ',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (branch['branch_code'] != null)
-                            Padding(
-                              padding: EdgeInsets.only(top: 4),
-                              child: Text(
-                                'Code: ${branch['branch_code']}',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    // Status Badge and Menu Button in same row
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isActive ? Color(0xFF10B981) : Colors.grey[400],
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        isActive ? 'Active' : 'Inactive',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 4),
-                    // PopupMenuButton for actions
-                    PopupMenuButton<String>(
-                      padding: EdgeInsets.zero,
-                      icon: Icon(Icons.more_vert,
-                          color: Colors.grey[600], size: 22),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      offset: Offset(0, 40),
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'view',
-                          child: Row(
-                            children: [
-                              Icon(Icons.visibility_outlined,
-                                  size: 20, color: Color(0xFF14B8A6)),
-                              SizedBox(width: 12),
-                              Text('View Details'),
-                            ],
-                          ),
-                        ),
-                        if (_canManage)
-                          PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit_outlined,
-                                    size: 20, color: Color(0xFF14B8A6)),
-                                SizedBox(width: 12),
-                                Text('Edit Branch'),
-                              ],
-                            ),
-                          ),
-                        PopupMenuItem(
-                          value: 'toggle_status',
-                          child: Row(
-                            children: [
-                              Icon(
-                                isActive
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                                size: 20,
-                                color: isActive ? Colors.orange : Colors.green,
-                              ),
-                              SizedBox(width: 12),
-                              Text(
-                                isActive ? 'Deactivate' : 'Activate',
-                                style: TextStyle(
-                                  color:
-                                      isActive ? Colors.orange : Colors.green,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (_currentUser?.userRole == UserRole.superAdmin) ...[
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete_outline,
-                                    size: 20, color: Colors.red),
-                                SizedBox(width: 12),
-                                Text('Delete Branch',
-                                    style: TextStyle(color: Colors.red)),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                      onSelected: (value) {
-                        switch (value) {
-                          case 'view':
-                            _navigateToBranchDetail(
-                              branch['branch_id'],
-                              branch['branch_name'],
-                            );
-                            break;
-                          case 'edit':
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => BranchEditPage(
-                                  branchId: branch['branch_id'],
-                                ),
-                              ),
-                            ).then((result) {
-                              if (result == true) _loadBranches();
-                            });
-                            break;
-                          case 'toggle_status':
-                            _toggleBranchStatus(
-                              branch['branch_id'],
-                              branch['branch_name'] ?? '',
-                              isActive,
-                            );
-                            break;
-                          case 'delete':
-                            _deleteBranch(
-                              branch['branch_id'],
-                              branch['branch_name'] ?? '',
-                            );
-                            break;
-                        }
-                      },
-                    ),
-                  ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double width = constraints.maxWidth;
+        final bool isTiny = width < 240;
+        final bool isSmall = width < 320;
+        final bool isMedium = width < 480;
+
+        final double titleSize = isTiny
+            ? 14
+            : isSmall
+                ? 15
+                : 16;
+        final double subTitleSize = isTiny ? 12 : 13;
+        final double bodySize = isTiny ? 12 : 13;
+        final double iconSize = isTiny ? 16 : 18;
+        final double badgeFontSize = isTiny ? 10 : 12;
+        final EdgeInsets headerPadding = EdgeInsets.fromLTRB(
+            isTiny ? 12 : 16, isTiny ? 8 : 12, 8, isTiny ? 8 : 12);
+        final EdgeInsets infoPadding = EdgeInsets.all(isTiny ? 12 : 16);
+        final double imageHeight = (width * 0.5).clamp(120.0, 200.0).toDouble();
+
+        Widget buildMenu() => PopupMenuButton<String>(
+              padding: EdgeInsets.zero,
+              icon: Icon(Icons.more_vert, color: Colors.grey[600], size: 22),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              offset: Offset(0, 40),
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'view',
+                  child: Row(
+                    children: [
+                      Icon(Icons.visibility_outlined,
+                          size: 20, color: Color(0xFF14B8A6)),
+                      SizedBox(width: 12),
+                      Text('View Details'),
+                    ],
+                  ),
                 ),
-              ),
-
-              // Image Section
-              Container(
-                height: 160,
-                width: double.infinity,
-                color: Colors.grey[200],
-                child: branch['branch_image'] != null &&
-                        branch['branch_image'].toString().isNotEmpty
-                    ? Image.network(
-                        branch['branch_image'],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _buildImagePlaceholder(),
-                      )
-                    : _buildImagePlaceholder(),
-              ),
-
-              // Info Section
-              Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Address
-                    if (branch['branch_address'] != null &&
-                        branch['branch_address'].toString().isNotEmpty)
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(Icons.location_on_outlined,
-                                size: 18, color: Color(0xFF14B8A6)),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                branch['branch_address'],
-                                style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey[700],
-                                    height: 1.4),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                if (_canManage)
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit_outlined,
+                            size: 20, color: Color(0xFF14B8A6)),
+                        SizedBox(width: 12),
+                        Text('Edit Branch'),
+                      ],
+                    ),
+                  ),
+                PopupMenuItem(
+                  value: 'toggle_status',
+                  child: Row(
+                    children: [
+                      Icon(
+                        isActive
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        size: 20,
+                        color: isActive ? Colors.orange : Colors.green,
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        isActive ? 'Deactivate' : 'Activate',
+                        style: TextStyle(
+                          color: isActive ? Colors.orange : Colors.green,
                         ),
                       ),
+                    ],
+                  ),
+                ),
+                if (_currentUser?.userRole == UserRole.superAdmin) ...[
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                        SizedBox(width: 12),
+                        Text('Delete Branch',
+                            style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+              onSelected: (value) {
+                switch (value) {
+                  case 'view':
+                    _navigateToBranchDetail(
+                      branch['branch_id'],
+                      branch['branch_name'],
+                    );
+                    break;
+                  case 'edit':
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BranchEditPage(
+                          branchId: branch['branch_id'],
+                        ),
+                      ),
+                    ).then((result) {
+                      if (result == true) _loadBranches();
+                    });
+                    break;
+                  case 'toggle_status':
+                    _toggleBranchStatus(
+                      branch['branch_id'],
+                      branch['branch_name'] ?? '',
+                      isActive,
+                    );
+                    break;
+                  case 'delete':
+                    _deleteBranch(
+                      branch['branch_id'],
+                      branch['branch_name'] ?? '',
+                    );
+                    break;
+                }
+              },
+            );
 
-                    // Phone
-                    if (hasPhone)
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: InkWell(
-                          onTap: () {
-                            // Stop propagation to prevent card tap
-                            _showPhoneOptions(
-                              branch['branch_phone'],
-                              branch['branch_name'] ?? 'สาขา',
-                            );
-                          },
-                          child: Row(
+        final Widget statusBadge = Container(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isActive ? Color(0xFF10B981) : Colors.grey[400],
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            isActive ? 'Active' : 'Inactive',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: badgeFontSize,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        );
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _navigateToRoomList(
+              branch['branch_id'],
+              branch['branch_name'],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            child: Ink(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[300]!),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header (responsive)
+                  Padding(
+                    padding: headerPadding,
+                    child: isSmall
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.phone_outlined,
-                                  size: 18, color: Color(0xFF14B8A6)),
-                              SizedBox(width: 8),
-                              Text(
-                                branch['branch_phone'],
-                                style: TextStyle(
-                                    fontSize: 13, color: Colors.grey[700]),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          branch['branch_name'] ?? 'ไม่มีชื่อ',
+                                          style: TextStyle(
+                                            fontSize: titleSize,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.black87,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        if (branch['branch_code'] != null)
+                                          Padding(
+                                            padding: EdgeInsets.only(top: 4),
+                                            child: Text(
+                                              'Code: ${branch['branch_code']}',
+                                              style: TextStyle(
+                                                fontSize: subTitleSize,
+                                                color: Colors.grey[600],
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(width: 4),
+                                  buildMenu(),
+                                ],
                               ),
+                              SizedBox(height: 8),
+                              statusBadge,
+                            ],
+                          )
+                        : Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      branch['branch_name'] ?? 'ไม่มีชื่อ',
+                                      style: TextStyle(
+                                        fontSize: titleSize,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black87,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    if (branch['branch_code'] != null)
+                                      Padding(
+                                        padding: EdgeInsets.only(top: 4),
+                                        child: Text(
+                                          'Code: ${branch['branch_code']}',
+                                          style: TextStyle(
+                                            fontSize: subTitleSize,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              statusBadge,
+                              SizedBox(width: 4),
+                              buildMenu(),
                             ],
                           ),
-                        ),
-                      ),
+                  ),
 
-                    // Manager Info
-                    if (branch['primary_manager_name'] != null &&
-                        branch['primary_manager_name'].toString().isNotEmpty)
-                      Row(
-                        children: [
-                          Icon(Icons.person_outline,
-                              size: 18, color: Color(0xFF14B8A6)),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: RichText(
-                              text: TextSpan(
-                                style: TextStyle(
-                                    fontSize: 13, color: Colors.grey[700]),
-                                children: [
-                                  TextSpan(
-                                      text:
-                                          '${branch['manager_count'] ?? 1} manager'),
-                                  if (branch['manager_count'] != null &&
-                                      branch['manager_count'] > 1)
-                                    TextSpan(text: 's'),
-                                  TextSpan(text: ' • Primary: '),
-                                  TextSpan(
-                                    text: branch['primary_manager_name'],
+                  // Image Section (responsive height)
+                  Container(
+                    height: imageHeight,
+                    width: double.infinity,
+                    color: Colors.grey[200],
+                    child: branch['branch_image'] != null &&
+                            branch['branch_image'].toString().isNotEmpty
+                        ? Image.network(
+                            branch['branch_image'],
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildImagePlaceholder(),
+                          )
+                        : _buildImagePlaceholder(),
+                  ),
+
+                  // Info Section
+                  Padding(
+                    padding: infoPadding,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Address
+                        if (branch['branch_address'] != null &&
+                            branch['branch_address'].toString().isNotEmpty)
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.location_on_outlined,
+                                    size: iconSize, color: Color(0xFF14B8A6)),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    branch['branch_address'],
                                     style: TextStyle(
-                                      color: Color(0xFF14B8A6),
-                                      fontWeight: FontWeight.w600,
+                                        fontSize: bodySize,
+                                        color: Colors.grey[700],
+                                        height: 1.4),
+                                    maxLines: isMedium ? 2 : 3,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                        // Phone
+                        if (hasPhone)
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 8),
+                            child: InkWell(
+                              onTap: () {
+                                _showPhoneOptions(
+                                  branch['branch_phone'],
+                                  branch['branch_name'] ?? 'สาขา',
+                                );
+                              },
+                              child: Row(
+                                children: [
+                                  Icon(Icons.phone_outlined,
+                                      size: iconSize, color: Color(0xFF14B8A6)),
+                                  SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      branch['branch_phone'],
+                                      style: TextStyle(
+                                          fontSize: bodySize,
+                                          color: Colors.grey[700]),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
                               ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ],
-                      ),
-                  ],
-                ),
+
+                        // Manager Info
+                        if (branch['primary_manager_name'] != null &&
+                            branch['primary_manager_name']
+                                .toString()
+                                .isNotEmpty)
+                          Row(
+                            children: [
+                              Icon(Icons.person_outline,
+                                  size: iconSize, color: Color(0xFF14B8A6)),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: RichText(
+                                  text: TextSpan(
+                                    style: TextStyle(
+                                        fontSize: bodySize,
+                                        color: Colors.grey[700]),
+                                    children: [
+                                      TextSpan(
+                                          text:
+                                              '${branch['manager_count'] ?? 1} manager'),
+                                      if (branch['manager_count'] != null &&
+                                          branch['manager_count'] > 1)
+                                        TextSpan(text: 's'),
+                                      TextSpan(text: ' • Primary: '),
+                                      TextSpan(
+                                        text: branch['primary_manager_name'],
+                                        style: TextStyle(
+                                          color: Color(0xFF14B8A6),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
