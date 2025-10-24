@@ -557,18 +557,36 @@ class _BranchAddPageState extends State<BranchAddPage>
 
         dynamic uploadResult;
 
+        // Prepare sequential filename
+        String? customName;
+        try {
+          final ext = (kIsWeb && _selectedImageBytes != null)
+              ? (_selectedImageName ?? 'jpg').split('.').last.toLowerCase()
+              : (_selectedImage != null)
+                  ? _selectedImage!.path.split('.').last.toLowerCase()
+                  : 'jpg';
+          customName = await ImageService.generateSequentialFileName(
+            bucket: 'branch-images',
+            folder: 'branches',
+            prefix: 'branch',
+            extension: ext,
+          );
+        } catch (_) {}
+
         if (kIsWeb && _selectedImageBytes != null) {
           uploadResult = await ImageService.uploadImageFromBytes(
             _selectedImageBytes!,
             _selectedImageName ?? 'branch_image.jpg',
             'branch-images',
             folder: 'branches',
+            customFileName: customName,
           );
         } else if (!kIsWeb && _selectedImage != null) {
           uploadResult = await ImageService.uploadImage(
             _selectedImage!,
             'branch-images',
             folder: 'branches',
+            customFileName: customName,
           );
         }
 

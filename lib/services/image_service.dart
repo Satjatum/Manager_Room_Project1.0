@@ -199,6 +199,7 @@ class ImageService {
     String? folder,
     String? prefix,
     String? context,
+    String? customFileName,
   }) async {
     try {
       // Check file size
@@ -234,12 +235,13 @@ class ImageService {
         };
       }
 
-      // Generate unique filename
-      final fileName = _generateUniqueFileName(
-        extension: extension,
-        prefix: prefix,
-        context: context,
-      );
+      // Generate filename (allow custom)
+      final fileName = customFileName ??
+          _generateUniqueFileName(
+            extension: extension,
+            prefix: prefix,
+            context: context,
+          );
 
       // Create full path
       String fullPath = fileName;
@@ -301,6 +303,59 @@ class ImageService {
   }
 
   // ... เก็บ methods อื่นๆ เหมือนเดิม
+
+  /// Generate sequential filename with pattern: <prefix>_YYYYMMDD_<seq>.<ext>
+  /// Example: branch_20251025_001.jpg
+  static Future<String> generateSequentialFileName({
+    required String bucket,
+    String? folder,
+    required String prefix,
+    required String extension, // without dot, e.g. 'jpg'
+    DateTime? date,
+  }) async {
+    final d = (date ?? DateTime.now()).toLocal();
+    final y = d.year.toString();
+    final m = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    final dateStr = '$y$m$day';
+    final ext = extension.toLowerCase().replaceAll('.', '');
+
+    final listPath = (folder != null && folder.isNotEmpty) ? folder : '';
+
+    int maxSeq = 0;
+    try {
+      final files = await _supabase.storage.from(bucket).list(path: listPath);
+      // ignore: unused_local_variable
+      final pattern = RegExp(
+          '^${RegExp.escape(prefix)}_${RegExp.escape(dateStr)}_\\d{3}\\.${RegExp.escape(ext)}'
+              .replaceAll('\u0000', ''));
+      for (final f in files) {
+        final name = f.name;
+        if (RegExp('^' +
+                RegExp.escape(prefix) +
+                '_' +
+                RegExp.escape(dateStr) +
+                r'_\d{3}\.' +
+                RegExp.escape(ext) +
+                r'$')
+            .hasMatch(name)) {
+          // Extract sequence
+          final parts = name.split('_');
+          if (parts.length >= 3) {
+            final seqWithExt = parts.last; // e.g., 005.jpg
+            final seqStr = seqWithExt.split('.').first; // 005
+            final seq = int.tryParse(seqStr) ?? 0;
+            if (seq > maxSeq) maxSeq = seq;
+          }
+        }
+      }
+    } catch (_) {
+      // ignore listing errors; fallback to 1
+    }
+
+    final nextSeq = (maxSeq + 1).toString().padLeft(3, '0');
+    return '${prefix}_${dateStr}_${nextSeq}.$ext';
+  }
 
   /// Delete image from storage
   static Future<Map<String, dynamic>> deleteImage(String imageUrl) async {
