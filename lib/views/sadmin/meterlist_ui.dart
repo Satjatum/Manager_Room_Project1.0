@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:manager_room_project/views/sadmin/invoice_add_ui.dart';
 import 'package:manager_room_project/views/sadmin/meter_add_ui.dart';
 import 'package:manager_room_project/views/sadmin/meter_edit_ui.dart';
 import 'package:manager_room_project/views/sadmin/meterlist_detail_ui.dart';
 import 'package:manager_room_project/views/utility_setting_ui.dart';
-import 'package:manager_room_project/views/widgets/mainnavbar.dart';
 import 'package:manager_room_project/views/widgets/subnavbar.dart';
 import '../../services/meter_service.dart';
 import '../../services/branch_service.dart';
@@ -191,10 +191,9 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
 
   @override
   Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-    final isWeb = screenSize.width > 1200;
-    final isTablet = screenSize.width > 768 && screenSize.width <= 1200;
-    final isMobile = screenSize.width <= 768;
+    final platform = Theme.of(context).platform;
+    final bool isMobileApp =
+        !kIsWeb && (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
 
     final canCreateReading = _currentUser?.hasAnyPermission([
           DetailedPermission.all,
@@ -202,11 +201,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
         ]) ??
         false;
 
-    final canFilterByBranch = _currentUser?.hasAnyPermission([
-          DetailedPermission.all,
-          DetailedPermission.manageBranches,
-        ]) ??
-        false;
+    // Filter by branch handled by UI; permission checks occur in service layer
 
     return WillPopScope(
       onWillPop: () async {
@@ -215,264 +210,292 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
         return allow;
       },
       child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () async {
-              if (widget.branchId == null) {
-                Navigator.of(context).maybePop();
-                return;
-              }
-              final allow = await _confirmExitBranch();
-              if (allow && mounted) Navigator.of(context).maybePop();
-            },
-          ),
-        title: const Text('รายการบันทึกค่ามิเตอร์'),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.filter_list),
-            tooltip: 'ตัวกรอง',
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            itemBuilder: (context) => [
-              const PopupMenuItem<String>(
-                value: null,
-                enabled: false,
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header (match Branchlist/Settingbranch style)
+              Padding(
+                padding: const EdgeInsets.all(24),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Icon(Icons.calendar_month,
-                        size: 20, color: AppTheme.primary),
-                    SizedBox(width: 8),
-                    Text('เดือน/ปี',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                      onPressed: () async {
+                        if (widget.branchId == null) {
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          }
+                          return;
+                        }
+                        final allow = await _confirmExitBranch();
+                        if (allow && mounted && Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      tooltip: 'ย้อนกลับ',
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'รายการบันทึกค่ามิเตอร์',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'ค้นหา จัดการ และติดตามสถานะการบันทึกค่ามิเตอร์',
+                            style: TextStyle(fontSize: 14, color: Colors.black54),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-              ...List.generate(12, (index) {
-                return PopupMenuItem<String>(
-                  value: 'month_${index + 1}',
-                  child: Text(_getMonthName(index + 1)),
-                );
-              }),
-              const PopupMenuDivider(),
-              ...List.generate(5, (index) {
-                final year = DateTime.now().year - index;
-                return PopupMenuItem<String>(
-                  value: 'year_$year',
-                  child: Text('$year'),
-                );
-              }),
-            ],
-            onSelected: (String? value) {
-              if (value != null) {
-                if (value.startsWith('month_')) {
-                  setState(() {
-                    _selectedMonth =
-                        int.parse(value.replaceFirst('month_', ''));
-                  });
-                } else if (value.startsWith('year_')) {
-                  setState(() {
-                    _selectedYear = int.parse(value.replaceFirst('year_', ''));
-                  });
-                }
-                _loadMeterReadings();
-                _loadStats();
-              }
-            },
-          ),
-          IconButton(
-            onPressed: _refreshData,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'รีเฟรช',
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Header with search and filters
-          Container(
-            padding: EdgeInsets.all(isMobile ? 12 : 16),
-            decoration: BoxDecoration(
-              color: AppTheme.primary,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // Search bar
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'ค้นหาเลขที่บันทึก, หมายเลขห้อง, ชื่อผู้เช่า...',
-                    hintStyle: TextStyle(color: Colors.grey[500]),
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => _searchQuery = '');
-                              _applyFilters();
-                            },
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                  ),
-                  onChanged: (value) {
-                    setState(() => _searchQuery = value);
-                    _applyFilters();
-                  },
-                ),
 
-                // Branch and Room filters for responsive layout
-                if (canFilterByBranch && _branches.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  if (isWeb || isTablet)
-                    Row(
-                      children: [
-                        Expanded(child: _buildBranchDropdown()),
-                        const SizedBox(width: 12),
-                        Expanded(child: _buildRoomDropdown()),
-                      ],
-                    )
-                  else
-                    Column(
-                      children: [
-                        _buildBranchDropdown(),
-                        const SizedBox(height: 8),
-                        _buildRoomDropdown(),
-                      ],
-                    ),
-                ],
-
-                const SizedBox(height: 12),
-
-                // Statistics tracking bar
-                if (_stats != null) _buildTrackingBar(),
-
-                const SizedBox(height: 12),
-
-                // Tab bar
-                TabBar(
-                  controller: _tabController,
-                  isScrollable: true,
-                  onTap: (index) => _applyFilters(),
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.white.withOpacity(0.7),
-                  indicatorColor: Colors.white,
-                  indicatorWeight: 3,
-                  tabs: [
-                    Tab(text: 'ทั้งหมด (${_getReadingCountByStatus('all')})'),
-                    Tab(text: 'ร่าง (${_getReadingCountByStatus('draft')})'),
-                    Tab(
-                        text:
-                            'ยืนยันแล้ว (${_getReadingCountByStatus('confirmed')})'),
-                    Tab(
-                        text:
-                            'ออกบิลแล้ว (${_getReadingCountByStatus('billed')})'),
-                    Tab(
-                        text:
-                            'ยกเลิก (${_getReadingCountByStatus('cancelled')})'),
-                  ],
-                ),
-
-                // Helper: ยังไม่ตั้งค่าอัตราค่าบริการสำหรับสาขาที่เลือก
-                if (_selectedBranchId != null && !_selectedBranchHasRates) ...[
-                  const SizedBox(height: 12),
-                  Card(
-                    color: Colors.amber.shade50,
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.warning_amber_rounded,
-                        color: Colors.orange,
+              // Search & Filters section (match Branchlist style)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    // Search bar
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[300]!),
                       ),
-                      title: const Text(
-                        'ยังไม่สามารถออกบิลได้ เนื่องจากสาขานี้ยังไม่ได้กำหนดอัตราค่าบริการค่าน้ำและค่าไฟ',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (value) {
+                          setState(() => _searchQuery = value);
+                          _applyFilters();
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'ค้นหาเลขที่บันทึก, หมายเลขห้อง, ชื่อผู้เช่า...',
+                          hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                          prefixIcon: Icon(Icons.search, color: Colors.grey[600], size: 20),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: Icon(Icons.clear, color: Colors.grey[600], size: 20),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _searchQuery = '');
+                                    _applyFilters();
+                                  },
+                                )
+                              : null,
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
                       ),
-                      trailing: TextButton.icon(
-                        icon: const Icon(Icons.settings),
-                        label: const Text('ไปตั้งค่าอัตราค่าบริการ'),
-                        onPressed: () async {
-                          await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const UtilityRatesManagementUi(),
-                            ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Branch/Room filter (responsive like Settingbranch)
+                    if (_branches.isNotEmpty) ...[
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          if (isMobileApp || constraints.maxWidth <= 600) {
+                            return Column(
+                              children: [
+                                _buildBranchDropdown(),
+                                const SizedBox(height: 8),
+                                _buildRoomDropdown(),
+                              ],
+                            );
+                          }
+                          return Row(
+                            children: [
+                              Expanded(child: _buildBranchDropdown()),
+                              const SizedBox(width: 12),
+                              Expanded(child: _buildRoomDropdown()),
+                            ],
                           );
-                          // กลับมาจากหน้าตั้งค่าแล้ว รีเช็คสถานะอีกครั้ง
-                          await _updateBranchRatesCache();
                         },
                       ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
+                      const SizedBox(height: 12),
+                    ],
 
-          // Meter readings list
-          Expanded(
-            child: _isLoading
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    // Stats & Controls row
+                    Row(
                       children: [
-                        CircularProgressIndicator(color: AppTheme.primary),
-                        const SizedBox(height: 16),
-                        Text(
-                          'กำลังโหลดข้อมูล...',
-                          style: TextStyle(color: Colors.grey[600]),
+                        if (_stats != null) Expanded(child: _buildTrackingBar()),
+                        const SizedBox(width: 12),
+                        // Month/Year filter popup and refresh
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.filter_list, color: Colors.black87),
+                          tooltip: 'ตัวกรอง',
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          itemBuilder: (context) => [
+                            const PopupMenuItem<String>(
+                              value: null,
+                              enabled: false,
+                              child: Row(
+                                children: [
+                                  Icon(Icons.calendar_month, size: 20, color: AppTheme.primary),
+                                  SizedBox(width: 8),
+                                  Text('เดือน/ปี', style: TextStyle(fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ),
+                            ...List.generate(12, (index) {
+                              return PopupMenuItem<String>(
+                                value: 'month_${index + 1}',
+                                child: Text(_getMonthName(index + 1)),
+                              );
+                            }),
+                            const PopupMenuDivider(),
+                            ...List.generate(5, (index) {
+                              final year = DateTime.now().year - index;
+                              return PopupMenuItem<String>(
+                                value: 'year_$year',
+                                child: Text('$year'),
+                              );
+                            }),
+                          ],
+                          onSelected: (String? value) async {
+                            if (value != null) {
+                              if (value.startsWith('month_')) {
+                                setState(() {
+                                  _selectedMonth = int.parse(value.replaceFirst('month_', ''));
+                                });
+                              } else if (value.startsWith('year_')) {
+                                setState(() {
+                                  _selectedYear = int.parse(value.replaceFirst('year_', ''));
+                                });
+                              }
+                              await _loadMeterReadings();
+                              await _loadStats();
+                            }
+                          },
+                        ),
+                        IconButton(
+                          onPressed: _refreshData,
+                          icon: const Icon(Icons.refresh, color: Colors.black87),
+                          tooltip: 'รีเฟรช',
                         ),
                       ],
                     ),
-                  )
-                : _filteredReadings.isEmpty
-                    ? _buildEmptyState()
-                    : RefreshIndicator(
-                        onRefresh: _refreshData,
-                        color: AppTheme.primary,
-                        child: _buildMeterReadingsList(screenSize),
+
+                    const SizedBox(height: 12),
+
+                    // Tab bar (neutral style)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TabBar(
+                        controller: _tabController,
+                        isScrollable: true,
+                        onTap: (index) => _applyFilters(),
+                        labelColor: Colors.black87,
+                        unselectedLabelColor: Colors.black54,
+                        indicatorColor: AppTheme.primary,
+                        indicatorWeight: 3,
+                        tabs: [
+                          Tab(text: 'ทั้งหมด (${_getReadingCountByStatus('all')})'),
+                          Tab(text: 'ร่าง (${_getReadingCountByStatus('draft')})'),
+                          Tab(text: 'ยืนยันแล้ว (${_getReadingCountByStatus('confirmed')})'),
+                          Tab(text: 'ออกบิลแล้ว (${_getReadingCountByStatus('billed')})'),
+                          Tab(text: 'ยกเลิก (${_getReadingCountByStatus('cancelled')})'),
+                        ],
                       ),
+                    ),
+
+                    // Helper: missing rates for selected branch
+                    if (_selectedBranchId != null && !_selectedBranchHasRates) ...[
+                      const SizedBox(height: 12),
+                      Card(
+                        color: Colors.amber.shade50,
+                        child: ListTile(
+                          leading: const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                          title: const Text(
+                            'ยังไม่สามารถออกบิลได้ เนื่องจากสาขานี้ยังไม่ได้กำหนดอัตราค่าบริการค่าน้ำและค่าไฟ',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          trailing: TextButton.icon(
+                            icon: const Icon(Icons.settings),
+                            label: const Text('ไปตั้งค่าอัตราค่าบริการ'),
+                            onPressed: () async {
+                              await Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const UtilityRatesManagementUi(),
+                                ),
+                              );
+                              await _updateBranchRatesCache();
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // List/Grid responsive area
+              Expanded(
+                child: _isLoading
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(color: AppTheme.primary),
+                            const SizedBox(height: 16),
+                            Text('กำลังโหลดข้อมูล...', style: TextStyle(color: Colors.grey[600])),
+                          ],
+                        ),
+                      )
+                    : _filteredReadings.isEmpty
+                        ? _buildEmptyState()
+                        : RefreshIndicator(
+                            onRefresh: _refreshData,
+                            color: AppTheme.primary,
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                if (isMobileApp) {
+                                  return _buildListView();
+                                }
+                                if (constraints.maxWidth > 600) {
+                                  return _buildGridView(constraints.maxWidth);
+                                }
+                                return _buildListView();
+                              },
+                            ),
+                          ),
+              ),
+            ],
           ),
-        ],
+        ),
+        floatingActionButton: canCreateReading
+            ? FloatingActionButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => MeterReadingFormPage()),
+                  ).then((_) => _refreshData());
+                },
+                backgroundColor: AppTheme.primary,
+                child: const Icon(Icons.add, color: Colors.white),
+                tooltip: 'เพิ่มบันทึกค่ามิเตอร์',
+              )
+            : null,
+        bottomNavigationBar: Subnavbar(
+          currentIndex: 3,
+          branchId: widget.branchId,
+          branchName: widget.branchName,
+        ),
       ),
-      floatingActionButton: canCreateReading
-          ? FloatingActionButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => MeterReadingFormPage()),
-                ).then((_) => _refreshData());
-              },
-              backgroundColor: AppTheme.primary,
-              child: const Icon(Icons.add, color: Colors.white),
-              tooltip: 'เพิ่มบันทึกค่ามิเตอร์',
-            )
-          : null,
-      bottomNavigationBar: Subnavbar(
-        currentIndex: 3,
-        branchId: widget.branchId,
-        branchName: widget.branchName,
-      ),
-    ));
+    );
   }
 
   Future<bool> _confirmExitBranch() async {
@@ -735,19 +758,54 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
     );
   }
 
-  Widget _buildMeterReadingsList(Size screenSize) {
-    final isMobile = screenSize.width <= 768;
-
+  // ListView for small screens / mobile apps
+  Widget _buildListView() {
     return ListView.builder(
-      padding: EdgeInsets.all(isMobile ? 12 : 16),
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
       itemCount: _filteredReadings.length + (_hasMoreData ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index == _filteredReadings.length) {
-          return _buildLoadMoreButton();
-        }
-
+        if (index == _filteredReadings.length) return _buildLoadMoreButton();
         final reading = _filteredReadings[index];
-        return _buildMeterReadingCard(reading, screenSize);
+        return _buildMeterReadingCard(reading, MediaQuery.of(context).size);
+      },
+    );
+  }
+
+  // GridView for larger screens (responsive like Settingbranch)
+  Widget _buildGridView(double screenWidth) {
+    int crossAxisCount = 2;
+    if (screenWidth > 1200) {
+      crossAxisCount = 4;
+    } else if (screenWidth > 900) {
+      crossAxisCount = 3;
+    }
+
+    const double horizontalPadding = 24;
+    const double crossSpacing = 16;
+    final double availableWidth =
+        screenWidth - (horizontalPadding * 2) - (crossSpacing * (crossAxisCount - 1));
+    final double tileWidth = availableWidth / crossAxisCount;
+
+    // Estimate card height (no image section in meter card)
+    final double estHeader = 90; // title + status + actions
+    final double estInfo = 180; // readings and metadata
+    final double estimatedTileHeight = estHeader + estInfo;
+    double dynamicAspect = tileWidth / estimatedTileHeight;
+    dynamicAspect = dynamicAspect.clamp(0.80, 1.40);
+
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: dynamicAspect,
+      ),
+      itemCount: _filteredReadings.length + (_hasMoreData ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == _filteredReadings.length) return _buildLoadMoreButton();
+        final reading = _filteredReadings[index];
+        return _buildMeterReadingCard(reading, MediaQuery.of(context).size);
       },
     );
   }
