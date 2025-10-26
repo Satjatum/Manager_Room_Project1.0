@@ -488,13 +488,16 @@ class _RoomAddUIState extends State<RoomAddUI> {
         );
         dynamic uploadResult;
 
-        // Build custom filename: roomcate+roomnum+date+_seq
-        // Example produced: <roomcate><roomnum>_YYYYMMDD_001.<ext>
         String _safe(String? s) {
           final v = (s ?? '').trim();
-          return v
+          // remove path-invalid and spaces
+          var out = v
               .replaceAll(RegExp(r"[\\/:*?\<>|]"), '')
               .replaceAll(RegExp(r"\s+"), '');
+          // keep ASCII letters, numbers, dash, underscore only
+          out = out.replaceAll(RegExp(r"[^a-zA-Z0-9_-]"), '');
+          if (out.isEmpty) return 'room';
+          return out;
         }
 
         // Resolve room category label
@@ -560,19 +563,8 @@ class _RoomAddUIState extends State<RoomAddUI> {
         }
 
         if (mounted) Navigator.of(context).pop();
-        if (uploadResult != null && uploadResult['success'] == true) {
+        if (uploadResult != null && uploadResult['success']) {
           imageUrl = uploadResult['url'];
-        } else {
-          final msg = (uploadResult != null && uploadResult['message'] != null)
-              ? uploadResult['message'].toString()
-              : 'อัปโหลดรูปภาพไม่สำเร็จ';
-          if (mounted) {
-            setState(() => _isLoading = false);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(msg), backgroundColor: Colors.red),
-            );
-          }
-          return; // ยกเลิกการบันทึกต่อเมื่ออัปโหลดล้มเหลว
         }
       }
 
