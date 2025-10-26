@@ -143,7 +143,16 @@ class ImageService {
 
       // Upload to Supabase Storage
       try {
-        await _supabase.storage.from(bucket).uploadBinary(fullPath, fileBytes);
+        // set content-type from extension
+        final contentType = _contentTypeFromExt(extension);
+        await _supabase.storage.from(bucket).uploadBinary(
+          fullPath,
+          fileBytes,
+          fileOptions: FileOptions(
+            upsert: false,
+            contentType: contentType,
+          ),
+        );
 
         // Get public URL
         final publicUrl = _supabase.storage.from(bucket).getPublicUrl(fullPath);
@@ -166,6 +175,8 @@ class ImageService {
           message = 'ขนาดไฟล์เกินที่อนุญาต';
         } else if (e.statusCode == '400') {
           message = 'รูปแบบไฟล์ไม่ถูกต้อง';
+        } else if (e.statusCode == '401' || e.statusCode == '403') {
+          message = 'ไม่มีสิทธิ์อัปโหลด กรุณาเข้าสู่ระบบใหม่';
         } else if (e.statusCode == '409') {
           // Conflict - try with different name
           return await uploadImage(
@@ -260,8 +271,16 @@ class ImageService {
         fullPath = folder != null ? '$folder/$newFileName' : newFileName;
       }
 
-      // Upload to Supabase Storage
-      await _supabase.storage.from(bucket).uploadBinary(fullPath, imageBytes);
+      // Upload to Supabase Storage with content type
+      final contentType = _contentTypeFromExt(extension);
+      await _supabase.storage.from(bucket).uploadBinary(
+            fullPath,
+            imageBytes,
+            fileOptions: FileOptions(
+              upsert: false,
+              contentType: contentType,
+            ),
+          );
 
       // Get public URL
       final publicUrl = _supabase.storage.from(bucket).getPublicUrl(fullPath);
@@ -288,6 +307,11 @@ class ImageService {
           context:
               '${context ?? ''}_retry_${DateTime.now().millisecondsSinceEpoch}',
         );
+      } else if (e.statusCode == '401' || e.statusCode == '403') {
+        return {
+          'success': false,
+          'message': 'ไม่มีสิทธิ์อัปโหลด กรุณาเข้าสู่ระบบใหม่',
+        };
       }
 
       return {
@@ -428,6 +452,21 @@ class ImageService {
     final random = Random();
     return List.generate(length, (index) => chars[random.nextInt(chars.length)])
         .join();
+  }
+
+  /// Map file extension to MIME content type
+  static String _contentTypeFromExt(String ext) {
+    switch (ext.toLowerCase().replaceAll('.', '')) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      default:
+        return 'application/octet-stream';
+    }
   }
 
   // ... methods อื่นๆ เหมือนเดิม
