@@ -1528,7 +1528,6 @@ class _RoomListUIState extends State<RoomListUI> {
     final statusColor = _getStatusColor(status);
     final roomId = room['room_id'];
     final amenities = _roomAmenities[roomId] ?? [];
-
     return Card(
       margin: EdgeInsets.only(bottom: 16),
       elevation: 0,
@@ -1552,200 +1551,100 @@ class _RoomListUIState extends State<RoomListUI> {
         },
         child: Padding(
           padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Row (responsive to avoid overflow in narrow tiles)
-              Row(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final bool isNarrow = constraints.maxWidth < 420;
+              return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox.shrink(),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${room['room_category_name']} เลขที่ ${room['room_number'] ?? 'ไม่ระบุ'}',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        if (room['branch_name'] != null)
-                          Padding(
-                            padding: EdgeInsets.only(top: 4),
-                            child: Text(
-                              room['branch_name'],
-                              maxLines: 1,
+                  // Header: title + 3-dots menu (keeps top-right action consistent)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${room['room_category_name']} เลขที่ ${room['room_number'] ?? 'ไม่ระบุ'}',
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[600],
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
                               ),
                             ),
-                          ),
-                      ],
-                    ),
+                            if (room['branch_name'] != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  room['branch_name'],
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      _buildRoomMenu(room, canManage, isActive),
+                    ],
                   ),
-                  SizedBox(width: 8),
-                  // Trailing: filled status badge + popup menu
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: statusColor,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(_getStatusIcon(status),
-                            size: 14, color: Colors.white),
-                        SizedBox(width: 6),
-                        Text(
-                          _getStatusText(status),
-                          style: TextStyle(
+
+                  const SizedBox(height: 10),
+
+                  // Chips: status + active/inactive (wrap for small widths)
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: statusColor,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(_getStatusIcon(status), size: 14, color: Colors.white),
+                            const SizedBox(width: 6),
+                            Text(
+                              _getStatusText(status),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isActive ? const Color(0xFF10B981) : Colors.grey[400],
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          isActive ? 'Active' : 'Inactive',
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: 4),
-                  // Deactivate badge if room is inactive
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isActive ? Color(0xFF10B981) : Colors.grey[400],
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      isActive ? 'Active' : 'Inactive',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
                       ),
-                    ),
-                  ),
-                  SizedBox(width: 4),
-                  PopupMenuButton<String>(
-                    padding: EdgeInsets.zero,
-                    icon: Icon(Icons.more_vert,
-                        color: Colors.grey[600], size: 22),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    offset: Offset(0, 40),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'view',
-                        child: Row(
-                          children: [
-                            Icon(Icons.visibility_outlined,
-                                size: 20, color: Color(0xFF14B8A6)),
-                            SizedBox(width: 12),
-                            Text('View Details'),
-                          ],
-                        ),
-                      ),
-                      if (canManage)
-                        PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit_outlined,
-                                  size: 20, color: Color(0xFF14B8A6)),
-                              SizedBox(width: 12),
-                              Text('Edit Room'),
-                            ],
-                          ),
-                        ),
-                      PopupMenuItem(
-                        value: 'toggle_status',
-                        child: Row(
-                          children: [
-                            Icon(
-                              isActive
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              size: 20,
-                              color: isActive ? Colors.orange : Colors.green,
-                            ),
-                            SizedBox(width: 12),
-                            Text(
-                              isActive ? 'Deactivate' : 'Activate',
-                              style: TextStyle(
-                                color: isActive ? Colors.orange : Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (_currentUser?.userRole == UserRole.superAdmin)
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete_outline,
-                                  size: 20, color: Colors.red),
-                              SizedBox(width: 12),
-                              Text('Delete Room',
-                                  style: TextStyle(color: Colors.red)),
-                            ],
-                          ),
-                        ),
                     ],
-                    onSelected: (value) async {
-                      switch (value) {
-                        case 'view':
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => RoomDetailUI(
-                                roomId: room['room_id'],
-                              ),
-                            ),
-                          );
-                          break;
-                        case 'edit':
-                          if (canManage) {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => RoomEditUI(
-                                  roomId: room['room_id'],
-                                ),
-                              ),
-                            );
-                            if (result == true) _loadRooms();
-                          }
-                          break;
-                        case 'toggle_status':
-                          _toggleRoomStatus(
-                            room['room_id'],
-                            room['room_number'] ?? '',
-                            isActive,
-                          );
-                          break;
-                        case 'delete':
-                          if (_currentUser?.userRole == UserRole.superAdmin) {
-                            _deleteRoom(
-                              room['room_id'],
-                              room['room_number'] ?? '',
-                            );
-                          }
-                          break;
-                      }
-                    },
                   ),
-                ],
-              ),
 
-              SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
               Row(
                 children: [
@@ -1916,9 +1815,116 @@ class _RoomListUIState extends State<RoomListUI> {
               ],
               // Action buttons moved to bottom sheet (menu icon in header)
             ],
+          );
+            },
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildRoomMenu(
+      Map<String, dynamic> room, bool canManage, bool isActive) {
+    return PopupMenuButton<String>(
+      padding: EdgeInsets.zero,
+      icon: Icon(Icons.more_vert, color: Colors.grey[600], size: 22),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      offset: const Offset(0, 40),
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'view',
+          child: Row(
+            children: const [
+              Icon(Icons.visibility_outlined, size: 20, color: Color(0xFF14B8A6)),
+              SizedBox(width: 12),
+              Text('View Details'),
+            ],
+          ),
+        ),
+        if (canManage)
+          PopupMenuItem(
+            value: 'edit',
+            child: Row(
+              children: const [
+                Icon(Icons.edit_outlined, size: 20, color: Color(0xFF14B8A6)),
+                SizedBox(width: 12),
+                Text('Edit Room'),
+              ],
+            ),
+          ),
+        PopupMenuItem(
+          value: 'toggle_status',
+          child: Row(
+            children: [
+              Icon(
+                isActive ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                size: 20,
+                color: isActive ? Colors.orange : Colors.green,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                isActive ? 'Deactivate' : 'Activate',
+                style: TextStyle(
+                  color: isActive ? Colors.orange : Colors.green,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (_currentUser?.userRole == UserRole.superAdmin)
+          PopupMenuItem(
+            value: 'delete',
+            child: Row(
+              children: const [
+                Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                SizedBox(width: 12),
+                Text('Delete Room', style: TextStyle(color: Colors.red)),
+              ],
+            ),
+          ),
+      ],
+      onSelected: (value) async {
+        switch (value) {
+          case 'view':
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => RoomDetailUI(
+                  roomId: room['room_id'],
+                ),
+              ),
+            );
+            break;
+          case 'edit':
+            if (canManage) {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RoomEditUI(
+                    roomId: room['room_id'],
+                  ),
+                ),
+              );
+              if (result == true) _loadRooms();
+            }
+            break;
+          case 'toggle_status':
+            _toggleRoomStatus(
+              room['room_id'],
+              room['room_number'] ?? '',
+              isActive,
+            );
+            break;
+          case 'delete':
+            if (_currentUser?.userRole == UserRole.superAdmin) {
+              _deleteRoom(
+                room['room_id'],
+                room['room_number'] ?? '',
+              );
+            }
+            break;
+        }
+      },
     );
   }
 
