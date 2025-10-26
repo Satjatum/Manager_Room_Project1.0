@@ -357,7 +357,40 @@ class _IssuelistUiState extends State<IssuelistUi>
         ]) ??
         false;
 
-    return Scaffold(
+    final String? lockedBranchId =
+        (widget.branchId != null && widget.branchId!.trim().isNotEmpty)
+            ? widget.branchId
+            : null;
+
+    Future<bool> _confirmExitBranch() async {
+      if (lockedBranchId == null) return true;
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('ยืนยันการออกจากสาขา'),
+          content: const Text('คุณต้องการกลับไปหน้าเลือกสาขาหรือไม่?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('ยืนยัน'),
+            ),
+          ],
+        ),
+      );
+      if (confirm == true) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        return false;
+      }
+      return false;
+    }
+
+    return WillPopScope(
+      onWillPop: _confirmExitBranch,
+      child: Scaffold(
       backgroundColor: Colors.white,
       body: Column(
         children: [
@@ -371,6 +404,19 @@ class _IssuelistUiState extends State<IssuelistUi>
                   // Title
                   Row(
                     children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new,
+                            color: Colors.black87),
+                        onPressed: () async {
+                          if (lockedBranchId != null) {
+                            await _confirmExitBranch();
+                          } else if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        tooltip: 'ย้อนกลับ',
+                      ),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -617,6 +663,7 @@ class _IssuelistUiState extends State<IssuelistUi>
         branchId: widget.branchId,
         branchName: widget.branchName,
       ),
+    ),
     );
   }
 
