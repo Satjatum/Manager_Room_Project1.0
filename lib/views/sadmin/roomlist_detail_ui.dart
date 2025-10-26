@@ -173,7 +173,8 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
+                      Icon(Icons.error_outline,
+                          size: 64, color: Colors.red.shade400),
                       const SizedBox(height: 16),
                       const Text('ไม่พบข้อมูลห้องพัก'),
                     ],
@@ -212,7 +213,10 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
                             const SizedBox(height: 20),
                             _buildPriceInfo(),
                             if (_roomData!['room_desc'] != null &&
-                                _roomData!['room_desc'].toString().trim().isNotEmpty) ...[
+                                _roomData!['room_desc']
+                                    .toString()
+                                    .trim()
+                                    .isNotEmpty) ...[
                               const SizedBox(height: 20),
                               _buildDescription(),
                             ],
