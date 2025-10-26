@@ -6,7 +6,6 @@ import 'package:manager_room_project/services/auth_service.dart';
 import 'package:manager_room_project/services/branch_service.dart';
 import 'package:manager_room_project/models/user_models.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
-import 'package:manager_room_project/views/widgets/mainnavbar.dart';
 import 'package:manager_room_project/views/sadmin/payment_verification_detail_ui.dart';
 import 'package:manager_room_project/services/receipt_print_service.dart';
 import 'package:manager_room_project/views/widgets/subnavbar.dart';
@@ -286,8 +285,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   @override
   Widget build(BuildContext context) {
     final platform = Theme.of(context).platform;
-    final bool isMobileApp =
-        !kIsWeb && (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
+    final bool isMobileApp = !kIsWeb &&
+        (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
 
     return WillPopScope(
       onWillPop: () async {
@@ -296,31 +295,6 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
         return allow;
       },
       child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () async {
-              if (widget.branchId == null) {
-                Navigator.of(context).maybePop();
-                return;
-              }
-              final allow = await _confirmExitBranch();
-              if (allow && mounted) Navigator.of(context).maybePop();
-            },
-          ),
-          title: const Text('ตรวจสอบสลิปชำระเงิน'),
-          backgroundColor: AppTheme.primary,
-          foregroundColor: Colors.white,
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(text: 'ค้างชำระ'),
-              Tab(text: 'รอดำเนินการ'),
-              Tab(text: 'ชำระแล้ว'),
-              Tab(text: 'ปฏิเสธ'),
-            ],
-          ),
-        ),
         backgroundColor: Colors.white,
         bottomNavigationBar: Subnavbar(
           currentIndex: 4,
@@ -334,8 +308,82 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
               : RefreshIndicator(
                   onRefresh: _load,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Content
+                      // Header (meterlist style)
+                      Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back_ios_new,
+                                  color: Colors.black87),
+                              onPressed: () async {
+                                if (widget.branchId == null) {
+                                  if (Navigator.of(context).canPop()) {
+                                    Navigator.of(context).pop();
+                                  }
+                                  return;
+                                }
+                                final allow = await _confirmExitBranch();
+                                if (allow &&
+                                    mounted &&
+                                    Navigator.of(context).canPop()) {
+                                  Navigator.of(context).pop();
+                                }
+                              },
+                              tooltip: 'ย้อนกลับ',
+                            ),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'ตรวจสอบสลิปชำระเงิน',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'ตรวจสอบ อนุมัติ/ปฏิเสธ และติดตามสถานะการชำระ',
+                                    style: TextStyle(
+                                        fontSize: 14, color: Colors.black54),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Tabs (neutral like meterlist)
+                      Padding(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 24),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: TabBar(
+                            controller: _tabController,
+                            isScrollable: true,
+                            labelColor: Colors.black87,
+                            unselectedLabelColor: Colors.black54,
+                            indicatorColor: AppTheme.primary,
+                            indicatorWeight: 3,
+                            tabs: const [
+                              Tab(text: 'ค้างชำระ'),
+                              Tab(text: 'รอดำเนินการ'),
+                              Tab(text: 'ชำระแล้ว'),
+                              Tab(text: 'ปฏิเสธ'),
+                            ],
+                          ),
+                        ),
+                      ),
+
                       const SizedBox(height: 8),
                       Expanded(
                         child: LayoutBuilder(
@@ -349,7 +397,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
 
                             // Web/Desktop: grid for wider screens
                             if (_tabController.index == 0) {
-                              return _buildInvoiceGridView(constraints.maxWidth);
+                              return _buildInvoiceGridView(
+                                  constraints.maxWidth);
                             } else {
                               return _buildSlipGridView(constraints.maxWidth);
                             }
@@ -417,14 +466,16 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
 
     const double horizontalPadding = 24;
     const double crossSpacing = 16;
-    final double availableWidth =
-        screenWidth - (horizontalPadding * 2) - (crossSpacing * (crossAxisCount - 1));
+    final double availableWidth = screenWidth -
+        (horizontalPadding * 2) -
+        (crossSpacing * (crossAxisCount - 1));
     final double tileWidth = availableWidth / crossAxisCount;
 
     final double estHeader = tileWidth < 300 ? 140 : 120; // title/rows
     final double estMedia = 96; // image height in card
     final double estButtons = 56; // actions row
-    final double estimatedTileHeight = estHeader + estMedia + estButtons + 24; // paddings
+    final double estimatedTileHeight =
+        estHeader + estMedia + estButtons + 24; // paddings
     double dynamicAspect = tileWidth / estimatedTileHeight;
     dynamicAspect = dynamicAspect.clamp(0.70, 1.20);
 
@@ -460,8 +511,9 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
 
     const double horizontalPadding = 24;
     const double crossSpacing = 16;
-    final double availableWidth =
-        screenWidth - (horizontalPadding * 2) - (crossSpacing * (crossAxisCount - 1));
+    final double availableWidth = screenWidth -
+        (horizontalPadding * 2) -
+        (crossSpacing * (crossAxisCount - 1));
     final double tileWidth = availableWidth / crossAxisCount;
 
     final double estHeader = tileWidth < 300 ? 120 : 100;
@@ -613,7 +665,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Icon(Icons.receipt_long, size: iconSize, color: AppTheme.primary),
+                      Icon(Icons.receipt_long,
+                          size: iconSize, color: AppTheme.primary),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -648,7 +701,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                             height: mediaHeight,
                             width: double.infinity,
                             color: Colors.grey[200],
-                            child: Icon(Icons.image, color: Colors.grey[400], size: 36),
+                            child: Icon(Icons.image,
+                                color: Colors.grey[400], size: 36),
                           ),
                   ),
 
@@ -663,12 +717,15 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                           padding: const EdgeInsets.only(bottom: 6),
                           child: Row(
                             children: [
-                              Icon(Icons.person_outline, size: iconSize, color: AppTheme.primary),
+                              Icon(Icons.person_outline,
+                                  size: iconSize, color: AppTheme.primary),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   (s['tenant_name'] ?? '-').toString(),
-                                  style: TextStyle(fontSize: bodySize, color: Colors.grey[700]),
+                                  style: TextStyle(
+                                      fontSize: bodySize,
+                                      color: Colors.grey[700]),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -682,19 +739,25 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.meeting_room_outlined, size: iconSize, color: AppTheme.primary),
+                              Icon(Icons.meeting_room_outlined,
+                                  size: iconSize, color: AppTheme.primary),
                               const SizedBox(width: 6),
                               Text((s['room_number'] ?? '-').toString(),
-                                  style: TextStyle(fontSize: bodySize, color: Colors.grey[700])),
+                                  style: TextStyle(
+                                      fontSize: bodySize,
+                                      color: Colors.grey[700])),
                             ],
                           ),
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.business_outlined, size: iconSize, color: AppTheme.primary),
+                              Icon(Icons.business_outlined,
+                                  size: iconSize, color: AppTheme.primary),
                               const SizedBox(width: 6),
                               Text((s['branch_name'] ?? '-').toString(),
-                                  style: TextStyle(fontSize: bodySize, color: Colors.grey[700])),
+                                  style: TextStyle(
+                                      fontSize: bodySize,
+                                      color: Colors.grey[700])),
                             ],
                           ),
                         ],
@@ -702,16 +765,20 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Icon(Icons.payments, size: iconSize, color: AppTheme.primary),
+                          Icon(Icons.payments,
+                              size: iconSize, color: AppTheme.primary),
                           const SizedBox(width: 6),
                           Text('${amount.toStringAsFixed(2)} บาท',
                               style: const TextStyle(
-                                  fontWeight: FontWeight.bold, color: Colors.green)),
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green)),
                           const Spacer(),
-                          const Icon(Icons.schedule, size: 16, color: Colors.grey),
+                          const Icon(Icons.schedule,
+                              size: 16, color: Colors.grey),
                           const SizedBox(width: 4),
                           Text(createdAt.split('T').first,
-                              style: TextStyle(fontSize: bodySize, color: Colors.grey[700])),
+                              style: TextStyle(
+                                  fontSize: bodySize, color: Colors.grey[700])),
                         ],
                       ),
                     ],
@@ -727,8 +794,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                           child: OutlinedButton.icon(
                             onPressed: () => _rejectSlip(s),
                             icon: const Icon(Icons.close, color: Colors.red),
-                            label:
-                                const Text('ปฏิเสธ', style: TextStyle(color: Colors.red)),
+                            label: const Text('ปฏิเสธ',
+                                style: TextStyle(color: Colors.red)),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -766,7 +833,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                           Expanded(
                             child: ElevatedButton.icon(
                               onPressed: () async => _printSlip(s),
-                              icon: const Icon(Icons.print, color: Colors.white),
+                              icon:
+                                  const Icon(Icons.print, color: Colors.white),
                               label: const Text('พิมพ์สลิป',
                                   style: TextStyle(color: Colors.white)),
                               style: ElevatedButton.styleFrom(
