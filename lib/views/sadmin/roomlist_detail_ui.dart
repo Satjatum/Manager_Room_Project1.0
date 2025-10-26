@@ -143,80 +143,130 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_roomData != null
-            ? '${_roomData!['roomcate_name'] ?? 'ห้อง'} ${_roomData!['room_number']}'
-            : 'รายละเอียดห้องพัก'),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        actions: [
-          // if (_canEdit && _roomData != null)
-          //   IconButton(
-          //     icon: const Icon(Icons.edit),
-          //     onPressed: () async {
-          //       final result = await Navigator.push(
-          //         context,
-          //         MaterialPageRoute(
-          //           builder: (context) => RoomEditUI(roomId: widget.roomId),
-          //         ),
-          //       );
-          //       if (result == true) {
-          //         _loadData();
-          //       }
-          //     },
-          //   ),
-        ],
-      ),
-      body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(color: AppTheme.primary),
-            )
-          : _roomData == null
-              ? Center(
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildCustomHeader(),
+              const Expanded(
+                child: Center(
+                  child: CircularProgressIndicator(color: Color(0xFF10B981)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_roomData == null) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildCustomHeader(),
+              Expanded(
+                child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.error_outline,
-                          size: 64, color: Colors.grey[400]),
+                          size: 64, color: Colors.red.shade400),
                       const SizedBox(height: 16),
                       const Text('ไม่พบข้อมูลห้องพัก'),
                     ],
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadData,
-                  color: AppTheme.primary,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Image Gallery
-                        if (_images.isNotEmpty) _buildImageGallery(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
-                        // Room Info
-                        _buildRoomInfo(),
-
-                        // Price Info
-                        _buildPriceInfo(),
-
-                        // Description
-                        if (_roomData!['room_desc'] != null &&
-                            _roomData!['room_desc']
-                                .toString()
-                                .trim()
-                                .isNotEmpty)
-                          _buildDescription(),
-
-                        // Amenities
-                        if (_amenities.isNotEmpty) _buildAmenities(),
-
-                        const SizedBox(height: 24),
-                      ],
-                    ),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildCustomHeader(),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadData,
+                color: AppTheme.primary,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_images.isNotEmpty) _buildImageGallery(),
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildRoomInfo(),
+                            const SizedBox(height: 20),
+                            _buildPriceInfo(),
+                            if (_roomData!['room_desc'] != null &&
+                                _roomData!['room_desc']
+                                    .toString()
+                                    .trim()
+                                    .isNotEmpty) ...[
+                              const SizedBox(height: 20),
+                              _buildDescription(),
+                            ],
+                            if (_amenities.isNotEmpty) ...[
+                              const SizedBox(height: 20),
+                              _buildAmenities(),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomHeader() {
+    final title = _roomData != null
+        ? '${_roomData!['roomcate_name'] ?? 'ห้อง'} ${_roomData!['room_number']}'
+        : 'รายละเอียดห้องพัก';
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey[300]!, width: 1)),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            onPressed: () => Navigator.pop(context),
+          ),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -373,8 +423,12 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
     final status = _roomData!['room_status'] ?? 'available';
     final statusColor = _getStatusColor(status);
 
-    return Card(
-      margin: const EdgeInsets.all(16),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -545,8 +599,12 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
   }
 
   Widget _buildPriceInfo() {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -655,8 +713,12 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
   }
 
   Widget _buildDescription() {
-    return Card(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -692,8 +754,12 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
   }
 
   Widget _buildAmenities() {
-    return Card(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

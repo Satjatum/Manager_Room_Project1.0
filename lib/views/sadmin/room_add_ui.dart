@@ -490,14 +490,9 @@ class _RoomAddUIState extends State<RoomAddUI> {
 
         String _safe(String? s) {
           final v = (s ?? '').trim();
-          // remove path-invalid and spaces
-          var out = v
+          return v
               .replaceAll(RegExp(r"[\\/:*?\<>|]"), '')
               .replaceAll(RegExp(r"\s+"), '');
-          // keep ASCII letters, numbers, dash, underscore only
-          out = out.replaceAll(RegExp(r"[^a-zA-Z0-9_-]"), '');
-          if (out.isEmpty) return 'room';
-          return out;
         }
 
         // Resolve room category label
