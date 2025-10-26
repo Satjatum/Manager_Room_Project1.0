@@ -363,8 +363,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
 
                       // Tabs (neutral like meterlist)
                       Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 24),
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: TabBar(
