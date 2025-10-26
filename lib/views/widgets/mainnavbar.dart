@@ -188,7 +188,7 @@ class _MainnavbarState extends State<Mainnavbar> {
     _pages = [
       const TenantdashUi(),
       const TenantBillsListPage(),
-      const IssuesListScreen(),
+      const IssuelistUi(),
       const SettingUi(),
     ];
   }

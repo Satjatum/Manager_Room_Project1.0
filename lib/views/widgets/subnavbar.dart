@@ -129,8 +129,9 @@ class _SubnavbarState extends State<Subnavbar> {
         branchId: widget.branchId,
         branchName: widget.branchName,
       ),
-      IssuesListScreen(
+      IssuelistUi(
         branchId: widget.branchId,
+        branchName: widget.branchName,
       ),
       MeterReadingsListPage(
         branchId: widget.branchId,
@@ -184,8 +185,9 @@ class _SubnavbarState extends State<Subnavbar> {
         branchId: widget.branchId,
         branchName: widget.branchName,
       ),
-      IssuesListScreen(
+      IssuelistUi(
         branchId: widget.branchId,
+        branchName: widget.branchName,
       ),
       MeterReadingsListPage(
         branchId: widget.branchId,

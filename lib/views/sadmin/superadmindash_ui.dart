@@ -214,14 +214,18 @@ class _SuperadmindashUiState extends State<SuperadmindashUi> {
                                     orElse: () => {},
                                   )['branch_name'],
                           )),
-                          onOpenMeters: () =>
-                              _openPage(const MeterReadingsListPage()),
-                          onOpenIssues: () =>
-                              _openPage(const IssuesListScreen()),
-                          onOpenPayments: () =>
-                              _openPage(const PaymentVerificationPage()),
-                          onOpenUsers: () =>
-                              _openPage(const UserManagementUi()),
+                          onOpenMeters: () => _openPage(
+                            const MeterReadingsListPage(),
+                          ),
+                          onOpenIssues: () => _openPage(
+                            const IssuelistUi(),
+                          ),
+                          onOpenPayments: () => _openPage(
+                            const PaymentVerificationPage(),
+                          ),
+                          onOpenUsers: () => _openPage(
+                            const UserManagementUi(),
+                          ),
                         ),
                       ),
 
