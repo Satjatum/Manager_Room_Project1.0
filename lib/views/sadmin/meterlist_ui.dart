@@ -192,8 +192,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
   @override
   Widget build(BuildContext context) {
     final platform = Theme.of(context).platform;
-    final bool isMobileApp =
-        !kIsWeb && (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
+    final bool isMobileApp = !kIsWeb &&
+        (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
 
     final canCreateReading = _currentUser?.hasAnyPermission([
           DetailedPermission.all,
@@ -222,7 +222,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                      icon: const Icon(Icons.arrow_back_ios_new,
+                          color: Colors.black87),
                       onPressed: () async {
                         if (widget.branchId == null) {
                           if (Navigator.of(context).canPop()) {
@@ -231,7 +232,9 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
                           return;
                         }
                         final allow = await _confirmExitBranch();
-                        if (allow && mounted && Navigator.of(context).canPop()) {
+                        if (allow &&
+                            mounted &&
+                            Navigator.of(context).canPop()) {
                           Navigator.of(context).pop();
                         }
                       },
@@ -253,7 +256,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
                           SizedBox(height: 4),
                           Text(
                             'ค้นหา จัดการ และติดตามสถานะการบันทึกค่ามิเตอร์',
-                            style: TextStyle(fontSize: 14, color: Colors.black54),
+                            style:
+                                TextStyle(fontSize: 14, color: Colors.black54),
                           ),
                         ],
                       ),
@@ -281,12 +285,16 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
                           _applyFilters();
                         },
                         decoration: InputDecoration(
-                          hintText: 'ค้นหาเลขที่บันทึก, หมายเลขห้อง, ชื่อผู้เช่า...',
-                          hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
-                          prefixIcon: Icon(Icons.search, color: Colors.grey[600], size: 20),
+                          hintText:
+                              'ค้นหาเลขที่บันทึก, หมายเลขห้อง, ชื่อผู้เช่า...',
+                          hintStyle:
+                              TextStyle(color: Colors.grey[500], fontSize: 14),
+                          prefixIcon: Icon(Icons.search,
+                              color: Colors.grey[600], size: 20),
                           suffixIcon: _searchQuery.isNotEmpty
                               ? IconButton(
-                                  icon: Icon(Icons.clear, color: Colors.grey[600], size: 20),
+                                  icon: Icon(Icons.clear,
+                                      color: Colors.grey[600], size: 20),
                                   onPressed: () {
                                     _searchController.clear();
                                     setState(() => _searchQuery = '');
@@ -295,56 +303,38 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
                                 )
                               : null,
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
                         ),
                       ),
                     ),
                     const SizedBox(height: 12),
 
-                    // Branch/Room filter (responsive like Settingbranch)
-                    if (_branches.isNotEmpty) ...[
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          if (isMobileApp || constraints.maxWidth <= 600) {
-                            return Column(
-                              children: [
-                                _buildBranchDropdown(),
-                                const SizedBox(height: 8),
-                                _buildRoomDropdown(),
-                              ],
-                            );
-                          }
-                          return Row(
-                            children: [
-                              Expanded(child: _buildBranchDropdown()),
-                              const SizedBox(width: 12),
-                              Expanded(child: _buildRoomDropdown()),
-                            ],
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-
                     // Stats & Controls row
                     Row(
                       children: [
-                        if (_stats != null) Expanded(child: _buildTrackingBar()),
+                        if (_stats != null)
+                          Expanded(child: _buildTrackingBar()),
                         const SizedBox(width: 12),
                         // Month/Year filter popup and refresh
                         PopupMenuButton<String>(
-                          icon: const Icon(Icons.filter_list, color: Colors.black87),
+                          icon: const Icon(Icons.filter_list,
+                              color: Colors.black87),
                           tooltip: 'ตัวกรอง',
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                           itemBuilder: (context) => [
                             const PopupMenuItem<String>(
                               value: null,
                               enabled: false,
                               child: Row(
                                 children: [
-                                  Icon(Icons.calendar_month, size: 20, color: AppTheme.primary),
+                                  Icon(Icons.calendar_month,
+                                      size: 20, color: AppTheme.primary),
                                   SizedBox(width: 8),
-                                  Text('เดือน/ปี', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  Text('เดือน/ปี',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold)),
                                 ],
                               ),
                             ),
@@ -367,11 +357,13 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
                             if (value != null) {
                               if (value.startsWith('month_')) {
                                 setState(() {
-                                  _selectedMonth = int.parse(value.replaceFirst('month_', ''));
+                                  _selectedMonth = int.parse(
+                                      value.replaceFirst('month_', ''));
                                 });
                               } else if (value.startsWith('year_')) {
                                 setState(() {
-                                  _selectedYear = int.parse(value.replaceFirst('year_', ''));
+                                  _selectedYear = int.parse(
+                                      value.replaceFirst('year_', ''));
                                 });
                               }
                               await _loadMeterReadings();
@@ -381,7 +373,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
                         ),
                         IconButton(
                           onPressed: _refreshData,
-                          icon: const Icon(Icons.refresh, color: Colors.black87),
+                          icon:
+                              const Icon(Icons.refresh, color: Colors.black87),
                           tooltip: 'รีเฟรช',
                         ),
                       ],
@@ -401,22 +394,34 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
                         indicatorColor: AppTheme.primary,
                         indicatorWeight: 3,
                         tabs: [
-                          Tab(text: 'ทั้งหมด (${_getReadingCountByStatus('all')})'),
-                          Tab(text: 'ร่าง (${_getReadingCountByStatus('draft')})'),
-                          Tab(text: 'ยืนยันแล้ว (${_getReadingCountByStatus('confirmed')})'),
-                          Tab(text: 'ออกบิลแล้ว (${_getReadingCountByStatus('billed')})'),
-                          Tab(text: 'ยกเลิก (${_getReadingCountByStatus('cancelled')})'),
+                          Tab(
+                              text:
+                                  'ทั้งหมด (${_getReadingCountByStatus('all')})'),
+                          Tab(
+                              text:
+                                  'ร่าง (${_getReadingCountByStatus('draft')})'),
+                          Tab(
+                              text:
+                                  'ยืนยันแล้ว (${_getReadingCountByStatus('confirmed')})'),
+                          Tab(
+                              text:
+                                  'ออกบิลแล้ว (${_getReadingCountByStatus('billed')})'),
+                          Tab(
+                              text:
+                                  'ยกเลิก (${_getReadingCountByStatus('cancelled')})'),
                         ],
                       ),
                     ),
 
                     // Helper: missing rates for selected branch
-                    if (_selectedBranchId != null && !_selectedBranchHasRates) ...[
+                    if (_selectedBranchId != null &&
+                        !_selectedBranchHasRates) ...[
                       const SizedBox(height: 12),
                       Card(
                         color: Colors.amber.shade50,
                         child: ListTile(
-                          leading: const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                          leading: const Icon(Icons.warning_amber_rounded,
+                              color: Colors.orange),
                           title: const Text(
                             'ยังไม่สามารถออกบิลได้ เนื่องจากสาขานี้ยังไม่ได้กำหนดอัตราค่าบริการค่าน้ำและค่าไฟ',
                             style: TextStyle(fontWeight: FontWeight.w600),
@@ -427,7 +432,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
                             onPressed: () async {
                               await Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (_) => const UtilityRatesManagementUi(),
+                                  builder: (_) =>
+                                      const UtilityRatesManagementUi(),
                                 ),
                               );
                               await _updateBranchRatesCache();
@@ -451,7 +457,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
                           children: [
                             CircularProgressIndicator(color: AppTheme.primary),
                             const SizedBox(height: 16),
-                            Text('กำลังโหลดข้อมูล...', style: TextStyle(color: Colors.grey[600])),
+                            Text('กำลังโหลดข้อมูล...',
+                                style: TextStyle(color: Colors.grey[600])),
                           ],
                         ),
                       )
@@ -481,7 +488,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => MeterReadingFormPage()),
+                    MaterialPageRoute(
+                        builder: (context) => MeterReadingFormPage()),
                   ).then((_) => _refreshData());
                 },
                 backgroundColor: AppTheme.primary,
@@ -518,83 +526,6 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
       ),
     );
     return result ?? false;
-  }
-
-  Widget _buildBranchDropdown() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          value: _selectedBranchId,
-          hint: const Text('เลือกสาขา (ทั้งหมด)'),
-          icon: const Icon(Icons.arrow_drop_down),
-          items: [
-            const DropdownMenuItem<String>(
-              value: null,
-              child: Text('ทุกสาขา'),
-            ),
-            ..._branches.map((branch) {
-              return DropdownMenuItem<String>(
-                value: branch['branch_id'],
-                child: Text(branch['branch_name'] ?? ''),
-              );
-            }).toList(),
-          ],
-          onChanged: widget.branchId != null
-              ? null
-              : (String? value) async {
-                  setState(() {
-                    _selectedBranchId = value;
-                    _selectedRoomId = null;
-                    _rooms.clear();
-                  });
-                  if (value != null) await _loadRooms();
-                  await _loadMeterReadings();
-                  await _loadStats();
-                },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRoomDropdown() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          value: _selectedRoomId,
-          hint: const Text('เลือกห้อง (ทั้งหมด)'),
-          icon: const Icon(Icons.arrow_drop_down),
-          items: [
-            const DropdownMenuItem<String>(
-              value: null,
-              child: Text('ทุกห้อง'),
-            ),
-            ..._rooms.map((room) {
-              return DropdownMenuItem<String>(
-                value: room['room_id'],
-                child: Text('ห้อง ${room['room_number']}'),
-              );
-            }).toList(),
-          ],
-          onChanged: (String? value) {
-            setState(() => _selectedRoomId = value);
-            _loadMeterReadings();
-            _loadStats();
-          },
-        ),
-      ),
-    );
   }
 
   Widget _buildTrackingBar() {
@@ -782,8 +713,9 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
 
     const double horizontalPadding = 24;
     const double crossSpacing = 16;
-    final double availableWidth =
-        screenWidth - (horizontalPadding * 2) - (crossSpacing * (crossAxisCount - 1));
+    final double availableWidth = screenWidth -
+        (horizontalPadding * 2) -
+        (crossSpacing * (crossAxisCount - 1));
     final double tileWidth = availableWidth / crossAxisCount;
 
     // Estimate card height (no image section in meter card)
