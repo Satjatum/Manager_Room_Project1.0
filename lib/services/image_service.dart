@@ -153,13 +153,13 @@ class ImageService {
         // set content-type from extension
         final contentType = _contentTypeFromExt(extension);
         await _supabase.storage.from(bucket).uploadBinary(
-          fullPath,
-          fileBytes,
-          fileOptions: FileOptions(
-            upsert: false,
-            contentType: contentType,
-          ),
-        );
+              fullPath,
+              fileBytes,
+              fileOptions: FileOptions(
+                upsert: false,
+                contentType: contentType,
+              ),
+            );
 
         // Get public URL
         final publicUrl = _supabase.storage.from(bucket).getPublicUrl(fullPath);
@@ -493,7 +493,7 @@ class ImageService {
         .last
         .replaceAll(RegExp(r"[\n\r\t]"), '')
         .replaceAll(RegExp(r"\s+"), '')
-        .replaceAll(RegExp(r"[\*\?\"<>\|:]"), '');
+        .replaceAll(RegExp(r"[\*\?\<>\|:]"), '');
 
     if (clean.isEmpty || clean == '.' || clean == '..') return '';
 
