@@ -104,7 +104,14 @@ class ImageService {
       // Generate unique filename
       String fileName;
       if (customFileName != null) {
-        fileName = customFileName;
+        fileName = _normalizeFileName(customFileName, extension);
+        if (fileName.isEmpty) {
+          fileName = _generateUniqueFileName(
+            extension: extension,
+            prefix: prefix,
+            context: context,
+          );
+        }
       } else {
         fileName = _generateUniqueFileName(
           extension: extension,
@@ -143,7 +150,16 @@ class ImageService {
 
       // Upload to Supabase Storage
       try {
-        await _supabase.storage.from(bucket).uploadBinary(fullPath, fileBytes);
+        // set content-type from extension
+        final contentType = _contentTypeFromExt(extension);
+        await _supabase.storage.from(bucket).uploadBinary(
+          fullPath,
+          fileBytes,
+          fileOptions: FileOptions(
+            upsert: false,
+            contentType: contentType,
+          ),
+        );
 
         // Get public URL
         final publicUrl = _supabase.storage.from(bucket).getPublicUrl(fullPath);
@@ -166,6 +182,8 @@ class ImageService {
           message = 'ขนาดไฟล์เกินที่อนุญาต';
         } else if (e.statusCode == '400') {
           message = 'รูปแบบไฟล์ไม่ถูกต้อง';
+        } else if (e.statusCode == '401' || e.statusCode == '403') {
+          message = 'ไม่มีสิทธิ์อัปโหลด กรุณาเข้าสู่ระบบใหม่';
         } else if (e.statusCode == '409') {
           // Conflict - try with different name
           return await uploadImage(
@@ -236,12 +254,20 @@ class ImageService {
       }
 
       // Generate filename (allow custom)
-      final fileName = customFileName ??
-          _generateUniqueFileName(
-            extension: extension,
-            prefix: prefix,
-            context: context,
-          );
+      String fileName = customFileName != null
+          ? _normalizeFileName(customFileName, extension)
+          : _generateUniqueFileName(
+              extension: extension,
+              prefix: prefix,
+              context: context,
+            );
+      if (fileName.isEmpty) {
+        fileName = _generateUniqueFileName(
+          extension: extension,
+          prefix: prefix,
+          context: context,
+        );
+      }
 
       // Create full path
       String fullPath = fileName;
@@ -260,8 +286,16 @@ class ImageService {
         fullPath = folder != null ? '$folder/$newFileName' : newFileName;
       }
 
-      // Upload to Supabase Storage
-      await _supabase.storage.from(bucket).uploadBinary(fullPath, imageBytes);
+      // Upload to Supabase Storage with content type
+      final contentType = _contentTypeFromExt(extension);
+      await _supabase.storage.from(bucket).uploadBinary(
+            fullPath,
+            imageBytes,
+            fileOptions: FileOptions(
+              upsert: false,
+              contentType: contentType,
+            ),
+          );
 
       // Get public URL
       final publicUrl = _supabase.storage.from(bucket).getPublicUrl(fullPath);
@@ -288,6 +322,11 @@ class ImageService {
           context:
               '${context ?? ''}_retry_${DateTime.now().millisecondsSinceEpoch}',
         );
+      } else if (e.statusCode == '401' || e.statusCode == '403') {
+        return {
+          'success': false,
+          'message': 'ไม่มีสิทธิ์อัปโหลด กรุณาเข้าสู่ระบบใหม่',
+        };
       }
 
       return {
@@ -428,6 +467,44 @@ class ImageService {
     final random = Random();
     return List.generate(length, (index) => chars[random.nextInt(chars.length)])
         .join();
+  }
+
+  /// Map file extension to MIME content type
+  static String _contentTypeFromExt(String ext) {
+    switch (ext.toLowerCase().replaceAll('.', '')) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      default:
+        return 'application/octet-stream';
+    }
+  }
+
+  /// Sanitize and normalize a provided file name; ensure extension
+  static String _normalizeFileName(String name, String extension) {
+    final clean = name
+        .trim()
+        .replaceAll('\\', '/')
+        .split('/')
+        .last
+        .replaceAll(RegExp(r"[\n\r\t]"), '')
+        .replaceAll(RegExp(r"\s+"), '')
+        .replaceAll(RegExp(r"[\*\?\"<>\|:]"), '');
+
+    if (clean.isEmpty || clean == '.' || clean == '..') return '';
+
+    // Ensure has extension
+    if (!clean.contains('.')) {
+      final ext = extension.toLowerCase().replaceAll('.', '');
+      if (ext.isEmpty) return '';
+      return '$clean.$ext';
+    }
+
+    return clean;
   }
 
   // ... methods อื่นๆ เหมือนเดิม
