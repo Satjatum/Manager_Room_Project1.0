@@ -1103,140 +1103,101 @@ class _RoomListUIState extends State<RoomListUI> {
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Section (match branchlist_ui) + Back Arrow
-            Padding(
-              padding: EdgeInsets.all(24),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back_ios_new, color: Colors.black87),
-                    onPressed: () async {
-                      if (lockedBranchId != null) {
-                        await _confirmExitBranch();
-                      } else if (Navigator.of(context).canPop()) {
-                        Navigator.of(context).pop();
-                      }
-                    },
-                    tooltip: 'ย้อนกลับ',
-                  ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          'Room Management',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Section (match branchlist_ui) + Back Arrow
+              Padding(
+                padding: EdgeInsets.all(24),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon:
+                          Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                      onPressed: () async {
+                        if (lockedBranchId != null) {
+                          await _confirmExitBranch();
+                        } else if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      tooltip: 'ย้อนกลับ',
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'Room Management',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Manage your rooms and details',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Search and Filters in a single horizontal row (scrollable)
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
-                  // Search Bar
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey[300]!),
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: _onSearchChanged,
-                      decoration: InputDecoration(
-                        hintText: 'Search',
-                        hintStyle:
-                            TextStyle(color: Colors.grey[500], fontSize: 14),
-                        prefixIcon: Icon(Icons.search,
-                            color: Colors.grey[600], size: 20),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: Icon(Icons.clear,
-                                    color: Colors.grey[600], size: 20),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  _onSearchChanged('');
-                                },
-                              )
-                            : null,
-                        border: InputBorder.none,
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 16),
-            // Active status
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
-                  SizedBox(
-                    child: Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.filter_list,
-                              size: 20, color: Colors.grey[700]),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: _selectedStatus,
-                                isExpanded: true,
-                                icon: Icon(Icons.keyboard_arrow_down, size: 20),
-                                style: TextStyle(
-                                    fontSize: 14, color: Colors.black87),
-                                onChanged: _onStatusChanged,
-                                items: const [
-                                  DropdownMenuItem(
-                                      value: 'all', child: Text('All')),
-                                  DropdownMenuItem(
-                                      value: 'active', child: Text('Active')),
-                                  DropdownMenuItem(
-                                      value: 'inactive',
-                                      child: Text('Inactive')),
-                                ],
-                              ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Manage your rooms and details',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.black54,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  if (_branches.isNotEmpty && widget.branchId == null) ...[
-                    SizedBox(height: 12),
+                  ],
+                ),
+              ),
+
+              // Search and Filters in a single horizontal row (scrollable)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    // Search Bar
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: _onSearchChanged,
+                        decoration: InputDecoration(
+                          hintText: 'Search',
+                          hintStyle:
+                              TextStyle(color: Colors.grey[500], fontSize: 14),
+                          prefixIcon: Icon(Icons.search,
+                              color: Colors.grey[600], size: 20),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: Icon(Icons.clear,
+                                      color: Colors.grey[600], size: 20),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    _onSearchChanged('');
+                                  },
+                                )
+                              : null,
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 16),
+              // Active status
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
                     SizedBox(
                       child: Container(
                         padding:
@@ -1247,35 +1208,127 @@ class _RoomListUIState extends State<RoomListUI> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.place_outlined,
+                            Icon(Icons.filter_list,
                                 size: 20, color: Colors.grey[700]),
                             SizedBox(width: 8),
                             Expanded(
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<String>(
-                                  value: _selectedBranchId ?? 'all',
+                                  value: _selectedStatus,
                                   isExpanded: true,
                                   icon:
                                       Icon(Icons.keyboard_arrow_down, size: 20),
                                   style: TextStyle(
                                       fontSize: 14, color: Colors.black87),
-                                  items: [
+                                  onChanged: _onStatusChanged,
+                                  items: const [
                                     DropdownMenuItem(
-                                      value: 'all',
-                                      child: Text('ทุกสาขา'),
-                                    ),
-                                    ..._branches.map((branch) {
-                                      return DropdownMenuItem<String>(
-                                        value: branch['branch_id'] as String,
-                                        child:
-                                            Text(branch['branch_name'] ?? ''),
-                                      );
-                                    }).toList(),
+                                        value: 'all', child: Text('All')),
+                                    DropdownMenuItem(
+                                        value: 'active', child: Text('Active')),
+                                    DropdownMenuItem(
+                                        value: 'inactive',
+                                        child: Text('Inactive')),
                                   ],
-                                  onChanged: (value) {
-                                    _onBranchChanged(
-                                        value == 'all' ? null : value);
-                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (_branches.isNotEmpty && widget.branchId == null) ...[
+                      SizedBox(height: 12),
+                      SizedBox(
+                        child: Container(
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.place_outlined,
+                                  size: 20, color: Colors.grey[700]),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: _selectedBranchId ?? 'all',
+                                    isExpanded: true,
+                                    icon: Icon(Icons.keyboard_arrow_down,
+                                        size: 20),
+                                    style: TextStyle(
+                                        fontSize: 14, color: Colors.black87),
+                                    items: [
+                                      DropdownMenuItem(
+                                        value: 'all',
+                                        child: Text('ทุกสาขา'),
+                                      ),
+                                      ..._branches.map((branch) {
+                                        return DropdownMenuItem<String>(
+                                          value: branch['branch_id'] as String,
+                                          child:
+                                              Text(branch['branch_name'] ?? ''),
+                                        );
+                                      }).toList(),
+                                    ],
+                                    onChanged: (value) {
+                                      _onBranchChanged(
+                                          value == 'all' ? null : value);
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    SizedBox(height: 16),
+                    // Room status
+                    SizedBox(
+                      child: Container(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.hotel_class_rounded,
+                                size: 20, color: Colors.grey[700]),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: _selectedRoomStatusFilter,
+                                  isExpanded: true,
+                                  icon:
+                                      Icon(Icons.keyboard_arrow_down, size: 20),
+                                  style: TextStyle(
+                                      fontSize: 14, color: Colors.black87),
+                                  onChanged: _onRoomStatusFilterChanged,
+                                  items: const [
+                                    DropdownMenuItem(
+                                        value: 'all', child: Text('ทั้งหมด')),
+                                    DropdownMenuItem(
+                                        value: 'available',
+                                        child: Text('ห้องว่าง')),
+                                    DropdownMenuItem(
+                                        value: 'occupied',
+                                        child: Text('มีผู้เช่า')),
+                                    DropdownMenuItem(
+                                        value: 'maintenance',
+                                        child: Text('ซ่อมบำรุง')),
+                                    DropdownMenuItem(
+                                        value: 'reserved', child: Text('จอง')),
+                                    DropdownMenuItem(
+                                        value: 'unknown',
+                                        child: Text('ไม่ทราบ')),
+                                  ],
                                 ),
                               ),
                             ),
@@ -1284,178 +1337,132 @@ class _RoomListUIState extends State<RoomListUI> {
                       ),
                     ),
                   ],
-                  SizedBox(height: 16),
-                  // Room status
-                  SizedBox(
-                    child: Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.hotel_class_rounded,
-                              size: 20, color: Colors.grey[700]),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: _selectedRoomStatusFilter,
-                                isExpanded: true,
-                                icon: Icon(Icons.keyboard_arrow_down, size: 20),
-                                style: TextStyle(
-                                    fontSize: 14, color: Colors.black87),
-                                onChanged: _onRoomStatusFilterChanged,
-                                items: const [
-                                  DropdownMenuItem(
-                                      value: 'all', child: Text('ทั้งหมด')),
-                                  DropdownMenuItem(
-                                      value: 'available',
-                                      child: Text('ห้องว่าง')),
-                                  DropdownMenuItem(
-                                      value: 'occupied',
-                                      child: Text('มีผู้เช่า')),
-                                  DropdownMenuItem(
-                                      value: 'maintenance',
-                                      child: Text('ซ่อมบำรุง')),
-                                  DropdownMenuItem(
-                                      value: 'reserved', child: Text('จอง')),
-                                  DropdownMenuItem(
-                                      value: 'unknown', child: Text('ไม่ทราบ')),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            // Active status
+              // Active status
 
-            SizedBox(height: 16),
+              SizedBox(height: 16),
 
-            // Results Count
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: Text(
-                'Showing ${_filteredRooms.length} of ${_rooms.length} rooms',
-                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              // Results Count
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Text(
+                  'Showing ${_filteredRooms.length} of ${_rooms.length} rooms',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                ),
               ),
-            ),
 
-            Expanded(
-              child: _isLoading
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(color: AppTheme.primary),
-                          SizedBox(height: 16),
-                          Text('กำลังโหลดข้อมูล...'),
-                        ],
-                      ),
-                    )
-                  : _filteredRooms.isEmpty
-                      ? _buildEmptyState()
-                      : RefreshIndicator(
-                          onRefresh: _loadRooms,
-                          color: AppTheme.primary,
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final width = constraints.maxWidth;
-                              int cols = 1;
-                              if (width >= 1200) {
-                                cols = 4;
-                              } else if (width >= 992) {
-                                cols = 3;
-                              } else if (width >= 768) {
-                                cols = 2;
-                              }
+              Expanded(
+                child: _isLoading
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CircularProgressIndicator(color: AppTheme.primary),
+                            SizedBox(height: 16),
+                            Text('กำลังโหลดข้อมูล...'),
+                          ],
+                        ),
+                      )
+                    : _filteredRooms.isEmpty
+                        ? _buildEmptyState()
+                        : RefreshIndicator(
+                            onRefresh: _loadRooms,
+                            color: AppTheme.primary,
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final width = constraints.maxWidth;
+                                int cols = 1;
+                                if (width >= 1200) {
+                                  cols = 4;
+                                } else if (width >= 992) {
+                                  cols = 3;
+                                } else if (width >= 768) {
+                                  cols = 2;
+                                }
 
-                              if (cols == 1) {
-                                return ListView.builder(
+                                if (cols == 1) {
+                                  return ListView.builder(
+                                    padding: EdgeInsets.fromLTRB(24, 8, 24, 24),
+                                    itemCount: _filteredRooms.length,
+                                    itemBuilder: (context, index) {
+                                      final room = _filteredRooms[index];
+                                      return _buildRoomCard(room, _canManage);
+                                    },
+                                  );
+                                }
+
+                                // Dynamic aspect ratio similar to branchlist_ui to avoid overflow
+                                const double horizontalPadding = 24;
+                                const double crossSpacing = 12;
+                                final double availableWidth = width -
+                                    (horizontalPadding * 2) -
+                                    (crossSpacing * (cols - 1));
+                                final double tileWidth = availableWidth / cols;
+
+                                // Estimate heights (conservative for rich content)
+                                final double estHeader = tileWidth < 300 ? 140 : 110;
+                                final double estInfo = tileWidth < 300 ? 190 : 150;
+                                final double estimatedTileHeight = estHeader + estInfo;
+                                double dynamicAspect =
+                                    tileWidth / estimatedTileHeight; // width / height
+                                dynamicAspect = dynamicAspect.clamp(0.60, 1.05);
+
+                                return GridView.builder(
                                   padding: EdgeInsets.fromLTRB(24, 8, 24, 24),
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: cols,
+                                    crossAxisSpacing: crossSpacing,
+                                    mainAxisSpacing: 12,
+                                    childAspectRatio: dynamicAspect,
+                                  ),
                                   itemCount: _filteredRooms.length,
                                   itemBuilder: (context, index) {
                                     final room = _filteredRooms[index];
                                     return _buildRoomCard(room, _canManage);
                                   },
                                 );
-                              }
-
-                              // Grid for large screens
-                              double aspect;
-                              if (cols >= 4) {
-                                aspect =
-                                    0.78; // taller tiles to avoid overflow on narrow widths
-                              } else if (cols == 3) {
-                                aspect = 0.9;
-                              } else if (cols == 2) {
-                                aspect = 1.0;
-                              } else {
-                                aspect = 1.0;
-                              }
-
-                              return GridView.builder(
-                                padding: EdgeInsets.fromLTRB(24, 8, 24, 24),
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: cols,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: aspect,
-                                ),
-                                itemCount: _filteredRooms.length,
-                                itemBuilder: (context, index) {
-                                  final room = _filteredRooms[index];
-                                  return _buildRoomCard(room, _canManage);
-                                },
-                              );
-                            },
+                              },
+                            ),
                           ),
-                        ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
-      ),
-      floatingActionButton: _canAddRoom
-          ? FloatingActionButton(
-              onPressed: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => RoomAddUI(
-                      branchId: _selectedBranchId,
-                      branchName: _selectedBranchId != null
-                          ? _branches.firstWhere(
-                              (b) => b['branch_id'] == _selectedBranchId,
-                              orElse: () => {},
-                            )['branch_name']
-                          : null,
+        floatingActionButton: _canAddRoom
+            ? FloatingActionButton(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RoomAddUI(
+                        branchId: _selectedBranchId,
+                        branchName: _selectedBranchId != null
+                            ? _branches.firstWhere(
+                                (b) => b['branch_id'] == _selectedBranchId,
+                                orElse: () => {},
+                              )['branch_name']
+                            : null,
+                      ),
                     ),
-                  ),
-                );
+                  );
 
-                if (result == true) {
-                  await _loadRooms();
-                }
-              },
-              backgroundColor: AppTheme.primary,
-              child: Icon(Icons.add, color: Colors.white),
-            )
-          : null,
-      bottomNavigationBar: widget.hideBottomNav
-          ? null
-          : Subnavbar(
-              currentIndex: 0,
-              branchId: widget.branchId,
-              branchName: widget.branchName,
-            ),
+                  if (result == true) {
+                    await _loadRooms();
+                  }
+                },
+                backgroundColor: AppTheme.primary,
+                child: Icon(Icons.add, color: Colors.white),
+              )
+            : null,
+        bottomNavigationBar: widget.hideBottomNav
+            ? null
+            : Subnavbar(
+                currentIndex: 0,
+                branchId: widget.branchId,
+                branchName: widget.branchName,
+              ),
       ),
     );
   }
@@ -1605,7 +1612,8 @@ class _RoomListUIState extends State<RoomListUI> {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
                           color: statusColor,
                           borderRadius: BorderRadius.circular(6),
@@ -1613,7 +1621,8 @@ class _RoomListUIState extends State<RoomListUI> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(_getStatusIcon(status), size: 14, color: Colors.white),
+                            Icon(_getStatusIcon(status),
+                                size: 14, color: Colors.white),
                             const SizedBox(width: 6),
                             Text(
                               _getStatusText(status),
@@ -1627,9 +1636,12 @@ class _RoomListUIState extends State<RoomListUI> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: isActive ? const Color(0xFF10B981) : Colors.grey[400],
+                          color: isActive
+                              ? const Color(0xFF10B981)
+                              : Colors.grey[400],
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -1646,176 +1658,194 @@ class _RoomListUIState extends State<RoomListUI> {
 
                   const SizedBox(height: 12),
 
-              Row(
-                children: [
-                  // Room Type
-                  if (room['room_type_name'] != null) ...[
-                    SizedBox(width: 8),
-                    _buildInfoChip(
-                      Icons.category,
-                      room['room_type_name'],
-                      Color(0xFF14B8A6),
-                    ),
-                  ],
-                ],
-              ),
-
-              SizedBox(height: 12),
-
-              // Room Info (Size & Price)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
                   Row(
                     children: [
-                      if (room['room_size'] != null) ...[
-                        Icon(Icons.aspect_ratio,
-                            size: 16, color: Colors.grey[600]),
-                        SizedBox(width: 4),
-                        Text(
-                          '${room['room_size']} ตร.ม.',
-                          style:
-                              TextStyle(fontSize: 13, color: Colors.grey[700]),
+                      // Room Type
+                      if (room['room_type_name'] != null) ...[
+                        SizedBox(width: 8),
+                        _buildInfoChip(
+                          Icons.category,
+                          room['room_type_name'],
+                          Color(0xFF14B8A6),
                         ),
-                        SizedBox(width: 16),
                       ],
-                      Icon(Icons.payments, size: 16, color: Colors.grey[600]),
-                      SizedBox(width: 4),
-                      Text(
-                        '${room['room_price'] ?? 0} บาท/เดือน',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      Icon(Icons.security, size: 16, color: Colors.grey[600]),
-                      SizedBox(width: 4),
-                      Text(
-                        'ค่ามัดจำ: ${room['room_deposit'] ?? 0} บาท',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[700],
-                        ),
-                      ),
                     ],
                   ),
-                ],
-              ),
 
-              // Room Description
-              if (room['room_desc'] != null &&
-                  room['room_desc'].toString().trim().isNotEmpty) ...[
-                SizedBox(height: 12),
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[200]!),
-                  ),
-                  child: Row(
+                  SizedBox(height: 12),
+
+                  // Room Info (Size & Price) - use Wrap to prevent horizontal overflow
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.description,
-                          size: 16, color: Colors.grey[600]),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          room['room_desc'],
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[700],
-                            height: 1.4,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
-              // Amenities Section
-              if (amenities.isNotEmpty) ...[
-                SizedBox(height: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.stars, size: 14, color: Colors.amber[700]),
-                        SizedBox(width: 4),
-                        Text(
-                          'สิ่งอำนวยความสะดวก',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: amenities.take(5).map((amenity) {
-                        return Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Color(0xFF14B8A6).withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Color(0xFF14B8A6).withOpacity(0.2),
-                              width: 0.5,
+                      Wrap(
+                        spacing: 16,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (room['room_size'] != null)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.aspect_ratio,
+                                    size: 16, color: Colors.grey[600]),
+                                SizedBox(width: 4),
+                                Text(
+                                  '${room['room_size']} ตร.ม.',
+                                  style: TextStyle(
+                                      fontSize: 13, color: Colors.grey[700]),
+                                ),
+                              ],
                             ),
-                          ),
-                          child: Row(
+                          Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                _getAmenityIcon(amenity['amenities_icon']),
-                                size: 12,
-                                color: Color(0xFF14B8A6),
-                              ),
+                              Icon(Icons.payments,
+                                  size: 16, color: Colors.grey[600]),
                               SizedBox(width: 4),
                               Text(
-                                amenity['amenities_name'] ?? '',
+                                '${room['room_price'] ?? 0} บาท/เดือน',
                                 style: TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF14B8A6),
+                                  fontSize: 13,
+                                  color: Colors.grey[700],
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
                           ),
-                        );
-                      }).toList(),
-                    ),
-                    if (amenities.length > 5)
-                      Padding(
-                        padding: EdgeInsets.only(top: 6),
-                        child: Text(
-                          '+${amenities.length - 5} เพิ่มเติม',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF14B8A6),
-                            fontWeight: FontWeight.w500,
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.security,
+                                  size: 16, color: Colors.grey[600]),
+                              SizedBox(width: 4),
+                              Text(
+                                'ค่ามัดจำ: ${room['room_deposit'] ?? 0} บาท',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
+                        ],
                       ),
+                    ],
+                  ),
+
+                  // Room Description
+                  if (room['room_desc'] != null &&
+                      room['room_desc'].toString().trim().isNotEmpty) ...[
+                    SizedBox(height: 12),
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.description,
+                              size: 16, color: Colors.grey[600]),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              room['room_desc'],
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[700],
+                                height: 1.4,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
-                ),
-              ],
-              // Action buttons moved to bottom sheet (menu icon in header)
-            ],
-          );
+
+                  // Amenities Section
+                  if (amenities.isNotEmpty) ...[
+                    SizedBox(height: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.stars,
+                                size: 14, color: Colors.amber[700]),
+                            SizedBox(width: 4),
+                            Text(
+                              'สิ่งอำนวยความสะดวก',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: amenities.take(5).map((amenity) {
+                            return Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Color(0xFF14B8A6).withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Color(0xFF14B8A6).withOpacity(0.2),
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    _getAmenityIcon(amenity['amenities_icon']),
+                                    size: 12,
+                                    color: Color(0xFF14B8A6),
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    amenity['amenities_name'] ?? '',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFF14B8A6),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        if (amenities.length > 5)
+                          Padding(
+                            padding: EdgeInsets.only(top: 6),
+                            child: Text(
+                              '+${amenities.length - 5} เพิ่มเติม',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF14B8A6),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                  // Action buttons moved to bottom sheet (menu icon in header)
+                ],
+              );
             },
           ),
         ),
@@ -1835,7 +1865,8 @@ class _RoomListUIState extends State<RoomListUI> {
           value: 'view',
           child: Row(
             children: const [
-              Icon(Icons.visibility_outlined, size: 20, color: Color(0xFF14B8A6)),
+              Icon(Icons.visibility_outlined,
+                  size: 20, color: Color(0xFF14B8A6)),
               SizedBox(width: 12),
               Text('View Details'),
             ],
@@ -1857,7 +1888,9 @@ class _RoomListUIState extends State<RoomListUI> {
           child: Row(
             children: [
               Icon(
-                isActive ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                isActive
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
                 size: 20,
                 color: isActive ? Colors.orange : Colors.green,
               ),
