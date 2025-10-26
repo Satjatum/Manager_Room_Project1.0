@@ -619,21 +619,26 @@ class _RoomAddUIState extends State<RoomAddUI> {
 
   @override
   Widget build(BuildContext context) {
+    // Loading/auth states use the same clean header style as branch_add_ui
     if (_isCheckingAuth) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('เพิ่มห้องพักใหม่'),
-          backgroundColor: AppTheme.primary,
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
-        body: Center(
+        backgroundColor: Colors.white,
+        body: SafeArea(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(color: AppTheme.primary),
-              const SizedBox(height: 16),
-              const Text('กำลังตรวจสอบสิทธิ์...'),
+              _buildCustomHeader(),
+              const Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(color: AppTheme.primary),
+                      SizedBox(height: 16),
+                      Text('กำลังตรวจสอบสิทธิ์...'),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -642,50 +647,44 @@ class _RoomAddUIState extends State<RoomAddUI> {
 
     if (_currentUser == null) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('เพิ่มห้องพักใหม่'),
-          backgroundColor: AppTheme.primary,
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
-        body: Center(
+        backgroundColor: Colors.white,
+        body: SafeArea(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.lock,
-                size: 80,
-                color: Colors.grey[400],
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'กรุณาเข้าสู่ระบบ',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'คุณต้องเข้าสู่ระบบก่อนจึงจะสามารถเพิ่มห้องพักได้',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
+              _buildCustomHeader(),
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.lock_outline, size: 80, color: Colors.grey[400]),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'กรุณาเข้าสู่ระบบ',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 8),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24),
+                        child: Text(
+                          'คุณต้องเข้าสู่ระบบก่อนจึงจะสามารถเพิ่มห้องพักได้',
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                        child: const Text('กลับ'),
+                      ),
+                    ],
                   ),
                 ),
-                child: const Text('กลับ'),
               ),
             ],
           ),
@@ -694,66 +693,160 @@ class _RoomAddUIState extends State<RoomAddUI> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.branchName != null
-              ? 'เพิ่มห้องพัก - ${widget.branchName}'
-              : 'เพิ่มห้องพักใหม่',
-        ),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: _isLoading
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(color: AppTheme.primary),
-                  const SizedBox(height: 16),
-                  const Text('กำลังบันทึกข้อมูล...'),
-                ],
-              ),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildImageSection(),
-                    const SizedBox(height: 24),
-                    _buildBasicInfoSection(),
-                    const SizedBox(height: 24),
-                    _buildPriceSection(),
-                    const SizedBox(height: 24),
-                    _buildRoomDetailsSection(),
-                    const SizedBox(height: 24),
-                    _buildAmenitiesSection(), //
-                    const SizedBox(height: 24),
-                    _buildDescriptionSection(),
-                    const SizedBox(height: 24),
-                    _buildStatusSection(),
-                    const SizedBox(height: 32),
-                    _buildSaveButton(),
-                  ],
-                ),
-              ),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildCustomHeader(),
+            Expanded(
+              child: _isLoading
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(color: AppTheme.primary),
+                          SizedBox(height: 16),
+                          Text('กำลังบันทึกข้อมูล...'),
+                        ],
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildImageSection(),
+                            const SizedBox(height: 20),
+                            _buildBasicInfoSection(),
+                            const SizedBox(height: 20),
+                            _buildPriceSection(),
+                            const SizedBox(height: 20),
+                            _buildRoomDetailsSection(),
+                            const SizedBox(height: 20),
+                            _buildAmenitiesSection(),
+                            const SizedBox(height: 20),
+                            _buildDescriptionSection(),
+                            const SizedBox(height: 20),
+                            _buildStatusSection(),
+                            const SizedBox(height: 100),
+                          ],
+                        ),
+                      ),
+                    ),
             ),
+            _buildBottomBar(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomHeader() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey[300]!, width: 1)),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            onPressed: () => Navigator.pop(context),
+            tooltip: 'ย้อนกลับ',
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.branchName != null
+                      ? 'เพิ่มห้องพัก - ${widget.branchName}'
+                      : 'เพิ่มห้องพักใหม่',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  widget.branchName != null
+                      ? 'สร้างห้องพักใหม่สำหรับสาขาที่เลือก'
+                      : 'สร้างห้องพักใหม่และกำหนดสาขา',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomBar() {
+    final bool canSave = !_isLoading && !_isLoadingData;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 50,
+        child: ElevatedButton.icon(
+          onPressed: canSave ? _saveRoom : null,
+          icon: _isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Icon(Icons.save, color: Colors.white),
+          label: Text(
+            _isLoading ? 'กำลังบันทึก...' : 'บันทึกห้องพัก',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: canSave ? AppTheme.primary : Colors.grey,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            elevation: canSave ? 2 : 0,
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildImageSection() {
     final hasImage = _selectedImage != null || _selectedImageBytes != null;
 
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             Row(
               children: [
                 Icon(Icons.image, color: AppTheme.primary),
@@ -996,13 +1089,16 @@ class _RoomAddUIState extends State<RoomAddUI> {
   }
 
   Widget _buildBasicInfoSection() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             Row(
               children: [
                 Icon(Icons.hotel, color: AppTheme.primary),
@@ -1044,11 +1140,58 @@ class _RoomAddUIState extends State<RoomAddUI> {
                       });
                     },
                     validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'กรุณาเลือกสาขา';
+                      if (widget.branchId == null) {
+                        if (value == null || value.isEmpty) {
+                          return 'กรุณาเลือกสาขา';
+                        }
                       }
                       return null;
                     },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              )
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('สาขาที่เลือก',
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.apartment, size: 18, color: Colors.black54),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            widget.branchName ?? widget.branchId ?? '-',
+                            style: const TextStyle(fontSize: 14, color: Colors.black87),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.green.shade200),
+                          ),
+                          child: Text('ล็อก',
+                              style: TextStyle(
+                                  fontSize: 11, color: Colors.green.shade700, fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -1177,13 +1320,16 @@ class _RoomAddUIState extends State<RoomAddUI> {
   }
 
   Widget _buildPriceSection() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             Row(
               children: [
                 Icon(Icons.payments, color: AppTheme.primary),
@@ -1271,13 +1417,16 @@ class _RoomAddUIState extends State<RoomAddUI> {
   }
 
   Widget _buildAmenitiesSection() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             Row(
               children: [
                 Icon(Icons.stars, color: AppTheme.primary),
@@ -1459,13 +1608,16 @@ class _RoomAddUIState extends State<RoomAddUI> {
   }
 
   Widget _buildRoomDetailsSection() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             Row(
               children: [
                 Icon(Icons.settings, color: AppTheme.primary),
@@ -1521,13 +1673,16 @@ class _RoomAddUIState extends State<RoomAddUI> {
   }
 
   Widget _buildDescriptionSection() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             Row(
               children: [
                 Icon(Icons.description, color: AppTheme.primary),
@@ -1574,13 +1729,16 @@ class _RoomAddUIState extends State<RoomAddUI> {
   }
 
   Widget _buildStatusSection() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             Row(
               children: [
                 Icon(Icons.toggle_on, color: AppTheme.primary),
@@ -1624,75 +1782,39 @@ class _RoomAddUIState extends State<RoomAddUI> {
   }
 
   Widget _buildSaveButton() {
+    // Deprecated placement; kept for backward compatibility if ever reused in body.
     final bool canSave = !_isLoading && !_isLoadingData;
-
-    return Column(
-      children: [
-        if (!canSave && _isLoadingData)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue.shade200),
-            ),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.blue.shade600,
-                  ),
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton.icon(
+        onPressed: canSave ? _saveRoom : null,
+        icon: _isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'กำลังโหลดข้อมูล...',
-                    style: TextStyle(
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton.icon(
-            onPressed: canSave ? _saveRoom : null,
-            icon: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Icon(Icons.save, color: Colors.white),
-            label: Text(
-              _isLoading ? 'กำลังบันทึก...' : 'บันทึกห้องพัก',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: canSave ? AppTheme.primary : Colors.grey,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              elevation: canSave ? 2 : 0,
-            ),
+              )
+            : const Icon(Icons.save, color: Colors.white),
+        label: Text(
+          _isLoading ? 'กำลังบันทึก...' : 'บันทึกห้องพัก',
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
           ),
         ),
-      ],
+        style: ElevatedButton.styleFrom(
+          backgroundColor: canSave ? AppTheme.primary : Colors.grey,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          elevation: canSave ? 2 : 0,
+        ),
+      ),
     );
   }
 }
