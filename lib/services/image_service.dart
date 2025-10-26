@@ -104,7 +104,14 @@ class ImageService {
       // Generate unique filename
       String fileName;
       if (customFileName != null) {
-        fileName = customFileName;
+        fileName = _normalizeFileName(customFileName, extension);
+        if (fileName.isEmpty) {
+          fileName = _generateUniqueFileName(
+            extension: extension,
+            prefix: prefix,
+            context: context,
+          );
+        }
       } else {
         fileName = _generateUniqueFileName(
           extension: extension,
@@ -247,12 +254,20 @@ class ImageService {
       }
 
       // Generate filename (allow custom)
-      final fileName = customFileName ??
-          _generateUniqueFileName(
-            extension: extension,
-            prefix: prefix,
-            context: context,
-          );
+      String fileName = customFileName != null
+          ? _normalizeFileName(customFileName, extension)
+          : _generateUniqueFileName(
+              extension: extension,
+              prefix: prefix,
+              context: context,
+            );
+      if (fileName.isEmpty) {
+        fileName = _generateUniqueFileName(
+          extension: extension,
+          prefix: prefix,
+          context: context,
+        );
+      }
 
       // Create full path
       String fullPath = fileName;
@@ -467,6 +482,29 @@ class ImageService {
       default:
         return 'application/octet-stream';
     }
+  }
+
+  /// Sanitize and normalize a provided file name; ensure extension
+  static String _normalizeFileName(String name, String extension) {
+    final clean = name
+        .trim()
+        .replaceAll('\\', '/')
+        .split('/')
+        .last
+        .replaceAll(RegExp(r"[\n\r\t]"), '')
+        .replaceAll(RegExp(r"\s+"), '')
+        .replaceAll(RegExp(r"[\*\?\"<>\|:]"), '');
+
+    if (clean.isEmpty || clean == '.' || clean == '..') return '';
+
+    // Ensure has extension
+    if (!clean.contains('.')) {
+      final ext = extension.toLowerCase().replaceAll('.', '');
+      if (ext.isEmpty) return '';
+      return '$clean.$ext';
+    }
+
+    return clean;
   }
 
   // ... methods อื่นๆ เหมือนเดิม
