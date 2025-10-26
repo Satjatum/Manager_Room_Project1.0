@@ -1401,11 +1401,14 @@ class _RoomListUIState extends State<RoomListUI> {
                                 final double tileWidth = availableWidth / cols;
 
                                 // Estimate heights (conservative for rich content)
-                                final double estHeader = tileWidth < 300 ? 140 : 110;
-                                final double estInfo = tileWidth < 300 ? 190 : 150;
-                                final double estimatedTileHeight = estHeader + estInfo;
-                                double dynamicAspect =
-                                    tileWidth / estimatedTileHeight; // width / height
+                                final double estHeader =
+                                    tileWidth < 300 ? 140 : 110;
+                                final double estInfo =
+                                    tileWidth < 300 ? 190 : 150;
+                                final double estimatedTileHeight =
+                                    estHeader + estInfo;
+                                double dynamicAspect = tileWidth /
+                                    estimatedTileHeight; // width / height
                                 dynamicAspect = dynamicAspect.clamp(0.60, 1.05);
 
                                 return GridView.builder(
