@@ -348,7 +348,10 @@ class TenantService {
     }
   }
 
-  /// Toggle tenant status (active/inactive)
+  /// Toggle tenant status (active/inactive) with cascade updates
+  /// - Flip tenants.is_active
+  /// - If tenant linked to a user, flip users.is_active (and revoke sessions when disabling)
+  /// - If tenant has an active contract, flip rooms.is_active for the occupied room
   static Future<Map<String, dynamic>> toggleTenantStatus(
       String tenantId) async {
     try {
@@ -378,10 +381,10 @@ class TenantService {
         };
       }
 
-      // Get current status
+      // Get current status and linkage
       final existingTenant = await _supabase
           .from('tenants')
-          .select('tenant_id, tenant_fullname, is_active')
+          .select('tenant_id, tenant_fullname, is_active, user_id')
           .eq('tenant_id', tenantId)
           .maybeSingle();
 
@@ -395,7 +398,7 @@ class TenantService {
       final currentStatus = existingTenant['is_active'] ?? false;
       final newStatus = !currentStatus;
 
-      // Update status
+      // Update tenant status first
       final result = await _supabase
           .from('tenants')
           .update({
@@ -405,6 +408,52 @@ class TenantService {
           .eq('tenant_id', tenantId)
           .select()
           .single();
+
+      // Cascade: linked user account
+      final linkedUserId = existingTenant['user_id'];
+      if (linkedUserId != null && linkedUserId.toString().isNotEmpty) {
+        try {
+          await _supabase
+              .from('users')
+              .update({
+                'is_active': newStatus,
+                'updated_at': DateTime.now().toIso8601String(),
+              })
+              .eq('user_id', linkedUserId);
+
+          // If disabling, also revoke active sessions
+          if (!newStatus) {
+            await _supabase
+                .from('user_sessions')
+                .delete()
+                .eq('user_id', linkedUserId);
+          }
+        } catch (_) {
+          // Non-fatal: continue even if user update fails
+        }
+      }
+
+      // Cascade: occupied room by this tenant (active contract)
+      try {
+        final activeContract = await _supabase
+            .from('rental_contracts')
+            .select('contract_id, room_id')
+            .eq('tenant_id', tenantId)
+            .eq('contract_status', 'active')
+            .maybeSingle();
+
+        if (activeContract != null && activeContract['room_id'] != null) {
+          await _supabase
+              .from('rooms')
+              .update({
+                'is_active': newStatus,
+                'updated_at': DateTime.now().toIso8601String(),
+              })
+              .eq('room_id', activeContract['room_id']);
+        }
+      } catch (_) {
+        // Non-fatal: continue even if room update fails
+      }
 
       return {
         'success': true,
