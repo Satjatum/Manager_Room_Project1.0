@@ -970,6 +970,7 @@ class _TenantListUIState extends State<TenantListUI> {
               final avatarSize = isCompact ? 48.0 : 56.0;
               final nameSize = isCompact ? 15.0 : 16.0;
               final subSize = isCompact ? 12.0 : 13.0;
+              final badgeFontSize = isCompact ? 11.0 : 12.0;
 
               return Padding(
                 padding: EdgeInsets.all(isCompact ? 12 : 14),
@@ -1196,13 +1197,20 @@ class _TenantListUIState extends State<TenantListUI> {
 
                           const SizedBox(height: 6),
 
-                          // Status text (use existing colors)
-                          Text(
-                            isActive ? 'ใช้งานอยู่' : 'ปิดใช้งาน',
-                            style: TextStyle(
-                              fontSize: subSize,
-                              fontWeight: FontWeight.w600,
-                              color: isActive ? const Color(0xFF10B981) : Colors.grey,
+                          // Status badge (pill)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isActive ? const Color(0xFF10B981) : Colors.grey[400],
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              isActive ? 'Active' : 'Inactive',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: badgeFontSize,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
