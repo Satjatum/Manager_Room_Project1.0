@@ -1052,7 +1052,7 @@ class _TenantListUIState extends State<TenantListUI> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Expanded(
                                 child: Text(
