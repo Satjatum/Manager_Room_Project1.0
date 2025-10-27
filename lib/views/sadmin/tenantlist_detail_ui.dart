@@ -384,7 +384,8 @@ class _TenantDetailUIState extends State<TenantDetailUI>
     final tenantProfile = _tenantData?['tenant_profile'];
     final isActive = _tenantData?['is_active'] ?? false;
 
-    final hasImage = tenantProfile != null && tenantProfile.toString().isNotEmpty;
+    final hasImage =
+        tenantProfile != null && tenantProfile.toString().isNotEmpty;
 
     return Container(
       decoration: BoxDecoration(
@@ -452,20 +453,10 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                           color: Colors.black87,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.phone, size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 6),
-                          Text(
-                            tenantPhone,
-                            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
                       const SizedBox(height: 12),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: isActive ? AppTheme.primary : Colors.grey[400],
                           borderRadius: BorderRadius.circular(6),
@@ -494,7 +485,8 @@ class _TenantDetailUIState extends State<TenantDetailUI>
     return Container(
       color: Colors.grey[200],
       child: Center(
-        child: Icon(Icons.image_not_supported_outlined, size: 64, color: Colors.grey[400]),
+        child: Icon(Icons.image_not_supported_outlined,
+            size: 64, color: Colors.grey[400]),
       ),
     );
   }
@@ -519,6 +511,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Card(
+        color: Colors.white,
         elevation: 2,
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -547,6 +540,12 @@ class _TenantDetailUIState extends State<TenantDetailUI>
               ),
               const Divider(height: 24),
               _buildInfoRow(
+                icon: Icons.phone,
+                label: 'เบอร์โทรศัพท์',
+                value: _tenantData?['tenant_phone'] ?? '-',
+              ),
+              const Divider(height: 24),
+              _buildInfoRow(
                 icon: Icons.wc,
                 label: 'เพศ',
                 value: _getGenderText(_tenantData?['gender']),
@@ -571,6 +570,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Card(
+        color: Colors.white,
         elevation: 2,
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -853,6 +853,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Card(
+        color: Colors.white,
         elevation: 2,
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -1005,7 +1006,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
   }) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.grey[600]),
+        Icon(icon, size: 20, color: AppTheme.primary),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
