@@ -880,15 +880,15 @@ class _TenantListUIState extends State<TenantListUI> {
 
       double mainExtent;
       if (itemWidth >= 420) {
-        mainExtent = 130; // จอกว้างมาก ให้โปร่งขึ้นอีกนิด
+        mainExtent = 136; // wide 4K/2.5K ให้โปร่งขึ้น
       } else if (itemWidth >= 360) {
-        mainExtent = 126; // เพิ่มความสูงเล็กน้อยเพื่อกัน bottom overflow
+        mainExtent = 132; // กรณีกว้าง ~360-419px (เช่น Tablet 768 / คอลัมน์ 2)
       } else if (itemWidth >= 300) {
-        mainExtent = 120;
+        mainExtent = 126; // Laptop 1024 / Laptop L 1440 ที่คำนวณแล้วได้ ~300-359px
       } else if (itemWidth >= 260) {
-        mainExtent = 112;
+        mainExtent = 116;
       } else {
-        mainExtent = 104; // ขั้นต่ำเพิ่มขึ้นเล็กน้อย
+        mainExtent = 108; // กันล้นเพิ่มเติมในช่วงแคบมาก
       }
 
       return GridView.builder(
