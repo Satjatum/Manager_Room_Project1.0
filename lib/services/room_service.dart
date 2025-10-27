@@ -373,7 +373,10 @@ class RoomService {
     }
   }
 
-  /// Toggle room status (active/inactive)
+  /// Toggle room status (active/inactive) with cascade updates
+  /// - Flip rooms.is_active
+  /// - If room has an active contract, flip tenant.is_active
+  /// - If tenant linked to a user, flip users.is_active (and revoke sessions when disabling)
   static Future<Map<String, dynamic>> toggleRoomStatus(String roomId) async {
     try {
       final currentUser = await AuthService.getCurrentUser();
@@ -419,7 +422,7 @@ class RoomService {
       final currentStatus = existingRoom['is_active'] ?? false;
       final newStatus = !currentStatus;
 
-      // Update status
+      // Update room status first
       final result = await _supabase
           .from('rooms')
           .update({
@@ -429,6 +432,62 @@ class RoomService {
           .eq('room_id', roomId)
           .select()
           .single();
+
+      // Cascade: find active contract for this room to get tenant
+      try {
+        final activeContract = await _supabase
+            .from('rental_contracts')
+            .select('contract_id, tenant_id')
+            .eq('room_id', roomId)
+            .eq('contract_status', 'active')
+            .maybeSingle();
+
+        if (activeContract != null && activeContract['tenant_id'] != null) {
+          final String tenantId = activeContract['tenant_id'];
+
+          // Update tenant status
+          Map<String, dynamic>? tenantRow;
+          try {
+            tenantRow = await _supabase
+                .from('tenants')
+                .select('tenant_id, user_id')
+                .eq('tenant_id', tenantId)
+                .maybeSingle();
+
+            if (tenantRow != null) {
+              await _supabase.from('tenants').update({
+                'is_active': newStatus,
+                'updated_at': DateTime.now().toIso8601String(),
+              }).eq('tenant_id', tenantId);
+
+              // Cascade to linked user account
+              final linkedUserId = tenantRow['user_id'];
+              if (linkedUserId != null && linkedUserId.toString().isNotEmpty) {
+                try {
+                  await _supabase.from('users').update({
+                    'is_active': newStatus,
+                    'updated_at': DateTime.now().toIso8601String(),
+                  }).eq('user_id', linkedUserId);
+
+                  // If disabling, revoke active sessions for safety
+                  if (!newStatus) {
+                    await _supabase
+                        .from('user_sessions')
+                        .delete()
+                        .eq('user_id', linkedUserId);
+                  }
+                } catch (_) {
+                  // Non-fatal: keep proceeding
+                }
+              }
+            }
+          } catch (_) {
+            // Non-fatal: ignore tenant cascade failures
+          }
+        }
+      } catch (_) {
+        // Non-fatal: ignore contract lookup failures
+      }
 
       return {
         'success': true,

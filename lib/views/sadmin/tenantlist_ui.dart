@@ -883,11 +883,11 @@ class _TenantListUIState extends State<TenantListUI> {
 
       double mainExtent;
       if (itemWidth >= 420) {
-        mainExtent = 160; // กว้างมาก (4K/2.5K) เพิ่มพื้นที่ให้โปร่งและกันล้น
+        mainExtent = 152; // กว้างมาก (4K/2.5K) เพิ่มพื้นที่ให้โปร่งและกันล้น
       } else if (itemWidth >= 360) {
-        mainExtent = 155; // ~360–419px (เช่น Tablet 768 สองคอลัมน์)
+        mainExtent = 146; // ~360–419px (เช่น Tablet 768 สองคอลัมน์)
       } else if (itemWidth >= 300) {
-        mainExtent = 150; // ~300–359px (เช่น 1024/1440/2560 ตามคอลัมน์ที่คำนวณ)
+        mainExtent = 140; // ~300–359px (เช่น 1024/1440/2560 ตามคอลัมน์ที่คำนวณ)
       } else if (itemWidth >= 260) {
         mainExtent = 128;
       } else {
@@ -1043,7 +1043,7 @@ class _TenantListUIState extends State<TenantListUI> {
                       ],
                     ),
 
-                    SizedBox(width: isCompact ? 14 : 18),
+                    SizedBox(width: isCompact ? 10 : 14),
 
                     // Info area
                     Expanded(
@@ -1052,7 +1052,7 @@ class _TenantListUIState extends State<TenantListUI> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Expanded(
                                 child: Text(
@@ -1071,7 +1071,7 @@ class _TenantListUIState extends State<TenantListUI> {
                               // Action menu
                               PopupMenuButton<String>(
                                 padding: EdgeInsets.zero,
-                                icon: Icon(Icons.more_vert,
+                                icon: Icon(Icons.more_horiz,
                                     size: 18, color: Colors.grey.shade600),
                                 tooltip: 'ตัวเลือก',
                                 shape: RoundedRectangleBorder(
@@ -1133,13 +1133,14 @@ class _TenantListUIState extends State<TenantListUI> {
                                     child: Row(
                                       children: const [
                                         Icon(Icons.visibility_outlined,
-                                            size: 18, color: Color(0xFF14B8A6)),
+                                            size: 18, color: Colors.blue),
                                         SizedBox(width: 10),
                                         Text('ดูรายละเอียด'),
                                       ],
                                     ),
                                   ),
                                   if (canManage) ...[
+                                    const PopupMenuDivider(),
                                     PopupMenuItem(
                                       value: 'edit',
                                       child: Row(
@@ -1182,6 +1183,8 @@ class _TenantListUIState extends State<TenantListUI> {
                               ),
                             ],
                           ),
+
+                          const SizedBox(height: 4),
 
                           // Phone
                           if (phone != 'ไม่ระบุ')
