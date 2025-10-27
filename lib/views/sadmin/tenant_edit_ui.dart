@@ -793,8 +793,8 @@ class _TenantEditUIState extends State<TenantEditUI>
                       controller: _tabController,
                       children: [
                         _buildTenantTab(),
-                        _buildContractTab(),
                         _buildAccountTab(),
+                        _buildContractTab(),
                       ],
                     ),
             ),
@@ -940,491 +940,494 @@ class _TenantEditUIState extends State<TenantEditUI>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Card(
-            elevation: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.account_circle, color: AppTheme.primary),
-                      const SizedBox(width: 8),
-                      Text(
-                        'บัญชีผู้ใช้',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.primary,
-                        ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.account_circle, color: Color(0xFF10B981)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'บัญชีผู้ใช้',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
-                      const Spacer(),
-                      if (!_hasLinkedAccount)
-                        Switch(
-                          value: _createUserAccount,
-                          onChanged: (v) {
-                            setState(() {
-                              _createUserAccount = v;
-                              if (!v) {
-                                _userNameController.clear();
-                                _userEmailController.clear();
-                                _userPasswordController.clear();
-                              }
-                            });
-                          },
-                          activeColor: AppTheme.primary,
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _hasLinkedAccount
-                        ? 'บัญชีผู้ใช้เชื่อมโยงกับผู้เช่าแล้ว สามารถแก้ไขข้อมูลได้'
-                        : (_createUserAccount
-                            ? 'สร้างบัญชีผู้ใช้ใหม่สำหรับผู้เช่ารายนี้'
-                            : 'ยังไม่มีบัญชีที่เชื่อมโยง เปิดสวิตช์เพื่อสร้างบัญชีใหม่'),
-                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Username
-                  TextFormField(
-                    controller: _userNameController,
-                    enabled: _hasLinkedAccount || _createUserAccount,
-                    decoration: InputDecoration(
-                      labelText: 'ชื่อผู้ใช้${_hasLinkedAccount ? '' : ' *'}',
-                      prefixIcon: const Icon(Icons.person_outline),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                            color: Color(0xff10B981), width: 2),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            BorderSide(color: Colors.grey[300]!, width: 1),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey.shade50,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Email
-                  TextFormField(
-                    controller: _userEmailController,
-                    enabled: _hasLinkedAccount || _createUserAccount,
-                    decoration: InputDecoration(
-                      labelText: 'อีเมล${_hasLinkedAccount ? '' : ' *'}',
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                            color: Color(0xff10B981), width: 2),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            BorderSide(color: Colors.grey[300]!, width: 1),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey.shade50,
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Password
-                  TextFormField(
-                    controller: _userPasswordController,
-                    enabled: _hasLinkedAccount || _createUserAccount,
-                    decoration: InputDecoration(
-                      labelText: _hasLinkedAccount
-                          ? 'รหัสผ่านใหม่ (ถ้าต้องการ)'
-                          : 'รหัสผ่าน *',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _showPassword
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                        ),
-                        onPressed: () {
+                    const Spacer(),
+                    if (!_hasLinkedAccount)
+                      Switch(
+                        value: _createUserAccount,
+                        onChanged: (v) {
                           setState(() {
-                            _showPassword = !_showPassword;
+                            _createUserAccount = v;
+                            if (!v) {
+                              _userNameController.clear();
+                              _userEmailController.clear();
+                              _userPasswordController.clear();
+                            }
                           });
                         },
+                        activeColor: AppTheme.primary,
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                            color: Color(0xff10B981), width: 2),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            BorderSide(color: Colors.grey[300]!, width: 1),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey.shade50,
-                    ),
-                    obscureText: !_showPassword,
-                  ),
-                  const SizedBox(height: 16),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _hasLinkedAccount
+                      ? 'บัญชีผู้ใช้เชื่อมโยงกับผู้เช่าแล้ว สามารถแก้ไขข้อมูลได้'
+                      : (_createUserAccount
+                          ? 'สร้างบัญชีผู้ใช้ใหม่สำหรับผู้เช่ารายนี้'
+                          : 'ยังไม่มีบัญชีที่เชื่อมโยง เปิดสวิตช์เพื่อสร้างบัญชีใหม่'),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 16),
 
-                  // Active toggle
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
+                // Username
+                TextFormField(
+                  controller: _userNameController,
+                  enabled: _hasLinkedAccount || _createUserAccount,
+                  decoration: InputDecoration(
+                    labelText: 'ชื่อผู้ใช้${_hasLinkedAccount ? '' : ' *'}',
+                    prefixIcon: const Icon(Icons.person_outline),
+                    border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      color: Colors.grey.shade50,
                     ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.toggle_on, color: Colors.grey[600]),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text('เปิดใช้งานบัญชีผู้ใช้'),
-                        ),
-                        Switch(
-                          value: _userIsActive,
-                          onChanged: (_hasLinkedAccount || _createUserAccount)
-                              ? (v) => setState(() => _userIsActive = v)
-                              : null,
-                          activeColor: AppTheme.primary,
-                        ),
-                      ],
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: Color(0xff10B981), width: 2),
                     ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          BorderSide(color: Colors.grey[300]!, width: 1),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16),
+
+                // Email
+                TextFormField(
+                  controller: _userEmailController,
+                  enabled: _hasLinkedAccount || _createUserAccount,
+                  decoration: InputDecoration(
+                    labelText: 'อีเมล${_hasLinkedAccount ? '' : ' *'}',
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: Color(0xff10B981), width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          BorderSide(color: Colors.grey[300]!, width: 1),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 16),
+
+                // Password
+                TextFormField(
+                  controller: _userPasswordController,
+                  enabled: _hasLinkedAccount || _createUserAccount,
+                  decoration: InputDecoration(
+                    labelText: _hasLinkedAccount
+                        ? 'รหัสผ่านใหม่ (ถ้าต้องการ)'
+                        : 'รหัสผ่าน *',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _showPassword ? Icons.visibility_off : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _showPassword = !_showPassword;
+                        });
+                      },
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: Color(0xff10B981), width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          BorderSide(color: Colors.grey[300]!, width: 1),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                  ),
+                  obscureText: !_showPassword,
+                ),
+                const SizedBox(height: 16),
+
+                // Active toggle
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(12),
+                    color: Colors.grey.shade50,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.toggle_on, color: Colors.grey[600]),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text('เปิดใช้งานบัญชีผู้ใช้'),
+                      ),
+                      Switch(
+                        value: _userIsActive,
+                        onChanged: (_hasLinkedAccount || _createUserAccount)
+                            ? (v) => setState(() => _userIsActive = v)
+                            : null,
+                        activeColor: AppTheme.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 80),
         ],
       ),
     );
   }
 
   Widget _buildContractInfoCard() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.info_outline, color: AppTheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'ข้อมูลสัญญาปัจจุบัน',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.primary,
-                  ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: Color(0xFF10B981)),
+              const SizedBox(width: 8),
+              Text(
+                'ข้อมูลสัญญาปัจจุบัน',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow(
-              icon: Icons.assignment,
-              label: 'เลขที่สัญญา',
-              value: _activeContract!['contract_num'] ?? '-',
-            ),
-            const Divider(height: 24),
-            _buildInfoRow(
-              icon: Icons.home,
-              label: 'ห้องพัก',
-              value: _activeContract!['rooms']?['room_number'] ?? '-',
-            ),
-            const Divider(height: 24),
-            _buildInfoRow(
-              icon: Icons.business,
-              label: 'สาขา',
-              value:
-                  _activeContract!['rooms']?['branches']?['branch_name'] ?? '-',
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow(
+            icon: Icons.assignment,
+            label: 'เลขที่สัญญา',
+            value: _activeContract!['contract_num'] ?? '-',
+          ),
+          const Divider(height: 24),
+          _buildInfoRow(
+            icon: Icons.home,
+            label: 'ห้องพัก',
+            value: _activeContract!['rooms']?['room_number'] ?? '-',
+          ),
+          const Divider(height: 24),
+          _buildInfoRow(
+            icon: Icons.business,
+            label: 'สาขา',
+            value:
+                _activeContract!['rooms']?['branches']?['branch_name'] ?? '-',
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildContractEditSection() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.edit, color: Color(0xFF10B981)),
+              const SizedBox(width: 8),
+              Text(
+                'แก้ไขข้อมูลสัญญา',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // วันที่เริ่มสัญญา
+          InkWell(
+            onTap: () => _selectDate(context, true),
+            child: InputDecorator(
+              decoration: InputDecoration(
+                labelText: 'วันที่เริ่มสัญญา *',
+                prefixIcon: const Icon(Icons.date_range),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: Color(0xff10B981), width: 2),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+              ),
+              child: Text(
+                _contractStartDate != null
+                    ? '${_contractStartDate!.day}/${_contractStartDate!.month}/${_contractStartDate!.year + 543}'
+                    : 'เลือกวันที่',
+                style: TextStyle(
+                  color: _contractStartDate != null
+                      ? Colors.black87
+                      : Colors.grey[600],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // วันที่สิ้นสุดสัญญา
+          InkWell(
+            onTap: () => _selectDate(context, false),
+            child: InputDecorator(
+              decoration: InputDecoration(
+                labelText: 'วันที่สิ้นสุดสัญญา *',
+                prefixIcon: const Icon(Icons.event_busy),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide:
+                      const BorderSide(color: Color(0xff10B981), width: 2),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+              ),
+              child: Text(
+                _contractEndDate != null
+                    ? '${_contractEndDate!.day}/${_contractEndDate!.month}/${_contractEndDate!.year + 543}'
+                    : 'เลือกวันที่',
+                style: TextStyle(
+                  color: _contractEndDate != null
+                      ? Colors.black87
+                      : Colors.grey[600],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ค่าเช่า
+          TextFormField(
+            controller: _contractPriceController,
+            decoration: InputDecoration(
+              labelText: 'ค่าเช่า (บาท/เดือน) *',
+              prefixIcon: const Icon(Icons.attach_money),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: Color(0xff10B981), width: 2),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade50,
+            ),
+            keyboardType: TextInputType.number,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'กรุณากรอกค่าเช่า';
+              }
+              if (double.tryParse(value.trim()) == null) {
+                return 'กรุณากรอกตัวเลขเท่านั้น';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // ค่าประกัน
+          TextFormField(
+            controller: _contractDepositController,
+            decoration: InputDecoration(
+              labelText: 'ค่าประกัน (บาท) *',
+              prefixIcon: const Icon(Icons.security),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: Color(0xff10B981), width: 2),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade50,
+            ),
+            keyboardType: TextInputType.number,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'กรุณากรอกค่าประกัน';
+              }
+              if (double.tryParse(value.trim()) == null) {
+                return 'กรุณากรอกตัวเลขเท่านั้น';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // วันที่ชำระประจำเดือน
+          DropdownButtonFormField<int>(
+            value: _paymentDay,
+            decoration: InputDecoration(
+              labelText: 'วันที่ชำระประจำเดือน',
+              prefixIcon: const Icon(Icons.calendar_today),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: Color(0xff10B981), width: 2),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade50,
+            ),
+            items: List.generate(31, (index) => index + 1)
+                .map((day) => DropdownMenuItem(
+                      value: day,
+                      child: Text('วันที่ $day'),
+                    ))
+                .toList(),
+            onChanged: (value) {
+              setState(() {
+                _paymentDay = value ?? 1;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // ชำระค่าประกันแล้ว
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.grey.shade50,
+            ),
+            child: Row(
               children: [
-                Icon(Icons.edit, color: AppTheme.primary),
+                Icon(Icons.payment, color: Colors.grey[600]),
                 const SizedBox(width: 8),
-                Text(
-                  'แก้ไขข้อมูลสัญญา',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.primary,
+                Expanded(
+                  child: Text(
+                    'ชำระค่าประกันแล้ว',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                    ),
                   ),
+                ),
+                Switch(
+                  value: _contractPaid,
+                  onChanged: (value) {
+                    setState(() {
+                      _contractPaid = value;
+                    });
+                  },
+                  activeColor: AppTheme.primary,
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 16),
 
-            // วันที่เริ่มสัญญา
-            InkWell(
-              onTap: () => _selectDate(context, true),
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  labelText: 'วันที่เริ่มสัญญา *',
-                  prefixIcon: const Icon(Icons.date_range),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: Color(0xff10B981), width: 2),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                ),
-                child: Text(
-                  _contractStartDate != null
-                      ? '${_contractStartDate!.day}/${_contractStartDate!.month}/${_contractStartDate!.year + 543}'
-                      : 'เลือกวันที่',
-                  style: TextStyle(
-                    color: _contractStartDate != null
-                        ? Colors.black87
-                        : Colors.grey[600],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // วันที่สิ้นสุดสัญญา
-            InkWell(
-              onTap: () => _selectDate(context, false),
-              child: InputDecorator(
-                decoration: InputDecoration(
-                  labelText: 'วันที่สิ้นสุดสัญญา *',
-                  prefixIcon: const Icon(Icons.event_busy),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: Color(0xff10B981), width: 2),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                ),
-                child: Text(
-                  _contractEndDate != null
-                      ? '${_contractEndDate!.day}/${_contractEndDate!.month}/${_contractEndDate!.year + 543}'
-                      : 'เลือกวันที่',
-                  style: TextStyle(
-                    color: _contractEndDate != null
-                        ? Colors.black87
-                        : Colors.grey[600],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // ค่าเช่า
-            TextFormField(
-              controller: _contractPriceController,
-              decoration: InputDecoration(
-                labelText: 'ค่าเช่า (บาท/เดือน) *',
-                prefixIcon: const Icon(Icons.attach_money),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: Color(0xff10B981), width: 2),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
-              ),
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'กรุณากรอกค่าเช่า';
-                }
-                if (double.tryParse(value.trim()) == null) {
-                  return 'กรุณากรอกตัวเลขเท่านั้น';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // ค่าประกัน
-            TextFormField(
-              controller: _contractDepositController,
-              decoration: InputDecoration(
-                labelText: 'ค่าประกัน (บาท) *',
-                prefixIcon: const Icon(Icons.security),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: Color(0xff10B981), width: 2),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
-              ),
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'กรุณากรอกค่าประกัน';
-                }
-                if (double.tryParse(value.trim()) == null) {
-                  return 'กรุณากรอกตัวเลขเท่านั้น';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // วันที่ชำระประจำเดือน
-            DropdownButtonFormField<int>(
-              value: _paymentDay,
-              decoration: InputDecoration(
-                labelText: 'วันที่ชำระประจำเดือน',
-                prefixIcon: const Icon(Icons.calendar_today),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: Color(0xff10B981), width: 2),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
-              ),
-              items: List.generate(31, (index) => index + 1)
-                  .map((day) => DropdownMenuItem(
-                        value: day,
-                        child: Text('วันที่ $day'),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  _paymentDay = value ?? 1;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // ชำระค่าประกันแล้ว
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
+          // หมายเหตุ
+          TextFormField(
+            controller: _contractNotesController,
+            decoration: InputDecoration(
+              labelText: 'หมายเหตุเพิ่มเติม',
+              hintText: 'เพิ่มหมายเหตุเกี่ยวกับสัญญาเช่า (ถ้ามี)',
+              prefixIcon: const Icon(Icons.note),
+              border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                color: Colors.grey.shade50,
               ),
-              child: Row(
-                children: [
-                  Icon(Icons.payment, color: Colors.grey[600]),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'ชำระค่าประกันแล้ว',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                  ),
-                  Switch(
-                    value: _contractPaid,
-                    onChanged: (value) {
-                      setState(() {
-                        _contractPaid = value;
-                      });
-                    },
-                    activeColor: AppTheme.primary,
-                  ),
-                ],
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: Color(0xff10B981), width: 2),
               ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade50,
+              alignLabelWithHint: true,
             ),
-            const SizedBox(height: 16),
-
-            // หมายเหตุ
-            TextFormField(
-              controller: _contractNotesController,
-              decoration: InputDecoration(
-                labelText: 'หมายเหตุเพิ่มเติม',
-                hintText: 'เพิ่มหมายเหตุเกี่ยวกับสัญญาเช่า (ถ้ามี)',
-                prefixIcon: const Icon(Icons.note),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: Color(0xff10B981), width: 2),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
-                alignLabelWithHint: true,
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
+            maxLines: 3,
+          ),
+        ],
       ),
     );
   }
@@ -1470,95 +1473,97 @@ class _TenantEditUIState extends State<TenantEditUI>
         (_currentImageUrl != null && _currentImageUrl!.isNotEmpty);
     final tenantName = _tenantFullNameController.text.trim();
 
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.person, color: AppTheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'รูปภาพโปรไฟล์',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.primary,
-                  ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.person, color: Color(0xFF10B981)),
+              const SizedBox(width: 8),
+              Text(
+                'รูปภาพโปรไฟล์',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: Column(
-                children: [
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.grey.shade100,
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                        width: 2,
-                      ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Column(
+              children: [
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.grey.shade100,
+                    border: Border.all(
+                      color: Colors.grey.shade300,
+                      width: 2,
                     ),
-                    child: hasImage
-                        ? ClipOval(child: _buildImagePreview())
-                        : Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppTheme.primary.withOpacity(0.1),
-                            ),
-                            child: Center(
-                              child: Text(
-                                tenantName.isNotEmpty
-                                    ? _getInitials(tenantName)
-                                    : 'T',
-                                style: TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primary,
-                                ),
+                  ),
+                  child: hasImage
+                      ? ClipOval(child: _buildImagePreview())
+                      : Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppTheme.primary.withOpacity(0.1),
+                          ),
+                          child: Center(
+                            child: Text(
+                              tenantName.isNotEmpty
+                                  ? _getInitials(tenantName)
+                                  : 'T',
+                              style: TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primary,
                               ),
                             ),
                           ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: _pickImages,
-                        icon: Icon(
-                            hasImage ? Icons.swap_horiz : Icons.add_a_photo),
-                        label: Text(hasImage ? 'เปลี่ยนรูป' : 'เพิ่มรูปภาพ'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.primary,
-                          side: BorderSide(color: AppTheme.primary),
+                        ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _pickImages,
+                      icon:
+                          Icon(hasImage ? Icons.swap_horiz : Icons.add_a_photo),
+                      label: Text(hasImage ? 'เปลี่ยนรูป' : 'เพิ่มรูปภาพ'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primary,
+                        side: BorderSide(color: AppTheme.primary),
+                      ),
+                    ),
+                    if (hasImage) ...[
+                      const SizedBox(width: 8),
+                      TextButton.icon(
+                        onPressed: _removeImage,
+                        icon: const Icon(Icons.delete),
+                        label: const Text('ลบรูป'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
                         ),
                       ),
-                      if (hasImage) ...[
-                        const SizedBox(width: 8),
-                        TextButton.icon(
-                          onPressed: _removeImage,
-                          icon: const Icon(Icons.delete),
-                          label: const Text('ลบรูป'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.red,
-                          ),
-                        ),
-                      ],
                     ],
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1611,216 +1616,219 @@ class _TenantEditUIState extends State<TenantEditUI>
   }
 
   Widget _buildTenantInfoSection() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.person_outline, color: AppTheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'ข้อมูลผู้เช่า',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.primary,
-                  ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.person_outline, color: Color(0xFF10B981)),
+              const SizedBox(width: 8),
+              Text(
+                'ข้อมูลผู้เช่า',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // เลขบัตรประชาชน
-            TextFormField(
-              controller: _tenantIdCardController,
-              decoration: InputDecoration(
-                labelText: 'เลขบัตรประชาชน *',
-                prefixIcon: const Icon(Icons.credit_card),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: Color(0xff10B981), width: 2),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
               ),
-              maxLength: 13,
-              keyboardType: TextInputType.number,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'กรุณากรอกเลขบัตรประชาชน';
-                }
-                if (value.length != 13) {
-                  return 'เลขบัตรประชาชนต้องมี 13 หลัก';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
+            ],
+          ),
+          const SizedBox(height: 16),
 
-            // ชื่อ-นามสกุล
-            TextFormField(
-              controller: _tenantFullNameController,
-              decoration: InputDecoration(
-                labelText: 'ชื่อ-นามสกุล *',
-                prefixIcon: const Icon(Icons.person),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: Color(0xff10B981), width: 2),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
+          // เลขบัตรประชาชน
+          TextFormField(
+            controller: _tenantIdCardController,
+            decoration: InputDecoration(
+              labelText: 'เลขบัตรประชาชน *',
+              prefixIcon: const Icon(Icons.credit_card),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              onChanged: (value) {
-                setState(() {});
-              },
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'กรุณากรอกชื่อ-นามสกุล';
-                }
-                return null;
-              },
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: Color(0xff10B981), width: 2),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade50,
             ),
-            const SizedBox(height: 16),
+            maxLength: 13,
+            keyboardType: TextInputType.number,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'กรุณากรอกเลขบัตรประชาชน';
+              }
+              if (value.length != 13) {
+                return 'เลขบัตรประชาชนต้องมี 13 หลัก';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
 
-            // เบอร์โทรศัพท์
-            TextFormField(
-              controller: _tenantPhoneController,
-              decoration: InputDecoration(
-                labelText: 'เบอร์โทรศัพท์ *',
-                prefixIcon: const Icon(Icons.phone),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: Color(0xff10B981), width: 2),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
+          // ชื่อ-นามสกุล
+          TextFormField(
+            controller: _tenantFullNameController,
+            decoration: InputDecoration(
+              labelText: 'ชื่อ-นามสกุล *',
+              prefixIcon: const Icon(Icons.person),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              maxLength: 10,
-              keyboardType: TextInputType.phone,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'กรุณากรอกเบอร์โทรศัพท์';
-                }
-                if (value.length != 10) {
-                  return 'เบอร์โทรศัพท์ต้องมี 10 หลัก';
-                }
-                return null;
-              },
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: Color(0xff10B981), width: 2),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade50,
             ),
-            const SizedBox(height: 16),
+            onChanged: (value) {
+              setState(() {});
+            },
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'กรุณากรอกชื่อ-นามสกุล';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
 
-            // เพศ
-            DropdownButtonFormField<String>(
-              value: _selectedGender,
-              decoration: InputDecoration(
-                labelText: 'เพศ',
-                prefixIcon: const Icon(Icons.wc),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: Color(0xff10B981), width: 2),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
+          // เบอร์โทรศัพท์
+          TextFormField(
+            controller: _tenantPhoneController,
+            decoration: InputDecoration(
+              labelText: 'เบอร์โทรศัพท์ *',
+              prefixIcon: const Icon(Icons.phone),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              items: const [
-                DropdownMenuItem(value: 'male', child: Text('ชาย')),
-                DropdownMenuItem(value: 'female', child: Text('หญิง')),
-                DropdownMenuItem(value: 'other', child: Text('อื่นๆ')),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedGender = value;
-                });
-              },
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: Color(0xff10B981), width: 2),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade50,
             ),
-          ],
-        ),
+            maxLength: 10,
+            keyboardType: TextInputType.phone,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'กรุณากรอกเบอร์โทรศัพท์';
+              }
+              if (value.length != 10) {
+                return 'เบอร์โทรศัพท์ต้องมี 10 หลัก';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // เพศ
+          DropdownButtonFormField<String>(
+            value: _selectedGender,
+            decoration: InputDecoration(
+              labelText: 'เพศ',
+              prefixIcon: const Icon(Icons.wc),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: Color(0xff10B981), width: 2),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade50,
+            ),
+            items: const [
+              DropdownMenuItem(value: 'male', child: Text('ชาย')),
+              DropdownMenuItem(value: 'female', child: Text('หญิง')),
+              DropdownMenuItem(value: 'other', child: Text('อื่นๆ')),
+            ],
+            onChanged: (value) {
+              setState(() {
+                _selectedGender = value;
+              });
+            },
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildStatusSection() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.toggle_on, color: AppTheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'การตั้งค่า',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.primary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SwitchListTile(
-              title: const Text('เปิดใช้งานผู้เช่า'),
-              subtitle: Text(
-                _isActive
-                    ? 'ผู้เช่าจะปรากฏในระบบและสามารถใช้งานได้'
-                    : 'ผู้เช่าจะถูกปิดการใช้งาน',
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.toggle_on, color: Color(0xFF10B981)),
+              const SizedBox(width: 8),
+              Text(
+                'การตั้งค่า',
                 style: TextStyle(
-                  color: _isActive
-                      ? Colors.green.shade600
-                      : Colors.orange.shade600,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
-              value: _isActive,
-              onChanged: (value) {
-                setState(() {
-                  _isActive = value;
-                });
-              },
-              activeColor: AppTheme.primary,
-              contentPadding: EdgeInsets.zero,
+            ],
+          ),
+          const SizedBox(height: 16),
+          SwitchListTile(
+            title: const Text('เปิดใช้งานผู้เช่า'),
+            subtitle: Text(
+              _isActive
+                  ? 'ผู้เช่าจะปรากฏในระบบและสามารถใช้งานได้'
+                  : 'ผู้เช่าจะถูกปิดการใช้งาน',
+              style: TextStyle(
+                color:
+                    _isActive ? Colors.green.shade600 : Colors.orange.shade600,
+              ),
             ),
-          ],
-        ),
+            value: _isActive,
+            onChanged: (value) {
+              setState(() {
+                _isActive = value;
+              });
+            },
+            activeColor: AppTheme.primary,
+            contentPadding: EdgeInsets.zero,
+          ),
+        ],
       ),
     );
   }

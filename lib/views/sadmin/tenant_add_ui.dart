@@ -865,33 +865,45 @@ class _TenantAddUIState extends State<TenantAddUI>
     }
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('เพิ่มผู้เช่าใหม่'),
+            Text(
+              'เพิ่มผู้เช่าใหม่',
+              style: TextStyle(
+                color: Colors.black87,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             if (widget.branchName != null)
               Text(
                 widget.branchName!,
-                style: const TextStyle(
+                style: TextStyle(
+                  color: Colors.grey[600],
                   fontSize: 14,
                   fontWeight: FontWeight.normal,
                 ),
               ),
           ],
         ),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
+          labelColor: Color(0xFF10B981),
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: Color(0xFF10B981),
           tabs: const [
-            Tab(text: 'ข้อมูลผู้เช่า', icon: Icon(Icons.person)),
-            Tab(text: 'บัญชีผู้ใช้', icon: Icon(Icons.account_circle)),
-            Tab(text: 'สัญญาเช่า', icon: Icon(Icons.description)),
+            Tab(text: 'ข้อมูลผู้เช่า'),
+            Tab(text: 'บัญชีผู้ใช้'),
+            Tab(text: 'สัญญาเช่า'),
           ],
         ),
       ),
@@ -974,8 +986,13 @@ class _TenantAddUIState extends State<TenantAddUI>
     final hasImage = _selectedImage != null || _selectedImageBytes != null;
     final tenantName = _tenantFullNameController.text.trim();
 
-    return Card(
-      elevation: 2,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1096,8 +1113,13 @@ class _TenantAddUIState extends State<TenantAddUI>
   }
 
   Widget _buildTenantInfoSection() {
-    return Card(
-      elevation: 2,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1308,8 +1330,13 @@ class _TenantAddUIState extends State<TenantAddUI>
   }
 
   Widget _buildUserAccountSection() {
-    return Card(
-      elevation: 2,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1483,8 +1510,13 @@ class _TenantAddUIState extends State<TenantAddUI>
   }
 
   Widget _buildRoomSelectionSection() {
-    return Card(
-      elevation: 2,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1622,8 +1654,13 @@ class _TenantAddUIState extends State<TenantAddUI>
   }
 
   Widget _buildContractSection() {
-    return Card(
-      elevation: 2,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1930,8 +1967,13 @@ class _TenantAddUIState extends State<TenantAddUI>
   }
 
   Widget _buildContractDocumentSection() {
-    return Card(
-      elevation: 2,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -2007,8 +2049,13 @@ class _TenantAddUIState extends State<TenantAddUI>
   }
 
   Widget _buildStatusSection() {
-    return Card(
-      elevation: 2,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

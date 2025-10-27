@@ -73,12 +73,13 @@ class _TenantDetailUIState extends State<TenantDetailUI>
         content: Row(
           children: [
             const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: Colors.red,
+        backgroundColor: Colors.red.shade600,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -89,27 +90,68 @@ class _TenantDetailUIState extends State<TenantDetailUI>
         content: Row(
           children: [
             const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.green.shade600,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 
   Future<void> _toggleStatus() async {
     final currentStatus = _tenantData?['is_active'] ?? false;
-    final confirmMessage = currentStatus
-        ? 'คุณต้องการปิดใช้งานผู้เช่านี้หรือไม่?'
-        : 'คุณต้องการเปิดใช้งานผู้เช่านี้หรือไม่?';
+    final tenantName = _tenantData?['tenant_fullname'] ?? '';
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('ยืนยันการดำเนินการ'),
-        content: Text(confirmMessage),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: currentStatus
+                    ? Colors.orange.shade100
+                    : Colors.green.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                currentStatus
+                    ? Icons.visibility_off_rounded
+                    : Icons.visibility_rounded,
+                color: currentStatus
+                    ? Colors.orange.shade700
+                    : Colors.green.shade700,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                currentStatus ? 'ปิดใช้งานผู้เช่า' : 'เปิดใช้งานผู้เช่า',
+                style: const TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+                'คุณต้องการ${currentStatus ? 'ปิดใช้งาน' : 'เปิดใช้งาน'}ผู้เช่า'),
+            const SizedBox(height: 4),
+            Text(
+              '"$tenantName"',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            const Text('หรือไม่?'),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -118,7 +160,8 @@ class _TenantDetailUIState extends State<TenantDetailUI>
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: currentStatus ? Colors.orange : AppTheme.primary,
+              backgroundColor: currentStatus ? Colors.orange : Colors.green,
+              foregroundColor: Colors.white,
             ),
             child: Text(currentStatus ? 'ปิดใช้งาน' : 'เปิดใช้งาน'),
           ),
@@ -128,16 +171,33 @@ class _TenantDetailUIState extends State<TenantDetailUI>
 
     if (confirmed == true) {
       try {
-        final result = await TenantService.toggleTenantStatus(widget.tenantId);
+        // Show loading dialog
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Center(
+            child: CircularProgressIndicator(color: AppTheme.primary),
+          ),
+        );
 
-        if (result['success']) {
-          _showSuccessSnackBar(result['message']);
-          _loadData();
-        } else {
-          _showErrorSnackBar(result['message']);
+        final result = await TenantService.toggleTenantStatus(widget.tenantId);
+        if (mounted) Navigator.pop(context);
+
+        if (mounted) {
+          if (result['success']) {
+            _showSuccessSnackBar(result['message']);
+            _loadData();
+          } else {
+            _showErrorSnackBar(result['message']);
+          }
         }
       } catch (e) {
-        _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+        if (mounted) {
+          _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+        }
       }
     }
   }
@@ -152,22 +212,46 @@ class _TenantDetailUIState extends State<TenantDetailUI>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('ยืนยันการลบ'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.delete_forever_rounded,
+                color: Colors.red.shade700,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'ยืนยันการลบ',
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('คุณต้องการลบผู้เช่านี้ถาวรหรือไม่?'),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.red.shade50,
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.shade200),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.warning, color: Colors.red.shade700, size: 20),
+                  Icon(Icons.warning_rounded,
+                      color: Colors.red.shade700, size: 20),
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
@@ -190,7 +274,10 @@ class _TenantDetailUIState extends State<TenantDetailUI>
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
             child: const Text('ลบถาวร'),
           ),
         ],
@@ -276,6 +363,12 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                         onPressed: () => Navigator.pop(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 32, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: const Text('กลับ'),
                       ),
@@ -285,16 +378,14 @@ class _TenantDetailUIState extends State<TenantDetailUI>
               : SafeArea(
                   child: Column(
                     children: [
-                      _buildCustomHeader(),
-                      // Tabs (match style from branchlist_detail_ui.dart)
+                      _buildModernHeader(),
+                      // Tabs
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
                           border: Border(
-                            bottom: BorderSide(
-                              color: Colors.grey[300]!,
-                              width: 1,
-                            ),
+                            bottom:
+                                BorderSide(color: Colors.grey[300]!, width: 1),
                           ),
                         ),
                         child: TabBar(
@@ -342,11 +433,18 @@ class _TenantDetailUIState extends State<TenantDetailUI>
   Widget _buildDetailsTab() {
     return RefreshIndicator(
       onRefresh: _loadData,
+      color: AppTheme.primary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: _buildInfoSection(),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Column(
+            children: [
+              _buildStatisticsCards(),
+              const SizedBox(height: 16),
+              _buildInfoSection(),
+            ],
+          ),
         ),
       ),
     );
@@ -355,10 +453,11 @@ class _TenantDetailUIState extends State<TenantDetailUI>
   Widget _buildContractsTab() {
     return RefreshIndicator(
       onRefresh: _loadData,
+      color: AppTheme.primary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: _buildContractInfo(),
         ),
       ),
@@ -368,17 +467,18 @@ class _TenantDetailUIState extends State<TenantDetailUI>
   Widget _buildPaymentsTab() {
     return RefreshIndicator(
       onRefresh: _loadData,
+      color: AppTheme.primary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: _buildPaymentInfo(),
         ),
       ),
     );
   }
 
-  Widget _buildCustomHeader() {
+  Widget _buildModernHeader() {
     final tenantName = _tenantData?['tenant_fullname'] ?? 'ไม่ระบุชื่อ';
     final tenantPhone = _tenantData?['tenant_phone'] ?? '-';
     final tenantProfile = _tenantData?['tenant_profile'];
@@ -390,22 +490,20 @@ class _TenantDetailUIState extends State<TenantDetailUI>
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Colors.grey[300]!, width: 1),
-        ),
+        border: Border(bottom: BorderSide(color: Colors.grey[300]!, width: 1)),
       ),
       child: Column(
         children: [
-          // Top bar with back button and title
+          // Top bar
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
               children: [
                 IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.black87),
                   onPressed: () => Navigator.pop(context),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 8),
                 const Expanded(
                   child: Text(
                     'ข้อมูลผู้เช่า',
@@ -416,59 +514,135 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                     ),
                   ),
                 ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.grey),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 20),
+                          SizedBox(width: 12),
+                          Text('แก้ไขข้อมูล'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'toggle',
+                      child: Row(
+                        children: [
+                          Icon(Icons.toggle_on, size: 20),
+                          SizedBox(width: 12),
+                          Text('เปลี่ยนสถานะ'),
+                        ],
+                      ),
+                    ),
+                    if (_currentUser?.userRole == UserRole.superAdmin)
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, size: 20, color: Colors.red),
+                            SizedBox(width: 12),
+                            Text('ลบผู้เช่า',
+                                style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                  ],
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'edit':
+                        _editTenant();
+                        break;
+                      case 'toggle':
+                        _toggleStatus();
+                        break;
+                      case 'delete':
+                        _deleteTenant();
+                        break;
+                    }
+                  },
+                ),
               ],
             ),
           ),
 
-          // Image area
-          Container(
-            height: 200,
-            width: double.infinity,
-            color: Colors.grey[200],
-            child: hasImage
-                ? Image.network(
-                    tenantProfile,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        _buildHeaderImagePlaceholder(),
-                  )
-                : _buildHeaderImagePlaceholder(),
-          ),
-
-          // Basic info
+          // Profile section
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Avatar
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: hasImage
+                        ? Image.network(
+                            tenantProfile,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildAvatarPlaceholder(tenantName),
+                          )
+                        : _buildAvatarPlaceholder(tenantName),
+                  ),
+                ),
+                const SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        tenantName,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: isActive ? AppTheme.primary : Colors.grey[400],
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          isActive ? 'ใช้งานอยู่' : 'ปิดใช้งาน',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
+                      // ชื่อและ Status ในแถวเดียวกัน
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              tenantName,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? AppTheme.primary
+                                  : Colors.grey[400],
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              isActive ? 'Active' : 'Inactive',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -481,24 +655,14 @@ class _TenantDetailUIState extends State<TenantDetailUI>
     );
   }
 
-  Widget _buildHeaderImagePlaceholder() {
+  Widget _buildAvatarPlaceholder(String name) {
     return Container(
-      color: Colors.grey[200],
-      child: Center(
-        child: Icon(Icons.image_not_supported_outlined,
-            size: 64, color: Colors.grey[400]),
-      ),
-    );
-  }
-
-  Widget _buildDefaultAvatar(String name) {
-    return Container(
-      color: Colors.white,
+      color: AppTheme.primary.withOpacity(0.1),
       child: Center(
         child: Text(
           _getInitials(name),
           style: TextStyle(
-            fontSize: 36,
+            fontSize: 28,
             fontWeight: FontWeight.bold,
             color: AppTheme.primary,
           ),
@@ -507,507 +671,166 @@ class _TenantDetailUIState extends State<TenantDetailUI>
     );
   }
 
-  Widget _buildInfoSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Card(
-        color: Colors.white,
-        elevation: 2,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.person_outline, color: AppTheme.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    'ข้อมูลส่วนตัว',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildInfoRow(
-                icon: Icons.credit_card,
-                label: 'เลขบัตรประชาชน',
-                value: _tenantData?['tenant_idcard'] ?? '-',
-              ),
-              const Divider(height: 24),
-              _buildInfoRow(
-                icon: Icons.phone,
-                label: 'เบอร์โทรศัพท์',
-                value: _tenantData?['tenant_phone'] ?? '-',
-              ),
-              const Divider(height: 24),
-              _buildInfoRow(
-                icon: Icons.wc,
-                label: 'เพศ',
-                value: _getGenderText(_tenantData?['gender']),
-              ),
-              const Divider(height: 24),
-              _buildInfoRow(
-                icon: Icons.calendar_today,
-                label: 'วันที่เพิ่มข้อมูล',
-                value: _formatDate(_tenantData?['created_at']),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContractInfo() {
-    final activeContract = _statistics?['active_contract'];
+  Widget _buildStatisticsCards() {
     final totalContracts = _statistics?['total_contracts'] ?? 0;
+    final activeContract = _statistics?['active_contract'];
+    final pendingInvoices = _statistics?['pending_invoices_count'] ?? 0;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Card(
-        color: Colors.white,
-        elevation: 2,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header พร้อมปุ่มดูทั้งหมด
-              Row(
-                children: [
-                  Icon(Icons.description, color: AppTheme.primary),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'ข้อมูลสัญญาเช่า',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primary,
-                      ),
-                    ),
-                  ),
-                  // ปุ่มดูสัญญาทั้งหมด - แสดงเสมอถ้ามีสิทธิ์
-                  // if (_currentUser != null &&
-                  //     _currentUser!.hasAnyPermission([
-                  //       DetailedPermission.all,
-                  //       DetailedPermission.manageContracts,
-                  //       DetailedPermission.viewContracts,
-                  //     ]))
-                  //   Container(
-                  //     decoration: BoxDecoration(
-                  //       color: AppTheme.primary.withOpacity(0.1),
-                  //       borderRadius: BorderRadius.circular(8),
-                  //     ),
-                  //     child: Material(
-                  //       color: Colors.transparent,
-                  //       child: InkWell(
-                  //         borderRadius: BorderRadius.circular(8),
-                  //         onTap: () {
-                  //           // ไปหน้ารายการสัญญาของผู้เช่านี้
-                  //           Navigator.push(
-                  //             context,
-                  //             MaterialPageRoute(
-                  //               builder: (context) => ContractListUI(
-                  //                 tenantId: widget.tenantId,
-                  //                 tenantName: _tenantData?['tenant_fullname'],
-                  //               ),
-                  //             ),
-                  //           ).then((_) => _loadData());
-                  //         },
-                  //         child: Padding(
-                  //           padding: EdgeInsets.symmetric(
-                  //             horizontal: 12,
-                  //             vertical: 6,
-                  //           ),
-                  //           child: Row(
-                  //             mainAxisSize: MainAxisSize.min,
-                  //             children: [
-                  //               Icon(
-                  //                 Icons.list_alt,
-                  //                 size: 18,
-                  //                 color: AppTheme.primary,
-                  //               ),
-                  //               SizedBox(width: 4),
-                  //               Text(
-                  //                 'ดูทั้งหมด',
-                  //                 style: TextStyle(
-                  //                   fontSize: 13,
-                  //                   fontWeight: FontWeight.w600,
-                  //                   color: AppTheme.primary,
-                  //                 ),
-                  //               ),
-                  //               if (totalContracts > 0) ...[
-                  //                 SizedBox(width: 4),
-                  //                 Container(
-                  //                   padding: EdgeInsets.symmetric(
-                  //                     horizontal: 6,
-                  //                     vertical: 2,
-                  //                   ),
-                  //                   decoration: BoxDecoration(
-                  //                     color: AppTheme.primary,
-                  //                     borderRadius: BorderRadius.circular(10),
-                  //                   ),
-                  //                   child: Text(
-                  //                     '$totalContracts',
-                  //                     style: TextStyle(
-                  //                       fontSize: 11,
-                  //                       color: Colors.white,
-                  //                       fontWeight: FontWeight.bold,
-                  //                     ),
-                  //                   ),
-                  //                 ),
-                  //               ],
-                  //             ],
-                  //           ),
-                  //         ),
-                  //       ),
-                  //     ),
-                  //   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // แสดงข้อมูลสัญญาปัจจุบัน
-              if (activeContract != null) ...[
-                // ปุ่มจัดการสัญญาปัจจุบัน
-                Row(
-                  children: [
-                    // ปุ่มดูสัญญา
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ContractDetailUI(
-                                contractId: activeContract['contract_id'],
-                              ),
-                            ),
-                          ).then((_) => _loadData());
-                        },
-                        icon: Icon(Icons.visibility, size: 18),
-                        label: Text('ดูสัญญา'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.primary,
-                          side: BorderSide(color: AppTheme.primary),
-                          padding: EdgeInsets.symmetric(vertical: 10),
-                        ),
-                      ),
-                    ),
-                    // ปุ่มแก้ไข (เฉพาะผู้ที่มีสิทธิ์)
-                    if (_currentUser != null &&
-                        _currentUser!.hasAnyPermission([
-                          DetailedPermission.all,
-                          DetailedPermission.manageContracts,
-                        ])) ...[
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ContractEditUI(
-                                  contractId: activeContract['contract_id'],
-                                ),
-                              ),
-                            ).then((_) => _loadData());
-                          },
-                          icon: Icon(Icons.edit, size: 18),
-                          label: Text('แก้ไข'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primary,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 10),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ] else ...[
-                // กรณีไม่มีสัญญาที่ใช้งานอยู่
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.orange.shade200),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: Colors.orange.shade700,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'ไม่มีสัญญาเช่าที่ใช้งานอยู่',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.orange.shade900,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      // ปุ่มสร้างสัญญาใหม่
-                      // if (_currentUser != null &&
-                      //     _currentUser!.hasAnyPermission([
-                      //       DetailedPermission.all,
-                      //       DetailedPermission.manageContracts,
-                      //     ])) ...[
-                      //   const SizedBox(height: 12),
-                      //   SizedBox(
-                      //     width: double.infinity,
-                      //     child: ElevatedButton.icon(
-                      //       onPressed: () {
-                      //         Navigator.push(
-                      //           context,
-                      //           MaterialPageRoute(
-                      //             builder: (context) => ContractAddUI(
-                      //               tenantId: widget.tenantId,
-                      //               tenantData: _tenantData,
-                      //             ),
-                      //           ),
-                      //         ).then((_) => _loadData());
-                      //       },
-                      //       icon: Icon(Icons.add_circle_outline, size: 20),
-                      //       label: Text(
-                      //         'สร้างสัญญาใหม่',
-                      //         style: TextStyle(
-                      //           fontSize: 15,
-                      //           fontWeight: FontWeight.w600,
-                      //         ),
-                      //       ),
-                      //       style: ElevatedButton.styleFrom(
-                      //         backgroundColor: Colors.green,
-                      //         foregroundColor: Colors.white,
-                      //         padding: EdgeInsets.symmetric(vertical: 12),
-                      //         elevation: 2,
-                      //       ),
-                      //     ),
-                      //   ),
-                      // ],
-                    ],
-                  ),
-                ),
-              ],
-
-              // แสดงจำนวนสัญญาทั้งหมด
-              if (totalContracts > 0) ...[
-                const Divider(height: 24),
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.history,
-                          color: Colors.blue.shade700, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'ประวัติสัญญา: ',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.blue.shade900,
-                        ),
-                      ),
-                      Text(
-                        '$totalContracts สัญญา',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade900,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatCard(
+            icon: Icons.description_outlined,
+            title: 'สัญญาทั้งหมด',
+            value: '$totalContracts',
+            color: Colors.blue,
           ),
         ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatCard(
+            icon: Icons.check_circle_outline,
+            title: 'สัญญาปัจจุบัน',
+            value: activeContract != null ? '1' : '0',
+            color: AppTheme.primary,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatCard(
+            icon: Icons.pending_actions,
+            title: 'ค้างชำระ',
+            value: '$pendingInvoices',
+            color: pendingInvoices > 0 ? const Color(0xFFF59E0B) : Colors.grey,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildPaymentInfo() {
-    final recentPayments = _statistics?['recent_payments'] as List? ?? [];
-    final pendingInvoicesCount = _statistics?['pending_invoices_count'] ?? 0;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Card(
+  Widget _buildInfoSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
         color: Colors.white,
-        elevation: 2,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Icon(Icons.payment, color: AppTheme.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    'ข้อมูลการชำระเงิน',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primary,
-                    ),
-                  ),
-                ],
+              Icon(Icons.person_outline, color: AppTheme.primary, size: 22),
+              const SizedBox(width: 10),
+              const Text(
+                'ข้อมูลส่วนตัว',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
-              const SizedBox(height: 16),
-              if (pendingInvoicesCount > 0)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.warning, color: Colors.red.shade600),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'มีใบแจ้งหนี้ค้างชำระ $pendingInvoicesCount รายการ',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              if (recentPayments.isNotEmpty) ...[
-                Text(
-                  'การชำระเงินล่าสุด',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[700],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ...recentPayments.take(5).map((payment) {
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _getPaymentStatusIcon(payment['payment_status']),
-                          color:
-                              _getPaymentStatusColor(payment['payment_status']),
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '฿${payment['payment_amount']?.toStringAsFixed(0) ?? '0'}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              Text(
-                                _formatDate(payment['payment_date']),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getPaymentStatusColor(
-                                    payment['payment_status'])
-                                .withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            _getPaymentStatusText(payment['payment_status']),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: _getPaymentStatusColor(
-                                  payment['payment_status']),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ] else
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'ยังไม่มีประวัติการชำระเงิน',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ),
             ],
           ),
-        ),
+          const SizedBox(height: 20),
+          _buildModernInfoRow(
+            icon: Icons.credit_card,
+            label: 'เลขบัตรประชาชน',
+            value: _tenantData?['tenant_idcard'] ?? '-',
+            color: Colors.blue,
+          ),
+          const SizedBox(height: 16),
+          _buildModernInfoRow(
+            icon: Icons.phone,
+            label: 'เบอร์โทรศัพท์',
+            value: _tenantData?['tenant_phone'] ?? '-',
+            color: AppTheme.primary,
+          ),
+          const SizedBox(height: 16),
+          _buildModernInfoRow(
+            icon: Icons.wc,
+            label: 'เพศ',
+            value: _getGenderText(_tenantData?['gender']),
+            color: Colors.purple,
+          ),
+          const SizedBox(height: 16),
+          _buildModernInfoRow(
+            icon: Icons.calendar_today,
+            label: 'วันที่เพิ่มข้อมูล',
+            value: _formatDate(_tenantData?['created_at']),
+            color: Colors.orange,
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildInfoRow({
+  Widget _buildModernInfoRow({
     required IconData icon,
     required String label,
     required String value,
+    required Color color,
   }) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppTheme.primary),
-        const SizedBox(width: 12),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 20, color: color),
+        ),
+        const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1017,20 +840,407 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(
                 value,
                 style: const TextStyle(
                   fontSize: 15,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
                 ),
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildContractInfo() {
+    final activeContract = _statistics?['active_contract'];
+    final totalContracts = _statistics?['total_contracts'] ?? 0;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.description_outlined,
+                  color: AppTheme.primary, size: 22),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'ข้อมูลสัญญาเช่า',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // แสดงข้อมูลสัญญาปัจจุบัน
+          if (activeContract != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.check_circle,
+                            color: Colors.green.shade700, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'มีสัญญาเช่าที่ใช้งานอยู่',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ContractDetailUI(
+                                  contractId: activeContract['contract_id'],
+                                ),
+                              ),
+                            ).then((_) => _loadData());
+                          },
+                          icon: const Icon(Icons.visibility, size: 18),
+                          label: const Text('ดูสัญญา'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF10B981),
+                            side: const BorderSide(color: Color(0xFF10B981)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (_currentUser != null &&
+                          _currentUser!.hasAnyPermission([
+                            DetailedPermission.all,
+                            DetailedPermission.manageContracts,
+                          ])) ...[
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ContractEditUI(
+                                    contractId: activeContract['contract_id'],
+                                  ),
+                                ),
+                              ).then((_) => _loadData());
+                            },
+                            icon: const Icon(Icons.edit, size: 18),
+                            label: const Text('แก้ไข'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade100,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.info_outline,
+                      color: Colors.orange.shade700,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'ไม่มีสัญญาเช่าที่ใช้งานอยู่',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // แสดงจำนวนสัญญาทั้งหมด
+          if (totalContracts > 0) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.history, color: Colors.blue.shade700, size: 20),
+                  const SizedBox(width: 10),
+                  Text(
+                    'ประวัติสัญญา: ',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.blue.shade900,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    '$totalContracts สัญญา',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentInfo() {
+    final recentPayments = _statistics?['recent_payments'] as List? ?? [];
+    final pendingInvoicesCount = _statistics?['pending_invoices_count'] ?? 0;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.payment, color: AppTheme.primary, size: 22),
+              const SizedBox(width: 10),
+              const Text(
+                'ข้อมูลการชำระเงิน',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (pendingInvoicesCount > 0)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade100,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.warning_rounded,
+                        color: Colors.red.shade700, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'มีใบแจ้งหนี้ค้างชำระ $pendingInvoicesCount รายการ',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (recentPayments.isNotEmpty) ...[
+            Text(
+              'การชำระเงินล่าสุด',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...recentPayments.take(5).map((payment) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: _getPaymentStatusColor(payment['payment_status'])
+                            .withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        _getPaymentStatusIcon(payment['payment_status']),
+                        color:
+                            _getPaymentStatusColor(payment['payment_status']),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '฿${payment['payment_amount']?.toStringAsFixed(0) ?? '0'}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _formatDate(payment['payment_date']),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _getPaymentStatusColor(payment['payment_status'])
+                            .withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        _getPaymentStatusText(payment['payment_status']),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color:
+                              _getPaymentStatusColor(payment['payment_status']),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ] else
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.receipt_long_outlined,
+                        size: 40, color: Colors.grey[400]),
+                    const SizedBox(height: 8),
+                    Text(
+                      'ยังไม่มีประวัติการชำระเงิน',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
