@@ -834,13 +834,31 @@ class _TenantListUIState extends State<TenantListUI> {
 
     if (crossAxisCount > 1) {
       // ใช้ GridView สำหรับหน้าจอใหญ่
+      // คำนวณความสูง cell ให้เหมาะกับเนื้อหาของการ์ดแบบ compact (Row)
+      const double horizontalPadding = 24;
+      const double gridSpacing = 16;
+      final double availableWidth =
+          screenWidth - (horizontalPadding * 2) - (gridSpacing * (crossAxisCount - 1));
+      final double itemWidth = availableWidth / crossAxisCount;
+
+      double mainExtent;
+      if (itemWidth >= 360) {
+        mainExtent = 126; // เพิ่มความสูงเล็กน้อยเพื่อกัน bottom overflow
+      } else if (itemWidth >= 300) {
+        mainExtent = 120;
+      } else if (itemWidth >= 260) {
+        mainExtent = 112;
+      } else {
+        mainExtent = 104; // ขั้นต่ำเพิ่มขึ้นเล็กน้อย
+      }
+
       return GridView.builder(
-        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 0.85,
+          crossAxisSpacing: gridSpacing,
+          mainAxisSpacing: gridSpacing,
+          mainAxisExtent: mainExtent,
         ),
         itemCount: _filteredTenants.length,
         itemBuilder: (context, index) {
