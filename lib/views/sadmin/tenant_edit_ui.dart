@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
 import '../../services/tenant_service.dart';
 import '../../services/image_service.dart';
+import '../../services/user_service.dart';
 import '../../middleware/auth_middleware.dart';
 import '../../models/user_models.dart';
 import '../widgets/colors.dart';
@@ -42,11 +43,23 @@ class _TenantEditUIState extends State<TenantEditUI>
   final _contractDepositController = TextEditingController();
   final _contractNotesController = TextEditingController();
 
+  // Account controllers
+  final _userNameController = TextEditingController();
+  final _userEmailController = TextEditingController();
+  final _userPasswordController = TextEditingController();
+
   String? _selectedGender;
   bool _isActive = true;
   bool _isLoading = false;
   bool _imageChanged = false;
   bool _isLoadingContract = true;
+
+  // Account state
+  String? _linkedUserId;
+  bool _hasLinkedAccount = false;
+  bool _createUserAccount = false;
+  bool _userIsActive = true;
+  bool _showPassword = false;
 
   File? _selectedImage;
   Uint8List? _selectedImageBytes;
@@ -66,7 +79,7 @@ class _TenantEditUIState extends State<TenantEditUI>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadCurrentUser();
     _loadTenantData();
     _loadActiveContract();
@@ -81,6 +94,9 @@ class _TenantEditUIState extends State<TenantEditUI>
     _contractPriceController.dispose();
     _contractDepositController.dispose();
     _contractNotesController.dispose();
+    _userNameController.dispose();
+    _userEmailController.dispose();
+    _userPasswordController.dispose();
     super.dispose();
   }
 
@@ -105,6 +121,29 @@ class _TenantEditUIState extends State<TenantEditUI>
     _isActive = widget.tenantData['is_active'] ?? true;
     _currentImageUrl = widget.tenantData['tenant_profile'];
     _previousImageUrl = _currentImageUrl; // sync ค่าเริ่มต้น
+
+    // preload account link
+    final userId = widget.tenantData['user_id']?.toString();
+    if (userId != null && userId.isNotEmpty) {
+      _linkedUserId = userId;
+      _hasLinkedAccount = true;
+      _loadLinkedUser(userId);
+    }
+  }
+
+  Future<void> _loadLinkedUser(String userId) async {
+    try {
+      final user = await UserService.getUserById(userId);
+      if (mounted && user != null) {
+        setState(() {
+          _userNameController.text = user['user_name'] ?? '';
+          _userEmailController.text = user['user_email'] ?? '';
+          _userIsActive = user['is_active'] ?? true;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading linked user: $e');
+    }
   }
 
   Future<void> _loadActiveContract() async {
@@ -535,14 +574,107 @@ class _TenantEditUIState extends State<TenantEditUI>
       if (_tabController.index == 0) {
         // Save tenant data
         await _saveTenantData(imageUrl);
-      } else {
+      } else if (_tabController.index == 1) {
         // Save contract data
         await _saveContractData();
+      } else {
+        // Save account data
+        await _saveAccountData();
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+      }
+    }
+  }
+
+  Future<void> _saveAccountData() async {
+    try {
+      // If already linked, update existing user
+      if (_hasLinkedAccount && _linkedUserId != null) {
+        final result = await UserService.updateUser(_linkedUserId!, {
+          'user_name': _userNameController.text.trim(),
+          'user_email': _userEmailController.text.trim(),
+          if (_userPasswordController.text.trim().isNotEmpty)
+            'user_pass': _userPasswordController.text,
+          'is_active': _userIsActive,
+        });
+
+        if (mounted) {
+          setState(() => _isLoading = false);
+          if (result['success'] == true) {
+            _showSuccessSnackBar('อัปเดตบัญชีผู้ใช้สำเร็จ');
+            Navigator.of(context).pop(true);
+          } else {
+            _showErrorSnackBar(result['message'] ?? 'อัปเดตบัญชีล้มเหลว');
+          }
+        }
+        return;
+      }
+
+      // Create new account if requested
+      if (_createUserAccount) {
+        if (_userNameController.text.trim().isEmpty ||
+            _userEmailController.text.trim().isEmpty ||
+            _userPasswordController.text.trim().isEmpty) {
+          setState(() => _isLoading = false);
+          _showErrorSnackBar('กรุณากรอกข้อมูลบัญชีให้ครบถ้วน');
+          return;
+        }
+
+        final create = await UserService.createUser({
+          'user_name': _userNameController.text.trim(),
+          'user_email': _userEmailController.text.trim(),
+          'user_pass': _userPasswordController.text,
+          'role': 'tenant',
+          'permissions': [
+            'view_own_data',
+            'create_issues',
+            'view_invoices',
+            'make_payments',
+          ],
+          'is_active': _userIsActive,
+        });
+
+        if (create['success'] != true) {
+          if (mounted) {
+            setState(() => _isLoading = false);
+            _showErrorSnackBar(create['message'] ?? 'ไม่สามารถสร้างบัญชีได้');
+          }
+          return;
+        }
+
+        final newUserId = create['data']?['user_id']?.toString();
+        if (newUserId == null || newUserId.isEmpty) {
+          if (mounted) {
+            setState(() => _isLoading = false);
+            _showErrorSnackBar('สร้างบัญชีสำเร็จแต่ไม่พบรหัสผู้ใช้');
+          }
+          return;
+        }
+
+        // Link to tenant
+        await _supabase
+            .from('tenants')
+            .update({'user_id': newUserId}).eq('tenant_id', widget.tenantId);
+
+        if (mounted) {
+          setState(() => _isLoading = false);
+          _showSuccessSnackBar('สร้างบัญชีและเชื่อมโยงสำเร็จ');
+          Navigator.of(context).pop(true);
+        }
+      } else {
+        // nothing to save
+        if (mounted) {
+          setState(() => _isLoading = false);
+          _showErrorSnackBar('ไม่ได้เปิดการสร้างบัญชีผู้ใช้');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showErrorSnackBar('เกิดข้อผิดพลาดในการบันทึกบัญชี: $e');
       }
     }
   }
@@ -618,54 +750,112 @@ class _TenantEditUIState extends State<TenantEditUI>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('แก้ไขข้อมูลผู้เช่า'),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(
-              icon: Icon(Icons.person),
-              text: 'ข้อมูลผู้เช่า',
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildWhiteHeader(),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  bottom: BorderSide(color: Colors.grey[300]!, width: 1),
+                ),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                labelColor: const Color(0xFF10B981),
+                unselectedLabelColor: Colors.grey[600],
+                indicatorColor: const Color(0xFF10B981),
+                indicatorWeight: 3,
+                tabs: const [
+                  Tab(icon: Icon(Icons.person), text: 'ข้อมูลผู้เช่า'),
+                  Tab(icon: Icon(Icons.description), text: 'ข้อมูลสัญญา'),
+                  Tab(icon: Icon(Icons.account_circle), text: 'บัญชีผู้ใช้'),
+                ],
+              ),
             ),
-            Tab(
-              icon: Icon(Icons.description),
-              text: 'ข้อมูลสัญญา',
+            Expanded(
+              child: _isLoading
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const CircularProgressIndicator(
+                              color: Color(0xFF10B981)),
+                          const SizedBox(height: 16),
+                          Text('กำลังบันทึกข้อมูล...',
+                              style: TextStyle(color: Colors.grey[700])),
+                        ],
+                      ),
+                    )
+                  : TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildTenantTab(),
+                        _buildContractTab(),
+                        _buildAccountTab(),
+                      ],
+                    ),
             ),
+            if (!_isLoading)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    )
+                  ],
+                ),
+                child: _buildSaveButton(),
+              ),
           ],
         ),
       ),
-      body: _isLoading
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(color: AppTheme.primary),
-                  const SizedBox(height: 16),
-                  const Text('กำลังบันทึกข้อมูล...'),
-                ],
-              ),
-            )
-          : TabBarView(
-              controller: _tabController,
+    );
+  }
+
+  Widget _buildWhiteHeader() {
+    final name = _tenantFullNameController.text.trim();
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey[300]!, width: 1)),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            onPressed: () => Navigator.pop(context),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildTenantTab(),
-                _buildContractTab(),
+                const Text(
+                  'แก้ไขข้อมูลผู้เช่า',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  name.isNotEmpty ? name : 'อัปเดตข้อมูลผู้เช่า',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                ),
               ],
             ),
-      bottomNavigationBar: _isLoading
-          ? null
-          : SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: _buildSaveButton(),
-              ),
-            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -739,6 +929,189 @@ class _TenantEditUIState extends State<TenantEditUI>
           const SizedBox(height: 16),
           _buildContractEditSection(),
           const SizedBox(height: 80), // Space for bottom button
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.account_circle, color: AppTheme.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        'บัญชีผู้ใช้',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (!_hasLinkedAccount)
+                        Switch(
+                          value: _createUserAccount,
+                          onChanged: (v) {
+                            setState(() {
+                              _createUserAccount = v;
+                              if (!v) {
+                                _userNameController.clear();
+                                _userEmailController.clear();
+                                _userPasswordController.clear();
+                              }
+                            });
+                          },
+                          activeColor: AppTheme.primary,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _hasLinkedAccount
+                        ? 'บัญชีผู้ใช้เชื่อมโยงกับผู้เช่าแล้ว สามารถแก้ไขข้อมูลได้'
+                        : (_createUserAccount
+                            ? 'สร้างบัญชีผู้ใช้ใหม่สำหรับผู้เช่ารายนี้'
+                            : 'ยังไม่มีบัญชีที่เชื่อมโยง เปิดสวิตช์เพื่อสร้างบัญชีใหม่'),
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Username
+                  TextFormField(
+                    controller: _userNameController,
+                    enabled: _hasLinkedAccount || _createUserAccount,
+                    decoration: InputDecoration(
+                      labelText: 'ชื่อผู้ใช้${_hasLinkedAccount ? '' : ' *'}',
+                      prefixIcon: const Icon(Icons.person_outline),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: Color(0xff10B981), width: 2),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide:
+                            BorderSide(color: Colors.grey[300]!, width: 1),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Email
+                  TextFormField(
+                    controller: _userEmailController,
+                    enabled: _hasLinkedAccount || _createUserAccount,
+                    decoration: InputDecoration(
+                      labelText: 'อีเมล${_hasLinkedAccount ? '' : ' *'}',
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: Color(0xff10B981), width: 2),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide:
+                            BorderSide(color: Colors.grey[300]!, width: 1),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Password
+                  TextFormField(
+                    controller: _userPasswordController,
+                    enabled: _hasLinkedAccount || _createUserAccount,
+                    decoration: InputDecoration(
+                      labelText: _hasLinkedAccount
+                          ? 'รหัสผ่านใหม่ (ถ้าต้องการ)'
+                          : 'รหัสผ่าน *',
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _showPassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _showPassword = !_showPassword;
+                          });
+                        },
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: Color(0xff10B981), width: 2),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide:
+                            BorderSide(color: Colors.grey[300]!, width: 1),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                    ),
+                    obscureText: !_showPassword,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Active toggle
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.grey.shade50,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.toggle_on, color: Colors.grey[600]),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text('เปิดใช้งานบัญชีผู้ใช้'),
+                        ),
+                        Switch(
+                          value: _userIsActive,
+                          onChanged: (_hasLinkedAccount || _createUserAccount)
+                              ? (v) => setState(() => _userIsActive = v)
+                              : null,
+                          activeColor: AppTheme.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 80),
         ],
       ),
     );
@@ -1473,7 +1846,9 @@ class _TenantEditUIState extends State<TenantEditUI>
               ? 'กำลังบันทึก...'
               : _tabController.index == 0
                   ? 'บันทึกข้อมูลผู้เช่า'
-                  : 'บันทึกข้อมูลสัญญา',
+                  : _tabController.index == 1
+                      ? 'บันทึกข้อมูลสัญญา'
+                      : 'บันทึกบัญชีผู้ใช้',
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
