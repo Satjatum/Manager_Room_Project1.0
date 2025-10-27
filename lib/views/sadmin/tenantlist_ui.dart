@@ -822,14 +822,50 @@ class _TenantListUIState extends State<TenantListUI> {
   }
 
   Widget _buildTenantList(double screenWidth, bool isDesktop, bool isTablet) {
-    // คำนวณจำนวนคอลัมน์ตามขนาดหน้าจอ เหมือน branchlist_ui.dart
+    // ปรับจำนวนคอลัมน์แบบ adaptive รองรับ 4K / Laptop L / Laptop / Tablet
+    // โดยคงความกว้างของการ์ดให้อยู่ในช่วงเหมาะสม (>= 300px)
     int crossAxisCount = 1;
-    if (screenWidth > 1200) {
-      crossAxisCount = 4;
-    } else if (screenWidth > 900) {
-      crossAxisCount = 3;
-    } else if (screenWidth > 600) {
-      crossAxisCount = 2;
+    if (screenWidth > 600) {
+      const double horizontalPadding = 24;
+      const double gridSpacing = 16;
+
+      // กำหนด max columns ตามช่วงหน้าจอหลัก ๆ
+      int maxCols;
+      if (screenWidth >= 3840) {
+        // 4K
+        maxCols = 8;
+      } else if (screenWidth >= 2560) {
+        // Ultra-wide / 2.5K
+        maxCols = 7;
+      } else if (screenWidth >= 1920) {
+        // Desktop ใหญ่
+        maxCols = 6;
+      } else if (screenWidth >= 1440) {
+        // Laptop L
+        maxCols = 5;
+      } else if (screenWidth >= 1200) {
+        // Desktop ปกติ / Laptop
+        maxCols = 4;
+      } else if (screenWidth >= 900) {
+        // Tablet ใหญ่ / เล็กน้อยก่อน Laptop
+        maxCols = 3;
+      } else {
+        // Tablet
+        maxCols = 2;
+      }
+
+      // ทดลองจาก maxCols ลดลงจนได้ความกว้างต่อการ์ด >= 300px
+      const double minCardWidth = 300;
+      final double totalHorizontal = horizontalPadding * 2;
+      int cols = maxCols;
+      while (cols > 2) {
+        final double availableWidth =
+            screenWidth - totalHorizontal - (gridSpacing * (cols - 1));
+        final double itemWidth = availableWidth / cols;
+        if (itemWidth >= minCardWidth) break;
+        cols--;
+      }
+      crossAxisCount = cols;
     }
 
     if (crossAxisCount > 1) {
@@ -837,12 +873,15 @@ class _TenantListUIState extends State<TenantListUI> {
       // คำนวณความสูง cell ให้เหมาะกับเนื้อหาของการ์ดแบบ compact (Row)
       const double horizontalPadding = 24;
       const double gridSpacing = 16;
-      final double availableWidth =
-          screenWidth - (horizontalPadding * 2) - (gridSpacing * (crossAxisCount - 1));
+      final double availableWidth = screenWidth -
+          (horizontalPadding * 2) -
+          (gridSpacing * (crossAxisCount - 1));
       final double itemWidth = availableWidth / crossAxisCount;
 
       double mainExtent;
-      if (itemWidth >= 360) {
+      if (itemWidth >= 420) {
+        mainExtent = 130; // จอกว้างมาก ให้โปร่งขึ้นอีกนิด
+      } else if (itemWidth >= 360) {
         mainExtent = 126; // เพิ่มความสูงเล็กน้อยเพื่อกัน bottom overflow
       } else if (itemWidth >= 300) {
         mainExtent = 120;
