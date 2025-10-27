@@ -865,16 +865,14 @@ class _TenantListUIState extends State<TenantListUI> {
   }
 
   Widget _buildCompactTenantCard(Map<String, dynamic> tenant) {
+    // Data preparation (use current available fields)
     final isActive = tenant['is_active'] ?? false;
-    final profileImageUrl = tenant['tenant_profile_image'];
     final tenantId = tenant['tenant_id'];
     final tenantName = tenant['tenant_fullname'] ?? 'ไม่ระบุชื่อ';
-    final idCard =
-        _formatIdCard(tenant['tenant_idcard']?.toString() ?? 'ไม่ระบุ');
-    final phone =
-        _formatPhoneNumber(tenant['tenant_phone']?.toString() ?? 'ไม่ระบุ');
+    final phone = _formatPhoneNumber(tenant['tenant_phone']?.toString() ?? 'ไม่ระบุ');
     final branchName = tenant['branch_name'] ?? 'ไม่ระบุสาขา';
-    final gender = tenant['tenant_gender'] ?? 'other';
+    final profileImageUrl =
+        (tenant['tenant_profile'] ?? tenant['tenant_profile_image'])?.toString();
 
     final canManage = !_isAnonymous &&
         (_currentUser?.userRole == UserRole.superAdmin ||
@@ -888,6 +886,7 @@ class _TenantListUIState extends State<TenantListUI> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
+        borderRadius: BorderRadius.circular(12),
         onTap: () async {
           if (_isAnonymous) {
             _showLoginPrompt('ดูรายละเอียด');
@@ -899,264 +898,263 @@ class _TenantListUIState extends State<TenantListUI> {
               builder: (context) => TenantDetailUI(tenantId: tenantId),
             ),
           );
-          if (result == true && mounted) {
-            await _loadTenants();
-          }
+          if (result == true && mounted) await _loadTenants();
         },
-        borderRadius: BorderRadius.circular(12),
         child: Ink(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
+            border: Border.all(color: Colors.grey.shade300),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with Status Badge and Menu
-              Container(
-                padding: EdgeInsets.fromLTRB(16, 12, 8, 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey.shade200, width: 1),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    // Status Badge
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isActive ? Color(0xFF10B981) : Colors.grey[400],
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        isActive ? 'ใช้งานอยู่' : 'ปิดใช้งาน',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Spacer(),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final w = constraints.maxWidth;
+              final isCompact = w < 360;
+              final avatarSize = isCompact ? 48.0 : 56.0;
+              final nameSize = isCompact ? 15.0 : 16.0;
+              final subSize = isCompact ? 12.0 : 13.0;
 
-                    // Actions Menu
-                    PopupMenuButton<String>(
-                      padding: EdgeInsets.zero,
-                      icon: Icon(Icons.more_vert_rounded,
-                          color: Colors.grey[600], size: 20),
-                      tooltip: 'ตัวเลือก',
-                      offset: Offset(0, 40),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'view',
-                          child: Row(
-                            children: [
-                              Icon(Icons.visibility_outlined,
-                                  size: 20, color: Color(0xFF14B8A6)),
-                              SizedBox(width: 12),
-                              Text('ดูรายละเอียด'),
-                            ],
+              return Padding(
+                padding: EdgeInsets.all(isCompact ? 12 : 14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Avatar + status dot
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: avatarSize,
+                          height: avatarSize,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppTheme.primary.withOpacity(0.08),
+                            border: Border.all(color: Colors.grey.shade200, width: 2),
+                          ),
+                          child: ClipOval(
+                            child: (profileImageUrl != null && profileImageUrl.isNotEmpty)
+                                ? Image.network(
+                                    profileImageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Center(
+                                      child: Text(
+                                        _getInitials(tenantName),
+                                        style: TextStyle(
+                                          fontSize: avatarSize * 0.4,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : Center(
+                                    child: Text(
+                                      _getInitials(tenantName),
+                                      style: TextStyle(
+                                        fontSize: avatarSize * 0.4,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.primary,
+                                      ),
+                                    ),
+                                  ),
                           ),
                         ),
-                        if (canManage) ...[
-                          PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit_outlined,
-                                    size: 20, color: Color(0xFF14B8A6)),
-                                SizedBox(width: 12),
-                                Text('แก้ไข'),
-                              ],
+                        Positioned(
+                          right: -2,
+                          bottom: -2,
+                          child: Container(
+                            width: avatarSize * 0.24,
+                            height: avatarSize * 0.24,
+                            decoration: BoxDecoration(
+                              color: isActive ? const Color(0xFF10B981) : Colors.grey,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
                             ),
                           ),
-                          PopupMenuItem(
-                            value: 'toggle',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  isActive
-                                      ? Icons.visibility_off_outlined
-                                      : Icons.visibility_outlined,
-                                  size: 20,
-                                  color:
-                                      isActive ? Colors.orange : Colors.green,
-                                ),
-                                SizedBox(width: 12),
-                                Text(
-                                  isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(width: isCompact ? 10 : 14),
+
+                    // Info area
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  tenantName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    color:
-                                        isActive ? Colors.orange : Colors.green,
+                                    fontSize: nameSize,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.grey.shade900,
+                                    letterSpacing: -0.2,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // Action menu
+                              PopupMenuButton<String>(
+                                padding: EdgeInsets.zero,
+                                icon: Icon(Icons.more_horiz, size: 18, color: Colors.grey.shade600),
+                                tooltip: 'ตัวเลือก',
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                onSelected: (value) async {
+                                  switch (value) {
+                                    case 'view':
+                                      if (_isAnonymous) {
+                                        _showLoginPrompt('ดูรายละเอียด');
+                                        return;
+                                      }
+                                      final result = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => TenantDetailUI(tenantId: tenantId),
+                                        ),
+                                      );
+                                      if (result == true && mounted) await _loadTenants();
+                                      break;
+                                    case 'edit':
+                                      if (_isAnonymous) {
+                                        _showLoginPrompt('แก้ไข');
+                                        return;
+                                      }
+                                      if (!canManage) return;
+                                      final result = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => TenantEditUI(
+                                            tenantId: tenantId,
+                                            tenantData: tenant,
+                                          ),
+                                        ),
+                                      );
+                                      if (result == true && mounted) await _loadTenants();
+                                      break;
+                                    case 'toggle':
+                                      if (_isAnonymous) {
+                                        _showLoginPrompt(isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน');
+                                        return;
+                                      }
+                                      if (!canManage) return;
+                                      _toggleTenantStatus(
+                                        tenant['tenant_id'],
+                                        tenant['tenant_fullname'] ?? '',
+                                        isActive,
+                                      );
+                                      break;
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  PopupMenuItem(
+                                    value: 'view',
+                                    child: Row(
+                                      children: const [
+                                        Icon(Icons.visibility_outlined, size: 18, color: Colors.blue),
+                                        SizedBox(width: 10),
+                                        Text('ดูรายละเอียด'),
+                                      ],
+                                    ),
+                                  ),
+                                  if (canManage) ...[
+                                    const PopupMenuDivider(),
+                                    PopupMenuItem(
+                                      value: 'edit',
+                                      child: Row(
+                                        children: const [
+                                          Icon(Icons.edit_outlined, size: 18, color: Colors.orange),
+                                          SizedBox(width: 10),
+                                          Text('แก้ไข'),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'toggle',
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            isActive ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                            size: 18,
+                                            color: isActive ? Colors.red : Colors.green,
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
+                                            style: TextStyle(color: isActive ? Colors.red : Colors.green),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 4),
+
+                          // Phone
+                          if (phone != 'ไม่ระบุ')
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.phone_outlined, size: 16, color: Colors.grey.shade600),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    phone,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(fontSize: subSize, color: Colors.grey.shade700),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ],
-                      onSelected: (value) async {
-                        switch (value) {
-                          case 'view':
-                            if (_isAnonymous) {
-                              _showLoginPrompt('ดูรายละเอียด');
-                              return;
-                            }
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    TenantDetailUI(tenantId: tenantId),
-                              ),
-                            );
-                            if (result == true && mounted) {
-                              await _loadTenants();
-                            }
-                            break;
-                          case 'edit':
-                            if (_isAnonymous) {
-                              _showLoginPrompt('แก้ไข');
-                              return;
-                            }
-                            if (!canManage) return;
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => TenantEditUI(
-                                  tenantId: tenantId,
-                                  tenantData: tenant,
+
+                          if (phone != 'ไม่ระบุ') const SizedBox(height: 4),
+
+                          // Branch
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.apartment_rounded, size: 16, color: Colors.grey.shade600),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  branchName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(fontSize: subSize, color: Colors.grey.shade700),
                                 ),
                               ),
-                            );
-                            if (result == true && mounted) {
-                              await _loadTenants();
-                            }
-                            break;
-                          case 'toggle':
-                            if (_isAnonymous) {
-                              _showLoginPrompt(
-                                  isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน');
-                              return;
-                            }
-                            if (!canManage) return;
-                            _toggleTenantStatus(
-                              tenant['tenant_id'],
-                              tenant['tenant_fullname'] ?? '',
-                              isActive,
-                            );
-                            break;
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-              // Profile Image Section
-              Container(
-                height: 180,
-                width: double.infinity,
-                color: Colors.grey[200],
-                child: profileImageUrl != null && profileImageUrl.isNotEmpty
-                    ? Image.network(
-                        profileImageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _buildImagePlaceholderCompact(tenantName),
-                      )
-                    : _buildImagePlaceholderCompact(tenantName),
-              ),
-
-              // Info Section
-              Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Tenant Name
-                    Text(
-                      tenantName,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[900],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 8),
-
-                    // Gender Badge
-                    _buildGenderBadgeCompact(gender),
-                    SizedBox(height: 12),
-
-                    // ID Card
-                    if (idCard != 'ไม่ระบุ')
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(Icons.credit_card_outlined,
-                                size: 18, color: Color(0xFF14B8A6)),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                idCard,
-                                style: TextStyle(
-                                    fontSize: 13, color: Colors.grey[700]),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                    // Phone
-                    if (phone != 'ไม่ระบุ')
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          children: [
-                            Icon(Icons.phone_outlined,
-                                size: 18, color: Color(0xFF14B8A6)),
-                            SizedBox(width: 8),
-                            Text(
-                              phone,
-                              style: TextStyle(
-                                  fontSize: 13, color: Colors.grey[700]),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                    // Branch
-                    Row(
-                      children: [
-                        Icon(Icons.location_on_outlined,
-                            size: 18, color: Color(0xFF14B8A6)),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            branchName,
-                            style: TextStyle(
-                                fontSize: 13, color: Colors.grey[700]),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                            ],
                           ),
-                        ),
-                      ],
+
+                          const SizedBox(height: 6),
+
+                          // Status text (use existing colors)
+                          Text(
+                            isActive ? 'ใช้งานอยู่' : 'ปิดใช้งาน',
+                            style: TextStyle(
+                              fontSize: subSize,
+                              fontWeight: FontWeight.w600,
+                              color: isActive ? const Color(0xFF10B981) : Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),
