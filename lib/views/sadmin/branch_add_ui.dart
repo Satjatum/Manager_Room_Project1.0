@@ -1482,6 +1482,7 @@ class _BranchAddPageState extends State<BranchAddPage>
               fillColor: Colors.grey.shade50,
               helperText: 'Branch contact number (optional)',
             ),
+            maxLength: 10,
             keyboardType: TextInputType.phone,
             validator: (value) {
               if (value != null && value.trim().isNotEmpty) {

@@ -1372,18 +1372,44 @@ class _RoomListUIState extends State<RoomListUI> {
                             child: LayoutBuilder(
                               builder: (context, constraints) {
                                 final width = constraints.maxWidth;
+
+                                // Responsive Grid Columns based on screen width
                                 int cols = 1;
-                                if (width >= 1200) {
+                                double horizontalPadding = 24;
+                                double crossSpacing = 12;
+                                double mainSpacing = 12;
+
+                                // Breakpoints for responsive columns
+                                if (width >= 2560) {
+                                  // 4K screens - 5 columns
+                                  cols = 5;
+                                  horizontalPadding = 32;
+                                  crossSpacing = 16;
+                                  mainSpacing = 16;
+                                } else if (width >= 1440) {
+                                  // Laptop L - 4 columns
                                   cols = 4;
-                                } else if (width >= 992) {
+                                  horizontalPadding = 28;
+                                  crossSpacing = 14;
+                                  mainSpacing = 14;
+                                } else if (width >= 1024) {
+                                  // Laptop - 3 columns
                                   cols = 3;
+                                  horizontalPadding = 24;
+                                  crossSpacing = 12;
+                                  mainSpacing = 12;
                                 } else if (width >= 768) {
+                                  // Tablet - 2 columns
                                   cols = 2;
+                                  horizontalPadding = 20;
+                                  crossSpacing = 10;
+                                  mainSpacing = 10;
                                 }
 
+                                // Mobile - use ListView
                                 if (cols == 1) {
                                   return ListView.builder(
-                                    padding: EdgeInsets.fromLTRB(24, 8, 24, 24),
+                                    padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
                                     itemCount: _filteredRooms.length,
                                     itemBuilder: (context, index) {
                                       final room = _filteredRooms[index];
@@ -1392,32 +1418,49 @@ class _RoomListUIState extends State<RoomListUI> {
                                   );
                                 }
 
-                                // Dynamic aspect ratio similar to branchlist_ui to avoid overflow
-                                const double horizontalPadding = 24;
-                                const double crossSpacing = 12;
+                                // Calculate dynamic aspect ratio for grid
                                 final double availableWidth = width -
                                     (horizontalPadding * 2) -
                                     (crossSpacing * (cols - 1));
                                 final double tileWidth = availableWidth / cols;
 
-                                // Estimate heights (conservative for rich content)
-                                final double estHeader =
-                                    tileWidth < 300 ? 140 : 110;
-                                final double estInfo =
-                                    tileWidth < 300 ? 190 : 150;
-                                final double estimatedTileHeight =
-                                    estHeader + estInfo;
-                                double dynamicAspect = tileWidth /
-                                    estimatedTileHeight; // width / height
-                                dynamicAspect = dynamicAspect.clamp(0.60, 1.05);
+                                // Responsive height estimation based on screen size
+                                // เพิ่มความสูงการ์ดมากขึ้นเพื่อแก้ไข overflow
+                                double estimatedTileHeight;
+
+                                if (width >= 2560) {
+                                  // 4K - larger cards
+                                  estimatedTileHeight = tileWidth * 1.55;
+                                } else if (width >= 1440) {
+                                  // Laptop L - เพิ่มความสูงเพื่อแก้ 82px overflow
+                                  estimatedTileHeight = tileWidth * 1.60;
+                                } else if (width >= 1024) {
+                                  // Laptop - เพิ่มความสูงเพื่อแก้ 67px overflow
+                                  estimatedTileHeight = tileWidth * 1.58;
+                                } else if (width >= 768) {
+                                  // Tablet
+                                  estimatedTileHeight = tileWidth * 1.50;
+                                } else {
+                                  // Fallback
+                                  estimatedTileHeight = tileWidth * 1.50;
+                                }
+
+                                double dynamicAspect =
+                                    tileWidth / estimatedTileHeight;
+                                // ปรับ clamp range ให้รองรับการ์ดที่สูงขึ้นมาก
+                                dynamicAspect = dynamicAspect.clamp(0.55, 0.85);
 
                                 return GridView.builder(
-                                  padding: EdgeInsets.fromLTRB(24, 8, 24, 24),
+                                  padding: EdgeInsets.fromLTRB(
+                                      horizontalPadding,
+                                      8,
+                                      horizontalPadding,
+                                      24),
                                   gridDelegate:
                                       SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: cols,
                                     crossAxisSpacing: crossSpacing,
-                                    mainAxisSpacing: 12,
+                                    mainAxisSpacing: mainSpacing,
                                     childAspectRatio: dynamicAspect,
                                   ),
                                   itemCount: _filteredRooms.length,
@@ -1538,36 +1581,107 @@ class _RoomListUIState extends State<RoomListUI> {
     final statusColor = _getStatusColor(status);
     final roomId = room['room_id'];
     final amenities = _roomAmenities[roomId] ?? [];
-    return Card(
-      margin: EdgeInsets.only(bottom: 16),
-      elevation: 0,
-      color: Colors.white,
-      shadowColor: Colors.transparent,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey[300]!),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => RoomDetailUI(
-                roomId: room['room_id'],
-              ),
-            ),
-          );
-        },
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final bool isNarrow = constraints.maxWidth < 420;
-              return Column(
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Define responsive breakpoints
+        final double width = MediaQuery.of(context).size.width;
+        final bool isTablet = width >= 768 && width < 1024;
+        final bool isLaptop = width >= 1024 && width < 1440;
+        final bool isLaptopL = width >= 1440 && width < 2560;
+        final bool is4K = width >= 2560;
+        final bool isNarrow = constraints.maxWidth < 420;
+
+        // Responsive sizing values
+        double cardMargin = 16.0;
+        double cardPadding = 16.0;
+        double iconSize = 16.0;
+        double titleFontSize = 16.0;
+        double subtitleFontSize = 13.0;
+        double chipFontSize = 12.0;
+        double bodyFontSize = 13.0;
+        double amenityIconSize = 12.0;
+        double amenityFontSize = 11.0;
+        double spacing = 10.0;
+        int maxAmenitiesShow = 5;
+
+        if (isTablet) {
+          cardMargin = 18.0;
+          cardPadding = 18.0;
+          iconSize = 18.0;
+          titleFontSize = 17.0;
+          subtitleFontSize = 14.0;
+          chipFontSize = 13.0;
+          bodyFontSize = 14.0;
+          amenityIconSize = 13.0;
+          amenityFontSize = 12.0;
+          spacing = 12.0;
+          maxAmenitiesShow = 6;
+        } else if (isLaptop) {
+          cardMargin = 20.0;
+          cardPadding = 20.0;
+          iconSize = 20.0;
+          titleFontSize = 18.0;
+          subtitleFontSize = 15.0;
+          chipFontSize = 14.0;
+          bodyFontSize = 15.0;
+          amenityIconSize = 14.0;
+          amenityFontSize = 13.0;
+          spacing = 14.0;
+          maxAmenitiesShow = 5;
+        } else if (isLaptopL) {
+          cardMargin = 22.0;
+          cardPadding = 22.0;
+          iconSize = 22.0;
+          titleFontSize = 20.0;
+          subtitleFontSize = 16.0;
+          chipFontSize = 15.0;
+          bodyFontSize = 16.0;
+          amenityIconSize = 15.0;
+          amenityFontSize = 14.0;
+          spacing = 16.0;
+          maxAmenitiesShow = 3;
+        } else if (is4K) {
+          cardMargin = 24.0;
+          cardPadding = 24.0;
+          iconSize = 24.0;
+          titleFontSize = 22.0;
+          subtitleFontSize = 18.0;
+          chipFontSize = 16.0;
+          bodyFontSize = 18.0;
+          amenityIconSize = 16.0;
+          amenityFontSize = 15.0;
+          spacing = 18.0;
+          maxAmenitiesShow = 10;
+        }
+
+        return Card(
+          margin: EdgeInsets.only(bottom: cardMargin),
+          elevation: 0,
+          color: Colors.white,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey[300]!),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RoomDetailUI(
+                    roomId: room['room_id'],
+                  ),
+                ),
+              );
+            },
+            child: Padding(
+              padding: EdgeInsets.all(cardPadding),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header: title + 3-dots menu (keeps top-right action consistent)
+                  // Header: title + 3-dots menu
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1579,21 +1693,21 @@ class _RoomListUIState extends State<RoomListUI> {
                               '${room['room_category_name']} เลขที่ ${room['room_number'] ?? 'ไม่ระบุ'}',
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 16,
+                              style: TextStyle(
+                                fontSize: titleFontSize,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black87,
                               ),
                             ),
                             if (room['branch_name'] != null)
                               Padding(
-                                padding: const EdgeInsets.only(top: 4),
+                                padding: EdgeInsets.only(top: 4),
                                 child: Text(
                                   room['branch_name'],
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: subtitleFontSize,
                                     color: Colors.grey[600],
                                   ),
                                 ),
@@ -1601,22 +1715,22 @@ class _RoomListUIState extends State<RoomListUI> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       _buildRoomMenu(room, canManage, isActive),
                     ],
                   ),
 
-                  const SizedBox(height: 10),
+                  SizedBox(height: spacing),
 
-                  // Chips: status + active/inactive (wrap for small widths)
+                  // Chips: status + active/inactive
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: spacing, vertical: spacing * 0.6),
                         decoration: BoxDecoration(
                           color: statusColor,
                           borderRadius: BorderRadius.circular(6),
@@ -1625,13 +1739,13 @@ class _RoomListUIState extends State<RoomListUI> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(_getStatusIcon(status),
-                                size: 14, color: Colors.white),
-                            const SizedBox(width: 6),
+                                size: iconSize * 0.88, color: Colors.white),
+                            SizedBox(width: 6),
                             Text(
                               _getStatusText(status),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 12,
+                                fontSize: chipFontSize,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -1639,8 +1753,8 @@ class _RoomListUIState extends State<RoomListUI> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 6),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: spacing, vertical: spacing * 0.6),
                         decoration: BoxDecoration(
                           color: isActive
                               ? const Color(0xFF10B981)
@@ -1649,9 +1763,9 @@ class _RoomListUIState extends State<RoomListUI> {
                         ),
                         child: Text(
                           isActive ? 'Active' : 'Inactive',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 12,
+                            fontSize: chipFontSize,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -1659,31 +1773,33 @@ class _RoomListUIState extends State<RoomListUI> {
                     ],
                   ),
 
-                  const SizedBox(height: 12),
+                  SizedBox(height: spacing * 1.2),
 
                   Row(
                     children: [
                       // Room Type
                       if (room['room_type_name'] != null) ...[
                         SizedBox(width: 8),
-                        _buildInfoChip(
+                        _buildInfoChipResponsive(
                           Icons.category,
                           room['room_type_name'],
                           Color(0xFF14B8A6),
+                          iconSize,
+                          chipFontSize,
                         ),
                       ],
                     ],
                   ),
 
-                  SizedBox(height: 12),
+                  SizedBox(height: spacing * 1.2),
 
-                  // Room Info (Size & Price) - use Wrap to prevent horizontal overflow
+                  // Room Info (Size & Price)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Wrap(
-                        spacing: 16,
-                        runSpacing: 8,
+                        spacing: spacing * 1.6,
+                        runSpacing: spacing * 0.8,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           if (room['room_size'] != null)
@@ -1691,12 +1807,13 @@ class _RoomListUIState extends State<RoomListUI> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(Icons.aspect_ratio,
-                                    size: 16, color: Colors.grey[600]),
+                                    size: iconSize, color: Colors.grey[600]),
                                 SizedBox(width: 4),
                                 Text(
                                   '${room['room_size']} ตร.ม.',
                                   style: TextStyle(
-                                      fontSize: 13, color: Colors.grey[700]),
+                                      fontSize: bodyFontSize,
+                                      color: Colors.grey[700]),
                                 ),
                               ],
                             ),
@@ -1704,12 +1821,12 @@ class _RoomListUIState extends State<RoomListUI> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.payments,
-                                  size: 16, color: Colors.grey[600]),
+                                  size: iconSize, color: Colors.grey[600]),
                               SizedBox(width: 4),
                               Text(
                                 '${room['room_price'] ?? 0} บาท/เดือน',
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: bodyFontSize,
                                   color: Colors.grey[700],
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -1720,12 +1837,12 @@ class _RoomListUIState extends State<RoomListUI> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.security,
-                                  size: 16, color: Colors.grey[600]),
+                                  size: iconSize, color: Colors.grey[600]),
                               SizedBox(width: 4),
                               Text(
                                 'ค่ามัดจำ: ${room['room_deposit'] ?? 0} บาท',
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: bodyFontSize,
                                   color: Colors.grey[700],
                                 ),
                               ),
@@ -1739,9 +1856,9 @@ class _RoomListUIState extends State<RoomListUI> {
                   // Room Description
                   if (room['room_desc'] != null &&
                       room['room_desc'].toString().trim().isNotEmpty) ...[
-                    SizedBox(height: 12),
+                    SizedBox(height: spacing * 1.2),
                     Container(
-                      padding: EdgeInsets.all(12),
+                      padding: EdgeInsets.all(spacing * 1.2),
                       decoration: BoxDecoration(
                         color: Colors.grey[50],
                         borderRadius: BorderRadius.circular(8),
@@ -1751,13 +1868,13 @@ class _RoomListUIState extends State<RoomListUI> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Icon(Icons.description,
-                              size: 16, color: Colors.grey[600]),
+                              size: iconSize, color: Colors.grey[600]),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               room['room_desc'],
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: bodyFontSize,
                                 color: Colors.grey[700],
                                 height: 1.4,
                               ),
@@ -1772,34 +1889,36 @@ class _RoomListUIState extends State<RoomListUI> {
 
                   // Amenities Section
                   if (amenities.isNotEmpty) ...[
-                    SizedBox(height: 12),
+                    SizedBox(height: spacing * 1.2),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
                             Icon(Icons.stars,
-                                size: 14, color: Colors.amber[700]),
+                                size: iconSize * 0.88,
+                                color: Colors.amber[700]),
                             SizedBox(width: 4),
                             Text(
                               'สิ่งอำนวยความสะดวก',
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: chipFontSize,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.grey[700],
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 8),
+                        SizedBox(height: spacing * 0.8),
                         Wrap(
                           spacing: 6,
                           runSpacing: 6,
-                          children: amenities.take(5).map((amenity) {
+                          children:
+                              amenities.take(maxAmenitiesShow).map((amenity) {
                             return Container(
                               padding: EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
+                                horizontal: spacing * 0.8,
+                                vertical: spacing * 0.4,
                               ),
                               decoration: BoxDecoration(
                                 color: Color(0xFF14B8A6).withOpacity(0.08),
@@ -1814,14 +1933,14 @@ class _RoomListUIState extends State<RoomListUI> {
                                 children: [
                                   Icon(
                                     _getAmenityIcon(amenity['amenities_icon']),
-                                    size: 12,
+                                    size: amenityIconSize,
                                     color: Color(0xFF14B8A6),
                                   ),
                                   SizedBox(width: 4),
                                   Text(
                                     amenity['amenities_name'] ?? '',
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: amenityFontSize,
                                       color: Color(0xFF14B8A6),
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -1831,13 +1950,13 @@ class _RoomListUIState extends State<RoomListUI> {
                             );
                           }).toList(),
                         ),
-                        if (amenities.length > 5)
+                        if (amenities.length > maxAmenitiesShow)
                           Padding(
                             padding: EdgeInsets.only(top: 6),
                             child: Text(
-                              '+${amenities.length - 5} เพิ่มเติม',
+                              '+${amenities.length - maxAmenitiesShow} เพิ่มเติม',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: amenityFontSize,
                                 color: Color(0xFF14B8A6),
                                 fontWeight: FontWeight.w500,
                               ),
@@ -1846,12 +1965,44 @@ class _RoomListUIState extends State<RoomListUI> {
                       ],
                     ),
                   ],
-                  // Action buttons moved to bottom sheet (menu icon in header)
                 ],
-              );
-            },
+              ),
+            ),
           ),
-        ),
+        );
+      },
+    );
+  }
+
+  // Helper method for responsive info chip
+  Widget _buildInfoChipResponsive(
+    IconData icon,
+    String label,
+    Color color,
+    double iconSize,
+    double fontSize,
+  ) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: iconSize * 0.88, color: color),
+          SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: fontSize,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
