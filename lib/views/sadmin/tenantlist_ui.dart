@@ -394,137 +394,97 @@ class _TenantListUIState extends State<TenantListUI> {
     return WillPopScope(
       onWillPop: _confirmExitBranch,
       child: Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Section (match branchlist_ui)
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new,
-                        color: Colors.black87),
-                    onPressed: () async {
-                      if (lockedBranchId != null) {
-                        await _confirmExitBranch();
-                      } else if (Navigator.of(context).canPop()) {
-                        Navigator.of(context).pop();
-                      }
-                    },
-                    tooltip: 'ย้อนกลับ',
-                  ),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Tenant Management',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Manage your tenants and details',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ],
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Section (match branchlist_ui)
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new,
+                          color: Colors.black87),
+                      onPressed: () async {
+                        if (lockedBranchId != null) {
+                          await _confirmExitBranch();
+                        } else if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      tooltip: 'ย้อนกลับ',
                     ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Search and Filter Section (branchlist style)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
-                  // Search Bar
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey[300]!),
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: _onSearchChanged,
-                      decoration: InputDecoration(
-                        hintText: 'Search tenants by name, phone or id card',
-                        hintStyle:
-                            TextStyle(color: Colors.grey[500], fontSize: 14),
-                        prefixIcon: Icon(Icons.search,
-                            color: Colors.grey[600], size: 20),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: Icon(Icons.clear,
-                                    color: Colors.grey[600], size: 20),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  _onSearchChanged('');
-                                },
-                              )
-                            : null,
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Status Filter
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.filter_list,
-                            size: 20, color: Colors.grey[700]),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedStatus,
-                              isExpanded: true,
-                              icon: const Icon(Icons.keyboard_arrow_down,
-                                  size: 20),
-                              style: const TextStyle(
-                                  fontSize: 14, color: Colors.black87),
-                              onChanged: _onStatusChanged,
-                              items: const [
-                                DropdownMenuItem(
-                                    value: 'all', child: Text('All')),
-                                DropdownMenuItem(
-                                    value: 'active', child: Text('Active')),
-                                DropdownMenuItem(
-                                    value: 'inactive', child: Text('Inactive')),
-                              ],
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Tenant Management',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
                             ),
                           ),
-                        ),
-                      ],
+                          SizedBox(height: 4),
+                          Text(
+                            'Manage your tenants and details',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
+                ),
+              ),
 
-                  // Branch Filter (if available and no initial branch)
-                  if (_branches.isNotEmpty && widget.branchId == null) ...[
+              // Search and Filter Section (branchlist style)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    // Search Bar
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: _onSearchChanged,
+                        decoration: InputDecoration(
+                          hintText: 'Search tenants by name, phone or id card',
+                          hintStyle:
+                              TextStyle(color: Colors.grey[500], fontSize: 14),
+                          prefixIcon: Icon(Icons.search,
+                              color: Colors.grey[600], size: 20),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: Icon(Icons.clear,
+                                      color: Colors.grey[600], size: 20),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    _onSearchChanged('');
+                                  },
+                                )
+                              : null,
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 12),
+
+                    // Status Filter
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 4),
@@ -534,88 +494,131 @@ class _TenantListUIState extends State<TenantListUI> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.place_outlined,
+                          Icon(Icons.filter_list,
                               size: 20, color: Colors.grey[700]),
                           const SizedBox(width: 8),
                           Expanded(
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
-                                value: _selectedBranchId ?? 'all',
+                                value: _selectedStatus,
                                 isExpanded: true,
                                 icon: const Icon(Icons.keyboard_arrow_down,
                                     size: 20),
                                 style: const TextStyle(
                                     fontSize: 14, color: Colors.black87),
-                                items: [
-                                  const DropdownMenuItem(
-                                      value: 'all', child: Text('ทุกสาขา')),
-                                  ..._branches.map((branch) {
-                                    return DropdownMenuItem<String>(
-                                      value: branch['branch_id'] as String,
-                                      child: Text(branch['branch_name'] ?? ''),
-                                    );
-                                  }).toList(),
+                                onChanged: _onStatusChanged,
+                                items: const [
+                                  DropdownMenuItem(
+                                      value: 'all', child: Text('All')),
+                                  DropdownMenuItem(
+                                      value: 'active', child: Text('Active')),
+                                  DropdownMenuItem(
+                                      value: 'inactive',
+                                      child: Text('Inactive')),
                                 ],
-                                onChanged: (value) {
-                                  _onBranchChanged(
-                                      value == 'all' ? null : value);
-                                },
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ],
-              ),
-            ),
 
-            const SizedBox(height: 16),
-
-            // Results Count
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: Text(
-                'Showing ${_filteredTenants.length} of ${_tenants.length} tenants',
-                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-              ),
-            ),
-
-            // List/Grid
-            Expanded(
-              child: _isLoading
-                  ? _buildLoadingState()
-                  : _filteredTenants.isEmpty
-                      ? _buildEmptyState(isMobile)
-                      : RefreshIndicator(
-                          onRefresh: _loadTenants,
-                          color: AppTheme.primary,
-                          child: _buildTenantList(
-                              screenWidth, isDesktop, isTablet),
+                    // Branch Filter (if available and no initial branch)
+                    if (_branches.isNotEmpty && widget.branchId == null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 4),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-            ),
-          ],
+                        child: Row(
+                          children: [
+                            Icon(Icons.place_outlined,
+                                size: 20, color: Colors.grey[700]),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: _selectedBranchId ?? 'all',
+                                  isExpanded: true,
+                                  icon: const Icon(Icons.keyboard_arrow_down,
+                                      size: 20),
+                                  style: const TextStyle(
+                                      fontSize: 14, color: Colors.black87),
+                                  items: [
+                                    const DropdownMenuItem(
+                                        value: 'all', child: Text('ทุกสาขา')),
+                                    ..._branches.map((branch) {
+                                      return DropdownMenuItem<String>(
+                                        value: branch['branch_id'] as String,
+                                        child:
+                                            Text(branch['branch_name'] ?? ''),
+                                      );
+                                    }).toList(),
+                                  ],
+                                  onChanged: (value) {
+                                    _onBranchChanged(
+                                        value == 'all' ? null : value);
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Results Count
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Text(
+                  'Showing ${_filteredTenants.length} of ${_tenants.length} tenants',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                ),
+              ),
+
+              // List/Grid
+              Expanded(
+                child: _isLoading
+                    ? _buildLoadingState()
+                    : _filteredTenants.isEmpty
+                        ? _buildEmptyState(isMobile)
+                        : RefreshIndicator(
+                            onRefresh: _loadTenants,
+                            color: AppTheme.primary,
+                            child: _buildTenantList(
+                                screenWidth, isDesktop, isTablet),
+                          ),
+              ),
+            ],
+          ),
         ),
+        floatingActionButton: _canManage
+            ? FloatingActionButton.extended(
+                onPressed: _navigateToAddTenant,
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                icon: const Icon(Icons.person_add),
+                label: Text(isMobile ? 'เพิ่ม' : 'เพิ่มผู้เช่า'),
+                tooltip: 'เพิ่มผู้เช่าใหม่',
+              )
+            : null,
+        bottomNavigationBar: widget.hideBottomNav
+            ? null
+            : Subnavbar(
+                currentIndex: 1,
+                branchId: widget.branchId,
+                branchName: widget.branchName,
+              ),
       ),
-      floatingActionButton: _canManage
-          ? FloatingActionButton.extended(
-              onPressed: _navigateToAddTenant,
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.person_add),
-              label: Text(isMobile ? 'เพิ่ม' : 'เพิ่มผู้เช่า'),
-              tooltip: 'เพิ่มผู้เช่าใหม่',
-            )
-          : null,
-      bottomNavigationBar: widget.hideBottomNav
-          ? null
-          : Subnavbar(
-              currentIndex: 1,
-              branchId: widget.branchId,
-              branchName: widget.branchName,
-            ),
-    ),
     );
   }
 
@@ -822,25 +825,83 @@ class _TenantListUIState extends State<TenantListUI> {
   }
 
   Widget _buildTenantList(double screenWidth, bool isDesktop, bool isTablet) {
-    // คำนวณจำนวนคอลัมน์ตามขนาดหน้าจอ เหมือน branchlist_ui.dart
+    // ปรับจำนวนคอลัมน์แบบ adaptive รองรับ 4K / Laptop L / Laptop / Tablet
+    // โดยคงความกว้างของการ์ดให้อยู่ในช่วงเหมาะสม (>= 300px)
     int crossAxisCount = 1;
-    if (screenWidth > 1200) {
-      crossAxisCount = 4;
-    } else if (screenWidth > 900) {
-      crossAxisCount = 3;
-    } else if (screenWidth > 600) {
-      crossAxisCount = 2;
+    if (screenWidth > 600) {
+      const double horizontalPadding = 24;
+      const double gridSpacing = 16;
+
+      // กำหนด max columns ตามช่วงหน้าจอหลัก ๆ
+      int maxCols;
+      if (screenWidth >= 3840) {
+        // 4K
+        maxCols = 8;
+      } else if (screenWidth >= 2560) {
+        // Ultra-wide / 2.5K
+        maxCols = 7;
+      } else if (screenWidth >= 1920) {
+        // Desktop ใหญ่
+        maxCols = 6;
+      } else if (screenWidth >= 1440) {
+        // Laptop L
+        maxCols = 5;
+      } else if (screenWidth >= 1200) {
+        // Desktop ปกติ / Laptop
+        maxCols = 4;
+      } else if (screenWidth >= 900) {
+        // Tablet ใหญ่ / เล็กน้อยก่อน Laptop
+        maxCols = 3;
+      } else {
+        // Tablet
+        maxCols = 2;
+      }
+
+      // ทดลองจาก maxCols ลดลงจนได้ความกว้างต่อการ์ด >= 300px
+      const double minCardWidth = 300;
+      final double totalHorizontal = horizontalPadding * 2;
+      int cols = maxCols;
+      while (cols > 2) {
+        final double availableWidth =
+            screenWidth - totalHorizontal - (gridSpacing * (cols - 1));
+        final double itemWidth = availableWidth / cols;
+        if (itemWidth >= minCardWidth) break;
+        cols--;
+      }
+      crossAxisCount = cols;
     }
 
     if (crossAxisCount > 1) {
       // ใช้ GridView สำหรับหน้าจอใหญ่
+      // คำนวณความสูง cell ให้เหมาะกับเนื้อหาของการ์ดแบบ compact (Row)
+      const double horizontalPadding = 24;
+      const double gridSpacing = 16;
+      final double availableWidth = screenWidth -
+          (horizontalPadding * 2) -
+          (gridSpacing * (crossAxisCount - 1));
+      final double itemWidth = availableWidth / crossAxisCount;
+
+      double mainExtent;
+      if (itemWidth >= 420) {
+        mainExtent = 160; // กว้างมาก (4K/2.5K) เพิ่มพื้นที่ให้โปร่งและกันล้น
+      } else if (itemWidth >= 360) {
+        mainExtent = 155; // ~360–419px (เช่น Tablet 768 สองคอลัมน์)
+      } else if (itemWidth >= 300) {
+        mainExtent = 150; // ~300–359px (เช่น 1024/1440/2560 ตามคอลัมน์ที่คำนวณ)
+      } else if (itemWidth >= 260) {
+        mainExtent = 128;
+      } else {
+        mainExtent = 120; // ขั้นต่ำสำหรับช่วงแคบมาก
+      }
+
       return GridView.builder(
-        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+            horizontal: horizontalPadding, vertical: 8),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 0.85,
+          crossAxisSpacing: gridSpacing,
+          mainAxisSpacing: gridSpacing,
+          mainAxisExtent: mainExtent,
         ),
         itemCount: _filteredTenants.length,
         itemBuilder: (context, index) {
@@ -865,16 +926,16 @@ class _TenantListUIState extends State<TenantListUI> {
   }
 
   Widget _buildCompactTenantCard(Map<String, dynamic> tenant) {
+    // Data preparation (use current available fields)
     final isActive = tenant['is_active'] ?? false;
-    final profileImageUrl = tenant['tenant_profile_image'];
     final tenantId = tenant['tenant_id'];
     final tenantName = tenant['tenant_fullname'] ?? 'ไม่ระบุชื่อ';
-    final idCard =
-        _formatIdCard(tenant['tenant_idcard']?.toString() ?? 'ไม่ระบุ');
     final phone =
         _formatPhoneNumber(tenant['tenant_phone']?.toString() ?? 'ไม่ระบุ');
     final branchName = tenant['branch_name'] ?? 'ไม่ระบุสาขา';
-    final gender = tenant['tenant_gender'] ?? 'other';
+    final profileImageUrl =
+        (tenant['tenant_profile'] ?? tenant['tenant_profile_image'])
+            ?.toString();
 
     final canManage = !_isAnonymous &&
         (_currentUser?.userRole == UserRole.superAdmin ||
@@ -888,6 +949,7 @@ class _TenantListUIState extends State<TenantListUI> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
+        borderRadius: BorderRadius.circular(12),
         onTap: () async {
           if (_isAnonymous) {
             _showLoginPrompt('ดูรายละเอียด');
@@ -899,264 +961,299 @@ class _TenantListUIState extends State<TenantListUI> {
               builder: (context) => TenantDetailUI(tenantId: tenantId),
             ),
           );
-          if (result == true && mounted) {
-            await _loadTenants();
-          }
+          if (result == true && mounted) await _loadTenants();
         },
-        borderRadius: BorderRadius.circular(12),
         child: Ink(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
+            border: Border.all(color: Colors.grey.shade300),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with Status Badge and Menu
-              Container(
-                padding: EdgeInsets.fromLTRB(16, 12, 8, 12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey.shade200, width: 1),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    // Status Badge
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isActive ? Color(0xFF10B981) : Colors.grey[400],
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        isActive ? 'ใช้งานอยู่' : 'ปิดใช้งาน',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Spacer(),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final w = constraints.maxWidth;
+              final isCompact = w < 360;
+              final avatarSize = isCompact ? 48.0 : 56.0;
+              final nameSize = isCompact ? 15.0 : 16.0;
+              final subSize = isCompact ? 12.0 : 13.0;
+              final badgeFontSize = isCompact ? 11.0 : 12.0;
 
-                    // Actions Menu
-                    PopupMenuButton<String>(
-                      padding: EdgeInsets.zero,
-                      icon: Icon(Icons.more_vert_rounded,
-                          color: Colors.grey[600], size: 20),
-                      tooltip: 'ตัวเลือก',
-                      offset: Offset(0, 40),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'view',
-                          child: Row(
-                            children: [
-                              Icon(Icons.visibility_outlined,
-                                  size: 20, color: Color(0xFF14B8A6)),
-                              SizedBox(width: 12),
-                              Text('ดูรายละเอียด'),
-                            ],
+              return Padding(
+                padding: EdgeInsets.all(isCompact ? 12 : 14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Avatar + status dot
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: avatarSize,
+                          height: avatarSize,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppTheme.primary.withOpacity(0.08),
+                            border: Border.all(
+                                color: Colors.grey.shade200, width: 2),
+                          ),
+                          child: ClipOval(
+                            child: (profileImageUrl != null &&
+                                    profileImageUrl.isNotEmpty)
+                                ? Image.network(
+                                    profileImageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Center(
+                                      child: Text(
+                                        _getInitials(tenantName),
+                                        style: TextStyle(
+                                          fontSize: avatarSize * 0.4,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : Center(
+                                    child: Text(
+                                      _getInitials(tenantName),
+                                      style: TextStyle(
+                                        fontSize: avatarSize * 0.4,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.primary,
+                                      ),
+                                    ),
+                                  ),
                           ),
                         ),
-                        if (canManage) ...[
-                          PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit_outlined,
-                                    size: 20, color: Color(0xFF14B8A6)),
-                                SizedBox(width: 12),
-                                Text('แก้ไข'),
-                              ],
+                        Positioned(
+                          right: -2,
+                          bottom: -2,
+                          child: Container(
+                            width: avatarSize * 0.24,
+                            height: avatarSize * 0.24,
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? const Color(0xFF10B981)
+                                  : Colors.grey,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
                             ),
                           ),
-                          PopupMenuItem(
-                            value: 'toggle',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  isActive
-                                      ? Icons.visibility_off_outlined
-                                      : Icons.visibility_outlined,
-                                  size: 20,
-                                  color:
-                                      isActive ? Colors.orange : Colors.green,
-                                ),
-                                SizedBox(width: 12),
-                                Text(
-                                  isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(width: isCompact ? 14 : 18),
+
+                    // Info area
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  tenantName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    color:
-                                        isActive ? Colors.orange : Colors.green,
+                                    fontSize: nameSize,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.grey.shade900,
+                                    letterSpacing: -0.2,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // Action menu
+                              PopupMenuButton<String>(
+                                padding: EdgeInsets.zero,
+                                icon: Icon(Icons.more_vert,
+                                    size: 18, color: Colors.grey.shade600),
+                                tooltip: 'ตัวเลือก',
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                                onSelected: (value) async {
+                                  switch (value) {
+                                    case 'view':
+                                      if (_isAnonymous) {
+                                        _showLoginPrompt('ดูรายละเอียด');
+                                        return;
+                                      }
+                                      final result = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => TenantDetailUI(
+                                              tenantId: tenantId),
+                                        ),
+                                      );
+                                      if (result == true && mounted)
+                                        await _loadTenants();
+                                      break;
+                                    case 'edit':
+                                      if (_isAnonymous) {
+                                        _showLoginPrompt('แก้ไข');
+                                        return;
+                                      }
+                                      if (!canManage) return;
+                                      final result = await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => TenantEditUI(
+                                            tenantId: tenantId,
+                                            tenantData: tenant,
+                                          ),
+                                        ),
+                                      );
+                                      if (result == true && mounted)
+                                        await _loadTenants();
+                                      break;
+                                    case 'toggle':
+                                      if (_isAnonymous) {
+                                        _showLoginPrompt(isActive
+                                            ? 'ปิดใช้งาน'
+                                            : 'เปิดใช้งาน');
+                                        return;
+                                      }
+                                      if (!canManage) return;
+                                      _toggleTenantStatus(
+                                        tenant['tenant_id'],
+                                        tenant['tenant_fullname'] ?? '',
+                                        isActive,
+                                      );
+                                      break;
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  PopupMenuItem(
+                                    value: 'view',
+                                    child: Row(
+                                      children: const [
+                                        Icon(Icons.visibility_outlined,
+                                            size: 18, color: Color(0xFF14B8A6)),
+                                        SizedBox(width: 10),
+                                        Text('ดูรายละเอียด'),
+                                      ],
+                                    ),
+                                  ),
+                                  if (canManage) ...[
+                                    PopupMenuItem(
+                                      value: 'edit',
+                                      child: Row(
+                                        children: const [
+                                          Icon(Icons.edit_outlined,
+                                              size: 18, color: Colors.orange),
+                                          SizedBox(width: 10),
+                                          Text('แก้ไข'),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'toggle',
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            isActive
+                                                ? Icons.visibility_off_outlined
+                                                : Icons.visibility_outlined,
+                                            size: 18,
+                                            color: isActive
+                                                ? Colors.red
+                                                : Colors.green,
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            isActive
+                                                ? 'ปิดใช้งาน'
+                                                : 'เปิดใช้งาน',
+                                            style: TextStyle(
+                                                color: isActive
+                                                    ? Colors.red
+                                                    : Colors.green),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+
+                          // Phone
+                          if (phone != 'ไม่ระบุ')
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.phone_outlined,
+                                    size: 16, color: Colors.grey.shade600),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    phone,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                        fontSize: subSize,
+                                        color: Colors.grey.shade700),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ],
-                      onSelected: (value) async {
-                        switch (value) {
-                          case 'view':
-                            if (_isAnonymous) {
-                              _showLoginPrompt('ดูรายละเอียด');
-                              return;
-                            }
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    TenantDetailUI(tenantId: tenantId),
-                              ),
-                            );
-                            if (result == true && mounted) {
-                              await _loadTenants();
-                            }
-                            break;
-                          case 'edit':
-                            if (_isAnonymous) {
-                              _showLoginPrompt('แก้ไข');
-                              return;
-                            }
-                            if (!canManage) return;
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => TenantEditUI(
-                                  tenantId: tenantId,
-                                  tenantData: tenant,
+
+                          if (phone != 'ไม่ระบุ') const SizedBox(height: 4),
+
+                          // Branch
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.apartment_rounded,
+                                  size: 16, color: Colors.grey.shade600),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  branchName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: subSize,
+                                      color: Colors.grey.shade700),
                                 ),
                               ),
-                            );
-                            if (result == true && mounted) {
-                              await _loadTenants();
-                            }
-                            break;
-                          case 'toggle':
-                            if (_isAnonymous) {
-                              _showLoginPrompt(
-                                  isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน');
-                              return;
-                            }
-                            if (!canManage) return;
-                            _toggleTenantStatus(
-                              tenant['tenant_id'],
-                              tenant['tenant_fullname'] ?? '',
-                              isActive,
-                            );
-                            break;
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
+                            ],
+                          ),
 
-              // Profile Image Section
-              Container(
-                height: 180,
-                width: double.infinity,
-                color: Colors.grey[200],
-                child: profileImageUrl != null && profileImageUrl.isNotEmpty
-                    ? Image.network(
-                        profileImageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            _buildImagePlaceholderCompact(tenantName),
-                      )
-                    : _buildImagePlaceholderCompact(tenantName),
-              ),
+                          const SizedBox(height: 6),
 
-              // Info Section
-              Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Tenant Name
-                    Text(
-                      tenantName,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey[900],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 8),
-
-                    // Gender Badge
-                    _buildGenderBadgeCompact(gender),
-                    SizedBox(height: 12),
-
-                    // ID Card
-                    if (idCard != 'ไม่ระบุ')
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(Icons.credit_card_outlined,
-                                size: 18, color: Color(0xFF14B8A6)),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                idCard,
-                                style: TextStyle(
-                                    fontSize: 13, color: Colors.grey[700]),
+                          // Status badge (pill)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? const Color(0xFF10B981)
+                                  : Colors.grey[400],
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              isActive ? 'Active' : 'Inactive',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: badgeFontSize,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-
-                    // Phone
-                    if (phone != 'ไม่ระบุ')
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          children: [
-                            Icon(Icons.phone_outlined,
-                                size: 18, color: Color(0xFF14B8A6)),
-                            SizedBox(width: 8),
-                            Text(
-                              phone,
-                              style: TextStyle(
-                                  fontSize: 13, color: Colors.grey[700]),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                    // Branch
-                    Row(
-                      children: [
-                        Icon(Icons.location_on_outlined,
-                            size: 18, color: Color(0xFF14B8A6)),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            branchName,
-                            style: TextStyle(
-                                fontSize: 13, color: Colors.grey[700]),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),
