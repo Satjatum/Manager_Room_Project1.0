@@ -14,6 +14,7 @@ import '../../models/user_models.dart';
 import '../../middleware/auth_middleware.dart';
 import '../widgets/colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:path/path.dart' as path;
 
 class TenantAddUI extends StatefulWidget {
   final String? branchId;
@@ -637,8 +638,10 @@ class _TenantAddUIState extends State<TenantAddUI>
     try {
       String? imageUrl;
       String? userId;
+      String? documentUrl; // เพิ่มตัวแปรสำหรับ URL เอกสาร
 
       // Upload profile image if selected
+      // รูปแบบชื่อไฟล์: tenant_profile_YYYYMMDD_XXX
       if (_selectedImage != null || _selectedImageBytes != null) {
         showDialog(
           context: context,
@@ -655,35 +658,147 @@ class _TenantAddUIState extends State<TenantAddUI>
           ),
         );
 
+        // ดึง extension ของไฟล์
+        String extension = 'jpg';
+        if (kIsWeb && _selectedImageName != null) {
+          extension = path
+              .extension(_selectedImageName!)
+              .toLowerCase()
+              .replaceAll('.', '');
+        } else if (!kIsWeb && _selectedImage != null) {
+          extension = path
+              .extension(_selectedImage!.path)
+              .toLowerCase()
+              .replaceAll('.', '');
+        }
+
+        // สร้างชื่อไฟล์แบบ sequential: tenant_profile_YYYYMMDD_XXX
+        final fileName = await ImageService.generateSequentialFileName(
+          bucket: 'tenant-images',
+          folder: 'profiles',
+          prefix: 'tenant_profile',
+          extension: extension,
+        );
+
         dynamic uploadResult;
         if (kIsWeb && _selectedImageBytes != null) {
-          uploadResult = await ImageService.uploadImageFromBytes(
-            _selectedImageBytes!,
-            _selectedImageName ?? 'tenant_profile.jpg',
-            'tenant-images',
-            folder: 'profiles',
-            prefix: 'tenant',
-            context:
-                'profile_${_currentUser!.userId}_${_selectedBranchId ?? 'global'}',
-          );
+          // สร้าง path เต็ม
+          final fullPath = 'profiles/$fileName';
+
+          uploadResult =
+              await _supabase.storage.from('tenant-images').uploadBinary(
+                    fullPath,
+                    _selectedImageBytes!,
+                    fileOptions: FileOptions(
+                      upsert: false,
+                      contentType: 'image/$extension',
+                    ),
+                  );
+
+          if (uploadResult != null) {
+            imageUrl =
+                _supabase.storage.from('tenant-images').getPublicUrl(fullPath);
+          }
         } else if (!kIsWeb && _selectedImage != null) {
-          uploadResult = await ImageService.uploadImage(
-            _selectedImage!,
-            'tenant-images',
-            folder: 'profiles',
-            prefix: 'tenant',
-            context:
-                'profile_${_currentUser!.userId}_${_selectedBranchId ?? 'global'}',
-          );
+          // สร้าง path เต็ม
+          final fullPath = 'profiles/$fileName';
+
+          final fileBytes = await _selectedImage!.readAsBytes();
+          uploadResult =
+              await _supabase.storage.from('tenant-images').uploadBinary(
+                    fullPath,
+                    fileBytes,
+                    fileOptions: FileOptions(
+                      upsert: false,
+                      contentType: 'image/$extension',
+                    ),
+                  );
+
+          if (uploadResult != null) {
+            imageUrl =
+                _supabase.storage.from('tenant-images').getPublicUrl(fullPath);
+          }
         }
 
         if (mounted) Navigator.of(context).pop();
 
-        if (uploadResult != null && uploadResult['success']) {
-          imageUrl = uploadResult['url'];
-        } else {
-          throw Exception(
-              uploadResult?['message'] ?? 'ไม่สามารถอัปโหลดรูปภาพได้');
+        if (imageUrl == null) {
+          throw Exception('ไม่สามารถอัปโหลดรูปภาพได้');
+        }
+      }
+
+      // Upload contract document if selected
+      // รูปแบบชื่อไฟล์: contracts_YYYYMMDD_ชื่อผู้เช่า_XXX
+      // Bucket: contracts
+      if (_documentBytes != null && _documentName != null) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: AppTheme.primary),
+                const SizedBox(height: 16),
+                const Text('กำลังอัปโหลดเอกสาร...'),
+              ],
+            ),
+          ),
+        );
+
+        try {
+          // ดึง extension ของไฟล์เอกสาร
+          final extension =
+              path.extension(_documentName!).toLowerCase().replaceAll('.', '');
+
+          // ดึงชื่อผู้เช่า (ใช้เฉพาะชื่อแรก เพื่อไม่ให้ชื่อไฟล์ยาวเกินไป)
+          final tenantName =
+              _tenantFullNameController.text.trim().split(' ').first;
+
+          // สร้างชื่อไฟล์แบบ sequential: contracts_YYYYMMDD_ชื่อผู้เช่า_XXX
+          final now = DateTime.now();
+          final dateStr =
+              '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+
+          // หาเลขลำดับถัดไป
+          final files = await _supabase.storage.from('contracts').list();
+          int maxSeq = 0;
+          final pattern = RegExp(
+              '^contracts_\${dateStr}_\${RegExp.escape(tenantName)}_\\d{3}\\.\${RegExp.escape(extension)}\$');
+
+          for (final f in files) {
+            if (pattern.hasMatch(f.name)) {
+              final parts = f.name.split('_');
+              if (parts.length >= 4) {
+                final seqWithExt = parts.last;
+                final seqStr = seqWithExt.split('.').first;
+                final seq = int.tryParse(seqStr) ?? 0;
+                if (seq > maxSeq) maxSeq = seq;
+              }
+            }
+          }
+
+          final nextSeq = (maxSeq + 1).toString().padLeft(3, '0');
+          final fileName = 'contracts_${dateStr}_${tenantName}_${nextSeq}.pdf';
+
+          // อัปโหลดไฟล์
+          await _supabase.storage.from('contracts').uploadBinary(
+                fileName,
+                _documentBytes!,
+                fileOptions: FileOptions(
+                  upsert: false,
+                  contentType: _getContentType(extension),
+                ),
+              );
+
+          documentUrl =
+              _supabase.storage.from('contracts').getPublicUrl(fileName);
+
+          if (mounted) Navigator.of(context).pop();
+        } catch (e) {
+          if (mounted) Navigator.of(context).pop();
+          print('ไม่สามารถอัปโหลดเอกสารได้: $e');
+          throw Exception('ไม่สามารถอัปโหลดเอกสารได้: $e');
         }
       }
 
@@ -756,6 +871,7 @@ class _TenantAddUIState extends State<TenantAddUI>
         'contract_note': _contractNotesController.text.trim().isEmpty
             ? null
             : _contractNotesController.text.trim(),
+        'contract_document': documentUrl, // เพิ่ม URL เอกสาร
       };
 
       // Insert contract directly to database
@@ -1998,9 +2114,16 @@ class _TenantAddUIState extends State<TenantAddUI>
             // อัปโหลดเอกสาร
             OutlinedButton.icon(
               onPressed: _pickDocument,
-              icon: Icon(Icons.upload_file),
+              icon: Icon(
+                Icons.upload_file,
+                color: Colors.black,
+              ),
               label: Text(
-                  _documentName ?? 'อัปโหลดเอกสารสัญญา (PDF, DOC, รูปภาพ)'),
+                _documentName ?? 'อัปโหลดเอกสารสัญญา (PDF, DOC, รูปภาพ)',
+                style: TextStyle(
+                  color: Colors.black,
+                ),
+              ),
               style: OutlinedButton.styleFrom(
                 minimumSize: Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
@@ -2162,5 +2285,24 @@ class _TenantAddUIState extends State<TenantAddUI>
         ],
       ),
     );
+  }
+
+  // Helper function to get content type from extension
+  String _getContentType(String extension) {
+    switch (extension.toLowerCase()) {
+      case 'pdf':
+        return 'application/pdf';
+      case 'doc':
+        return 'application/msword';
+      case 'docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      default:
+        return 'application/octet-stream';
+    }
   }
 }

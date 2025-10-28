@@ -1690,7 +1690,7 @@ class _RoomListUIState extends State<RoomListUI> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${room['room_category_name']} เลขที่ ${room['room_number'] ?? 'ไม่ระบุ'}',
+                              '${room['room_category_name']}เลขที่ ${room['room_number'] ?? 'ไม่ระบุ'}',
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -2022,7 +2022,7 @@ class _RoomListUIState extends State<RoomListUI> {
               Icon(Icons.visibility_outlined,
                   size: 20, color: Color(0xFF14B8A6)),
               SizedBox(width: 12),
-              Text('View Details'),
+              Text('ดูรายละเอียด'),
             ],
           ),
         ),
@@ -2033,7 +2033,7 @@ class _RoomListUIState extends State<RoomListUI> {
               children: const [
                 Icon(Icons.edit_outlined, size: 20, color: Color(0xFF14B8A6)),
                 SizedBox(width: 12),
-                Text('Edit Room'),
+                Text('แก้ไข'),
               ],
             ),
           ),
@@ -2050,7 +2050,7 @@ class _RoomListUIState extends State<RoomListUI> {
               ),
               const SizedBox(width: 12),
               Text(
-                isActive ? 'Deactivate' : 'Activate',
+                isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
                 style: TextStyle(
                   color: isActive ? Colors.orange : Colors.green,
                 ),
@@ -2065,7 +2065,7 @@ class _RoomListUIState extends State<RoomListUI> {
               children: const [
                 Icon(Icons.delete_outline, size: 20, color: Colors.red),
                 SizedBox(width: 12),
-                Text('Delete Room', style: TextStyle(color: Colors.red)),
+                Text('ลบ', style: TextStyle(color: Colors.red)),
               ],
             ),
           ),

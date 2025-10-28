@@ -695,6 +695,145 @@ class TenantService {
     }
   }
 
+  /// Delete tenant with all related data (SuperAdmin only)
+  static Future<Map<String, dynamic>> deleteTenantWithRelatedData(
+      String tenantId) async {
+    try {
+      final currentUser = await AuthService.getCurrentUser();
+      if (currentUser == null) {
+        return {
+          'success': false,
+          'message': 'กรุณาเข้าสู่ระบบใหม่',
+        };
+      }
+
+      if (tenantId.isEmpty) {
+        return {
+          'success': false,
+          'message': 'ไม่พบรหัสผู้เช่า',
+        };
+      }
+
+      // Only superadmin can delete permanently
+      if (currentUser.userRole != UserRole.superAdmin) {
+        return {
+          'success': false,
+          'message': 'ไม่มีสิทธิ์ในการลบผู้เช่าถาวร',
+        };
+      }
+
+      // Check if tenant exists
+      final existingTenant = await _supabase
+          .from('tenants')
+          .select('tenant_id, tenant_fullname')
+          .eq('tenant_id', tenantId)
+          .maybeSingle();
+
+      if (existingTenant == null) {
+        return {
+          'success': false,
+          'message': 'ไม่พบผู้เช่าที่ต้องการลบ',
+        };
+      }
+
+      // Check for active contracts
+      final activeContracts = await _supabase
+          .from('rental_contracts')
+          .select('contract_id')
+          .eq('tenant_id', tenantId)
+          .inFilter('contract_status', ['active', 'pending']);
+
+      if (activeContracts.isNotEmpty) {
+        return {
+          'success': false,
+          'message':
+              'ไม่สามารถลบผู้เช่าได้ เนื่องจากยังมีสัญญาเช่าที่ใช้งานอยู่ ${activeContracts.length} สัญญา\nกรุณายกเลิกสัญญาเหล่านี้ก่อนลบผู้เช่า',
+        };
+      }
+
+      // Start deleting related data
+      List<String> deletedItems = [];
+
+      // 1. Delete payments
+      try {
+        await _supabase.from('payments').delete().eq('tenant_id', tenantId);
+        deletedItems.add('ข้อมูลการชำระเงิน');
+      } catch (e) {
+        print('Error deleting payments: $e');
+      }
+
+      // 2. Delete invoices
+      try {
+        await _supabase.from('invoices').delete().eq('tenant_id', tenantId);
+        deletedItems.add('ใบแจ้งหนี้');
+      } catch (e) {
+        print('Error deleting invoices: $e');
+      }
+
+      // 3. Delete meter readings related to tenant's contracts
+      try {
+        // Get all contract IDs for this tenant
+        final contracts = await _supabase
+            .from('rental_contracts')
+            .select('contract_id')
+            .eq('tenant_id', tenantId);
+
+        if (contracts.isNotEmpty) {
+          final contractIds = contracts.map((c) => c['contract_id']).toList();
+          await _supabase
+              .from('meter_readings')
+              .delete()
+              .inFilter('contract_id', contractIds);
+          deletedItems.add('ข้อมูลมิเตอร์');
+        }
+      } catch (e) {
+        print('Error deleting meter readings: $e');
+      }
+
+      // 4. Delete rental contracts
+      try {
+        await _supabase
+            .from('rental_contracts')
+            .delete()
+            .eq('tenant_id', tenantId);
+        deletedItems.add('สัญญาเช่า');
+      } catch (e) {
+        print('Error deleting contracts: $e');
+      }
+
+      // 5. Finally, delete the tenant
+      await _supabase.from('tenants').delete().eq('tenant_id', tenantId);
+
+      String deletedItemsText =
+          deletedItems.isNotEmpty ? ' (รวม: ${deletedItems.join(', ')})' : '';
+
+      return {
+        'success': true,
+        'message':
+            'ลบผู้เช่า "${existingTenant['tenant_fullname']}" และข้อมูลที่เกี่ยวข้องทั้งหมดสำเร็จ$deletedItemsText',
+      };
+    } on PostgrestException catch (e) {
+      String message = 'เกิดข้อผิดพลาด: ${e.message}';
+
+      if (e.code == 'PGRST116') {
+        message = 'ไม่พบผู้เช่าที่ต้องการลบ';
+      } else if (e.code == '23503') {
+        message =
+            'ไม่สามารถลบผู้เช่าได้ เนื่องจากยังมีข้อมูลที่เกี่ยวข้อง\nกรุณาตรวจสอบและลบข้อมูลที่เกี่ยวข้องก่อน';
+      }
+
+      return {
+        'success': false,
+        'message': message,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'เกิดข้อผิดพลาดในการลบผู้เช่า: $e',
+      };
+    }
+  }
+
   /// Check if tenant has active contract
   static Future<bool> hasActiveContract(String tenantId) async {
     try {

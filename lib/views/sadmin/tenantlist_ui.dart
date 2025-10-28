@@ -321,6 +321,166 @@ class _TenantListUIState extends State<TenantListUI> {
     }
   }
 
+  Future<void> _deleteTenant(String tenantId, String tenantName) async {
+    if (_isAnonymous) {
+      _showLoginPrompt('ลบผู้เช่า');
+      return;
+    }
+
+    // Check if user is superadmin
+    if (_currentUser?.userRole != UserRole.superAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('เฉพาะ Super Admin เท่านั้นที่สามารถลบผู้เช่าได้'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'ยืนยันการลบผู้เช่า',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'คุณต้องการลบผู้เช่า "$tenantName" และข้อมูลที่เกี่ยวข้องทั้งหมดหรือไม่?',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    '⚠️ ข้อมูลที่จะถูกลบ:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text('• ข้อมูลผู้เช่า'),
+                  Text('• สัญญาเช่าทั้งหมด'),
+                  Text('• ใบแจ้งหนี้'),
+                  Text('• ข้อมูลการชำระเงิน'),
+                  Text('• ข้อมูลมิเตอร์'),
+                  SizedBox(height: 8),
+                  Text(
+                    '※ การลบนี้ไม่สามารถกู้คืนได้',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('ยืนยันการลบ'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: Colors.red),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'กำลังลบข้อมูล...',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+        final result =
+            await TenantService.deleteTenantWithRelatedData(tenantId);
+
+        if (mounted) Navigator.of(context).pop();
+
+        if (mounted) {
+          if (result['success']) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result['message']),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+            await _loadTenants();
+          } else {
+            throw Exception(result['message']);
+          }
+        }
+      } catch (e) {
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceAll('Exception: ', '')),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _navigateToAddTenant() async {
     if (_isAnonymous) {
       _showLoginPrompt('เพิ่มผู้เช่า');
@@ -1071,7 +1231,7 @@ class _TenantListUIState extends State<TenantListUI> {
                               // Action menu
                               PopupMenuButton<String>(
                                 padding: EdgeInsets.zero,
-                                icon: Icon(Icons.more_horiz,
+                                icon: Icon(Icons.more_vert,
                                     size: 18, color: Colors.grey.shade600),
                                 tooltip: 'ตัวเลือก',
                                 shape: RoundedRectangleBorder(
@@ -1125,6 +1285,16 @@ class _TenantListUIState extends State<TenantListUI> {
                                         isActive,
                                       );
                                       break;
+                                    case 'delete':
+                                      if (_isAnonymous) {
+                                        _showLoginPrompt('ลบผู้เช่า');
+                                        return;
+                                      }
+                                      _deleteTenant(
+                                        tenant['tenant_id'],
+                                        tenant['tenant_fullname'] ?? '',
+                                      );
+                                      break;
                                   }
                                 },
                                 itemBuilder: (context) => [
@@ -1133,48 +1303,67 @@ class _TenantListUIState extends State<TenantListUI> {
                                     child: Row(
                                       children: const [
                                         Icon(Icons.visibility_outlined,
-                                            size: 18, color: Colors.blue),
-                                        SizedBox(width: 10),
+                                            size: 20, color: Color(0xFF14B8A6)),
+                                        SizedBox(width: 12),
                                         Text('ดูรายละเอียด'),
                                       ],
                                     ),
                                   ),
                                   if (canManage) ...[
-                                    const PopupMenuDivider(),
-                                    PopupMenuItem(
-                                      value: 'edit',
-                                      child: Row(
-                                        children: const [
-                                          Icon(Icons.edit_outlined,
-                                              size: 18, color: Colors.orange),
-                                          SizedBox(width: 10),
-                                          Text('แก้ไข'),
-                                        ],
+                                    if (canManage)
+                                      PopupMenuItem(
+                                        value: 'edit',
+                                        child: Row(
+                                          children: const [
+                                            Icon(Icons.edit_outlined,
+                                                size: 20,
+                                                color: Color(0xFF14B8A6)),
+                                            SizedBox(width: 12),
+                                            Text('แก้ไข'),
+                                          ],
+                                        ),
                                       ),
-                                    ),
                                     PopupMenuItem(
-                                      value: 'toggle',
+                                      value: 'toggle_status',
                                       child: Row(
                                         children: [
                                           Icon(
                                             isActive
                                                 ? Icons.visibility_off_outlined
                                                 : Icons.visibility_outlined,
-                                            size: 18,
+                                            size: 20,
                                             color: isActive
-                                                ? Colors.red
+                                                ? Colors.orange
                                                 : Colors.green,
                                           ),
-                                          const SizedBox(width: 10),
+                                          const SizedBox(width: 12),
                                           Text(
                                             isActive
                                                 ? 'ปิดใช้งาน'
                                                 : 'เปิดใช้งาน',
                                             style: TextStyle(
-                                                color: isActive
-                                                    ? Colors.red
-                                                    : Colors.green),
+                                              color: isActive
+                                                  ? Colors.orange
+                                                  : Colors.green,
+                                            ),
                                           ),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: const [
+                                          Icon(
+                                            Icons.delete_outline,
+                                            size: 20,
+                                            color: Colors.red,
+                                          ),
+                                          SizedBox(width: 12),
+                                          Text('ลบ',
+                                              style: TextStyle(
+                                                color: Colors.red,
+                                              )),
                                         ],
                                       ),
                                     ),
@@ -2132,6 +2321,7 @@ class _TenantListUIState extends State<TenantListUI> {
   Widget _buildActionsMenu(
       Map<String, dynamic> tenant, bool canManage, bool isActive) {
     final tenantId = tenant['tenant_id'];
+    final isSuperAdmin = _currentUser?.userRole == UserRole.superAdmin;
     return PopupMenuButton<String>(
       icon: Icon(Icons.more_vert, color: Colors.grey[700], size: 20),
       tooltip: 'การทำงาน',

@@ -46,8 +46,20 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
-            backgroundColor: Colors.red,
+            content: Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -59,7 +71,29 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('ยืนยันการเปิดใช้งานสัญญา'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.check_circle_rounded,
+                color: Colors.green.shade700,
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'ยืนยันการเปิดใช้งานสัญญา',
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
         content: Text('คุณต้องการเปิดใช้งานสัญญานี้ใช่หรือไม่?'),
         actions: [
           TextButton(
@@ -68,7 +102,10 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
             child: Text('ยืนยัน'),
           ),
         ],
@@ -78,13 +115,50 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
     if (confirm != true) return;
 
     try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Container(
+            padding: EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: Color(0xFF10B981)),
+                SizedBox(height: 16),
+                Text('กำลังดำเนินการ...'),
+              ],
+            ),
+          ),
+        ),
+      );
+
       final result = await ContractService.activateContract(widget.contractId);
+      if (mounted) Navigator.pop(context);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message']),
-            backgroundColor: result['success'] ? Colors.green : Colors.red,
+            content: Row(
+              children: [
+                Icon(
+                  result['success'] ? Icons.check_circle : Icons.error_outline,
+                  color: Colors.white,
+                ),
+                SizedBox(width: 12),
+                Expanded(child: Text(result['message'])),
+              ],
+            ),
+            backgroundColor:
+                result['success'] ? Colors.green.shade600 : Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
 
@@ -93,11 +167,15 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
         }
       }
     } catch (e) {
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('เกิดข้อผิดพลาด: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -111,9 +189,32 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('ยืนยันการยกเลิกสัญญา'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.cancel_rounded,
+                color: Colors.red.shade700,
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'ยืนยันการยกเลิกสัญญา',
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('กรุณาระบุเหตุผลในการยกเลิกสัญญา'),
             SizedBox(height: 16),
@@ -122,7 +223,13 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
               maxLines: 3,
               decoration: InputDecoration(
                 labelText: 'เหตุผล',
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.red, width: 2),
+                ),
               ),
             ),
           ],
@@ -134,7 +241,10 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
             child: Text('ยืนยันยกเลิก'),
           ),
         ],
@@ -147,18 +257,55 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
     }
 
     try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Container(
+            padding: EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: Colors.red),
+                SizedBox(height: 16),
+                Text('กำลังดำเนินการ...'),
+              ],
+            ),
+          ),
+        ),
+      );
+
       final result = await ContractService.terminateContract(
         widget.contractId,
         reasonController.text.trim(),
       );
 
       reasonController.dispose();
+      if (mounted) Navigator.pop(context);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message']),
-            backgroundColor: result['success'] ? Colors.green : Colors.red,
+            content: Row(
+              children: [
+                Icon(
+                  result['success'] ? Icons.check_circle : Icons.error_outline,
+                  color: Colors.white,
+                ),
+                SizedBox(width: 12),
+                Expanded(child: Text(result['message'])),
+              ],
+            ),
+            backgroundColor:
+                result['success'] ? Colors.green.shade600 : Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
 
@@ -168,11 +315,15 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
       }
     } catch (e) {
       reasonController.dispose();
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('เกิดข้อผิดพลาด: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -187,7 +338,30 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('ต่ออายุสัญญา'),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.refresh_rounded,
+                  color: Color(0xFF10B981),
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'ต่ออายุสัญญา',
+                  style: TextStyle(fontSize: 18),
+                ),
+              ),
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -209,12 +383,20 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
                 child: InputDecorator(
                   decoration: InputDecoration(
                     labelText: 'วันที่สิ้นสุดใหม่',
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  child: Text(
-                    newEndDate == null
-                        ? 'เลือกวันที่'
-                        : '${newEndDate!.day}/${newEndDate!.month}/${newEndDate!.year + 543}',
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        newEndDate == null
+                            ? 'เลือกวันที่'
+                            : '${newEndDate!.day}/${newEndDate!.month}/${newEndDate!.year + 543}',
+                      ),
+                      Icon(Icons.calendar_today, size: 20),
+                    ],
                   ),
                 ),
               ),
@@ -229,8 +411,10 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
               onPressed: newEndDate == null
                   ? null
                   : () => Navigator.pop(context, true),
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF10B981),
+                foregroundColor: Colors.white,
+              ),
               child: Text('ยืนยัน'),
             ),
           ],
@@ -241,16 +425,53 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
     if (confirm != true || newEndDate == null) return;
 
     try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Container(
+            padding: EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: Color(0xFF10B981)),
+                SizedBox(height: 16),
+                Text('กำลังดำเนินการ...'),
+              ],
+            ),
+          ),
+        ),
+      );
+
       final result = await ContractService.renewContract(
         widget.contractId,
         newEndDate!,
       );
+      if (mounted) Navigator.pop(context);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['message']),
-            backgroundColor: result['success'] ? Colors.green : Colors.red,
+            content: Row(
+              children: [
+                Icon(
+                  result['success'] ? Icons.check_circle : Icons.error_outline,
+                  color: Colors.white,
+                ),
+                SizedBox(width: 12),
+                Expanded(child: Text(result['message'])),
+              ],
+            ),
+            backgroundColor:
+                result['success'] ? Colors.green.shade600 : Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
 
@@ -259,11 +480,15 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
         }
       }
     } catch (e) {
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('เกิดข้อผิดพลาด: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -280,64 +505,75 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
     }
   }
 
-  String _getStatusText(String? status) {
-    switch (status) {
-      case 'active':
-        return 'ใช้งานอยู่';
-      case 'expired':
-        return 'หมดอายุ';
-      case 'terminated':
-        return 'ยกเลิก';
-      case 'pending':
-        return 'รอดำเนินการ';
-      default:
-        return 'ไม่ทราบ';
-    }
-  }
-
-  Color _getStatusColor(String? status) {
-    switch (status) {
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
       case 'active':
         return Colors.green;
-      case 'expired':
+      case 'pending':
         return Colors.orange;
       case 'terminated':
         return Colors.red;
-      case 'pending':
-        return Colors.blue;
-      default:
+      case 'expired':
         return Colors.grey;
+      default:
+        return Colors.blue;
     }
   }
 
-  bool get _canManage =>
-      _currentUser != null &&
-      _currentUser!.hasAnyPermission([
-        DetailedPermission.all,
-        DetailedPermission.manageContracts,
-      ]);
+  String _getStatusText(String status) {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'ใช้งานอยู่';
+      case 'pending':
+        return 'รอดำเนินการ';
+      case 'terminated':
+        return 'ยกเลิกแล้ว';
+      case 'expired':
+        return 'หมดอายุ';
+      default:
+        return status;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final status = _contract?['contract_status']?.toLowerCase() ?? '';
+
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('รายละเอียดสัญญา'),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'รายละเอียดสัญญา',
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         actions: [
-          if (_canManage && _contract != null)
+          if (!_isLoading && _contract != null)
             PopupMenuButton<String>(
-              onSelected: (value) {
+              icon: Icon(Icons.more_vert, color: Colors.black87),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              onSelected: (value) async {
                 switch (value) {
                   case 'edit':
-                    Navigator.push(
+                    final result = await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ContractEditUI(
-                          contractId: widget.contractId,
-                        ),
+                        builder: (context) =>
+                            ContractEditUI(contractId: widget.contractId),
                       ),
-                    ).then((_) => _loadData());
+                    );
+                    if (result == true) _loadData();
                     break;
                   case 'activate':
                     _activateContract();
@@ -351,9 +587,18 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
                 }
               },
               itemBuilder: (context) {
-                final status = _contract!['contract_status'];
                 return [
-                  if (status == 'pending' || status == 'expired')
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit, color: Color(0xFF10B981)),
+                        SizedBox(width: 8),
+                        Text('แก้ไขสัญญา'),
+                      ],
+                    ),
+                  ),
+                  if (status == 'pending')
                     PopupMenuItem(
                       value: 'activate',
                       child: Row(
@@ -369,22 +614,12 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
                       value: 'renew',
                       child: Row(
                         children: [
-                          Icon(Icons.update, color: Colors.blue),
+                          Icon(Icons.refresh, color: Colors.blue),
                           SizedBox(width: 8),
-                          Text('ต่อสัญญา'),
+                          Text('ต่ออายุสัญญา'),
                         ],
                       ),
                     ),
-                  PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit, color: Colors.orange),
-                        SizedBox(width: 8),
-                        Text('แก้ไขสัญญา'),
-                      ],
-                    ),
-                  ),
                   if (status == 'active' || status == 'pending')
                     PopupMenuItem(
                       value: 'terminate',
@@ -402,66 +637,98 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
         ],
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? Center(
+              child: CircularProgressIndicator(color: Color(0xFF10B981)),
+            )
           : _contract == null
-              ? Center(child: Text('ไม่พบข้อมูลสัญญา'))
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.description_outlined,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'ไม่พบข้อมูลสัญญา',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
               : RefreshIndicator(
                   onRefresh: _loadData,
+                  color: Color(0xFF10B981),
                   child: ListView(
                     padding: EdgeInsets.all(16),
                     children: [
-                      // สถานะสัญญา
-                      Card(
-                        elevation: 2,
-                        child: Container(
-                          padding: EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                _getStatusColor(_contract!['contract_status']),
-                                _getStatusColor(_contract!['contract_status'])
-                                    .withOpacity(0.7),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.description,
+                      // สถานะสัญญา - ธีมใหม่
+                      Container(
+                        padding: EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: _getStatusColor(
+                                        _contract!['contract_status'])
+                                    .withOpacity(0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.description_rounded,
                                 size: 48,
-                                color: Colors.white,
+                                color: _getStatusColor(
+                                    _contract!['contract_status']),
                               ),
-                              SizedBox(height: 12),
-                              Text(
-                                _contract!['contract_num'] ?? 'ไม่ระบุ',
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              _contract!['contract_num'] ?? 'ไม่ระบุ',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            SizedBox(height: 12),
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _getStatusColor(
+                                        _contract!['contract_status'])
+                                    .withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: _getStatusColor(
+                                          _contract!['contract_status'])
+                                      .withOpacity(0.3),
+                                ),
+                              ),
+                              child: Text(
+                                _getStatusText(_contract!['contract_status']),
                                 style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: _getStatusColor(
+                                      _contract!['contract_status']),
                                 ),
                               ),
-                              SizedBox(height: 8),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.3),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  _getStatusText(_contract!['contract_status']),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                       SizedBox(height: 16),
@@ -469,7 +736,7 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
                       // ข้อมูลผู้เช่า
                       _buildInfoCard(
                         'ข้อมูลผู้เช่า',
-                        Icons.person,
+                        Icons.person_outline,
                         [
                           _buildInfoRow(
                               'ชื่อ-นามสกุล', _contract!['tenant_name']),
@@ -481,10 +748,10 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
                       // ข้อมูลห้อง
                       _buildInfoCard(
                         'ข้อมูลห้อง',
-                        Icons.home,
+                        Icons.home_outlined,
                         [
-                          _buildInfoRow(
-                              'หมายเลขห้อง', _contract!['room_number']),
+                          _buildInfoRow('ประเภท', _contract!['roomcate_name']),
+                          _buildInfoRow('หมายเลข', _contract!['room_number']),
                           _buildInfoRow('สาขา', _contract!['branch_name']),
                         ],
                       ),
@@ -493,7 +760,7 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
                       // ระยะเวลาสัญญา
                       _buildInfoCard(
                         'ระยะเวลาสัญญา',
-                        Icons.calendar_today,
+                        Icons.calendar_today_outlined,
                         [
                           _buildInfoRow('วันที่เริ่มสัญญา',
                               _formatDate(_contract!['start_date'])),
@@ -511,17 +778,18 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
                       // รายละเอียดการเงิน
                       _buildInfoCard(
                         'รายละเอียดการเงิน',
-                        Icons.attach_money,
+                        Icons.payments_outlined,
                         [
                           _buildInfoRow('ค่าเช่าต่อเดือน',
                               '฿${_contract!['contract_price']?.toStringAsFixed(0) ?? '0'}'),
                           _buildInfoRow('ค่าประกัน',
                               '฿${_contract!['contract_deposit']?.toStringAsFixed(0) ?? '0'}'),
                           _buildInfoRow(
-                              'สถานะชำระค่าประกัน',
-                              _contract!['contract_paid'] == true
-                                  ? 'ชำระแล้ว'
-                                  : 'ยังไม่ชำระ'),
+                            'สถานะชำระค่าประกัน',
+                            _contract!['contract_paid'] == true
+                                ? 'ชำระแล้ว'
+                                : 'ยังไม่ชำระ',
+                          ),
                         ],
                       ),
                       SizedBox(height: 16),
@@ -531,17 +799,26 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
                           _contract!['contract_note'].toString().isNotEmpty)
                         _buildInfoCard(
                           'หมายเหตุ',
-                          Icons.note,
+                          Icons.note_outlined,
                           [
-                            Padding(
-                              padding: EdgeInsets.all(8),
+                            Container(
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                               child: Text(
                                 _contract!['contract_note'],
-                                style: TextStyle(fontSize: 14),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                  height: 1.5,
+                                ),
                               ),
                             ),
                           ],
                         ),
+                      SizedBox(height: 80),
                     ],
                   ),
                 ),
@@ -549,38 +826,33 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
   }
 
   Widget _buildInfoCard(String title, IconData icon, List<Widget> children) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, color: AppTheme.primary, size: 24),
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: Color(0xFF10B981), size: 22),
+              SizedBox(width: 10),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
-                SizedBox(width: 12),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            Divider(height: 24),
-            ...children,
-          ],
-        ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          ...children,
+        ],
       ),
     );
   }
@@ -597,7 +869,7 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
               label,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[600],
+                color: Colors.grey[700],
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -609,6 +881,7 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
+                color: Colors.black87,
               ),
             ),
           ),

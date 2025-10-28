@@ -18,7 +18,8 @@ class ContractService {
       var query = _supabase.from('rental_contracts').select('''
         *,
         tenants!inner(tenant_id, tenant_fullname, tenant_phone, tenant_idcard),
-        rooms!inner(room_id, room_number, branch_id, branches!inner(branch_name))
+        rooms!inner(room_id, room_number, branch_id, branches!inner(branch_name),
+          room_categories(roomcate_name))
       ''');
 
       // กรองตามผู้เช่า
@@ -52,6 +53,8 @@ class ContractService {
           'tenant_phone': contract['tenants']?['tenant_phone'] ?? '-',
           'room_number': contract['rooms']?['room_number'] ?? '-',
           'branch_name': contract['rooms']?['branches']?['branch_name'] ?? '-',
+          'roomcate_name':
+              contract['rooms']?['room_categories']?['roomcate_name'] ?? '-',
         };
       }).toList();
     } catch (e) {
@@ -67,7 +70,8 @@ class ContractService {
         *,
         tenants!inner(tenant_id, tenant_fullname, tenant_phone, tenant_idcard),
         rooms!inner(room_id, room_number, room_price, room_deposit, branch_id, 
-          branches!inner(branch_name, branch_code))
+          branches!inner(branch_name, branch_code),
+          room_categories(roomcate_name))
       ''').eq('room_id', roomId).order('created_at', ascending: false);
 
       return List<Map<String, dynamic>>.from(result).map((contract) {
@@ -77,6 +81,8 @@ class ContractService {
           'tenant_phone': contract['tenants']?['tenant_phone'] ?? '-',
           'room_number': contract['rooms']?['room_number'] ?? '-',
           'branch_name': contract['rooms']?['branches']?['branch_name'] ?? '-',
+          'roomcate_name':
+              contract['rooms']?['room_categories']?['roomcate_name'] ?? '-',
         };
       }).toList();
     } catch (e) {
@@ -92,7 +98,8 @@ class ContractService {
         *,
         tenants!inner(tenant_id, tenant_fullname, tenant_phone, tenant_idcard),
         rooms!inner(room_id, room_number, room_price, room_deposit, branch_id, 
-          branches!inner(branch_name, branch_code))
+          branches!inner(branch_name, branch_code),
+          room_categories(roomcate_name))
       ''').eq('room_id', roomId).eq('contract_status', 'active').maybeSingle();
 
       if (result != null) {
@@ -102,6 +109,8 @@ class ContractService {
           'tenant_phone': result['tenants']?['tenant_phone'] ?? '-',
           'room_number': result['rooms']?['room_number'] ?? '-',
           'branch_name': result['rooms']?['branches']?['branch_name'] ?? '-',
+          'roomcate_name':
+              result['rooms']?['room_categories']?['roomcate_name'] ?? '-',
         };
       }
 
@@ -119,7 +128,8 @@ class ContractService {
         *,
         tenants!inner(tenant_id, tenant_fullname, tenant_phone, tenant_idcard, gender),
         rooms!inner(room_id, room_number, room_price, room_deposit, branch_id, 
-          branches!inner(branch_name, branch_code))
+          branches!inner(branch_name, branch_code),
+          room_categories(roomcate_name))
       ''').eq('contract_id', contractId).maybeSingle();
 
       if (result != null) {
@@ -129,6 +139,8 @@ class ContractService {
           'tenant_phone': result['tenants']?['tenant_phone'] ?? '-',
           'room_number': result['rooms']?['room_number'] ?? '-',
           'branch_name': result['rooms']?['branches']?['branch_name'] ?? '-',
+          'roomcate_name':
+              result['rooms']?['room_categories']?['roomcate_name'] ?? '-',
         };
       }
 
@@ -480,7 +492,8 @@ class ContractService {
         *,
         tenants!inner(tenant_id, tenant_fullname, tenant_phone),
         rooms!inner(room_id, room_number, branch_id,
-          branches!inner(branch_name))
+          branches!inner(branch_name),
+          room_categories(roomcate_name))
       ''').eq('contract_status', 'active').lte('end_date', targetDate);
 
       if (branchId != null) {
@@ -499,6 +512,8 @@ class ContractService {
           'tenant_phone': contract['tenants']?['tenant_phone'] ?? '-',
           'room_number': contract['rooms']?['room_number'] ?? '-',
           'branch_name': contract['rooms']?['branches']?['branch_name'] ?? '-',
+          'roomcate_name':
+              contract['rooms']?['room_categories']?['roomcate_name'] ?? '-',
           'days_until_expiry': daysUntilExpiry,
         };
       }).toList();
