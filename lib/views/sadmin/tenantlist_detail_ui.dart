@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 // import 'package:manager_room_project/views/superadmin/contract_add_ui.dart';
 import 'package:manager_room_project/views/sadmin/contract_edit_ui.dart';
+import 'package:manager_room_project/views/sadmin/contract_add_ui.dart';
 import 'package:manager_room_project/views/sadmin/contractlist_detail_ui.dart';
 import '../../services/tenant_service.dart';
 import '../../middleware/auth_middleware.dart';
@@ -288,7 +289,8 @@ class _TenantDetailUIState extends State<TenantDetailUI>
       setState(() => _isDeleting = true);
 
       try {
-        final result = await TenantService.deleteTenant(widget.tenantId);
+        final result =
+            await TenantService.deleteTenantWithRelatedData(widget.tenantId);
 
         if (mounted) {
           setState(() => _isDeleting = false);
@@ -570,7 +572,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                       case 'edit':
                         _editTenant();
                         break;
-                      case 'toggle':
+                      case 'toggle_status':
                         _toggleStatus();
                         break;
                       case 'delete':
@@ -1011,27 +1013,63 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.orange.shade200),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade100,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.info_outline,
-                      color: Colors.orange.shade700,
-                      size: 20,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.info_outline,
+                          color: Colors.orange.shade700,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'ไม่มีสัญญาเช่าที่ใช้งานอยู่',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'ไม่มีสัญญาเช่าที่ใช้งานอยู่',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final branchId = _tenantData?['branch_id']?.toString();
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ContractAddUI(
+                              tenantId: widget.tenantId,
+                              branchId: branchId,
+                              tenantName:
+                                  _tenantData?['tenant_fullname']?.toString(),
+                            ),
+                          ),
+                        );
+                        if (mounted) _loadData();
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('สร้างสัญญา'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
                   ),

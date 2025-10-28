@@ -1394,51 +1394,92 @@ class _TenantAddUIState extends State<TenantAddUI>
             ),
             const SizedBox(height: 16),
 
-            // สาขา
-            DropdownButtonFormField<String>(
-              value: _selectedBranchId,
-              decoration: InputDecoration(
-                labelText: 'สาขา *',
-                prefixIcon: const Icon(Icons.business),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+            // สาขา (ล็อคเมื่อมี branchId ส่งเข้ามา)
+            if (widget.branchId != null && widget.branchId!.isNotEmpty) ...[
+              InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'สาขา *',
+                  prefixIcon: const Icon(Icons.business),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        BorderSide(color: Colors.grey[300]!, width: 1),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: Color(0xff10B981), width: 2),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.lock, size: 16, color: Colors.grey),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          widget.branchName ?? 'Locked Branch',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
               ),
-              items: _branches.map((branch) {
-                return DropdownMenuItem<String>(
-                  value: branch['branch_id'],
-                  child: Text(branch['branch_name'] ?? ''),
-                );
-              }).toList(),
-              onChanged: (value) async {
-                setState(() {
-                  _selectedBranchId = value;
-                  _selectedRoomId = null;
-                  _availableRooms = [];
-                });
+            ] else ...[
+              DropdownButtonFormField<String>(
+                value: _selectedBranchId,
+                decoration: InputDecoration(
+                  labelText: 'สาขา *',
+                  prefixIcon: const Icon(Icons.business),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        const BorderSide(color: Color(0xff10B981), width: 2),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide:
+                        BorderSide(color: Colors.grey[300]!, width: 1),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                ),
+                items: _branches.map((branch) {
+                  return DropdownMenuItem<String>(
+                    value: branch['branch_id'],
+                    child: Text(branch['branch_name'] ?? ''),
+                  );
+                }).toList(),
+                onChanged: (value) async {
+                  setState(() {
+                    _selectedBranchId = value;
+                    _selectedRoomId = null;
+                    _availableRooms = [];
+                  });
 
-                if (value != null) {
-                  await _loadAvailableRooms(value);
-                }
-              },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'กรุณาเลือกสาขา';
-                }
-                return null;
-              },
-            ),
+                  if (value != null) {
+                    await _loadAvailableRooms(value);
+                  }
+                },
+                validator: (value) {
+                  if ((widget.branchId == null || widget.branchId!.isEmpty) &&
+                      (value == null || value.isEmpty)) {
+                    return 'กรุณาเลือกสาขา';
+                  }
+                  return null;
+                },
+              ),
+            ],
           ],
         ),
       ),
