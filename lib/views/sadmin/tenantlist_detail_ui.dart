@@ -4,7 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:manager_room_project/views/sadmin/contract_edit_ui.dart';
 import 'package:manager_room_project/views/sadmin/contract_add_ui.dart';
 import 'package:manager_room_project/views/sadmin/contractlist_detail_ui.dart';
+import 'package:manager_room_project/views/sadmin/contract_history_ui.dart';
 import '../../services/tenant_service.dart';
+import '../../services/contract_service.dart';
 import '../../middleware/auth_middleware.dart';
 import '../../models/user_models.dart';
 import '../widgets/colors.dart';
@@ -27,6 +29,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
   late TabController _tabController;
   Map<String, dynamic>? _tenantData;
   Map<String, dynamic>? _statistics;
+  Map<String, dynamic>? _latestContract; // สัญญาล่าสุด (สถานะใดก็ได้)
   bool _isLoading = true;
   bool _isDeleting = false;
   UserModel? _currentUser;
@@ -51,12 +54,19 @@ class _TenantDetailUIState extends State<TenantDetailUI>
       final currentUser = await AuthMiddleware.getCurrentUser();
       final tenant = await TenantService.getTenantById(widget.tenantId);
       final stats = await TenantService.getTenantStatistics(widget.tenantId);
+      // ดึงสัญญาล่าสุดของผู้เช่า (เรียงจากใหม่ไปเก่า)
+      final latestList = await ContractService.getAllContracts(
+        tenantId: widget.tenantId,
+        limit: 1,
+      );
+      final latest = latestList.isNotEmpty ? latestList.first : null;
 
       if (mounted) {
         setState(() {
           _currentUser = currentUser;
           _tenantData = tenant;
           _statistics = stats;
+          _latestContract = latest;
           _isLoading = false;
         });
       }
@@ -925,6 +935,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
   Widget _buildContractInfo() {
     final activeContract = _statistics?['active_contract'];
     final totalContracts = _statistics?['total_contracts'] ?? 0;
+    final latest = _latestContract; // ล่าสุด อาจเป็น pending/active/อื่นๆ
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -955,8 +966,8 @@ class _TenantDetailUIState extends State<TenantDetailUI>
           ),
           const SizedBox(height: 20),
 
-          // แสดงข้อมูลสัญญาปัจจุบัน
-          if (activeContract != null) ...[
+          // กรณีมีสัญญาอย่างน้อย 1 ฉบับ: แสดงสัญญาล่าสุด และซ่อนปุ่มสร้างสัญญา
+          if (totalContracts > 0 && latest != null) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: BoxDecoration(
@@ -975,20 +986,45 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                           color: Colors.green.shade100,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.check_circle,
-                            color: Colors.green.shade700, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text(
-                          'มีสัญญาเช่าที่ใช้งานอยู่',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
+                        child: Icon(
+                          latest['contract_status'] == 'active'
+                              ? Icons.check_circle
+                              : Icons.description,
+                          color: Colors.green.shade700,
+                          size: 20,
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              latest['contract_status'] == 'active'
+                                  ? 'สัญญาที่ใช้งานอยู่'
+                                  : 'สัญญาล่าสุด (สถานะ: ${_getContractStatusText(latest['contract_status'])})',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'เลขที่: ${latest['contract_num'] ?? '-'}  | ห้อง: ${latest['room_number'] ?? '-'}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'ช่วงสัญญา: ${_formatDate(latest['start_date'])} - ${_formatDate(latest['end_date'])}',
+                              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                            ),
+                          ],
+                        ),
+                      )
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -1000,9 +1036,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => ContractDetailUI(
-                                  contractId: activeContract['contract_id'],
-                                ),
+                                builder: (context) => ContractDetailUI(contractId: latest['contract_id']),
                               ),
                             ).then((_) => _loadData());
                           },
@@ -1018,11 +1052,10 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                           ),
                         ),
                       ),
-                      if (_currentUser != null &&
-                          _currentUser!.hasAnyPermission([
-                            DetailedPermission.all,
-                            DetailedPermission.manageContracts,
-                          ])) ...[
+                      if (_currentUser != null && _currentUser!.hasAnyPermission([
+                        DetailedPermission.all,
+                        DetailedPermission.manageContracts,
+                      ])) ...[
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton.icon(
@@ -1030,9 +1063,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => ContractEditUI(
-                                    contractId: activeContract['contract_id'],
-                                  ),
+                                  builder: (context) => ContractEditUI(contractId: latest['contract_id']),
                                 ),
                               ).then((_) => _loadData());
                             },
@@ -1050,6 +1081,26 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                         ),
                       ],
                     ],
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ContractHistoryUI(
+                              tenantId: widget.tenantId,
+                              tenantName: _tenantData?['tenant_fullname']?.toString(),
+                            ),
+                          ),
+                        );
+                        if (mounted) _loadData();
+                      },
+                      icon: const Icon(Icons.history),
+                      label: const Text('ประวัติสัญญา'),
+                    ),
                   ),
                 ],
               ),
@@ -1402,6 +1453,21 @@ class _TenantDetailUIState extends State<TenantDetailUI>
         return 'ปฏิเสธ';
       default:
         return 'ไม่ทราบสถานะ';
+    }
+  }
+
+  String _getContractStatusText(String? status) {
+    switch (status) {
+      case 'active':
+        return 'ใช้งานอยู่';
+      case 'pending':
+        return 'รออนุมัติ';
+      case 'expired':
+        return 'หมดอายุ';
+      case 'terminated':
+        return 'ยกเลิก';
+      default:
+        return status ?? '-';
     }
   }
 }
