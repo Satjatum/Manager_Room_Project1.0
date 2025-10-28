@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/room_service.dart';
 import '../../services/branch_service.dart';
 import '../../services/contract_service.dart';
@@ -26,6 +30,7 @@ class _ContractAddUIState extends State<ContractAddUI> {
   UserModel? _currentUser;
   bool _loading = true;
   bool _saving = false;
+  final SupabaseClient _supabase = Supabase.instance.client;
 
   String? _selectedBranchId;
   String? _branchName;
@@ -39,6 +44,10 @@ class _ContractAddUIState extends State<ContractAddUI> {
   DateTime? _startDate;
   DateTime? _endDate;
   int _paymentDay = 1;
+
+  // เอกสารสัญญา
+  String? _documentName;
+  Uint8List? _documentBytes;
 
   @override
   void initState() {
@@ -170,6 +179,75 @@ class _ContractAddUIState extends State<ContractAddUI> {
 
     setState(() => _saving = true);
     try {
+      String? documentUrl;
+
+      // อัปโหลดเอกสารถ้ามี
+      if (_documentBytes != null && _documentName != null) {
+        // แสดงสถานะกำลังอัปโหลด
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                CircularProgressIndicator(),
+                SizedBox(height: 12),
+                Text('กำลังอัปโหลดเอกสาร...'),
+              ],
+            ),
+          ),
+        );
+
+        try {
+          final now = DateTime.now();
+          final dateStr =
+              '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+          final baseName = (widget.tenantName ?? 'tenant')
+              .trim()
+              .replaceAll(RegExp(r'\s+'), '_');
+
+          // หาเลขลำดับถัดไป
+          final existing = await _supabase.storage
+              .from('contracts')
+              .list(path: '');
+          final regex = RegExp('^contracts_${dateStr}_${RegExp.escape(baseName)}_([0-9]{3})\\.pdf\$');
+          int maxSeq = 0;
+          for (final f in existing) {
+            final name = f.name;
+            final m = regex.firstMatch(name);
+            if (m != null) {
+              final n = int.tryParse(m.group(1)! ) ?? 0;
+              if (n > maxSeq) maxSeq = n;
+            }
+          }
+          final nextSeq = (maxSeq + 1).toString().padLeft(3, '0');
+          final fileName = 'contracts_${dateStr}_${baseName}_$nextSeq.pdf';
+
+          // content type ตามนามสกุลไฟล์ต้นฉบับ
+          final ext = p.extension(_documentName!).replaceFirst('.', '').toLowerCase();
+          final contentType = _getContentType(ext);
+
+          await _supabase.storage
+              .from('contracts')
+              .uploadBinary(
+                fileName,
+                _documentBytes!,
+                fileOptions: FileOptions(contentType: contentType, upsert: false),
+              );
+
+          final pub = _supabase.storage.from('contracts').getPublicUrl(fileName);
+          documentUrl = pub;
+        } catch (e) {
+          // ปิด dialog
+          if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+          rethrow;
+        }
+
+        // ปิด dialog อัปโหลด
+        if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+      }
+
       final result = await ContractService.createContract({
         'tenant_id': widget.tenantId,
         'room_id': _selectedRoomId,
@@ -181,6 +259,7 @@ class _ContractAddUIState extends State<ContractAddUI> {
         'contract_note': _noteController.text.trim().isEmpty
             ? null
             : _noteController.text.trim(),
+        'contract_document': documentUrl,
       });
 
       if (result['success'] == true) {
@@ -195,6 +274,44 @@ class _ContractAddUIState extends State<ContractAddUI> {
       _showError('เกิดข้อผิดพลาด: $e');
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _pickDocument() async {
+    final res = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+      withData: true,
+    );
+    if (res != null && res.files.isNotEmpty) {
+      final f = res.files.first;
+      if (f.bytes != null) {
+        setState(() {
+          _documentName = f.name;
+          _documentBytes = f.bytes;
+        });
+      } else if (f.path != null) {
+        // ในกรณีบางแพลตฟอร์มอาจไม่ได้ bytes มา
+        _showError('ไม่สามารถอ่านไฟล์ได้ กรุณาลองใหม่');
+      }
+    }
+  }
+
+  String _getContentType(String ext) {
+    switch (ext) {
+      case 'pdf':
+        return 'application/pdf';
+      case 'doc':
+        return 'application/msword';
+      case 'docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      default:
+        return 'application/octet-stream';
     }
   }
 
@@ -250,6 +367,8 @@ class _ContractAddUIState extends State<ContractAddUI> {
                     _buildRoomSection(),
                     const SizedBox(height: 16),
                     _buildContractSection(),
+                    const SizedBox(height: 16),
+                    _buildDocumentSection(),
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
@@ -682,6 +801,79 @@ class _ContractAddUIState extends State<ContractAddUI> {
             ),
             maxLines: 3,
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocumentSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.upload_file, color: AppTheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                'เอกสารสัญญา (ไม่บังคับ)',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_documentBytes == null)
+            OutlinedButton.icon(
+              onPressed: _saving ? null : _pickDocument,
+              icon: const Icon(Icons.attach_file),
+              label: const Text('แนบไฟล์สัญญา (PDF, DOC, ภาพ)'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.insert_drive_file, color: Colors.green.shade700),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _documentName ?? '-',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: 'ลบไฟล์',
+                    onPressed: _saving
+                        ? null
+                        : () => setState(() {
+                              _documentBytes = null;
+                              _documentName = null;
+                            }),
+                    icon: const Icon(Icons.close, color: Colors.red),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );

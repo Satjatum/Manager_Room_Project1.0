@@ -206,32 +206,30 @@ class _TenantDetailUIState extends State<TenantDetailUI>
   Future<void> _deleteTenant() async {
     // Check if user is superadmin
     if (_currentUser?.userRole != UserRole.superAdmin) {
-      _showErrorSnackBar('เฉพาะ SuperAdmin เท่านั้นที่สามารถลบผู้เช่าได้');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('เฉพาะ Super Admin เท่านั้นที่สามารถลบผู้เช่าได้'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
       return;
     }
 
-    final confirmed = await showDialog<bool>(
+    final tenantName = _tenantData?['tenant_fullname']?.toString() ?? '';
+
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.shade100,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.delete_forever_rounded,
-                color: Colors.red.shade700,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
+          children: const [
+            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+            SizedBox(width: 8),
+            Expanded(
               child: Text(
-                'ยืนยันการลบ',
-                style: TextStyle(fontSize: 18),
+                'ยืนยันการลบผู้เช่า',
+                style: TextStyle(color: Colors.red),
               ),
             ),
           ],
@@ -240,7 +238,10 @@ class _TenantDetailUIState extends State<TenantDetailUI>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('คุณต้องการลบผู้เช่านี้ถาวรหรือไม่?'),
+            Text(
+              'คุณต้องการลบผู้เช่า "$tenantName" และข้อมูลที่เกี่ยวข้องทั้งหมดหรือไม่?',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
@@ -249,18 +250,28 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.red.shade200),
               ),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_rounded,
-                      color: Colors.red.shade700, size: 20),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'การลบจะไม่สามารถกู้คืนได้',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    '⚠️ ข้อมูลที่จะถูกลบ:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text('• ข้อมูลผู้เช่า'),
+                  Text('• สัญญาเช่าทั้งหมด'),
+                  Text('• ใบแจ้งหนี้'),
+                  Text('• ข้อมูลการชำระเงิน'),
+                  Text('• ข้อมูลมิเตอร์'),
+                  SizedBox(height: 8),
+                  Text(
+                    '※ การลบนี้ไม่สามารถกู้คืนได้',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
@@ -270,42 +281,80 @@ class _TenantDetailUIState extends State<TenantDetailUI>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.of(context).pop(false),
             child: const Text('ยกเลิก'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('ลบถาวร'),
+            child: const Text('ยืนยันการลบ'),
           ),
         ],
       ),
     );
 
-    if (confirmed == true) {
-      setState(() => _isDeleting = true);
-
+    if (confirm == true) {
       try {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(color: Colors.red),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'กำลังลบข้อมูล...',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
         final result =
             await TenantService.deleteTenantWithRelatedData(widget.tenantId);
 
-        if (mounted) {
-          setState(() => _isDeleting = false);
+        if (mounted) Navigator.of(context).pop();
 
+        if (mounted) {
           if (result['success']) {
-            _showSuccessSnackBar(result['message']);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result['message']),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+              ),
+            );
             Navigator.pop(context, true);
           } else {
-            _showErrorSnackBar(result['message']);
+            throw Exception(result['message']);
           }
         }
       } catch (e) {
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+
         if (mounted) {
-          setState(() => _isDeleting = false);
-          _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceAll('Exception: ', '')),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
         }
       }
     }
