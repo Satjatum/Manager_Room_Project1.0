@@ -520,35 +520,47 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                     borderRadius: BorderRadius.circular(12),
                   ),
                   itemBuilder: (context) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'edit',
                       child: Row(
-                        children: [
-                          Icon(Icons.edit, size: 20),
+                        children: const [
+                          Icon(Icons.edit_outlined,
+                              size: 20, color: Color(0xFF14B8A6)),
                           SizedBox(width: 12),
-                          Text('แก้ไขข้อมูล'),
+                          Text('แก้ไข'),
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
-                      value: 'toggle',
+                    PopupMenuItem(
+                      value: 'toggle_status',
                       child: Row(
                         children: [
-                          Icon(Icons.toggle_on, size: 20),
-                          SizedBox(width: 12),
-                          Text('เปลี่ยนสถานะ'),
+                          Icon(
+                            isActive
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            size: 20,
+                            color: isActive ? Colors.orange : Colors.green,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
+                            style: TextStyle(
+                              color: isActive ? Colors.orange : Colors.green,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     if (_currentUser?.userRole == UserRole.superAdmin)
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 20, color: Colors.red),
+                          children: const [
+                            Icon(Icons.delete_outline,
+                                size: 20, color: Colors.red),
                             SizedBox(width: 12),
-                            Text('ลบผู้เช่า',
-                                style: TextStyle(color: Colors.red)),
+                            Text('ลบ', style: TextStyle(color: Colors.red)),
                           ],
                         ),
                       ),

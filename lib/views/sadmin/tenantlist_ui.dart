@@ -1214,6 +1214,12 @@ class _TenantListUIState extends State<TenantListUI> {
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
+                              Icon(
+                                Icons.person_outline,
+                                size: 16,
+                                color: AppTheme.primary,
+                              ),
+                              const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
                                   tenantName,
@@ -1221,8 +1227,7 @@ class _TenantListUIState extends State<TenantListUI> {
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: nameSize,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.grey.shade900,
+                                    color: Colors.grey.shade700,
                                     letterSpacing: -0.2,
                                   ),
                                 ),
@@ -1372,16 +1377,16 @@ class _TenantListUIState extends State<TenantListUI> {
                               ),
                             ],
                           ),
-
-                          const SizedBox(height: 4),
-
                           // Phone
                           if (phone != 'ไม่ระบุ')
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.phone_outlined,
-                                    size: 16, color: Colors.grey.shade600),
+                                Icon(
+                                  Icons.phone_outlined,
+                                  size: 16,
+                                  color: AppTheme.primary,
+                                ),
                                 const SizedBox(width: 6),
                                 Flexible(
                                   child: Text(
@@ -1402,8 +1407,11 @@ class _TenantListUIState extends State<TenantListUI> {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.apartment_rounded,
-                                  size: 16, color: Colors.grey.shade600),
+                              Icon(
+                                Icons.apartment_rounded,
+                                size: 16,
+                                color: AppTheme.primary,
+                              ),
                               const SizedBox(width: 6),
                               Flexible(
                                 child: Text(
