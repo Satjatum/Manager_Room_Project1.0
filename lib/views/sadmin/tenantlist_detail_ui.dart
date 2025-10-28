@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 // import 'package:manager_room_project/views/superadmin/contract_add_ui.dart';
 import 'package:manager_room_project/views/sadmin/contract_edit_ui.dart';
+import 'package:manager_room_project/views/sadmin/contract_add_ui.dart';
 import 'package:manager_room_project/views/sadmin/contractlist_detail_ui.dart';
+import 'package:manager_room_project/views/sadmin/contract_history_ui.dart';
 import '../../services/tenant_service.dart';
+import '../../services/contract_service.dart';
 import '../../middleware/auth_middleware.dart';
 import '../../models/user_models.dart';
 import '../widgets/colors.dart';
@@ -26,6 +29,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
   late TabController _tabController;
   Map<String, dynamic>? _tenantData;
   Map<String, dynamic>? _statistics;
+  Map<String, dynamic>? _latestContract; // สัญญาล่าสุด (สถานะใดก็ได้)
   bool _isLoading = true;
   bool _isDeleting = false;
   UserModel? _currentUser;
@@ -50,12 +54,19 @@ class _TenantDetailUIState extends State<TenantDetailUI>
       final currentUser = await AuthMiddleware.getCurrentUser();
       final tenant = await TenantService.getTenantById(widget.tenantId);
       final stats = await TenantService.getTenantStatistics(widget.tenantId);
+      // ดึงสัญญาล่าสุดของผู้เช่า (เรียงจากใหม่ไปเก่า)
+      final latestList = await ContractService.getAllContracts(
+        tenantId: widget.tenantId,
+        limit: 1,
+      );
+      final latest = latestList.isNotEmpty ? latestList.first : null;
 
       if (mounted) {
         setState(() {
           _currentUser = currentUser;
           _tenantData = tenant;
           _statistics = stats;
+          _latestContract = latest;
           _isLoading = false;
         });
       }
@@ -205,32 +216,30 @@ class _TenantDetailUIState extends State<TenantDetailUI>
   Future<void> _deleteTenant() async {
     // Check if user is superadmin
     if (_currentUser?.userRole != UserRole.superAdmin) {
-      _showErrorSnackBar('เฉพาะ SuperAdmin เท่านั้นที่สามารถลบผู้เช่าได้');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('เฉพาะ Super Admin เท่านั้นที่สามารถลบผู้เช่าได้'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
       return;
     }
 
-    final confirmed = await showDialog<bool>(
+    final tenantName = _tenantData?['tenant_fullname']?.toString() ?? '';
+
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.shade100,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.delete_forever_rounded,
-                color: Colors.red.shade700,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
+          children: const [
+            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+            SizedBox(width: 8),
+            Expanded(
               child: Text(
-                'ยืนยันการลบ',
-                style: TextStyle(fontSize: 18),
+                'ยืนยันการลบผู้เช่า',
+                style: TextStyle(color: Colors.red),
               ),
             ),
           ],
@@ -239,7 +248,10 @@ class _TenantDetailUIState extends State<TenantDetailUI>
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('คุณต้องการลบผู้เช่านี้ถาวรหรือไม่?'),
+            Text(
+              'คุณต้องการลบผู้เช่า "$tenantName" และข้อมูลที่เกี่ยวข้องทั้งหมดหรือไม่?',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
@@ -248,18 +260,28 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.red.shade200),
               ),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_rounded,
-                      color: Colors.red.shade700, size: 20),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text(
-                      'การลบจะไม่สามารถกู้คืนได้',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    '⚠️ ข้อมูลที่จะถูกลบ:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text('• ข้อมูลผู้เช่า'),
+                  Text('• สัญญาเช่าทั้งหมด'),
+                  Text('• ใบแจ้งหนี้'),
+                  Text('• ข้อมูลการชำระเงิน'),
+                  Text('• ข้อมูลมิเตอร์'),
+                  SizedBox(height: 8),
+                  Text(
+                    '※ การลบนี้ไม่สามารถกู้คืนได้',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
@@ -269,41 +291,80 @@ class _TenantDetailUIState extends State<TenantDetailUI>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.of(context).pop(false),
             child: const Text('ยกเลิก'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('ลบถาวร'),
+            child: const Text('ยืนยันการลบ'),
           ),
         ],
       ),
     );
 
-    if (confirmed == true) {
-      setState(() => _isDeleting = true);
-
+    if (confirm == true) {
       try {
-        final result = await TenantService.deleteTenant(widget.tenantId);
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(color: Colors.red),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'กำลังลบข้อมูล...',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
+        final result =
+            await TenantService.deleteTenantWithRelatedData(widget.tenantId);
+
+        if (mounted) Navigator.of(context).pop();
 
         if (mounted) {
-          setState(() => _isDeleting = false);
-
           if (result['success']) {
-            _showSuccessSnackBar(result['message']);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result['message']),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 3),
+              ),
+            );
             Navigator.pop(context, true);
           } else {
-            _showErrorSnackBar(result['message']);
+            throw Exception(result['message']);
           }
         }
       } catch (e) {
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+
         if (mounted) {
-          setState(() => _isDeleting = false);
-          _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e.toString().replaceAll('Exception: ', '')),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
         }
       }
     }
@@ -570,7 +631,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                       case 'edit':
                         _editTenant();
                         break;
-                      case 'toggle':
+                      case 'toggle_status':
                         _toggleStatus();
                         break;
                       case 'delete':
@@ -874,6 +935,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
   Widget _buildContractInfo() {
     final activeContract = _statistics?['active_contract'];
     final totalContracts = _statistics?['total_contracts'] ?? 0;
+    final latest = _latestContract; // ล่าสุด อาจเป็น pending/active/อื่นๆ
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -904,8 +966,8 @@ class _TenantDetailUIState extends State<TenantDetailUI>
           ),
           const SizedBox(height: 20),
 
-          // แสดงข้อมูลสัญญาปัจจุบัน
-          if (activeContract != null) ...[
+          // กรณีมีสัญญาอย่างน้อย 1 ฉบับ: แสดงสัญญาล่าสุด และซ่อนปุ่มสร้างสัญญา
+          if (totalContracts > 0 && latest != null) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: BoxDecoration(
@@ -924,20 +986,45 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                           color: Colors.green.shade100,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.check_circle,
-                            color: Colors.green.shade700, size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text(
-                          'มีสัญญาเช่าที่ใช้งานอยู่',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
+                        child: Icon(
+                          latest['contract_status'] == 'active'
+                              ? Icons.check_circle
+                              : Icons.description,
+                          color: Colors.green.shade700,
+                          size: 20,
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              latest['contract_status'] == 'active'
+                                  ? 'สัญญาที่ใช้งานอยู่'
+                                  : 'สัญญาล่าสุด (สถานะ: ${_getContractStatusText(latest['contract_status'])})',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'เลขที่: ${latest['contract_num'] ?? '-'}  | ห้อง: ${latest['room_number'] ?? '-'}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'ช่วงสัญญา: ${_formatDate(latest['start_date'])} - ${_formatDate(latest['end_date'])}',
+                              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                            ),
+                          ],
+                        ),
+                      )
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -949,9 +1036,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => ContractDetailUI(
-                                  contractId: activeContract['contract_id'],
-                                ),
+                                builder: (context) => ContractDetailUI(contractId: latest['contract_id']),
                               ),
                             ).then((_) => _loadData());
                           },
@@ -967,11 +1052,10 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                           ),
                         ),
                       ),
-                      if (_currentUser != null &&
-                          _currentUser!.hasAnyPermission([
-                            DetailedPermission.all,
-                            DetailedPermission.manageContracts,
-                          ])) ...[
+                      if (_currentUser != null && _currentUser!.hasAnyPermission([
+                        DetailedPermission.all,
+                        DetailedPermission.manageContracts,
+                      ])) ...[
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton.icon(
@@ -979,9 +1063,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => ContractEditUI(
-                                    contractId: activeContract['contract_id'],
-                                  ),
+                                  builder: (context) => ContractEditUI(contractId: latest['contract_id']),
                                 ),
                               ).then((_) => _loadData());
                             },
@@ -1000,6 +1082,26 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                       ],
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ContractHistoryUI(
+                              tenantId: widget.tenantId,
+                              tenantName: _tenantData?['tenant_fullname']?.toString(),
+                            ),
+                          ),
+                        );
+                        if (mounted) _loadData();
+                      },
+                      icon: const Icon(Icons.history),
+                      label: const Text('ประวัติสัญญา'),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1011,27 +1113,63 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.orange.shade200),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade100,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.info_outline,
-                      color: Colors.orange.shade700,
-                      size: 20,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade100,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.info_outline,
+                          color: Colors.orange.shade700,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'ไม่มีสัญญาเช่าที่ใช้งานอยู่',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'ไม่มีสัญญาเช่าที่ใช้งานอยู่',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final branchId = _tenantData?['branch_id']?.toString();
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ContractAddUI(
+                              tenantId: widget.tenantId,
+                              branchId: branchId,
+                              tenantName:
+                                  _tenantData?['tenant_fullname']?.toString(),
+                            ),
+                          ),
+                        );
+                        if (mounted) _loadData();
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('สร้างสัญญา'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
                   ),
@@ -1315,6 +1453,21 @@ class _TenantDetailUIState extends State<TenantDetailUI>
         return 'ปฏิเสธ';
       default:
         return 'ไม่ทราบสถานะ';
+    }
+  }
+
+  String _getContractStatusText(String? status) {
+    switch (status) {
+      case 'active':
+        return 'ใช้งานอยู่';
+      case 'pending':
+        return 'รออนุมัติ';
+      case 'expired':
+        return 'หมดอายุ';
+      case 'terminated':
+        return 'ยกเลิก';
+      default:
+        return status ?? '-';
     }
   }
 }
