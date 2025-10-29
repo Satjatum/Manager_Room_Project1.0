@@ -436,7 +436,7 @@ class IssueService {
       bool allowed = false;
       switch (currentStatus) {
         case 'pending':
-          allowed = (status == 'in_progress' || status == 'rejected');
+          allowed = (status == 'in_progress' || status == 'cancelled');
           break;
         case 'in_progress':
           allowed = (status == 'resolved');
@@ -486,7 +486,7 @@ class IssueService {
         return 'กำลังดำเนินการ';
       case 'resolved':
         return 'เสร็จสิ้น';
-      case 'rejected':
+      case 'cancelled':
         return 'ปฏิเสธ';
       default:
         return status;

@@ -287,7 +287,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         return Colors.blue;
       case 'resolved':
         return Colors.green;
-      case 'rejected':
+      case 'cancelled':
         return Colors.red;
       default:
         return Colors.grey;
@@ -302,7 +302,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         return Icons.autorenew;
       case 'resolved':
         return Icons.check_circle_outline;
-      case 'rejected':
+      case 'cancelled':
         return Icons.cancel_outlined;
       default:
         return Icons.help_outline;
@@ -317,7 +317,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         return 'กำลังดำเนินการ';
       case 'resolved':
         return 'แก้ไขเสร็จสิ้น';
-      case 'rejected':
+      case 'cancelled':
         return 'ปฏิเสธ';
       default:
         return status;
@@ -849,7 +849,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
               icon: Icons.cancel_outlined,
               label: 'ปฏิเสธ',
               color: Colors.red,
-              onTap: () => _updateStatus('rejected'),
+              onTap: () => _updateStatus('cancelled'),
             ),
           ],
           if (status == 'in_progress') ...[
