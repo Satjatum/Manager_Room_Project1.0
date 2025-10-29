@@ -212,7 +212,7 @@ class ContractService {
         'payment_day': contractData['payment_day'],
         'contract_note': contractData['contract_note'],
         'contract_document': contractData['contract_document'],
-        'contract_status': 'pending', // เริ่มต้นเป็น pending
+        'contract_status': 'active', // เริ่มต้นเป็น pending
         'created_by': currentUser.userId,
       };
 
