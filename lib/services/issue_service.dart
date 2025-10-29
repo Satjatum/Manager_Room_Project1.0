@@ -416,6 +416,14 @@ class IssueService {
       final String currentStatus = (current['issue_status'] ?? 'pending').toString();
       final bool hasAssignee = current['assigned_to'] != null;
 
+      // If requested status equals current, treat as success (no-op)
+      if (status == currentStatus) {
+        return {
+          'success': true,
+          'message': 'สถานะเป็น ${_displayStatus(status)} อยู่แล้ว',
+        };
+      }
+
       // Enforce workflow: pending -> in_progress -> resolved
       if (status == 'in_progress' && !hasAssignee) {
         return {
@@ -467,6 +475,21 @@ class IssueService {
         'success': false,
         'message': 'เกิดข้อผิดพลาดในการอัปเดตสถานะ: $e',
       };
+    }
+  }
+
+  static String _displayStatus(String status) {
+    switch (status) {
+      case 'pending':
+        return 'รอดำเนินการ';
+      case 'in_progress':
+        return 'กำลังดำเนินการ';
+      case 'resolved':
+        return 'เสร็จสิ้น';
+      case 'rejected':
+        return 'ปฏิเสธ';
+      default:
+        return status;
     }
   }
 

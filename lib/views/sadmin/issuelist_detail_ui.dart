@@ -445,8 +445,8 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
   }
 
   Widget _buildHeaderCard() {
-    final status = _issue!['status'] ?? 'pending';
-    final priority = _issue!['priority'] ?? 'medium';
+    final status = _issue!['issue_status'] ?? 'pending';
+    final priority = _issue!['issue_priority'] ?? 'medium';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -602,7 +602,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
           _buildDetailRow(
             icon: Icons.description_outlined,
             label: 'คำอธิบาย',
-            value: _issue!['issue_description'] ?? 'ไม่มีคำอธิบาย',
+            value: _issue!['issue_desc'] ?? 'ไม่มีคำอธิบาย',
           ),
           const SizedBox(height: 12),
           _buildDetailRow(
@@ -799,7 +799,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
   }
 
   Widget _buildActionsCard() {
-    final status = _issue!['status'] ?? 'pending';
+    final status = _issue!['issue_status'] ?? 'pending';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -827,24 +827,21 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
           ),
           const SizedBox(height: 16),
           if (status == 'pending') ...[
+            // Single toggle button: Assign -> Start
             _buildActionButton(
-              icon: Icons.person_add_outlined,
-              label: 'มอบหมายงาน',
-              color: Colors.blue,
-              onTap: () => _showAssignDialog(),
-            ),
-            const SizedBox(height: 10),
-            _buildActionButton(
-              icon: Icons.autorenew,
-              label: 'เริ่มดำเนินการ',
+              icon: _issue!['assigned_to'] == null
+                  ? Icons.person_add_outlined
+                  : Icons.autorenew,
+              label: _issue!['assigned_to'] == null
+                  ? 'มอบหมายงาน'
+                  : 'เริ่มดำเนินการ',
               color: Colors.blue,
               onTap: () {
-                // Must assign before start
                 if (_issue!['assigned_to'] == null) {
-                  _showErrorSnackBar('ต้องมอบหมายงานก่อนถึงจะเริ่มดำเนินการได้');
-                  return;
+                  _showAssignDialog();
+                } else {
+                  _updateStatus('in_progress');
                 }
-                _updateStatus('in_progress');
               },
             ),
             const SizedBox(height: 10),
@@ -1186,7 +1183,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                   itemBuilder: (context, index) {
                     final user = _availableUsers[index];
                     final isAssigned =
-                        user['user_id'] == _issue!['assigned_user_id'];
+                        user['user_id'] == _issue!['assigned_to'];
 
                     return ListTile(
                       leading: CircleAvatar(
