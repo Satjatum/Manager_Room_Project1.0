@@ -127,10 +127,11 @@ class ImageService {
         );
       }
 
-      // Create full path
+      // Create full path (sanitize folder path)
+      final safeFolder = _normalizePath(folder);
       String fullPath = fileName;
-      if (folder != null && folder.isNotEmpty) {
-        fullPath = '$folder/$fileName';
+      if (safeFolder != null && safeFolder.isNotEmpty) {
+        fullPath = '$safeFolder/$fileName';
       }
 
       // Check if file already exists and generate new name if needed
@@ -141,7 +142,9 @@ class ImageService {
         final nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
         final ext = fileName.substring(fileName.lastIndexOf('.'));
         fileName = '${nameWithoutExt}_${attempt}$ext';
-        fullPath = folder != null ? '$folder/$fileName' : fileName;
+        fullPath = (safeFolder != null && safeFolder.isNotEmpty)
+            ? '$safeFolder/$fileName'
+            : fileName;
       }
 
       // Read file bytes
@@ -276,10 +279,11 @@ class ImageService {
         );
       }
 
-      // Create full path
+      // Create full path (sanitize folder path)
+      final safeFolder = _normalizePath(folder);
       String fullPath = fileName;
-      if (folder != null && folder.isNotEmpty) {
-        fullPath = '$folder/$fileName';
+      if (safeFolder != null && safeFolder.isNotEmpty) {
+        fullPath = '$safeFolder/$fileName';
       }
 
       // Check if file already exists and generate new name if needed
@@ -290,7 +294,9 @@ class ImageService {
         final nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
         final ext = fileName.substring(fileName.lastIndexOf('.'));
         final newFileName = '${nameWithoutExt}_${attempt}$ext';
-        fullPath = folder != null ? '$folder/$newFileName' : newFileName;
+        fullPath = (safeFolder != null && safeFolder.isNotEmpty)
+            ? '$safeFolder/$newFileName'
+            : newFileName;
       }
 
       // Upload to Supabase Storage with content type
@@ -366,7 +372,8 @@ class ImageService {
     final dateStr = '$y$m$day';
     final ext = extension.toLowerCase().replaceAll('.', '');
 
-    final listPath = (folder != null && folder.isNotEmpty) ? folder : '';
+    final safeFolder = _normalizePath(folder);
+    final listPath = (safeFolder != null && safeFolder.isNotEmpty) ? safeFolder : '';
 
     int maxSeq = 0;
     try {
@@ -539,4 +546,23 @@ class ImageService {
   }
 
   // ... methods อื่นๆ เหมือนเดิม
+
+  /// Sanitize folder path segments to ASCII-safe set and remove illegal characters
+  static String? _normalizePath(String? folder) {
+    if (folder == null) return null;
+    var f = folder.trim();
+    if (f.isEmpty) return '';
+    final parts = f.split('/');
+    final safeParts = parts.map((seg) {
+      var s = seg.trim();
+      if (s.isEmpty) return '';
+      s = s.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
+      s = s.replaceAll(RegExp(r'_+'), '_');
+      s = s.replaceAll(RegExp(r'^[._]+|[._]+$'), '');
+      if (s.isEmpty) s = 'folder';
+      if (s.length > 64) s = s.substring(0, 64);
+      return s;
+    }).where((e) => e.isNotEmpty).toList();
+    return safeParts.join('/');
+  }
 }

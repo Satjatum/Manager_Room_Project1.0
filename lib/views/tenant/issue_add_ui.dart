@@ -395,8 +395,10 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
             final now = DateTime.now();
             final dateStr =
                 '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
-            final tenantName = _sanitizeForFile(
-                _currentUser?.tenantFullName ?? _currentUser?.displayName ?? _currentUser?.userName ?? 'tenant');
+            final tenantName = _sanitizeForFile(_currentUser?.tenantFullName ??
+                _currentUser?.displayName ??
+                _currentUser?.userName ??
+                'tenant');
             final branchName = _sanitizeForFile(_branchName ?? '');
             final roomNum = _sanitizeForFile(_roomNumber ?? '');
 
@@ -404,7 +406,9 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
             String ext;
             if (kIsWeb) {
               final name = imageFile.name;
-              ext = name.contains('.') ? name.split('.').last.toLowerCase() : 'jpg';
+              ext = name.contains('.')
+                  ? name.split('.').last.toLowerCase()
+                  : 'jpg';
             } else {
               final p = imageFile.path;
               ext = p.contains('.') ? p.split('.').last.toLowerCase() : 'jpg';
@@ -413,7 +417,7 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
             // Generate sequential number using ImageService helper
             final seqFile = await ImageService.generateSequentialFileName(
               bucket: 'issue-images',
-              folder: issueId,
+              folder: tenantName,
               prefix: 'Issue',
               extension: ext,
               date: now,
@@ -431,14 +435,14 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                 bytes,
                 imageFile.name,
                 'issue-images',
-                folder: issueId,
+                folder: tenantName,
                 customFileName: customName,
               );
             } else {
               uploadResult = await ImageService.uploadImage(
                 File(imageFile.path),
                 'issue-images',
-                folder: issueId,
+                folder: tenantName,
                 customFileName: customName,
               );
             }
@@ -450,7 +454,8 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
               );
             } else {
               // Surface upload error to user for quick diagnosis
-              _showErrorSnackBar(uploadResult['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+              _showErrorSnackBar(
+                  uploadResult['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
             }
           }
         }
@@ -1150,7 +1155,7 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
       ),
     );
   }
-  
+
   // Sanitize strings for safe filename usage
   String _sanitizeForFile(String input) {
     var s = (input).trim();
