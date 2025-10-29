@@ -212,9 +212,24 @@ class _SplashUiState extends State<SplashUi> with TickerProviderStateMixin {
   void _navigateToDashboard(UserModel user) {
     if (!mounted) return;
 
-    // Navigate to appropriate dashboard based on role and permissions
-    Widget targetPage =
-        const SuperadmindashUi(); // Default dashboard for all roles now
+    // Navigate to appropriate dashboard based on role
+    late Widget targetPage;
+    switch (user.userRole) {
+      case UserRole.superAdmin:
+        targetPage = const SuperadmindashUi();
+        break;
+      case UserRole.admin:
+        // Keep consistent with LoginUi behavior
+        targetPage = const SuperadmindashUi();
+        break;
+      case UserRole.tenant:
+        targetPage = const TenantdashUi();
+        break;
+      case UserRole.user:
+      default:
+        targetPage = const LoginUi();
+        break;
+    }
 
     // Wrap with AuthWrapper to ensure proper access control
     targetPage = AuthWrapper(

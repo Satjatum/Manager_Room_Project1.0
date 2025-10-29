@@ -10,7 +10,14 @@ class ImageService {
   static const _uuid = Uuid();
 
   // Supported image formats
-  static const List<String> _supportedFormats = ['jpg', 'jpeg', 'png', 'webp'];
+  static const List<String> _supportedFormats = [
+    'jpg',
+    'jpeg',
+    'png',
+    'webp',
+    'heic',
+    'heif',
+  ];
 
   // Maximum file size (5MB)
   static const int _maxFileSize = 5 * 1024 * 1024;
@@ -120,10 +127,11 @@ class ImageService {
         );
       }
 
-      // Create full path
+      // Create full path (sanitize folder path)
+      final safeFolder = _normalizePath(folder);
       String fullPath = fileName;
-      if (folder != null && folder.isNotEmpty) {
-        fullPath = '$folder/$fileName';
+      if (safeFolder != null && safeFolder.isNotEmpty) {
+        fullPath = '$safeFolder/$fileName';
       }
 
       // Check if file already exists and generate new name if needed
@@ -134,7 +142,9 @@ class ImageService {
         final nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
         final ext = fileName.substring(fileName.lastIndexOf('.'));
         fileName = '${nameWithoutExt}_${attempt}$ext';
-        fullPath = folder != null ? '$folder/$fileName' : fileName;
+        fullPath = (safeFolder != null && safeFolder.isNotEmpty)
+            ? '$safeFolder/$fileName'
+            : fileName;
       }
 
       // Read file bytes
@@ -269,10 +279,11 @@ class ImageService {
         );
       }
 
-      // Create full path
+      // Create full path (sanitize folder path)
+      final safeFolder = _normalizePath(folder);
       String fullPath = fileName;
-      if (folder != null && folder.isNotEmpty) {
-        fullPath = '$folder/$fileName';
+      if (safeFolder != null && safeFolder.isNotEmpty) {
+        fullPath = '$safeFolder/$fileName';
       }
 
       // Check if file already exists and generate new name if needed
@@ -283,7 +294,9 @@ class ImageService {
         final nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
         final ext = fileName.substring(fileName.lastIndexOf('.'));
         final newFileName = '${nameWithoutExt}_${attempt}$ext';
-        fullPath = folder != null ? '$folder/$newFileName' : newFileName;
+        fullPath = (safeFolder != null && safeFolder.isNotEmpty)
+            ? '$safeFolder/$newFileName'
+            : newFileName;
       }
 
       // Upload to Supabase Storage with content type
@@ -359,7 +372,8 @@ class ImageService {
     final dateStr = '$y$m$day';
     final ext = extension.toLowerCase().replaceAll('.', '');
 
-    final listPath = (folder != null && folder.isNotEmpty) ? folder : '';
+    final safeFolder = _normalizePath(folder);
+    final listPath = (safeFolder != null && safeFolder.isNotEmpty) ? safeFolder : '';
 
     int maxSeq = 0;
     try {
@@ -479,6 +493,10 @@ class ImageService {
         return 'image/png';
       case 'webp':
         return 'image/webp';
+      case 'heic':
+        return 'image/heic';
+      case 'heif':
+        return 'image/heif';
       default:
         return 'application/octet-stream';
     }
@@ -486,26 +504,65 @@ class ImageService {
 
   /// Sanitize and normalize a provided file name; ensure extension
   static String _normalizeFileName(String name, String extension) {
-    final clean = name
-        .trim()
-        .replaceAll('\\', '/')
-        .split('/')
-        .last
-        .replaceAll(RegExp(r"[\n\r\t]"), '')
-        .replaceAll(RegExp(r"\s+"), '')
-        .replaceAll(RegExp(r"[\*\?\<>\|:]"), '');
+    var clean = name.trim();
+    // Keep only base name
+    clean = clean.replaceAll('\\', '/').split('/').last;
+    // Remove control whitespace
+    clean = clean.replaceAll(RegExp(r'[\n\r\t]'), '');
+    // Replace spaces with underscore
+    clean = clean.replaceAll(RegExp(r'\s+'), '_');
+    // Remove disallowed punctuation
+    clean = clean.replaceAll(RegExp(r'[\*\?\<>\|:"]'), '');
+    // Enforce ASCII safe set: letters, numbers, dot, underscore, hyphen
+    clean = clean.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    // Collapse multiple underscores
+    clean = clean.replaceAll(RegExp(r'_+'), '_');
+    // Trim leading/trailing underscores and dots
+    clean = clean.replaceAll(RegExp(r'^[_\.]+|[_\.]+$'), '');
 
-    if (clean.isEmpty || clean == '.' || clean == '..') return '';
+    // Fallback if empty
+    if (clean.isEmpty || clean == '.' || clean == '..') {
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final ext = extension.toLowerCase().replaceAll('.', '');
+      return 'file_$ts.${ext.isEmpty ? 'jpg' : ext}';
+    }
 
     // Ensure has extension
     if (!clean.contains('.')) {
       final ext = extension.toLowerCase().replaceAll('.', '');
-      if (ext.isEmpty) return '';
-      return '$clean.$ext';
+      return '$clean.${ext.isEmpty ? 'jpg' : ext}';
+    }
+
+    // Limit length to avoid backend limits
+    if (clean.length > 150) {
+      final parts = clean.split('.');
+      final ext = parts.length > 1 ? parts.removeLast() : '';
+      final base = parts.join('.');
+      final shortened = base.substring(0, 140);
+      clean = ext.isNotEmpty ? '$shortened.$ext' : shortened;
     }
 
     return clean;
   }
 
   // ... methods อื่นๆ เหมือนเดิม
+
+  /// Sanitize folder path segments to ASCII-safe set and remove illegal characters
+  static String? _normalizePath(String? folder) {
+    if (folder == null) return null;
+    var f = folder.trim();
+    if (f.isEmpty) return '';
+    final parts = f.split('/');
+    final safeParts = parts.map((seg) {
+      var s = seg.trim();
+      if (s.isEmpty) return '';
+      s = s.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
+      s = s.replaceAll(RegExp(r'_+'), '_');
+      s = s.replaceAll(RegExp(r'^[._]+|[._]+$'), '');
+      if (s.isEmpty) s = 'folder';
+      if (s.length > 64) s = s.substring(0, 64);
+      return s;
+    }).where((e) => e.isNotEmpty).toList();
+    return safeParts.join('/');
+  }
 }

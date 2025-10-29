@@ -391,21 +391,59 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
           for (int i = 0; i < _selectedImageFiles.length; i++) {
             final imageFile = _selectedImageFiles[i];
 
+            // Prepare naming parts
+            final now = DateTime.now();
+            final dateStr =
+                '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+            final tenantName = _sanitizeForFile(_currentUser?.tenantFullName ??
+                _currentUser?.displayName ??
+                _currentUser?.userName ??
+                'tenant');
+            final branchName = _sanitizeForFile(_branchName ?? '');
+            final roomNum = _sanitizeForFile(_roomNumber ?? '');
+
+            // Determine extension
+            String ext;
+            if (kIsWeb) {
+              final name = imageFile.name;
+              ext = name.contains('.')
+                  ? name.split('.').last.toLowerCase()
+                  : 'jpg';
+            } else {
+              final p = imageFile.path;
+              ext = p.contains('.') ? p.split('.').last.toLowerCase() : 'jpg';
+            }
+
+            // Generate sequential number using ImageService helper
+            final seqFile = await ImageService.generateSequentialFileName(
+              bucket: 'issue-images',
+              folder: tenantName,
+              prefix: 'Issue',
+              extension: ext,
+              date: now,
+            );
+            final seq = seqFile.split('_').last.split('.').first; // e.g., 001
+
+            final customName =
+                'Issue_${dateStr}_${tenantName}_${branchName}_${roomNum}_${seq}.$ext';
+
             Map<String, dynamic> uploadResult;
 
             if (kIsWeb) {
               final bytes = await imageFile.readAsBytes();
               uploadResult = await ImageService.uploadImageFromBytes(
                 bytes,
-                '${DateTime.now().millisecondsSinceEpoch}_$i.jpg',
+                imageFile.name,
                 'issue-images',
-                folder: issueId,
+                folder: tenantName,
+                customFileName: customName,
               );
             } else {
               uploadResult = await ImageService.uploadImage(
                 File(imageFile.path),
                 'issue-images',
-                folder: issueId,
+                folder: tenantName,
+                customFileName: customName,
               );
             }
 
@@ -414,6 +452,10 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                 issueId,
                 uploadResult['url'],
               );
+            } else {
+              // Surface upload error to user for quick diagnosis
+              _showErrorSnackBar(
+                  uploadResult['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
             }
           }
         }
@@ -558,14 +600,14 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           'รายงานปัญหา',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
         ),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
         elevation: 0,
       ),
       body: _isLoadingData
@@ -583,14 +625,13 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
               ),
             )
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildRoomInfoCard(),
-                    const SizedBox(height: 16),
+                    // ไม่ต้องแสดงข้อมูลห้องพักตามคำขอ
                     _buildTypeAndPriorityCard(),
                     const SizedBox(height: 16),
                     _buildImagesCard(),
@@ -863,13 +904,9 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
               child: Container(
                 padding: const EdgeInsets.all(40),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.grey[300]!,
-                    width: 2,
-                    style: BorderStyle.solid,
-                  ),
+                  border: Border.all(color: Colors.grey[300]!, width: 1.5),
                 ),
                 child: Column(
                   children: [
@@ -1077,33 +1114,20 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            offset: const Offset(0, 2),
-            blurRadius: 8,
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
+          Padding(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-              ),
-            ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
+                    color: color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(icon, color: color, size: 20),
@@ -1112,16 +1136,17 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                 Expanded(
                   child: Text(
                     title,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: color,
+                      color: Colors.black87,
                     ),
                   ),
                 ),
               ],
             ),
           ),
+          Divider(height: 1, color: Colors.grey[300]),
           Padding(
             padding: const EdgeInsets.all(16),
             child: child,
@@ -1129,5 +1154,17 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
         ],
       ),
     );
+  }
+
+  // Sanitize strings for safe filename usage
+  String _sanitizeForFile(String input) {
+    var s = (input).trim();
+    // Replace spaces and invalid characters with underscores
+    s = s.replaceAll(RegExp(r'[\\/:*?"<>|\s]+'), '_');
+    // Collapse repeated underscores
+    s = s.replaceAll(RegExp(r'_+'), '_');
+    // Trim leading/trailing underscores
+    s = s.replaceAll(RegExp(r'^_+|_+$'), '');
+    return s;
   }
 }
