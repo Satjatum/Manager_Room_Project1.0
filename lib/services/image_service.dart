@@ -497,22 +497,42 @@ class ImageService {
 
   /// Sanitize and normalize a provided file name; ensure extension
   static String _normalizeFileName(String name, String extension) {
-    final clean = name
-        .trim()
-        .replaceAll('\\', '/')
-        .split('/')
-        .last
-        .replaceAll(RegExp(r"[\n\r\t]"), '')
-        .replaceAll(RegExp(r"\s+"), '')
-        .replaceAll(RegExp(r"[\*\?\<>\|:]"), '');
+    var clean = name.trim();
+    // Keep only base name
+    clean = clean.replaceAll('\\', '/').split('/').last;
+    // Remove control whitespace
+    clean = clean.replaceAll(RegExp(r'[\n\r\t]'), '');
+    // Replace spaces with underscore
+    clean = clean.replaceAll(RegExp(r'\s+'), '_');
+    // Remove disallowed punctuation
+    clean = clean.replaceAll(RegExp(r'[\*\?\<>\|:"]'), '');
+    // Enforce ASCII safe set: letters, numbers, dot, underscore, hyphen
+    clean = clean.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    // Collapse multiple underscores
+    clean = clean.replaceAll(RegExp(r'_+'), '_');
+    // Trim leading/trailing underscores and dots
+    clean = clean.replaceAll(RegExp(r'^[_\.]+|[_\.]+$'), '');
 
-    if (clean.isEmpty || clean == '.' || clean == '..') return '';
+    // Fallback if empty
+    if (clean.isEmpty || clean == '.' || clean == '..') {
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final ext = extension.toLowerCase().replaceAll('.', '');
+      return 'file_$ts.${ext.isEmpty ? 'jpg' : ext}';
+    }
 
     // Ensure has extension
     if (!clean.contains('.')) {
       final ext = extension.toLowerCase().replaceAll('.', '');
-      if (ext.isEmpty) return '';
-      return '$clean.$ext';
+      return '$clean.${ext.isEmpty ? 'jpg' : ext}';
+    }
+
+    // Limit length to avoid backend limits
+    if (clean.length > 150) {
+      final parts = clean.split('.');
+      final ext = parts.length > 1 ? parts.removeLast() : '';
+      final base = parts.join('.');
+      final shortened = base.substring(0, 140);
+      clean = ext.isNotEmpty ? '$shortened.$ext' : shortened;
     }
 
     return clean;
