@@ -541,21 +541,6 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
     }
   }
 
-  Color _getPriorityColor(String priority) {
-    switch (priority) {
-      case 'urgent':
-        return Colors.red;
-      case 'high':
-        return Colors.orange;
-      case 'medium':
-        return Colors.blue;
-      case 'low':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
   void _showErrorSnackBar(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -631,9 +616,9 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // ไม่ต้องแสดงข้อมูลห้องพักตามคำขอ
-                    _buildTypeAndPriorityCard(),
-                    const SizedBox(height: 16),
                     _buildImagesCard(),
+                    const SizedBox(height: 16),
+                    _buildTypeAndPriorityCard(),
                     const SizedBox(height: 24),
                     _buildSubmitButton(),
                     const SizedBox(height: 16),
@@ -897,6 +882,7 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
               onTap: _pickImages,
               borderRadius: BorderRadius.circular(12),
               child: Container(
+                width: double.infinity,
                 padding: const EdgeInsets.all(40),
                 decoration: BoxDecoration(
                   color: Colors.white,

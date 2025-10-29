@@ -76,17 +76,12 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    _getStatusColor(status).withOpacity(0.8),
-                    _getStatusColor(status),
-                  ],
-                ),
+                color: _getStatusColor(status).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 _getStatusIcon(status),
-                color: Colors.white,
+                color: _getStatusColor(status),
                 size: 24,
               ),
             ),
@@ -221,161 +216,80 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
             _loadData();
           }
         } else {
-          if (mounted) {
-            _showErrorSnackBar(updateResult['message']);
-          }
+          throw Exception(updateResult['message']);
         }
       } catch (e) {
         if (mounted) {
-          _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+          _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
         }
       }
     }
   }
 
-  Future<void> _assignToUser() async {
-    if (_availableUsers.isEmpty) return;
+  Future<void> _assignUser(String userId) async {
+    try {
+      final result = await IssueService.assignIssue(widget.issueId, userId);
+      if (result['success']) {
+        if (mounted) {
+          _showSuccessSnackBar(result['message']);
+          _loadData();
+        }
+      } else {
+        throw Exception(result['message']);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
+      }
+    }
+  }
 
-    final selectedUserId = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppTheme.primary.withOpacity(0.8),
-                    AppTheme.primary,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child:
-                  const Icon(Icons.person_add, color: Colors.white, size: 24),
-            ),
+            const Icon(Icons.check_circle, color: Colors.white),
             const SizedBox(width: 12),
-            const Text('มอบหมายงาน', style: TextStyle(fontSize: 18)),
+            Expanded(child: Text(message)),
           ],
         ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline,
-                        color: Colors.blue.shade700, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'เลือกผู้รับผิดชอบงาน',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.blue.shade700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _availableUsers.length,
-                  itemBuilder: (context, index) {
-                    final user = _availableUsers[index];
-                    final isAssigned =
-                        _issue?['assigned_to'] == user['user_id'];
-
-                    return Card(
-                      elevation: isAssigned ? 4 : 1,
-                      margin: const EdgeInsets.only(bottom: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(
-                          color: isAssigned
-                              ? AppTheme.primary
-                              : Colors.grey.shade200,
-                          width: isAssigned ? 2 : 1,
-                        ),
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        leading: CircleAvatar(
-                          backgroundColor: isAssigned
-                              ? AppTheme.primary
-                              : AppTheme.primary.withOpacity(0.1),
-                          child: Text(
-                            user['user_name'][0].toUpperCase(),
-                            style: TextStyle(
-                              color:
-                                  isAssigned ? Colors.white : AppTheme.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          user['user_name'],
-                          style: TextStyle(
-                            fontWeight: isAssigned
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                          ),
-                        ),
-                        subtitle: Text(user['user_email']),
-                        trailing: isAssigned
-                            ? Icon(Icons.check_circle, color: AppTheme.primary)
-                            : const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () => Navigator.pop(context, user['user_id']),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
-          ),
-        ],
+        backgroundColor: Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
+  }
 
-    if (selectedUserId != null) {
-      try {
-        final result =
-            await IssueService.assignIssue(widget.issueId, selectedUserId);
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
 
-        if (result['success']) {
-          if (mounted) {
-            _showSuccessSnackBar(result['message']);
-            _loadData();
-          }
-        } else {
-          if (mounted) {
-            _showErrorSnackBar(result['message']);
-          }
-        }
-      } catch (e) {
-        if (mounted) {
-          _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
-        }
-      }
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'pending':
+        return Colors.orange;
+      case 'in_progress':
+        return Colors.blue;
+      case 'resolved':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -387,55 +301,10 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         return Icons.autorenew;
       case 'resolved':
         return Icons.check_circle_outline;
-      case 'cancelled':
+      case 'rejected':
         return Icons.cancel_outlined;
       default:
-        return Icons.info_outline;
-    }
-  }
-
-  Color _getPriorityColor(String priority) {
-    switch (priority) {
-      case 'urgent':
-        return Colors.red;
-      case 'high':
-        return Colors.orange;
-      case 'medium':
-        return Colors.blue;
-      case 'low':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _getPriorityText(String priority) {
-    switch (priority) {
-      case 'urgent':
-        return 'ด่วนมาก';
-      case 'high':
-        return 'สูง';
-      case 'medium':
-        return 'ปานกลาง';
-      case 'low':
-        return 'ต่ำ';
-      default:
-        return priority;
-    }
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'pending':
-        return Colors.orange;
-      case 'in_progress':
-        return Colors.blue;
-      case 'resolved':
-        return Colors.green;
-      case 'cancelled':
-        return Colors.grey;
-      default:
-        return Colors.grey;
+        return Icons.help_outline;
     }
   }
 
@@ -446,375 +315,254 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
       case 'in_progress':
         return 'กำลังดำเนินการ';
       case 'resolved':
-        return 'เสร็จสิ้น';
-      case 'cancelled':
-        return 'ยกเลิก';
+        return 'แก้ไขเสร็จสิ้น';
+      case 'rejected':
+        return 'ปฏิเสธ';
       default:
         return status;
     }
   }
 
-  String _getIssueTypeText(String type) {
-    switch (type) {
-      case 'repair':
-        return 'ซ่อมแซม';
-      case 'maintenance':
-        return 'บำรุงรักษา';
-      case 'complaint':
-        return 'ร้องเรียน';
-      case 'suggestion':
-        return 'ข้อเสนอแนะ';
-      case 'other':
-        return 'อื่นๆ';
+  String _getPriorityText(String priority) {
+    switch (priority) {
+      case 'low':
+        return 'ต่ำ';
+      case 'medium':
+        return 'ปานกลาง';
+      case 'high':
+        return 'สูง';
+      case 'urgent':
+        return 'เร่งด่วน';
       default:
-        return type;
+        return priority;
     }
   }
 
-  IconData _getIssueTypeIcon(String type) {
-    switch (type) {
-      case 'repair':
-        return Icons.build;
-      case 'maintenance':
-        return Icons.engineering;
-      case 'complaint':
-        return Icons.report_problem;
-      case 'suggestion':
-        return Icons.lightbulb;
-      case 'other':
-        return Icons.more_horiz;
+  Color _getPriorityColor(String priority) {
+    switch (priority) {
+      case 'low':
+        return Colors.green;
+      case 'medium':
+        return Colors.blue;
+      case 'high':
+        return Colors.orange;
+      case 'urgent':
+        return Colors.red;
       default:
-        return Icons.info;
+        return Colors.grey;
     }
-  }
-
-  void _showErrorSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red[600],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 4),
-      ),
-    );
-  }
-
-  void _showSuccessSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_outline, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.green[600],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final canManage = _currentUser?.hasAnyPermission([
-          DetailedPermission.all,
-          DetailedPermission.manageIssues,
-        ]) ??
-        false;
-
-    final isTenant = _currentUser?.userRole == UserRole.tenant;
-
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: Colors.grey[50],
-        appBar: AppBar(
-          title: const Text('รายละเอียดปัญหา'),
-          backgroundColor: AppTheme.primary,
-          foregroundColor: Colors.white,
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(color: AppTheme.primary),
-              const SizedBox(height: 16),
-              Text(
-                'กำลังโหลดข้อมูล...',
-                style: TextStyle(color: Colors.grey[600]),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (_issue == null) {
-      return Scaffold(
-        backgroundColor: Colors.grey[50],
-        appBar: AppBar(
-          title: const Text('รายละเอียดปัญหา'),
-          backgroundColor: AppTheme.primary,
-          foregroundColor: Colors.white,
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.error_outline,
-                    size: 64, color: Colors.grey[400]),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'ไม่พบข้อมูลปัญหา',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final status = _issue!['issue_status'] ?? '';
-    final priority = _issue!['issue_priority'] ?? '';
-    final type = _issue!['issue_type'] ?? '';
-
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text(
-          isTenant ? 'รายละเอียดปัญหา' : 'จัดการปัญหา',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
         elevation: 0,
-        actions: [
-          if (canManage)
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              onSelected: (value) {
-                switch (value) {
-                  case 'assign':
-                    _assignToUser();
-                    break;
-                  case 'in_progress':
-                  case 'resolved':
-                  case 'cancelled':
-                    _updateStatus(value);
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'assign',
-                  child: Row(
-                    children: [
-                      Icon(Icons.person_add, color: AppTheme.primary, size: 20),
-                      SizedBox(width: 12),
-                      Text('มอบหมายงาน'),
-                    ],
-                  ),
-                ),
-                const PopupMenuDivider(),
-                if (status == 'pending')
-                  const PopupMenuItem(
-                    value: 'in_progress',
-                    child: Row(
-                      children: [
-                        Icon(Icons.play_arrow, color: Colors.blue, size: 20),
-                        SizedBox(width: 12),
-                        Text('เริ่มดำเนินการ'),
-                      ],
-                    ),
-                  ),
-                if (status == 'in_progress')
-                  const PopupMenuItem(
-                    value: 'resolved',
-                    child: Row(
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.green, size: 20),
-                        SizedBox(width: 12),
-                        Text('เสร็จสิ้น'),
-                      ],
-                    ),
-                  ),
-                const PopupMenuItem(
-                  value: 'cancelled',
-                  child: Row(
-                    children: [
-                      Icon(Icons.cancel, color: Colors.grey, size: 20),
-                      SizedBox(width: 12),
-                      Text('ยกเลิก'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        color: AppTheme.primary,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeaderCard(status, priority),
-              const SizedBox(height: 20),
-              _buildBasicInfoCard(type),
-              const SizedBox(height: 16),
-              _buildDescriptionCard(),
-              const SizedBox(height: 16),
-              if (_images.isNotEmpty) ...[
-                _buildImagesCard(),
-                const SizedBox(height: 16),
-              ],
-              if (_issue!['assigned_user_name'] != null) ...[
-                _buildAssignmentCard(),
-                const SizedBox(height: 16),
-              ],
-              if (_issue!['resolution_notes'] != null) ...[
-                _buildResolutionCard(),
-                const SizedBox(height: 16),
-              ],
-              _buildTimelineCard(),
-            ],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'รายละเอียดปัญหา',
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            height: 1,
+            color: Colors.grey[300],
           ),
         ),
       ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _issue == null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline,
+                          size: 64, color: Colors.grey[400]),
+                      const SizedBox(height: 16),
+                      Text(
+                        'ไม่พบข้อมูล',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadData,
+                  color: AppTheme.primary,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Actions Card
+                        if (_currentUser != null &&
+                            _currentUser!.hasAnyPermission([
+                              DetailedPermission.all,
+                              DetailedPermission.manageIssues,
+                            ])) ...[
+                          _buildActionsCard(),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Header Card
+                        _buildHeaderCard(),
+                        const SizedBox(height: 16),
+
+                        // Details Card
+                        _buildDetailsCard(),
+                        const SizedBox(height: 16),
+
+                        // Images Section
+                        if (_images.isNotEmpty) ...[
+                          _buildImagesSection(),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Timeline Section
+                        _buildTimelineSection(),
+                      ],
+                    ),
+                  ),
+                ),
     );
   }
 
-  Widget _buildHeaderCard(String status, String priority) {
+  Widget _buildHeaderCard() {
+    final status = _issue!['status'] ?? 'pending';
+    final priority = _issue!['priority'] ?? 'medium';
+
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.primary,
-            AppTheme.primary.withOpacity(0.8),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primary.withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            _issue!['issue_num'] ?? '',
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            _issue!['issue_title'] ?? '',
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              height: 1.3,
-            ),
-          ),
-          const SizedBox(height: 16),
           Row(
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
+                  color: _getStatusColor(status).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                child: Icon(
+                  _getStatusIcon(status),
+                  color: _getStatusColor(status),
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      _getStatusIcon(status),
-                      size: 16,
-                      color: _getStatusColor(status),
-                    ),
-                    const SizedBox(width: 6),
                     Text(
-                      _getStatusText(status),
-                      style: TextStyle(
-                        color: _getStatusColor(status),
+                      _issue!['issue_title'] ?? 'ไม่มีหัวข้อ',
+                      style: const TextStyle(
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Issue #${_issue!['issue_id']?.toString().substring(0, 8) ?? 'N/A'}',
+                      style: TextStyle(
                         fontSize: 13,
+                        color: Colors.grey[600],
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: _getPriorityColor(priority).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.5),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _getStatusColor(status).withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _getStatusIcon(status),
+                        size: 16,
+                        color: _getStatusColor(status),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _getStatusText(status),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _getStatusColor(status),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.flag,
-                      size: 14,
-                      color: Colors.white,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: _getPriorityColor(priority).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _getPriorityColor(priority).withOpacity(0.3),
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      _getPriorityText(priority),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.flag,
+                        size: 16,
+                        color: _getPriorityColor(priority),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 6),
+                      Text(
+                        _getPriorityText(priority),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: _getPriorityColor(priority),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -824,174 +572,149 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
     );
   }
 
-  Widget _buildBasicInfoCard(String type) {
-    return _buildModernCard(
-      'ข้อมูลพื้นฐาน',
-      Icons.info_outline,
-      AppTheme.primary,
-      [
-        _buildModernInfoRow(
-          Icons.category_outlined,
-          'ประเภท',
-          _getIssueTypeText(type),
-        ),
-        _buildModernInfoRow(
-          Icons.meeting_room_outlined,
-          'ห้องพัก',
-          _issue!['room_number'] ?? '',
-        ),
-        _buildModernInfoRow(
-          Icons.business_outlined,
-          'สาขา',
-          _issue!['branch_name'] ?? '',
-        ),
-        if (_issue!['tenant_fullname'] != null)
-          _buildModernInfoRow(
-            Icons.person_outline,
-            'ผู้เช่า',
-            _issue!['tenant_fullname'],
-          ),
-      ],
-    );
-  }
-
-  Widget _buildDescriptionCard() {
-    return _buildModernCard(
-      'รายละเอียดปัญหา',
-      Icons.description_outlined,
-      Colors.blue,
-      [
-        Text(
-          _issue!['issue_desc'] ?? '',
-          style: const TextStyle(
-            fontSize: 15,
-            height: 1.6,
-            color: Colors.black87,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildImagesCard() {
-    return _buildModernCard(
-      'รูปภาพประกอบ (${_images.length})',
-      Icons.photo_library_outlined,
-      Colors.green,
-      [
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-          ),
-          itemCount: _images.length,
-          itemBuilder: (context, index) {
-            return GestureDetector(
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => Dialog(
-                    child: Image.network(_images[index]['image_url']),
-                  ),
-                );
-              },
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  _images[index]['image_url'],
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.error_outline),
-                    );
-                  },
-                ),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAssignmentCard() {
-    return _buildModernCard(
-      'ผู้รับผิดชอบ',
-      Icons.person_pin_outlined,
-      Colors.purple,
-      [
-        Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: Colors.purple.shade100,
-              radius: 24,
-              child: Text(
-                _issue!['assigned_user_name'][0].toUpperCase(),
+  Widget _buildDetailsCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: AppTheme.primary, size: 22),
+              const SizedBox(width: 10),
+              const Text(
+                'รายละเอียดปัญหา',
                 style: TextStyle(
-                  color: Colors.purple.shade700,
-                  fontWeight: FontWeight.bold,
                   fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildDetailRow(
+            icon: Icons.description_outlined,
+            label: 'คำอธิบาย',
+            value: _issue!['issue_description'] ?? 'ไม่มีคำอธิบาย',
+          ),
+          const SizedBox(height: 12),
+          _buildDetailRow(
+            icon: Icons.business_outlined,
+            label: 'สาขา',
+            value: _issue!['branch_name'] ?? 'ไม่ระบุ',
+          ),
+          const SizedBox(height: 12),
+          _buildDetailRow(
+            icon: Icons.meeting_room_outlined,
+            label: 'ห้อง',
+            value: _issue!['room_number'] ?? 'ไม่ระบุ',
+          ),
+          const SizedBox(height: 12),
+          _buildDetailRow(
+            icon: Icons.person_outline,
+            label: 'ผู้แจ้ง',
+            value: _issue!['created_user_name'] ?? 'ไม่ระบุ',
+          ),
+          const SizedBox(height: 12),
+          _buildDetailRow(
+            icon: Icons.person_add_outlined,
+            label: 'ผู้รับผิดชอบ',
+            value: _issue!['assigned_user_name'] ?? 'ยังไม่มอบหมาย',
+          ),
+          const SizedBox(height: 12),
+          _buildDetailRow(
+            icon: Icons.calendar_today_outlined,
+            label: 'วันที่แจ้ง',
+            value: _formatDate(_issue!['created_at']),
+          ),
+          if (_issue!['resolved_date'] != null) ...[
+            const SizedBox(height: 12),
+            _buildDetailRow(
+              icon: Icons.check_circle_outline,
+              label: 'วันที่แก้ไขเสร็จ',
+              value: _formatDate(_issue!['resolved_date']),
             ),
-            const SizedBox(width: 12),
-            Expanded(
+          ],
+          if (_issue!['resolution_notes'] != null &&
+              _issue!['resolution_notes'].toString().isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.shade200),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    _issue!['assigned_user_name'],
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+                  Row(
+                    children: [
+                      Icon(Icons.note_alt_outlined,
+                          color: Colors.green.shade700, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        'บันทึกการแก้ไข',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade700,
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 8),
                   Text(
-                    'รับผิดชอบงานนี้',
+                    _issue!['resolution_notes'],
                     style: TextStyle(
-                      color: Colors.grey[600],
                       fontSize: 13,
+                      color: Colors.grey[800],
                     ),
                   ),
                 ],
               ),
             ),
           ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildResolutionCard() {
-    return _buildModernCard(
-      'การแก้ไขปัญหา',
-      Icons.check_circle_outline,
-      Colors.green,
-      [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.green.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.shade200),
-          ),
-          child: Row(
+  Widget _buildDetailRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: Colors.grey[600]),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.task_alt, color: Colors.green.shade700, size: 24),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  _issue!['resolution_notes'],
-                  style: TextStyle(
-                    fontSize: 15,
-                    height: 1.5,
-                    color: Colors.green.shade900,
-                  ),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
                 ),
               ),
             ],
@@ -1001,123 +724,215 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
     );
   }
 
-  Widget _buildTimelineCard() {
-    return _buildModernCard(
-      'ประวัติการดำเนินงาน',
-      Icons.timeline,
-      Colors.orange,
-      [
-        _buildTimeline(),
-      ],
-    );
-  }
-
-  Widget _buildModernCard(
-    String title,
-    IconData icon,
-    Color color,
-    List<Widget> children,
-  ) {
+  Widget _buildImagesSection() {
     return Container(
-      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            offset: const Offset(0, 2),
-            blurRadius: 8,
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
+          Row(
+            children: [
+              Icon(Icons.photo_library_outlined,
+                  color: AppTheme.primary, size: 22),
+              const SizedBox(width: 10),
+              const Text(
+                'รูปภาพประกอบ',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, color: color, size: 20),
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
+                child: Text(
+                  '${_images.length} รูป',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primary,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: children,
+          const SizedBox(height: 16),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
             ),
+            itemCount: _images.length,
+            itemBuilder: (context, index) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  _images[index]['image_url'],
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: Colors.grey[300],
+                    child: Icon(Icons.broken_image,
+                        color: Colors.grey[600], size: 32),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildModernInfoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
+  Widget _buildActionsCard() {
+    final status = _issue!['status'] ?? 'pending';
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 20, color: Colors.grey[700]),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
+          Row(
+            children: [
+              Icon(Icons.settings_outlined, color: AppTheme.primary, size: 22),
+              const SizedBox(width: 10),
+              const Text(
+                'การดำเนินการ',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
+          const SizedBox(height: 16),
+          if (status == 'pending') ...[
+            _buildActionButton(
+              icon: Icons.person_add_outlined,
+              label: 'มอบหมายงาน',
+              color: Colors.blue,
+              onTap: () => _showAssignDialog(),
+            ),
+            const SizedBox(height: 10),
+            _buildActionButton(
+              icon: Icons.autorenew,
+              label: 'เริ่มดำเนินการ',
+              color: Colors.blue,
+              onTap: () => _updateStatus('in_progress'),
+            ),
+            const SizedBox(height: 10),
+            _buildActionButton(
+              icon: Icons.cancel_outlined,
+              label: 'ปฏิเสธ',
+              color: Colors.red,
+              onTap: () => _updateStatus('rejected'),
+            ),
+          ],
+          if (status == 'in_progress') ...[
+            _buildActionButton(
+              icon: Icons.check_circle_outline,
+              label: 'แก้ไขเสร็จสิ้น',
+              color: Colors.green,
+              onTap: () => _updateStatus('resolved'),
+            ),
+            const SizedBox(height: 10),
+            _buildActionButton(
+              icon: Icons.person_add_outlined,
+              label: 'เปลี่ยนผู้รับผิดชอบ',
+              color: Colors.blue,
+              onTap: () => _showAssignDialog(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: color.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 22),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+              const Spacer(),
+              Icon(Icons.chevron_right, color: color, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimelineSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.timeline_outlined, color: AppTheme.primary, size: 22),
+              const SizedBox(width: 10),
+              const Text(
+                'ประวัติการดำเนินงาน',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildTimeline(),
         ],
       ),
     );
@@ -1188,20 +1003,14 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Timeline indicator
               Column(
                 children: [
                   Container(
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          _getStatusColor(item['status']),
-                          _getStatusColor(item['status']).withOpacity(0.7),
-                        ],
-                      ),
+                      color: _getStatusColor(item['status']),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -1223,29 +1032,21 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                       child: Container(
                         width: 2,
                         margin: const EdgeInsets.symmetric(vertical: 4),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              _getStatusColor(item['status']).withOpacity(0.5),
-                              Colors.grey.shade300,
-                            ],
-                          ),
-                        ),
+                        color: Colors.grey[300],
                       ),
                     ),
                 ],
               ),
               const SizedBox(width: 16),
+              // Content
               Expanded(
                 child: Container(
                   margin: EdgeInsets.only(bottom: isLast ? 0 : 20),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(color: Colors.grey[300]!),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1258,6 +1059,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15,
+                                color: Colors.black87,
                               ),
                             ),
                           ),
@@ -1325,5 +1127,101 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         );
       }).toList(),
     );
+  }
+
+  void _showAssignDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade100,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.person_add,
+                color: Colors.blue.shade700,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'มอบหมายงาน',
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: _availableUsers.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text('ไม่พบผู้ใช้ในระบบ'),
+                  ),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _availableUsers.length,
+                  itemBuilder: (context, index) {
+                    final user = _availableUsers[index];
+                    final isAssigned =
+                        user['user_id'] == _issue!['assigned_user_id'];
+
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: isAssigned
+                            ? Colors.blue.shade100
+                            : Colors.grey.shade200,
+                        child: Icon(
+                          Icons.person,
+                          color: isAssigned
+                              ? Colors.blue.shade700
+                              : Colors.grey.shade600,
+                        ),
+                      ),
+                      title: Text(
+                        user['user_name'] ?? 'ไม่ระบุชื่อ',
+                        style: TextStyle(
+                          fontWeight:
+                              isAssigned ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                      subtitle: Text(user['user_email'] ?? ''),
+                      trailing: isAssigned
+                          ? Icon(Icons.check_circle,
+                              color: Colors.blue.shade700)
+                          : null,
+                      onTap: () {
+                        Navigator.pop(context);
+                        _assignUser(user['user_id']);
+                      },
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ปิด'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(String? dateStr) {
+    if (dateStr == null) return 'ไม่ระบุ';
+    try {
+      final date = DateTime.parse(dateStr);
+      return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return 'ไม่ระบุ';
+    }
   }
 }
