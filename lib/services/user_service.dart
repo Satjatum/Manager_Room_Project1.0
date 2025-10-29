@@ -103,6 +103,39 @@ class UserService {
     }
   }
 
+  /// Get assignable users (Admin and SuperAdmin) for issue assignment
+  /// Allowed for users who can manage issues (Admin/SuperAdmin)
+  static Future<List<Map<String, dynamic>>> getAssignableUsers() async {
+    try {
+      final currentUser = await AuthService.getCurrentUser();
+      if (currentUser == null) {
+        throw Exception('กรุณาเข้าสู่ระบบใหม่');
+      }
+
+      // Require manageIssues permission (Admin or SuperAdmin)
+      final canAssign = currentUser.hasAnyPermission([
+        DetailedPermission.all,
+        DetailedPermission.manageIssues,
+      ]);
+
+      if (!canAssign) {
+        throw Exception('ไม่มีสิทธิ์ในการมอบหมายงาน');
+      }
+
+      final result = await _supabase
+          .from('users')
+          .select('user_id, user_name, user_email, role, is_active')
+          .inFilter('role', ['admin', 'superadmin'])
+          .eq('is_active', true)
+          .order('role', ascending: false)
+          .order('user_name', ascending: true);
+
+      return List<Map<String, dynamic>>.from(result);
+    } catch (e) {
+      throw Exception('เกิดข้อผิดพลาดในการโหลดรายชื่อผู้รับมอบหมาย: $e');
+    }
+  }
+
   /// Create new user (for superadmin only)
   static Future<Map<String, dynamic>> createUser(
       Map<String, dynamic> userData) async {

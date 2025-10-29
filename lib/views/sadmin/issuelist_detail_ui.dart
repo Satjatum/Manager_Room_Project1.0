@@ -54,7 +54,8 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
             DetailedPermission.all,
             DetailedPermission.manageIssues,
           ])) {
-        _availableUsers = await UserService.getAllUsers(limit: 50);
+        // Only show assignable users: Admin / Superadmin
+        _availableUsers = await UserService.getAssignableUsers();
       }
 
       setState(() => _isLoading = false);
@@ -837,7 +838,14 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
               icon: Icons.autorenew,
               label: 'เริ่มดำเนินการ',
               color: Colors.blue,
-              onTap: () => _updateStatus('in_progress'),
+              onTap: () {
+                // Must assign before start
+                if (_issue!['assigned_to'] == null) {
+                  _showErrorSnackBar('ต้องมอบหมายงานก่อนถึงจะเริ่มดำเนินการได้');
+                  return;
+                }
+                _updateStatus('in_progress');
+              },
             ),
             const SizedBox(height: 10),
             _buildActionButton(
@@ -862,6 +870,13 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
               onTap: () => _showAssignDialog(),
             ),
           ],
+          const SizedBox(height: 10),
+          _buildActionButton(
+            icon: Icons.delete_outline,
+            label: 'ลบปัญหา',
+            color: Colors.red,
+            onTap: () => _confirmDelete(),
+          ),
         ],
       ),
     );
@@ -1213,6 +1228,54 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _deleteIssue() async {
+    try {
+      final result = await IssueService.deleteIssue(widget.issueId);
+      if (!mounted) return;
+      if (result['success']) {
+        _showSuccessSnackBar(result['message']);
+        Navigator.pop(context); // Close detail after deletion
+      } else {
+        _showErrorSnackBar(result['message']);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  void _confirmDelete() {
+    showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.delete_forever, color: Colors.red),
+            SizedBox(width: 8),
+            Text('ยืนยันการลบปัญหา'),
+          ],
+        ),
+        content: const Text('ต้องการลบปัญหานี้ใช่หรือไม่? การลบไม่สามารถย้อนกลับได้'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('ลบ'),
+          ),
+        ],
+      ),
+    ).then((confirmed) {
+      if (confirmed == true) {
+        _deleteIssue();
+      }
+    });
   }
 
   String _formatDate(String? dateStr) {

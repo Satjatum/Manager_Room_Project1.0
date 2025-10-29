@@ -368,10 +368,13 @@ class IssueService {
 
       await _supabase
           .from('issue_reports')
-          .update({'assigned_to': userId, 'issue_status': 'in_progress'}).eq(
-              'issue_id', issueId);
+          .update({'assigned_to': userId})
+          .eq('issue_id', issueId);
 
-      return {'success': true, 'message': 'มอบหมายงานสำเร็จ'};
+      return {
+        'success': true,
+        'message': 'มอบหมายงานสำเร็จ กรุณาเริ่มดำเนินการเมื่อพร้อม',
+      };
     } catch (e) {
       return {'success': false, 'message': 'เกิดข้อผิดพลาดในการมอบหมายงาน: $e'};
     }
@@ -396,6 +399,54 @@ class IssueService {
         return {'success': false, 'message': 'ไม่มีสิทธิ์ในการเปลี่ยนสถานะ'};
       }
 
+      // Load current status and assignee for validation
+      final current = await _supabase
+          .from('issue_reports')
+          .select('issue_status, assigned_to')
+          .eq('issue_id', issueId)
+          .maybeSingle();
+
+      if (current == null) {
+        return {
+          'success': false,
+          'message': 'ไม่พบรายการปัญหา',
+        };
+      }
+
+      final String currentStatus = (current['issue_status'] ?? 'pending').toString();
+      final bool hasAssignee = current['assigned_to'] != null;
+
+      // Enforce workflow: pending -> in_progress -> resolved
+      if (status == 'in_progress' && !hasAssignee) {
+        return {
+          'success': false,
+          'message': 'กรุณามอบหมายงานก่อนเริ่มดำเนินการ',
+        };
+      }
+
+      // Validate allowed transitions
+      bool allowed = false;
+      switch (currentStatus) {
+        case 'pending':
+          allowed = (status == 'in_progress' || status == 'rejected');
+          break;
+        case 'in_progress':
+          allowed = (status == 'resolved');
+          break;
+        case 'resolved':
+          allowed = false;
+          break;
+        default:
+          allowed = true; // fallback for unknown statuses
+      }
+
+      if (!allowed) {
+        return {
+          'success': false,
+          'message': 'ไม่สามารถเปลี่ยนสถานะจาก "$currentStatus" เป็น "$status" ได้',
+        };
+      }
+
       final updateData = {'issue_status': status};
 
       if (status == 'resolved') {
@@ -415,6 +466,53 @@ class IssueService {
       return {
         'success': false,
         'message': 'เกิดข้อผิดพลาดในการอัปเดตสถานะ: $e',
+      };
+    }
+  }
+
+  /// Delete issue and related data
+  static Future<Map<String, dynamic>> deleteIssue(String issueId) async {
+    try {
+      final currentUser = await AuthService.getCurrentUser();
+      if (currentUser == null) {
+        return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
+      }
+
+      if (!currentUser.hasAnyPermission([
+        DetailedPermission.all,
+        DetailedPermission.manageIssues,
+      ])) {
+        return {'success': false, 'message': 'ไม่มีสิทธิ์ในการลบปัญหา'};
+      }
+
+      // Delete related images first (if any)
+      await _supabase
+          .from('issue_images')
+          .delete()
+          .eq('issue_id', issueId);
+
+      // Delete the issue
+      final deleted = await _supabase
+          .from('issue_reports')
+          .delete()
+          .eq('issue_id', issueId)
+          .select()
+          .maybeSingle();
+
+      if (deleted == null) {
+        return {'success': false, 'message': 'ไม่พบรายการปัญหาที่ต้องการลบ'};
+      }
+
+      return {'success': true, 'message': 'ลบปัญหาสำเร็จ'};
+    } on PostgrestException catch (e) {
+      return {
+        'success': false,
+        'message': 'เกิดข้อผิดพลาดจากฐานข้อมูล: ${e.message}',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'เกิดข้อผิดพลาดในการลบปัญหา: $e',
       };
     }
   }
