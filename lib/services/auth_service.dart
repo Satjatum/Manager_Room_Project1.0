@@ -20,18 +20,8 @@ class AuthService {
         }
       }
 
-      // Ensure Supabase has an authenticated session for Storage policies
-      try {
-        final current = _supabase.auth.currentSession;
-        if (current == null) {
-          await _supabase.auth.signInAnonymously();
-        }
-      } catch (e) {
-        // Do not block app start; uploads will fail with clear message if needed
-        // but we still log the error for diagnostics
-        // ignore: avoid_print
-        print('Anonymous auth failed: $e');
-      }
+      // Do not attempt anonymous sign-in; follow the same flow as admin/superadmin
+      // Any required storage access should be handled by existing RLS/policies
     } catch (e) {
       print('Error initializing session: $e');
       await clearUserSession();
