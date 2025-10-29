@@ -54,7 +54,8 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
             DetailedPermission.all,
             DetailedPermission.manageIssues,
           ])) {
-        _availableUsers = await UserService.getAllUsers(limit: 50);
+        // Only show assignable users: Admin / Superadmin
+        _availableUsers = await UserService.getAssignableUsers();
       }
 
       setState(() => _isLoading = false);
@@ -286,7 +287,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         return Colors.blue;
       case 'resolved':
         return Colors.green;
-      case 'rejected':
+      case 'cancelled':
         return Colors.red;
       default:
         return Colors.grey;
@@ -301,7 +302,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         return Icons.autorenew;
       case 'resolved':
         return Icons.check_circle_outline;
-      case 'rejected':
+      case 'cancelled':
         return Icons.cancel_outlined;
       default:
         return Icons.help_outline;
@@ -316,7 +317,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         return 'กำลังดำเนินการ';
       case 'resolved':
         return 'แก้ไขเสร็จสิ้น';
-      case 'rejected':
+      case 'cancelled':
         return 'ปฏิเสธ';
       default:
         return status;
@@ -444,8 +445,8 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
   }
 
   Widget _buildHeaderCard() {
-    final status = _issue!['status'] ?? 'pending';
-    final priority = _issue!['priority'] ?? 'medium';
+    final status = _issue!['issue_status'] ?? 'pending';
+    final priority = _issue!['issue_priority'] ?? 'medium';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -601,7 +602,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
           _buildDetailRow(
             icon: Icons.description_outlined,
             label: 'คำอธิบาย',
-            value: _issue!['issue_description'] ?? 'ไม่มีคำอธิบาย',
+            value: _issue!['issue_desc'] ?? 'ไม่มีคำอธิบาย',
           ),
           const SizedBox(height: 12),
           _buildDetailRow(
@@ -798,7 +799,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
   }
 
   Widget _buildActionsCard() {
-    final status = _issue!['status'] ?? 'pending';
+    final status = _issue!['issue_status'] ?? 'pending';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -826,25 +827,29 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
           ),
           const SizedBox(height: 16),
           if (status == 'pending') ...[
+            // Single toggle button: Assign -> Start
             _buildActionButton(
-              icon: Icons.person_add_outlined,
-              label: 'มอบหมายงาน',
+              icon: _issue!['assigned_to'] == null
+                  ? Icons.person_add_outlined
+                  : Icons.autorenew,
+              label: _issue!['assigned_to'] == null
+                  ? 'มอบหมายงาน'
+                  : 'เริ่มดำเนินการ',
               color: Colors.blue,
-              onTap: () => _showAssignDialog(),
-            ),
-            const SizedBox(height: 10),
-            _buildActionButton(
-              icon: Icons.autorenew,
-              label: 'เริ่มดำเนินการ',
-              color: Colors.blue,
-              onTap: () => _updateStatus('in_progress'),
+              onTap: () {
+                if (_issue!['assigned_to'] == null) {
+                  _showAssignDialog();
+                } else {
+                  _updateStatus('in_progress');
+                }
+              },
             ),
             const SizedBox(height: 10),
             _buildActionButton(
               icon: Icons.cancel_outlined,
               label: 'ปฏิเสธ',
               color: Colors.red,
-              onTap: () => _updateStatus('rejected'),
+              onTap: () => _updateStatus('cancelled'),
             ),
           ],
           if (status == 'in_progress') ...[
@@ -862,6 +867,13 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
               onTap: () => _showAssignDialog(),
             ),
           ],
+          const SizedBox(height: 10),
+          _buildActionButton(
+            icon: Icons.delete_outline,
+            label: 'ลบปัญหา',
+            color: Colors.red,
+            onTap: () => _confirmDelete(),
+          ),
         ],
       ),
     );
@@ -1171,7 +1183,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                   itemBuilder: (context, index) {
                     final user = _availableUsers[index];
                     final isAssigned =
-                        user['user_id'] == _issue!['assigned_user_id'];
+                        user['user_id'] == _issue!['assigned_to'];
 
                     return ListTile(
                       leading: CircleAvatar(
@@ -1213,6 +1225,54 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _deleteIssue() async {
+    try {
+      final result = await IssueService.deleteIssue(widget.issueId);
+      if (!mounted) return;
+      if (result['success']) {
+        _showSuccessSnackBar(result['message']);
+        Navigator.pop(context); // Close detail after deletion
+      } else {
+        _showErrorSnackBar(result['message']);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  void _confirmDelete() {
+    showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.delete_forever, color: Colors.red),
+            SizedBox(width: 8),
+            Text('ยืนยันการลบปัญหา'),
+          ],
+        ),
+        content: const Text('ต้องการลบปัญหานี้ใช่หรือไม่? การลบไม่สามารถย้อนกลับได้'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('ลบ'),
+          ),
+        ],
+      ),
+    ).then((confirmed) {
+      if (confirmed == true) {
+        _deleteIssue();
+      }
+    });
   }
 
   String _formatDate(String? dateStr) {
