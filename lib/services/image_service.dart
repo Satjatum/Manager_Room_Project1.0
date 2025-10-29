@@ -10,7 +10,14 @@ class ImageService {
   static const _uuid = Uuid();
 
   // Supported image formats
-  static const List<String> _supportedFormats = ['jpg', 'jpeg', 'png', 'webp'];
+  static const List<String> _supportedFormats = [
+    'jpg',
+    'jpeg',
+    'png',
+    'webp',
+    'heic',
+    'heif',
+  ];
 
   // Maximum file size (5MB)
   static const int _maxFileSize = 5 * 1024 * 1024;
@@ -479,6 +486,10 @@ class ImageService {
         return 'image/png';
       case 'webp':
         return 'image/webp';
+      case 'heic':
+        return 'image/heic';
+      case 'heif':
+        return 'image/heif';
       default:
         return 'application/octet-stream';
     }
