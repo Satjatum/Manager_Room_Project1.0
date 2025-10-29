@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:manager_room_project/middleware/auth_middleware.dart';
 import 'package:manager_room_project/services/invoice_service.dart';
-import 'package:manager_room_project/views/widgets/mainnavbar.dart';
+import 'package:manager_room_project/views/widgets/subnavbar.dart';
 import 'package:manager_room_project/views/tenant/bill_detail_ui.dart';
 
 class TenantBillsListPage extends StatefulWidget {
@@ -43,7 +43,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
       appBar: AppBar(
         title: const Text('บิลของฉัน'),
       ),
-      bottomNavigationBar: const Mainnavbar(currentIndex: 1),
+      bottomNavigationBar: const Subnavbar(currentIndex: 1),
       body: Column(
         children: [
           _buildFilters(),

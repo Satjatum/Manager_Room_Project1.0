@@ -5,8 +5,6 @@ import 'package:manager_room_project/views/sadmin/issuelist_ui.dart';
 import 'package:manager_room_project/views/sadmin/meterlist_ui.dart';
 import 'package:manager_room_project/views/sadmin/payment_verification_ui.dart';
 import 'package:manager_room_project/views/sadmin/superadmindash_ui.dart';
-import 'package:manager_room_project/views/tenant/tenantdash_ui.dart';
-import 'package:manager_room_project/views/tenant/bill_list_ui.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import '../../middleware/auth_middleware.dart';
 import '../../models/user_models.dart';
@@ -72,7 +70,9 @@ class _MainnavbarState extends State<Mainnavbar> {
         _setupUserNavigation();
         break;
       case UserRole.tenant:
-        _setupTenantNavigation();
+        // Remove tenant navigation entirely per requirement
+        _navigationItems = [];
+        _pages = [];
         break;
     }
   }
@@ -161,37 +161,7 @@ class _MainnavbarState extends State<Mainnavbar> {
     _pages = [];
   }
 
-  void _setupTenantNavigation() {
-    _navigationItems = [
-      NavItem(
-        icon: Icons.home_outlined,
-        activeIcon: Icons.home,
-        label: 'หน้าแรก',
-      ),
-      NavItem(
-        icon: Icons.receipt_long_outlined,
-        activeIcon: Icons.receipt_long,
-        label: 'บิลของฉัน',
-      ),
-      NavItem(
-        icon: Icons.report_problem_outlined,
-        activeIcon: Icons.report_problem,
-        label: 'แจ้งปัญหา',
-      ),
-      NavItem(
-        icon: Icons.person_outline,
-        activeIcon: Icons.person,
-        label: 'โปรไฟล์',
-      ),
-    ];
-
-    _pages = [
-      const TenantdashUi(),
-      const TenantBillsListPage(),
-      const IssuelistUi(),
-      const SettingUi(),
-    ];
-  }
+  // Tenant navigation removed
 
   void _onItemTapped(BuildContext context, int index) {
     // ตรวจสอบ authentication แบบ synchronous ก่อน

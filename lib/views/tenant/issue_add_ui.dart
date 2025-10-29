@@ -333,7 +333,6 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                       ),
                     ],
                   ),
-                  const Divider(height: 16),
                   _buildSummaryRow('หัวข้อ', _titleController.text),
                   _buildSummaryRow(
                       'ประเภท', _getIssueTypeText(_selectedIssueType)),
@@ -435,14 +434,14 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                 bytes,
                 imageFile.name,
                 'issue-images',
-                folder: tenantName,
+                folder: 'issue',
                 customFileName: customName,
               );
             } else {
               uploadResult = await ImageService.uploadImage(
                 File(imageFile.path),
                 'issue-images',
-                folder: tenantName,
+                folder: 'issue',
                 customFileName: customName,
               );
             }
@@ -705,8 +704,6 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            Divider(color: Colors.blue.shade200, height: 1),
-            const SizedBox(height: 12),
             Row(
               children: [
                 Container(
@@ -808,13 +805,11 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
               prefixIcon: const Icon(Icons.build_circle_outlined),
             ),
             items: const [
-              DropdownMenuItem(value: 'repair', child: Text('🔧 ซ่อมแซม')),
-              DropdownMenuItem(
-                  value: 'maintenance', child: Text('🛠️ บำรุงรักษา')),
-              DropdownMenuItem(value: 'complaint', child: Text('⚠️ ร้องเรียน')),
-              DropdownMenuItem(
-                  value: 'suggestion', child: Text('💡 ข้อเสนอแนะ')),
-              DropdownMenuItem(value: 'other', child: Text('📋 อื่นๆ')),
+              DropdownMenuItem(value: 'repair', child: Text(' ซ่อมแซม')),
+              DropdownMenuItem(value: 'maintenance', child: Text('บำรุงรักษา')),
+              DropdownMenuItem(value: 'complaint', child: Text('ร้องเรียน')),
+              DropdownMenuItem(value: 'suggestion', child: Text('ข้อเสนอแนะ')),
+              DropdownMenuItem(value: 'other', child: Text(' อื่นๆ')),
             ],
             onChanged: (value) {
               if (value != null) {
@@ -844,10 +839,10 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
               prefixIcon: const Icon(Icons.flag_outlined),
             ),
             items: const [
-              DropdownMenuItem(value: 'low', child: Text('🟢 ต่ำ')),
-              DropdownMenuItem(value: 'medium', child: Text('🔵 ปานกลาง')),
-              DropdownMenuItem(value: 'high', child: Text('🟠 สูง')),
-              DropdownMenuItem(value: 'urgent', child: Text('🔴 ด่วนมาก')),
+              DropdownMenuItem(value: 'low', child: Text(' ต่ำ')),
+              DropdownMenuItem(value: 'medium', child: Text('ปานกลาง')),
+              DropdownMenuItem(value: 'high', child: Text(' สูง')),
+              DropdownMenuItem(value: 'urgent', child: Text('ด่วนมาก')),
             ],
             onChanged: (value) {
               if (value != null) {
@@ -1146,7 +1141,6 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
               ],
             ),
           ),
-          Divider(height: 1, color: Colors.grey[300]),
           Padding(
             padding: const EdgeInsets.all(16),
             child: child,
@@ -1158,7 +1152,7 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
 
   // Sanitize strings for safe filename usage
   String _sanitizeForFile(String input) {
-    var s = (input).trim();
+    var s = input.trim();
     // Replace spaces and invalid characters with underscores
     s = s.replaceAll(RegExp(r'[\\/:*?"<>|\s]+'), '_');
     // Collapse repeated underscores

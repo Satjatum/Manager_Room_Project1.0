@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:manager_room_project/views/widgets/subnavbar.dart';
 import 'widgets/mainnavbar.dart';
 import '../services/auth_service.dart';
 import '../middleware/auth_middleware.dart';
@@ -170,7 +171,8 @@ class _SettingUiState extends State<SettingUi> {
       return Scaffold(
         appBar: AppBar(title: const Text('ตั้งค่า')),
         body: const Center(child: Text('ไม่สามารถโหลดข้อมูลผู้ใช้ได้')),
-        bottomNavigationBar: const Mainnavbar(currentIndex: 4),
+        // Default to settings tab index for non-tenant roles
+        bottomNavigationBar: const Mainnavbar(currentIndex: 2),
       );
     }
 
@@ -182,7 +184,10 @@ class _SettingUiState extends State<SettingUi> {
         elevation: 1,
       ),
       body: _buildResponsiveBody(isMobile, isTablet, isWeb),
-      bottomNavigationBar: const Mainnavbar(currentIndex: 5),
+      // If role is Tenant -> subnavbar index 3. Otherwise use Mainnavbar index 2.
+      bottomNavigationBar: currentUser!.userRole == UserRole.tenant
+          ? const Subnavbar(currentIndex: 3)
+          : const Mainnavbar(currentIndex: 2),
     );
   }
 

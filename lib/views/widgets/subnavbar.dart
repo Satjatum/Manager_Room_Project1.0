@@ -209,17 +209,35 @@ class _SubnavbarState extends State<Subnavbar> {
   void _setupTenantNavigation() {
     _navigationItems = [
       NavItem(
-        icon: Icons.report_gmailerrorred_outlined,
-        activeIcon: Icons.report,
+        icon: Icons.home_outlined,
+        activeIcon: Icons.home,
+        label: 'หน้าแรก',
+      ),
+      NavItem(
+        icon: Icons.receipt_long_outlined,
+        activeIcon: Icons.receipt_long,
+        label: 'บิลของฉัน',
+      ),
+      NavItem(
+        icon: Icons.report_problem_outlined,
+        activeIcon: Icons.report_problem,
         label: 'แจ้งปัญหา',
+      ),
+      NavItem(
+        icon: Icons.person_outline,
+        activeIcon: Icons.person,
+        label: 'โปรไฟล์',
       ),
     ];
 
     _pages = [
-      IssuelistUi(
+      const TenantdashUi(), // index 0
+      const TenantBillsListPage(), // index 1
+      IssuelistUi( // index 2
         branchId: widget.branchId,
         branchName: widget.branchName,
       ),
+      const SettingUi(), // index 3
     ];
   }
 

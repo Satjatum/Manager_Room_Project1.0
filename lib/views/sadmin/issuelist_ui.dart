@@ -404,19 +404,20 @@ class _IssuelistUiState extends State<IssuelistUi>
                     // Title
                     Row(
                       children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new,
-                              color: Colors.black87),
-                          onPressed: () async {
-                            if (lockedBranchId != null) {
-                              await _confirmExitBranch();
-                            } else if (Navigator.of(context).canPop()) {
-                              Navigator.of(context).pop();
-                            }
-                          },
-                          tooltip: 'ย้อนกลับ',
-                        ),
-                        const SizedBox(width: 8),
+                        if (!isTenant)
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back_ios_new,
+                                color: Colors.black87),
+                            onPressed: () async {
+                              if (lockedBranchId != null) {
+                                await _confirmExitBranch();
+                              } else if (Navigator.of(context).canPop()) {
+                                Navigator.of(context).pop();
+                              }
+                            },
+                            tooltip: 'ย้อนกลับ',
+                          ),
+                        if (!isTenant) const SizedBox(width: 8),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -521,8 +522,8 @@ class _IssuelistUiState extends State<IssuelistUi>
                     ],
                     const SizedBox(height: 12),
 
-                    // Statistics tracking bar
-                    _buildTrackingBar(),
+                    // Statistics tracking bar (hidden for tenant)
+                    if (!isTenant) _buildTrackingBar(),
 
                     const SizedBox(height: 12),
 
@@ -659,7 +660,9 @@ class _IssuelistUiState extends State<IssuelistUi>
               )
             : null,
         bottomNavigationBar: Subnavbar(
-          currentIndex: 2,
+          // If role is Tenant -> subnavbar index 2 per requirement
+          currentIndex:
+              (_currentUser?.userRole == UserRole.tenant) ? 2 : 2,
           branchId: widget.branchId,
           branchName: widget.branchName,
         ),
@@ -793,6 +796,96 @@ class _IssuelistUiState extends State<IssuelistUi>
     );
   }
 
+  // Tracking process stepper inside issue card
+  Widget _buildTrackingProcess(String status) {
+    final steps = const [
+      {'key': 'pending', 'label': 'รอดำเนินการ'},
+      {'key': 'in_progress', 'label': 'กำลังทำ'},
+      {'key': 'resolved', 'label': 'เสร็จสิ้น'},
+    ];
+
+    int active = 0;
+    switch (status) {
+      case 'pending':
+        active = 1;
+        break;
+      case 'in_progress':
+        active = 2;
+        break;
+      case 'resolved':
+        active = 3;
+        break;
+      case 'cancelled':
+        active = 0; // cancelled -> no progress
+        break;
+      default:
+        active = 0;
+    }
+
+    Color stepColor(int index) {
+      if (status == 'cancelled') return Colors.grey;
+      return index <= active ? AppTheme.primary : Colors.grey[300]!;
+    }
+
+    Color labelColor(int index) {
+      if (status == 'cancelled') return Colors.grey;
+      return index <= active ? AppTheme.primary : Colors.grey[600]!;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            for (int i = 0; i < steps.length; i++) ...[
+              Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  color: stepColor(i + 1).withOpacity(0.15),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: stepColor(i + 1), width: 2),
+                ),
+                child: Icon(
+                  i + 1 <= active ? Icons.check : Icons.circle,
+                  size: 12,
+                  color: stepColor(i + 1),
+                ),
+              ),
+              if (i < steps.length - 1)
+                Expanded(
+                  child: Container(height: 2, color: stepColor(i + 1)),
+                ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            for (int i = 0; i < steps.length; i++)
+              Expanded(
+                child: Text(
+                  steps[i]['label'] as String,
+                  textAlign: i == 0
+                      ? TextAlign.left
+                      : (i == steps.length - 1
+                          ? TextAlign.right
+                          : TextAlign.center),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: labelColor(i + 1),
+                    fontWeight:
+                        i + 1 <= active ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -844,9 +937,12 @@ class _IssuelistUiState extends State<IssuelistUi>
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shadowColor: Colors.black26,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: Colors.grey[300]!),
+      ),
       child: InkWell(
         onTap: () async {
           final result = await Navigator.push(
@@ -867,142 +963,173 @@ class _IssuelistUiState extends State<IssuelistUi>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
+              // Title first
               Row(
                 children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(status).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: _getStatusColor(status),
-                        width: 1,
-                      ),
-                    ),
+                  Icon(_getIssueTypeIcon(type),
+                      size: 20, color: Colors.grey[700]),
+                  const SizedBox(width: 8),
+                  Expanded(
                     child: Text(
-                      _getStatusText(status),
-                      style: TextStyle(
-                        color: _getStatusColor(status),
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      title,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getPriorityColor(priority).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.flag,
-                          size: 12,
-                          color: _getPriorityColor(priority),
+                  Text(
+                    issueNum,
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Status & Priority (inner white box with grey border)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(status).withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(6),
+                        border:
+                            Border.all(color: _getStatusColor(status), width: 1),
+                      ),
+                      child: Text(
+                        _getStatusText(status),
+                        style: TextStyle(
+                          color: _getStatusColor(status),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
                         ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getPriorityColor(priority).withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: _getPriorityColor(priority)),
+                      ),
+                      child:
+                          Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.flag,
+                            size: 12, color: _getPriorityColor(priority)),
                         const SizedBox(width: 4),
                         Text(
                           _getPriorityText(priority),
                           style: TextStyle(
                             color: _getPriorityColor(priority),
                             fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    issueNum,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // Title
-              Row(
-                children: [
-                  Icon(
-                    _getIssueTypeIcon(type),
-                    size: 20,
-                    color: Colors.grey[700],
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // Info
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.category, size: 16, color: Colors.grey[600]),
-                        const SizedBox(width: 6),
-                        Text(
-                          _getIssueTypeText(type),
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                        const SizedBox(width: 16),
-                        Icon(Icons.meeting_room,
-                            size: 16, color: Colors.grey[600]),
-                        const SizedBox(width: 6),
-                        Text(
-                          roomNumber,
-                          style: const TextStyle(fontSize: 13),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.business, size: 16, color: Colors.grey[600]),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            branchName,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[600],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                      ]),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 8),
+
+              // Details (white box with grey border)
+              Builder(builder: (context) {
+                final roomCate = (issue['room_category_name'] ??
+                        issue['room_type_name'] ??
+                        issue['roomcate'] ??
+                        '')
+                    .toString();
+                final roomInfo = roomCate.isNotEmpty
+                    ? '$roomCate  $roomNumber'
+                    : roomNumber.toString();
+                final desc = (issue['issue_desc'] ?? '').toString();
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.business,
+                              size: 16, color: Colors.grey[600]),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              branchName,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[700],
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(Icons.meeting_room,
+                              size: 16, color: Colors.grey[600]),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              roomInfo,
+                              style: const TextStyle(fontSize: 13),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (desc.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.description,
+                                size: 16, color: Colors.grey[600]),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                desc,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey[700],
+                                ),
+                                maxLines: 4,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ]
+                    ],
+                  ),
+                );
+              }),
               const SizedBox(height: 12),
+              // Tracking Process
+              _buildTrackingProcess(status),
 
               // Footer
               Row(
