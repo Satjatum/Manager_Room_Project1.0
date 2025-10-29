@@ -936,6 +936,9 @@ class _TenantDetailUIState extends State<TenantDetailUI>
     final activeContract = _statistics?['active_contract'];
     final totalContracts = _statistics?['total_contracts'] ?? 0;
     final latest = _latestContract; // ล่าสุด อาจเป็น pending/active/อื่นๆ
+    final isLatestTerminated =
+        latest != null && latest['contract_status'] == 'terminated';
+    final shouldShowCreate = totalContracts == 0 || isLatestTerminated;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -966,8 +969,8 @@ class _TenantDetailUIState extends State<TenantDetailUI>
           ),
           const SizedBox(height: 20),
 
-          // กรณีมีสัญญาอย่างน้อย 1 ฉบับ: แสดงสัญญาล่าสุด และซ่อนปุ่มสร้างสัญญา
-          if (totalContracts > 0 && latest != null) ...[
+          // เงื่อนไข: แสดงสัญญาล่าสุดเมื่อมี และสถานะไม่ได้ถูกยกเลิก
+          if (!shouldShowCreate && latest != null) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: BoxDecoration(
@@ -1028,59 +1031,71 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: PopupMenuButton<String>(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      icon: const Icon(Icons.more_vert, color: Colors.grey),
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'view':
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => ContractDetailUI(contractId: latest['contract_id']),
+                                builder: (context) => ContractDetailUI(
+                                  contractId: latest['contract_id'],
+                                ),
                               ),
                             ).then((_) => _loadData());
-                          },
-                          icon: const Icon(Icons.visibility, size: 18),
-                          label: const Text('ดูสัญญา'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF10B981),
-                            side: const BorderSide(color: Color(0xFF10B981)),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                            break;
+                          case 'edit':
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ContractEditUI(
+                                  contractId: latest['contract_id'],
+                                ),
+                              ),
+                            ).then((_) => _loadData());
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) {
+                        final items = <PopupMenuEntry<String>>[
+                          PopupMenuItem<String>(
+                            value: 'view',
+                            child: Row(
+                              children: const [
+                                Icon(Icons.visibility, size: 20, color: Colors.black87),
+                                SizedBox(width: 12),
+                                Text('ดูสัญญา'),
+                              ],
                             ),
                           ),
-                        ),
-                      ),
-                      if (_currentUser != null && _currentUser!.hasAnyPermission([
-                        DetailedPermission.all,
-                        DetailedPermission.manageContracts,
-                      ])) ...[
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ContractEditUI(contractId: latest['contract_id']),
-                                ),
-                              ).then((_) => _loadData());
-                            },
-                            icon: const Icon(Icons.edit, size: 18),
-                            label: const Text('แก้ไข'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                        ];
+                        final canEdit = _currentUser != null && _currentUser!.hasAnyPermission([
+                          DetailedPermission.all,
+                          DetailedPermission.manageContracts,
+                        ]);
+                        if (canEdit) {
+                          items.add(
+                            PopupMenuItem<String>(
+                              value: 'edit',
+                              child: Row(
+                                children: const [
+                                  Icon(Icons.edit, size: 20, color: Color(0xFF14B8A6)),
+                                  SizedBox(width: 12),
+                                  Text('แก้ไข'),
+                                ],
                               ),
                             ),
-                          ),
-                        ),
-                      ],
-                    ],
+                          );
+                        }
+                        return items;
+                      },
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Align(
@@ -1131,10 +1146,12 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'ไม่มีสัญญาเช่าที่ใช้งานอยู่',
-                          style: TextStyle(
+                          shouldShowCreate && isLatestTerminated
+                              ? 'สัญญาล่าสุดถูกยกเลิกแล้ว'
+                              : 'ไม่มีสัญญาเช่าที่ใช้งานอยู่',
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
