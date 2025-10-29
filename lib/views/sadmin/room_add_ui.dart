@@ -1172,94 +1172,94 @@ class _RoomAddUIState extends State<RoomAddUI> {
             ],
           ),
           const SizedBox(height: 16),
-          if (widget.branchId == null)
-            Column(
-              children: [
-                DropdownButtonFormField<String>(
-                  value: _selectedBranchId,
-                  decoration: InputDecoration(
-                    labelText: 'สาขา *',
-                    prefixIcon: const Icon(Icons.business),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                  items: _branches.map((branch) {
-                    return DropdownMenuItem<String>(
-                      value: branch['branch_id'],
-                      child: Text(branch['branch_name'] ?? ''),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedBranchId = value;
-                    });
-                  },
-                  validator: (value) {
-                    if (widget.branchId == null) {
-                      if (value == null || value.isEmpty) {
-                        return 'กรุณาเลือกสาขา';
-                      }
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-              ],
-            )
-          else
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('สาขาที่เลือก',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[700],
-                        fontWeight: FontWeight.w500)),
-                const SizedBox(height: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.apartment,
-                          size: 18, color: Colors.black54),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          widget.branchName ?? widget.branchId ?? '-',
-                          style: const TextStyle(
-                              fontSize: 14, color: Colors.black87),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.green.shade200),
-                        ),
-                        child: Text('ล็อก',
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.green.shade700,
-                                fontWeight: FontWeight.w600)),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-            ),
+          // if (widget.branchId == null)
+          //   Column(
+          //     children: [
+          //       DropdownButtonFormField<String>(
+          //         value: _selectedBranchId,
+          //         decoration: InputDecoration(
+          //           labelText: 'สาขา *',
+          //           prefixIcon: const Icon(Icons.business),
+          //           border: OutlineInputBorder(
+          //             borderRadius: BorderRadius.circular(8),
+          //           ),
+          //           filled: true,
+          //           fillColor: Colors.grey.shade50,
+          //         ),
+          //         items: _branches.map((branch) {
+          //           return DropdownMenuItem<String>(
+          //             value: branch['branch_id'],
+          //             child: Text(branch['branch_name'] ?? ''),
+          //           );
+          //         }).toList(),
+          //         onChanged: (value) {
+          //           setState(() {
+          //             _selectedBranchId = value;
+          //           });
+          //         },
+          //         validator: (value) {
+          //           if (widget.branchId == null) {
+          //             if (value == null || value.isEmpty) {
+          //               return 'กรุณาเลือกสาขา';
+          //             }
+          //           }
+          //           return null;
+          //         },
+          //       ),
+          //       const SizedBox(height: 16),
+          //     ],
+          //   )
+          // else
+          //   Column(
+          //     crossAxisAlignment: CrossAxisAlignment.start,
+          //     children: [
+          //       Text('สาขาที่เลือก',
+          //           style: TextStyle(
+          //               fontSize: 12,
+          //               color: Colors.grey[700],
+          //               fontWeight: FontWeight.w500)),
+          //       const SizedBox(height: 8),
+          //       Container(
+          //         padding:
+          //             const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          //         decoration: BoxDecoration(
+          //           color: Colors.grey.shade50,
+          //           borderRadius: BorderRadius.circular(8),
+          //           border: Border.all(color: Colors.grey[300]!),
+          //         ),
+          //         child: Row(
+          //           children: [
+          //             const Icon(Icons.apartment,
+          //                 size: 18, color: Colors.black54),
+          //             const SizedBox(width: 8),
+          //             Expanded(
+          //               child: Text(
+          //                 widget.branchName ?? widget.branchId ?? '-',
+          //                 style: const TextStyle(
+          //                     fontSize: 14, color: Colors.black87),
+          //                 overflow: TextOverflow.ellipsis,
+          //               ),
+          //             ),
+          //             Container(
+          //               padding: const EdgeInsets.symmetric(
+          //                   horizontal: 8, vertical: 2),
+          //               decoration: BoxDecoration(
+          //                 color: Colors.green.shade100,
+          //                 borderRadius: BorderRadius.circular(12),
+          //                 border: Border.all(color: Colors.green.shade200),
+          //               ),
+          //               child: Text('ล็อก',
+          //                   style: TextStyle(
+          //                       fontSize: 11,
+          //                       color: Colors.green.shade700,
+          //                       fontWeight: FontWeight.w600)),
+          //             ),
+          //           ],
+          //         ),
+          //       ),
+          //       const SizedBox(height: 16),
+          //     ],
+          //   ),
           TextFormField(
             controller: _roomNumberController,
             decoration: InputDecoration(

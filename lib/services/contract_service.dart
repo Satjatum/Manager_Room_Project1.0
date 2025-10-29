@@ -223,8 +223,8 @@ class ContractService {
           .select()
           .single();
 
-      // อัปเดตสถานะห้องเป็น reserved
-      await _supabase.from('rooms').update({'room_status': 'reserved'}).eq(
+      // อัปเดตสถานะห้องเป็น occupied
+      await _supabase.from('rooms').update({'room_status': 'occupied'}).eq(
           'room_id', contractData['room_id']);
 
       return {

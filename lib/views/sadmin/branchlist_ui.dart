@@ -1100,7 +1100,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
         ),
       ),
       floatingActionButton: _canAdd
-          ? FloatingActionButton.extended(
+          ? FloatingActionButton(
               onPressed: () {
                 Navigator.push(
                   context,
@@ -1109,15 +1109,10 @@ class _BranchlistUiState extends State<BranchlistUi> {
                   if (result == true) _loadBranches();
                 });
               },
-              backgroundColor: Color(0xFF10B981),
-              foregroundColor: Colors.white,
-              icon: Icon(Icons.add_rounded, size: 24),
-              label: Text(
-                'Add Branch',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
+              backgroundColor: AppTheme.primary,
+              child: Icon(
+                Icons.add,
+                color: Colors.white,
               ),
               elevation: 4,
             )

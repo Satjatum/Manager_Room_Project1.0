@@ -762,13 +762,13 @@ class _TenantListUIState extends State<TenantListUI> {
           ),
         ),
         floatingActionButton: _canManage
-            ? FloatingActionButton.extended(
+            ? FloatingActionButton(
                 onPressed: _navigateToAddTenant,
                 backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
-                icon: const Icon(Icons.person_add),
-                label: Text(isMobile ? 'เพิ่ม' : 'เพิ่มผู้เช่า'),
-                tooltip: 'เพิ่มผู้เช่าใหม่',
+                child: Icon(
+                  Icons.add,
+                  color: Colors.white,
+                ),
               )
             : null,
         bottomNavigationBar: widget.hideBottomNav
@@ -1153,8 +1153,8 @@ class _TenantListUIState extends State<TenantListUI> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: AppTheme.primary.withOpacity(0.08),
-                            border: Border.all(
-                                color: Colors.grey.shade200, width: 2),
+                            border:
+                                Border.all(color: AppTheme.primary, width: 1),
                           ),
                           child: ClipOval(
                             child: (profileImageUrl != null &&

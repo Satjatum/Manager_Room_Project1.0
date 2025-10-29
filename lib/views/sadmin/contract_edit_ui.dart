@@ -88,48 +88,28 @@ class _ContractEditUIState extends State<ContractEditUI> {
     }
   }
 
-  Future<void> _selectStartDate() async {
-    final picked = await showDatePicker(
+  Future<void> _selectDate(BuildContext context, bool isStartDate) async {
+    final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _startDate ?? DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      locale: const Locale('th', 'TH'),
+      initialDate: isStartDate
+          ? (_startDate ?? DateTime.now())
+          : (_endDate ?? DateTime.now().add(const Duration(days: 365))),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+      locale: Localizations.localeOf(context),
     );
 
     if (picked != null) {
-      setState(() => _startDate = picked);
-    }
-  }
-
-  Future<void> _selectEndDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _endDate ?? DateTime.now().add(Duration(days: 365)),
-      firstDate: _startDate ?? DateTime.now(),
-      lastDate: DateTime(2030),
-      locale: const Locale('th', 'TH'),
-    );
-
-    if (picked != null && picked.isAfter(_startDate!)) {
-      setState(() => _endDate = picked);
-    } else if (picked != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.white),
-              SizedBox(width: 12),
-              Expanded(child: Text('วันสิ้นสุดต้องมากกว่าวันเริ่มต้น')),
-            ],
-          ),
-          backgroundColor: Colors.orange.shade600,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      setState(() {
+        if (isStartDate) {
+          _startDate = picked;
+          if (_endDate == null) {
+            _endDate = picked.add(const Duration(days: 365));
+          }
+        } else {
+          _endDate = picked;
+        }
+      });
     }
   }
 
@@ -354,7 +334,7 @@ class _ContractEditUIState extends State<ContractEditUI> {
                       children: [
                         // วันที่เริ่มสัญญา
                         InkWell(
-                          onTap: _selectStartDate,
+                          onTap: () => _selectDate(context, true),
                           borderRadius: BorderRadius.circular(10),
                           child: Container(
                             padding: EdgeInsets.all(16),
@@ -393,11 +373,15 @@ class _ContractEditUIState extends State<ContractEditUI> {
                                       ),
                                       SizedBox(height: 4),
                                       Text(
-                                        _formatDate(_startDate),
+                                        _startDate != null
+                                            ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year + 543}'
+                                            : 'เลือกวันที่',
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
+                                          color: _startDate == null
+                                              ? Colors.grey[600]
+                                              : Colors.black87,
                                         ),
                                       ),
                                     ],
@@ -413,7 +397,7 @@ class _ContractEditUIState extends State<ContractEditUI> {
 
                         // วันที่สิ้นสุดสัญญา
                         InkWell(
-                          onTap: _selectEndDate,
+                          onTap: () => _selectDate(context, false),
                           borderRadius: BorderRadius.circular(10),
                           child: Container(
                             padding: EdgeInsets.all(16),
@@ -452,11 +436,15 @@ class _ContractEditUIState extends State<ContractEditUI> {
                                       ),
                                       SizedBox(height: 4),
                                       Text(
-                                        _formatDate(_endDate),
+                                        _endDate != null
+                                            ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year + 543}'
+                                            : 'เลือกวันที่',
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
+                                          color: _startDate == null
+                                              ? Colors.grey[600]
+                                              : Colors.black87,
                                         ),
                                       ),
                                     ],

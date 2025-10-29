@@ -618,10 +618,16 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                         value: 'delete',
                         child: Row(
                           children: const [
-                            Icon(Icons.delete_outline,
-                                size: 20, color: Colors.red),
+                            Icon(
+                              Icons.delete_outline,
+                              size: 20,
+                              color: Colors.red,
+                            ),
                             SizedBox(width: 12),
-                            Text('ลบ', style: TextStyle(color: Colors.red)),
+                            Text('ลบ',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                )),
                           ],
                         ),
                       ),
@@ -656,7 +662,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppTheme.primary, width: 3),
+                    border: Border.all(color: AppTheme.primary, width: 1),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.1),
@@ -1025,15 +1031,16 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  icon:
-                                      const Icon(Icons.more_vert, color: Colors.grey),
+                                  icon: const Icon(Icons.more_vert,
+                                      color: Colors.grey),
                                   onSelected: (value) {
                                     switch (value) {
                                       case 'view':
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (context) => ContractDetailUI(
+                                            builder: (context) =>
+                                                ContractDetailUI(
                                               contractId: latest['contract_id'],
                                             ),
                                           ),
@@ -1043,7 +1050,8 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (context) => ContractEditUI(
+                                            builder: (context) =>
+                                                ContractEditUI(
                                               contractId: latest['contract_id'],
                                             ),
                                           ),
@@ -1053,31 +1061,31 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                                   },
                                   itemBuilder: (context) {
                                     final items = <PopupMenuEntry<String>>[
-                                      PopupMenuItem<String>(
+                                      PopupMenuItem(
                                         value: 'view',
                                         child: Row(
                                           children: const [
-                                            Icon(Icons.visibility,
-                                                size: 20, color: Colors.black87),
+                                            Icon(Icons.visibility_outlined,
+                                                size: 20,
+                                                color: Color(0xFF14B8A6)),
                                             SizedBox(width: 12),
-                                            Text('ดูสัญญา'),
+                                            Text('ดูรายละเอียด'),
                                           ],
                                         ),
                                       ),
                                     ];
                                     final canEdit = _currentUser != null &&
-                                        _currentUser!
-                                            .hasAnyPermission([
-                                      DetailedPermission.all,
-                                      DetailedPermission.manageContracts,
-                                    ]);
+                                        _currentUser!.hasAnyPermission([
+                                          DetailedPermission.all,
+                                          DetailedPermission.manageContracts,
+                                        ]);
                                     if (canEdit) {
                                       items.add(
                                         PopupMenuItem<String>(
                                           value: 'edit',
                                           child: Row(
                                             children: const [
-                                              Icon(Icons.edit,
+                                              Icon(Icons.edit_outlined,
                                                   size: 20,
                                                   color: Color(0xFF14B8A6)),
                                               SizedBox(width: 12),
@@ -1094,7 +1102,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'เลขที่: ${latest['contract_num'] ?? '-'}  | ห้อง: ${latest['room_number'] ?? '-'}',
+                              'สัญญา: ${latest['contract_num'] ?? '-'}  | ${latest['roomcate_name']}${latest['room_number'] ?? '-'}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey[700],
@@ -1102,35 +1110,14 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'ช่วงสัญญา: ${_formatDate(latest['start_date'])} - ${_formatDate(latest['end_date'])}',
-                              style:
-                                  TextStyle(fontSize: 12, color: Colors.grey[700]),
+                              'ระยะเวลาสัญญา: ${_formatDate(latest['start_date'])} - ${_formatDate(latest['end_date'])}',
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.grey[700]),
                             ),
                           ],
                         ),
                       )
                     ],
-                  ),
-                  const SizedBox(height: 16),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ContractHistoryUI(
-                              tenantId: widget.tenantId,
-                              tenantName: _tenantData?['tenant_fullname']?.toString(),
-                            ),
-                          ),
-                        );
-                        if (mounted) _loadData();
-                      },
-                      icon: const Icon(Icons.history),
-                      label: const Text('ประวัติสัญญา'),
-                    ),
                   ),
                 ],
               ),
@@ -1141,7 +1128,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
               decoration: BoxDecoration(
                 color: Colors.orange.shade50,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.shade200),
+                border: Border.all(color: Colors.red.shade200),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1231,14 +1218,16 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                   if (mounted) _loadData();
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.blue.shade200),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.history, color: Colors.blue.shade700, size: 20),
+                      Icon(Icons.history,
+                          color: Colors.blue.shade700, size: 20),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(

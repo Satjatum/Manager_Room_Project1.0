@@ -1395,91 +1395,91 @@ class _TenantAddUIState extends State<TenantAddUI>
             const SizedBox(height: 16),
 
             // สาขา (ล็อคเมื่อมี branchId ส่งเข้ามา)
-            if (widget.branchId != null && widget.branchId!.isNotEmpty) ...[
-              InputDecorator(
-                decoration: InputDecoration(
-                  labelText: 'สาขา *',
-                  prefixIcon: const Icon(Icons.business),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        BorderSide(color: Colors.grey[300]!, width: 1),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.lock, size: 16, color: Colors.grey),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          widget.branchName ?? 'Locked Branch',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ] else ...[
-              DropdownButtonFormField<String>(
-                value: _selectedBranchId,
-                decoration: InputDecoration(
-                  labelText: 'สาขา *',
-                  prefixIcon: const Icon(Icons.business),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: Color(0xff10B981), width: 2),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        BorderSide(color: Colors.grey[300]!, width: 1),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                ),
-                items: _branches.map((branch) {
-                  return DropdownMenuItem<String>(
-                    value: branch['branch_id'],
-                    child: Text(branch['branch_name'] ?? ''),
-                  );
-                }).toList(),
-                onChanged: (value) async {
-                  setState(() {
-                    _selectedBranchId = value;
-                    _selectedRoomId = null;
-                    _availableRooms = [];
-                  });
+            // if (widget.branchId != null && widget.branchId!.isNotEmpty) ...[
+            //   InputDecorator(
+            //     decoration: InputDecoration(
+            //       labelText: 'สาขา *',
+            //       prefixIcon: const Icon(Icons.business),
+            //       border: OutlineInputBorder(
+            //         borderRadius: BorderRadius.circular(12),
+            //       ),
+            //       enabledBorder: OutlineInputBorder(
+            //         borderRadius: BorderRadius.circular(12),
+            //         borderSide:
+            //             BorderSide(color: Colors.grey[300]!, width: 1),
+            //       ),
+            //       filled: true,
+            //       fillColor: Colors.grey.shade50,
+            //     ),
+            //     child: Padding(
+            //       padding: const EdgeInsets.symmetric(vertical: 14),
+            //       child: Row(
+            //         children: [
+            //           const Icon(Icons.lock, size: 16, color: Colors.grey),
+            //           const SizedBox(width: 8),
+            //           Expanded(
+            //             child: Text(
+            //               widget.branchName ?? 'Locked Branch',
+            //               style: const TextStyle(
+            //                 fontSize: 15,
+            //                 fontWeight: FontWeight.w600,
+            //                 color: Colors.black87,
+            //               ),
+            //               overflow: TextOverflow.ellipsis,
+            //             ),
+            //           ),
+            //         ],
+            //       ),
+            //     ),
+            //   ),
+            // ] else ...[
+            //   DropdownButtonFormField<String>(
+            //     value: _selectedBranchId,
+            //     decoration: InputDecoration(
+            //       labelText: 'สาขา *',
+            //       prefixIcon: const Icon(Icons.business),
+            //       border: OutlineInputBorder(
+            //         borderRadius: BorderRadius.circular(12),
+            //       ),
+            //       focusedBorder: OutlineInputBorder(
+            //         borderRadius: BorderRadius.circular(12),
+            //         borderSide:
+            //             const BorderSide(color: Color(0xff10B981), width: 2),
+            //       ),
+            //       enabledBorder: OutlineInputBorder(
+            //         borderRadius: BorderRadius.circular(12),
+            //         borderSide:
+            //             BorderSide(color: Colors.grey[300]!, width: 1),
+            //       ),
+            //       filled: true,
+            //       fillColor: Colors.grey.shade50,
+            //     ),
+            //     items: _branches.map((branch) {
+            //       return DropdownMenuItem<String>(
+            //         value: branch['branch_id'],
+            //         child: Text(branch['branch_name'] ?? ''),
+            //       );
+            //     }).toList(),
+            //     onChanged: (value) async {
+            //       setState(() {
+            //         _selectedBranchId = value;
+            //         _selectedRoomId = null;
+            //         _availableRooms = [];
+            //       });
 
-                  if (value != null) {
-                    await _loadAvailableRooms(value);
-                  }
-                },
-                validator: (value) {
-                  if ((widget.branchId == null || widget.branchId!.isEmpty) &&
-                      (value == null || value.isEmpty)) {
-                    return 'กรุณาเลือกสาขา';
-                  }
-                  return null;
-                },
-              ),
-            ],
+            //       if (value != null) {
+            //         await _loadAvailableRooms(value);
+            //       }
+            //     },
+            //     validator: (value) {
+            //       if ((widget.branchId == null || widget.branchId!.isEmpty) &&
+            //           (value == null || value.isEmpty)) {
+            //         return 'กรุณาเลือกสาขา';
+            //       }
+            //       return null;
+            //     },
+            //   ),
+            //],
           ],
         ),
       ),
@@ -1743,7 +1743,7 @@ class _TenantAddUIState extends State<TenantAddUI>
                     child: Row(
                       children: [
                         Text(
-                            '${room['room_category_name'] ?? 'ห้อง'} เลขที่ ${room['room_number']}'),
+                            '${room['room_category_name'] ?? 'ห้อง'}เลขที่${room['room_number']}'),
                         const SizedBox(width: 8),
                         Text(
                           '฿${room['room_price']?.toStringAsFixed(0) ?? '0'}',
@@ -2059,35 +2059,31 @@ class _TenantAddUIState extends State<TenantAddUI>
 
             // ชำระค่าประกันแล้ว
             Container(
-              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(12),
                 color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[300]!),
               ),
-              child: Row(
-                children: [
-                  Icon(Icons.payment, color: Colors.grey[600]),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'ชำระค่าประกันแล้ว',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                      ),
-                    ),
+              child: SwitchListTile(
+                title: const Text('ชำระค่าประกันแล้ว'),
+                subtitle: Text(
+                  _contractPaid
+                      ? 'ผู้เช่าชำระค่าประกันเรียบร้อยแล้ว'
+                      : 'ผู้เช่ายังไม่ได้ชำระค่าประกัน',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _contractPaid
+                        ? Colors.green.shade700
+                        : Colors.orange.shade700,
                   ),
-                  Switch(
-                    value: _contractPaid,
-                    onChanged: (value) {
-                      setState(() {
-                        _contractPaid = value;
-                      });
-                    },
-                    activeColor: AppTheme.primary,
-                  ),
-                ],
+                ),
+                value: _contractPaid,
+                onChanged: (value) {
+                  setState(() {
+                    _contractPaid = value;
+                  });
+                },
+                activeColor: AppTheme.primary,
               ),
             ),
             const SizedBox(height: 16),

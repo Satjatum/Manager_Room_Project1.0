@@ -207,9 +207,20 @@ class _SubnavbarState extends State<Subnavbar> {
   }
 
   void _setupTenantNavigation() {
-    _navigationItems = [];
+    _navigationItems = [
+      NavItem(
+        icon: Icons.report_gmailerrorred_outlined,
+        activeIcon: Icons.report,
+        label: 'แจ้งปัญหา',
+      ),
+    ];
 
-    _pages = [];
+    _pages = [
+      IssuelistUi(
+        branchId: widget.branchId,
+        branchName: widget.branchName,
+      ),
+    ];
   }
 
   void _onItemTapped(BuildContext context, int index) {

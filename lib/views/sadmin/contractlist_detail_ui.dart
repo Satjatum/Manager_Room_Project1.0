@@ -591,32 +591,34 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
                   PopupMenuItem(
                     value: 'edit',
                     child: Row(
-                      children: [
-                        Icon(Icons.edit, color: Color(0xFF10B981)),
-                        SizedBox(width: 8),
-                        Text('แก้ไขสัญญา'),
+                      children: const [
+                        Icon(Icons.edit_outlined,
+                            size: 20, color: Color(0xFF14B8A6)),
+                        SizedBox(width: 12),
+                        Text('แก้ไข'),
                       ],
                     ),
                   ),
-                  if (status == 'pending')
-                    PopupMenuItem(
-                      value: 'activate',
-                      child: Row(
-                        children: [
-                          Icon(Icons.check_circle, color: Colors.green),
-                          SizedBox(width: 8),
-                          Text('เปิดใช้งานสัญญา'),
-                        ],
-                      ),
-                    ),
+                  // if (status == 'pending')
+                  //   PopupMenuItem(
+                  //     value: 'activate',
+                  //     child: Row(
+                  //       children: [
+                  //         Icon(Icons.check_circle, color: Colors.green),
+                  //         SizedBox(width: 8),
+                  //         Text('เปิดใช้งานสัญญา'),
+                  //       ],
+                  //     ),
+                  //   ),
                   if (status == 'active')
                     PopupMenuItem(
                       value: 'renew',
                       child: Row(
-                        children: [
-                          Icon(Icons.refresh, color: Colors.blue),
-                          SizedBox(width: 8),
-                          Text('ต่ออายุสัญญา'),
+                        children: const [
+                          Icon(Icons.refresh,
+                              size: 20, color: Color(0xFF14B8A6)),
+                          SizedBox(width: 12),
+                          Text('ต่อสัญญา'),
                         ],
                       ),
                     ),
@@ -625,9 +627,18 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
                       value: 'terminate',
                       child: Row(
                         children: [
-                          Icon(Icons.cancel, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('ยกเลิกสัญญา'),
+                          Icon(
+                            Icons.cancel,
+                            size: 20,
+                            color: Colors.red,
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            'ยกเลิกสัญญา',
+                            style: TextStyle(
+                              color: Colors.red,
+                            ),
+                          ),
                         ],
                       ),
                     ),

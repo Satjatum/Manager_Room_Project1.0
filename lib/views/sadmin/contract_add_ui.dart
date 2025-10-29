@@ -13,12 +13,14 @@ import '../widgets/colors.dart';
 class ContractAddUI extends StatefulWidget {
   final String tenantId;
   final String? branchId;
+  final String? branchName;
   final String? tenantName;
 
   const ContractAddUI({
     Key? key,
     required this.tenantId,
     this.branchId,
+    this.branchName,
     this.tenantName,
   }) : super(key: key);
 
@@ -44,6 +46,7 @@ class _ContractAddUIState extends State<ContractAddUI> {
   DateTime? _startDate;
   DateTime? _endDate;
   int _paymentDay = 1;
+  bool _advancePayment = false;
 
   // เอกสารสัญญา
   String? _documentName;
@@ -53,8 +56,8 @@ class _ContractAddUIState extends State<ContractAddUI> {
   void initState() {
     super.initState();
     _selectedBranchId = widget.branchId;
-    _startDate = DateTime.now();
-    _endDate = DateTime.now().add(const Duration(days: 365));
+    // _startDate = DateTime.now();
+    // _endDate = DateTime.now().add(const Duration(days: 365));
     _init();
   }
 
@@ -130,26 +133,47 @@ class _ContractAddUIState extends State<ContractAddUI> {
     );
   }
 
-  Future<void> _pickDate(bool start) async {
-    final initial = start ? _startDate ?? DateTime.now() : _endDate ?? DateTime.now().add(const Duration(days: 365));
-    final picked = await showDatePicker(
+  Future<void> _selectDate(BuildContext context, bool isStartDate) async {
+    final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: initial,
+      initialDate: isStartDate
+          ? (_startDate ?? DateTime.now())
+          : (_endDate ?? DateTime.now().add(const Duration(days: 365))),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
       locale: Localizations.localeOf(context),
     );
+
     if (picked != null) {
       setState(() {
-        if (start) {
+        if (isStartDate) {
           _startDate = picked;
-          if (_endDate == null || _endDate!.isBefore(picked)) {
+          if (_endDate == null) {
             _endDate = picked.add(const Duration(days: 365));
           }
         } else {
           _endDate = picked;
         }
       });
+    }
+  }
+
+  Future<void> _pickDocument() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+        withData: true,
+      );
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        setState(() {
+          _documentName = file.name;
+          _documentBytes = file.bytes;
+        });
+      }
+    } catch (e) {
+      _showError('เกิดข้อผิดพลาดในการเลือกไฟล์: $e');
     }
   }
 
@@ -203,21 +227,23 @@ class _ContractAddUIState extends State<ContractAddUI> {
           final now = DateTime.now();
           final dateStr =
               '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
-          final baseName = (widget.tenantName ?? 'tenant')
-              .trim()
-              .replaceAll(RegExp(r'\s+'), '_');
+          final baseName = (widget.tenantName ?? 'tenant').trim().replaceAll(
+                RegExp(r'\s+'),
+                '_',
+              );
 
           // หาเลขลำดับถัดไป
-          final existing = await _supabase.storage
-              .from('contracts')
-              .list(path: '');
-          final regex = RegExp('^contracts_${dateStr}_${RegExp.escape(baseName)}_([0-9]{3})\\.pdf\$');
+          final existing =
+              await _supabase.storage.from('contracts').list(path: '');
+          final regex = RegExp(
+            '^contracts_${dateStr}_${RegExp.escape(baseName)}_([0-9]{3})\\.pdf\$',
+          );
           int maxSeq = 0;
           for (final f in existing) {
             final name = f.name;
             final m = regex.firstMatch(name);
             if (m != null) {
-              final n = int.tryParse(m.group(1)! ) ?? 0;
+              final n = int.tryParse(m.group(1)!) ?? 0;
               if (n > maxSeq) maxSeq = n;
             }
           }
@@ -225,18 +251,21 @@ class _ContractAddUIState extends State<ContractAddUI> {
           final fileName = 'contracts_${dateStr}_${baseName}_$nextSeq.pdf';
 
           // content type ตามนามสกุลไฟล์ต้นฉบับ
-          final ext = p.extension(_documentName!).replaceFirst('.', '').toLowerCase();
+          final ext =
+              p.extension(_documentName!).replaceFirst('.', '').toLowerCase();
           final contentType = _getContentType(ext);
 
-          await _supabase.storage
-              .from('contracts')
-              .uploadBinary(
+          await _supabase.storage.from('contracts').uploadBinary(
                 fileName,
                 _documentBytes!,
-                fileOptions: FileOptions(contentType: contentType, upsert: false),
+                fileOptions: FileOptions(
+                  contentType: contentType,
+                  upsert: false,
+                ),
               );
 
-          final pub = _supabase.storage.from('contracts').getPublicUrl(fileName);
+          final pub =
+              _supabase.storage.from('contracts').getPublicUrl(fileName);
           documentUrl = pub;
         } catch (e) {
           // ปิด dialog
@@ -277,28 +306,8 @@ class _ContractAddUIState extends State<ContractAddUI> {
     }
   }
 
-  Future<void> _pickDocument() async {
-    final res = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
-      withData: true,
-    );
-    if (res != null && res.files.isNotEmpty) {
-      final f = res.files.first;
-      if (f.bytes != null) {
-        setState(() {
-          _documentName = f.name;
-          _documentBytes = f.bytes;
-        });
-      } else if (f.path != null) {
-        // ในกรณีบางแพลตฟอร์มอาจไม่ได้ bytes มา
-        _showError('ไม่สามารถอ่านไฟล์ได้ กรุณาลองใหม่');
-      }
-    }
-  }
-
-  String _getContentType(String ext) {
-    switch (ext) {
+  String _getContentType(String extension) {
+    switch (extension.toLowerCase()) {
       case 'pdf':
         return 'application/pdf';
       case 'doc':
@@ -317,6 +326,17 @@ class _ContractAddUIState extends State<ContractAddUI> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('เพิ่มสัญญาใหม่'),
+          backgroundColor: AppTheme.primary,
+          foregroundColor: Colors.white,
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -329,172 +349,38 @@ class _ContractAddUIState extends State<ContractAddUI> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'สร้างสัญญาเช่า',
+            Text(
+              'เพิ่มผู้เช่าใหม่',
               style: TextStyle(
                 color: Colors.black87,
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            if (widget.tenantName != null)
-              Text(
-                widget.tenantName!,
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
-              ),
           ],
         ),
       ),
-      body: _loading
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(color: AppTheme.primary),
-                  const SizedBox(height: 12),
-                  const Text('กำลังโหลดข้อมูล...'),
-                ],
-              ),
-            )
-          : SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildBranchSection(),
-                    const SizedBox(height: 16),
-                    _buildRoomSection(),
-                    const SizedBox(height: 16),
-                    _buildContractSection(),
-                    const SizedBox(height: 16),
-                    _buildDocumentSection(),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _saving ? null : _save,
-                        icon: const Icon(Icons.save),
-                        label: Text(_saving ? 'กำลังบันทึก...' : 'บันทึกสัญญา'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-    );
-  }
-
-  Widget _buildBranchSection() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.business, color: AppTheme.primary),
-              const SizedBox(width: 8),
-              Text(
-                'สาขา',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primary,
-                ),
-              ),
+              // ข้อมูลห้องพัก
+              _buildRoomSection(),
+              const SizedBox(height: 16),
+
+              // รายละเอียดสัญญา
+              _buildContractDetailsSection(),
+              const SizedBox(height: 16),
+
+              // เอกสารสัญญา
+              _buildDocumentSection(),
             ],
           ),
-          const SizedBox(height: 12),
-          if (_selectedBranchId != null && _selectedBranchId!.isNotEmpty)
-            InputDecorator(
-              decoration: InputDecoration(
-                labelText: 'สาขา *',
-                prefixIcon: const Icon(Icons.business),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                child: Row(
-                  children: [
-                    const Icon(Icons.lock, size: 16, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _branchName ?? 'Locked Branch',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else
-            DropdownButtonFormField<String>(
-              value: _selectedBranchId,
-              decoration: InputDecoration(
-                labelText: 'สาขา *',
-                prefixIcon: const Icon(Icons.business),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF10B981), width: 2),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
-              ),
-              items: _branches
-                  .map((b) => DropdownMenuItem<String>(
-                        value: b['branch_id'],
-                        child: Text(b['branch_name'] ?? ''),
-                      ))
-                  .toList(),
-              onChanged: (v) async {
-                setState(() {
-                  _selectedBranchId = v;
-                  _selectedRoomId = null;
-                  _availableRooms = [];
-                });
-                if (v != null) {
-                  final b = await BranchService.getBranchById(v);
-                  setState(() => _branchName = b?['branch_name']);
-                  await _loadRooms(v);
-                }
-              },
-            ),
-        ],
+        ),
       ),
+      bottomNavigationBar: _buildBottomBar(),
     );
   }
 
@@ -506,121 +392,122 @@ class _ContractAddUIState extends State<ContractAddUI> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey[300]!),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.home, color: AppTheme.primary),
-              const SizedBox(width: 8),
-              Text(
-                'เลือกห้องพัก',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (_selectedBranchId == null)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade600),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text('กรุณาเลือกสาขาก่อน', style: TextStyle(fontSize: 13)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.home, color: AppTheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'เลือกห้องเช่า',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primary,
                   ),
-                ],
-              ),
-            )
-          else
-            DropdownButtonFormField<String>(
-              value: _selectedRoomId,
-              decoration: InputDecoration(
-                labelText: 'ห้องพัก *',
-                prefixIcon: const Icon(Icons.hotel),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
                 ),
-                focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF10B981), width: 2),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // เลือกห้องพัก
+            if (_selectedBranchId != null && _branchName != null)
+              // Container(
+              //   padding: const EdgeInsets.all(12),
+              //   margin: const EdgeInsets.only(bottom: 12),
+              //   decoration: BoxDecoration(
+              //     color: Colors.green.shade50,
+              //     borderRadius: BorderRadius.circular(12),
+              //     border: Border.all(color: Colors.green.shade200),
+              //   ),
+              //   child: Row(
+              //     children: [
+              //       Icon(Icons.business, color: Colors.green.shade700),
+              //       const SizedBox(width: 8),
+              //       Expanded(
+              //         child: Text(
+              //           'สาขา: $_branchName',
+              //           style: TextStyle(
+              //             fontWeight: FontWeight.w500,
+              //             color: Colors.green.shade900,
+              //           ),
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
+
+              DropdownButtonFormField<String>(
+                value: _selectedRoomId,
+                decoration: InputDecoration(
+                  labelText: 'ห้องพัก *',
+                  prefixIcon: const Icon(Icons.meeting_room),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF10B981),
+                      width: 2,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade50,
-              ),
-              items: _availableRooms
-                  .map((room) => DropdownMenuItem<String>(
-                        value: room['room_id'],
-                        child: Row(
-                          children: [
-                            Text('${room['room_category_name'] ?? 'ห้อง'} เลขที่ ${room['room_number']}'),
-                            const SizedBox(width: 8),
-                            Text(
-                              '฿${room['room_price']?.toStringAsFixed(0) ?? '0'}',
-                              style: TextStyle(
-                                color: Colors.green[700],
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                items: _availableRooms.map((room) {
+                  return DropdownMenuItem<String>(
+                    value: room['room_id'],
+                    child: Row(
+                      children: [
+                        Text(
+                            '${room['room_category_name'] ?? 'ห้อง'}เลขที่${room['room_number']}'),
+                        const SizedBox(width: 8),
+                        Text(
+                          '฿${room['room_price']?.toStringAsFixed(0) ?? '0'}',
+                          style: TextStyle(
+                            color: Colors.green[600],
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ))
-                  .toList(),
-              onChanged: (v) {
-                setState(() {
-                  _selectedRoomId = v;
-                  if (v != null) {
-                    final r = _availableRooms.firstWhere(
-                      (e) => e['room_id'] == v,
-                      orElse: () => {},
-                    );
-                    if (r.isNotEmpty) {
-                      _priceController.text = (r['room_price'] ?? '').toString();
-                      _depositController.text = (r['room_deposit'] ?? '').toString();
-                    }
-                  }
-                });
-              },
-            ),
-          if (_selectedBranchId != null && _availableRooms.isEmpty) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.shade200),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: (v) {
+                  setState(
+                    () {
+                      _selectedRoomId = v;
+                      if (v != null) {
+                        final selectedRoom = _availableRooms.firstWhere(
+                          (room) => room['room_id'] == v,
+                          orElse: () => {},
+                        );
+                        if (selectedRoom.isNotEmpty) {
+                          _priceController.text =
+                              selectedRoom['room_price']?.toString() ?? '';
+                          _depositController.text =
+                              selectedRoom['room_deposit']?.toString() ?? '';
+                        }
+                      }
+                    },
+                  );
+                },
               ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.orange.shade700),
-                  const SizedBox(width: 8),
-                  const Expanded(
-                    child: Text('ไม่มีห้องว่างในสาขานี้', style: TextStyle(fontSize: 13)),
-                  ),
-                ],
-              ),
-            ),
           ],
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildContractSection() {
+  Widget _buildContractDetailsSection() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -628,37 +515,115 @@ class _ContractAddUIState extends State<ContractAddUI> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey[300]!),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.description, color: AppTheme.primary),
-              const SizedBox(width: 8),
-              Text(
-                'รายละเอียดสัญญา',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primary,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.description, color: AppTheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'รายละเอียดสัญญา',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // วันที่เริ่มสัญญา
+            InkWell(
+              onTap: () => _selectDate(context, true),
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'วันที่เริ่มสัญญา *',
+                  prefixIcon: const Icon(Icons.date_range),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF10B981),
+                      width: 2,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                ),
+                child: Text(
+                  _startDate == null
+                      ? 'เลือกวันที่'
+                      : '${_startDate!.day}/${_startDate!.month}/${_startDate!.year + 543}',
+                  style: TextStyle(
+                    color:
+                        _startDate == null ? Colors.grey[600] : Colors.black87,
+                  ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
+            ),
+            const SizedBox(height: 16),
 
-          // Start date
-          InkWell(
-            onTap: () => _pickDate(true),
-            child: InputDecorator(
+            // วันที่สิ้นสุดสัญญา
+            InkWell(
+              onTap: () => _selectDate(context, false),
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'วันที่สิ้นสุดสัญญา *',
+                  prefixIcon: const Icon(Icons.event_busy),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF10B981),
+                      width: 2,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                ),
+                child: Text(
+                  _endDate == null
+                      ? 'เลือกวันที่'
+                      : '${_endDate!.day}/${_endDate!.month}/${_endDate!.year + 543}',
+                  style: TextStyle(
+                    color: _endDate == null ? Colors.grey[600] : Colors.black87,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ค่าเช่า
+            TextFormField(
+              controller: _priceController,
               decoration: InputDecoration(
-                labelText: 'วันที่เริ่มสัญญา *',
-                prefixIcon: const Icon(Icons.date_range),
+                labelText: 'ค่าเช่า (บาท/เดือน) *',
+                prefixIcon: const Icon(Icons.attach_money),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF10B981), width: 2),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF10B981),
+                    width: 2,
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -667,30 +632,25 @@ class _ContractAddUIState extends State<ContractAddUI> {
                 filled: true,
                 fillColor: Colors.grey.shade50,
               ),
-              child: Text(
-                _startDate == null
-                    ? 'เลือกวันที่'
-                    : '${_startDate!.day}/${_startDate!.month}/${_startDate!.year + 543}',
-                style: TextStyle(
-                  color: _startDate == null ? Colors.grey[600] : Colors.black87,
-                ),
-              ),
+              keyboardType: TextInputType.number,
             ),
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-          // End date
-          InkWell(
-            onTap: () => _pickDate(false),
-            child: InputDecorator(
+            // ค่าประกัน
+            TextFormField(
+              controller: _depositController,
               decoration: InputDecoration(
-                labelText: 'วันที่สิ้นสุดสัญญา *',
-                prefixIcon: const Icon(Icons.event_busy),
+                labelText: 'ค่าประกัน (บาท) *',
+                prefixIcon: const Icon(Icons.security),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFF10B981), width: 2),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF10B981),
+                    width: 2,
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -699,109 +659,105 @@ class _ContractAddUIState extends State<ContractAddUI> {
                 filled: true,
                 fillColor: Colors.grey.shade50,
               ),
-              child: Text(
-                _endDate == null
-                    ? 'เลือกวันที่'
-                    : '${_endDate!.day}/${_endDate!.month}/${_endDate!.year + 543}',
-                style: TextStyle(
-                  color: _endDate == null ? Colors.grey[600] : Colors.black87,
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 16),
+
+            // วันที่ชำระค่าเช่า
+            DropdownButtonFormField<int>(
+              value: _paymentDay,
+              decoration: InputDecoration(
+                labelText: 'วันที่ชำระค่าเช่า',
+                prefixIcon: const Icon(Icons.event_note),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF10B981),
+                    width: 2,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
               ),
+              items: List.generate(31, (i) => i + 1)
+                  .map(
+                    (d) => DropdownMenuItem<int>(
+                      value: d,
+                      child: Text('วันที่ $d'),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) => setState(() => _paymentDay = v ?? 1),
             ),
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-          // Price
-          TextFormField(
-            controller: _priceController,
-            decoration: InputDecoration(
-              labelText: 'ค่าเช่า (บาท/เดือน) *',
-              prefixIcon: const Icon(Icons.attach_money),
-              border: OutlineInputBorder(
+            // ชำระค่าประกันแล้ว
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[300]!),
               ),
-              focusedBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF10B981), width: 2),
+              child: SwitchListTile(
+                title: const Text('ชำระค่าประกันแล้ว'),
+                subtitle: Text(
+                  _advancePayment
+                      ? 'ผู้เช่าชำระค่าประกันเรียบร้อยแล้ว'
+                      : 'ผู้เช่ายังไม่ได้ชำระค่าประกัน',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _advancePayment
+                        ? Colors.green.shade700
+                        : Colors.orange.shade700,
+                  ),
+                ),
+                value: _advancePayment,
+                onChanged: (value) {
+                  setState(() {
+                    _advancePayment = value;
+                  });
+                },
+                activeColor: AppTheme.primary,
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-              ),
-              filled: true,
-              fillColor: Colors.grey.shade50,
             ),
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-          // Deposit
-          TextFormField(
-            controller: _depositController,
-            decoration: InputDecoration(
-              labelText: 'ค่าประกัน (บาท) *',
-              prefixIcon: const Icon(Icons.security),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+            // หมายเหตุ
+            TextFormField(
+              controller: _noteController,
+              decoration: InputDecoration(
+                labelText: 'หมายเหตุเพิ่มเติม',
+                hintText: 'เพิ่มหมายเหตุเกี่ยวกับสัญญาเช่า (ถ้ามี)',
+                prefixIcon: const Icon(Icons.note),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF10B981),
+                    width: 2,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                alignLabelWithHint: true,
               ),
-              focusedBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF10B981), width: 2),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-              ),
-              filled: true,
-              fillColor: Colors.grey.shade50,
+              maxLines: 3,
             ),
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 12),
-
-          // Payment day
-          DropdownButtonFormField<int>(
-            value: _paymentDay,
-            decoration: InputDecoration(
-              labelText: 'วันครบกำหนดชำระ *',
-              prefixIcon: const Icon(Icons.event_note),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              focusedBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF10B981), width: 2),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-              ),
-              filled: true,
-              fillColor: Colors.grey.shade50,
-            ),
-            items: List.generate(31, (i) => i + 1)
-                .map((d) => DropdownMenuItem<int>(value: d, child: Text('$d')))
-                .toList(),
-            onChanged: (v) => setState(() => _paymentDay = v ?? 1),
-          ),
-          const SizedBox(height: 12),
-
-          // Note
-          TextFormField(
-            controller: _noteController,
-            decoration: InputDecoration(
-              labelText: 'หมายเหตุ',
-              prefixIcon: const Icon(Icons.notes),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-              ),
-              filled: true,
-              fillColor: Colors.grey.shade50,
-            ),
-            maxLines: 3,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -814,66 +770,135 @@ class _ContractAddUIState extends State<ContractAddUI> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey[300]!),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.upload_file, color: AppTheme.primary),
-              const SizedBox(width: 8),
-              Text(
-                'เอกสารสัญญา (ไม่บังคับ)',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primary,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.upload_file, color: AppTheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'เอกสารสัญญา',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // อัปโหลดเอกสาร
+            OutlinedButton.icon(
+              onPressed: _saving ? null : _pickDocument,
+              icon: Icon(Icons.upload_file, color: Colors.black),
+              label: Text(
+                _documentName ?? 'อัปโหลดเอกสารสัญญา (PDF, DOC, รูปภาพ)',
+                style: TextStyle(color: Colors.black),
+              ),
+              style: OutlinedButton.styleFrom(
+                minimumSize: Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+            if (_documentName != null) ...[
+              SizedBox(height: 8),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _documentName!,
+                        style: TextStyle(fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, size: 20),
+                      onPressed: _saving
+                          ? null
+                          : () {
+                              setState(() {
+                                _documentName = null;
+                                _documentBytes = null;
+                              });
+                            },
+                    ),
+                  ],
                 ),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomBar() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
           ),
-          const SizedBox(height: 12),
-          if (_documentBytes == null)
-            OutlinedButton.icon(
-              onPressed: _saving ? null : _pickDocument,
-              icon: const Icon(Icons.attach_file),
-              label: const Text('แนบไฟล์สัญญา (PDF, DOC, ภาพ)'),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _saving ? null : () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('ย้อนกลับ'),
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-              ),
-            )
-          else
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.insert_drive_file, color: Colors.green.shade700),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _documentName ?? '-',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    tooltip: 'ลบไฟล์',
-                    onPressed: _saving
-                        ? null
-                        : () => setState(() {
-                              _documentBytes = null;
-                              _documentName = null;
-                            }),
-                    icon: const Icon(Icons.close, color: Colors.red),
-                  ),
-                ],
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            flex: 2,
+            child: ElevatedButton.icon(
+              onPressed: _saving ? null : _save,
+              icon: Icon(Icons.save, color: Colors.white),
+              label: Text(
+                _saving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+            ),
+          ),
         ],
       ),
     );
