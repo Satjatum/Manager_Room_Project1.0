@@ -322,61 +322,14 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
                         if (_stats != null)
                           Expanded(child: _buildTrackingBar()),
                         const SizedBox(width: 12),
-                        // Filters for category, tenant, room number, month/year
-                        Expanded(
-                          child: Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            alignment: WrapAlignment.end,
-                            children: [
-                              _buildCategoryFilter(),
-                              _buildTenantFilter(),
-                              _buildRoomNumberFilter(),
-                              _buildMonthYearFilter(),
-                              IconButton(
-                                onPressed: _refreshData,
-                                icon: const Icon(Icons.refresh,
-                                    color: Colors.black87),
-                                tooltip: 'รีเฟรช',
-                              ),
-                            ],
-                          ),
-                        ),
+                        // Filters grid (2 per row)
+                        Expanded(child: _buildFiltersGrid()),
                       ],
                     ),
 
                     const SizedBox(height: 12),
 
-                    // Tab bar (neutral style)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TabBar(
-                        controller: _tabController,
-                        isScrollable: true,
-                        onTap: (index) => _applyFilters(),
-                        labelColor: Colors.black87,
-                        unselectedLabelColor: Colors.black54,
-                        indicatorColor: AppTheme.primary,
-                        indicatorWeight: 3,
-                        tabs: [
-                          Tab(
-                              text:
-                                  'ทั้งหมด (${_getReadingCountByStatus('all')})'),
-                          Tab(
-                              text:
-                                  'ร่าง (${_getReadingCountByStatus('draft')})'),
-                          Tab(
-                              text:
-                                  'ยืนยันแล้ว (${_getReadingCountByStatus('confirmed')})'),
-                          Tab(
-                              text:
-                                  'ออกบิลแล้ว (${_getReadingCountByStatus('billed')})'),
-                          Tab(
-                              text:
-                                  'ยกเลิก (${_getReadingCountByStatus('cancelled')})'),
-                        ],
-                      ),
-                    ),
+                    // Removed status TabBar per new spec
 
                     // Helper: missing rates for selected branch
                     if (_selectedBranchId != null &&
@@ -1332,7 +1285,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
             _searchController.text.isNotEmpty ? _searchController.text : null,
         branchId: _selectedBranchId,
         roomId: _selectedRoomId,
-        status: _selectedStatus == 'all' ? null : _selectedStatus,
+        status: null, // removed status filter per new spec
         readingMonth: _selectedMonth,
         readingYear: _selectedYear,
       );
@@ -1373,14 +1326,6 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
     }
 
     List<Map<String, dynamic>> filtered = List.from(_meterReadings);
-
-    // Filter by tab status
-    String tabStatus = _getStatusFromTab(_tabController.index);
-    if (tabStatus != 'all') {
-      filtered = filtered
-          .where((reading) => reading['reading_status'] == tabStatus)
-          .toList();
-    }
 
     // Filter by category
     if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
@@ -1423,22 +1368,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
     setState(() => _filteredReadings = filtered);
   }
 
-  String _getStatusFromTab(int index) {
-    switch (index) {
-      case 0:
-        return 'all';
-      case 1:
-        return 'draft';
-      case 2:
-        return 'confirmed';
-      case 3:
-        return 'billed';
-      case 4:
-        return 'cancelled';
-      default:
-        return 'all';
-    }
-  }
+  String _getStatusFromTab(int index) => 'all';
 
   int _getReadingCountByStatus(String status) {
     if (_stats == null) return 0;
@@ -1716,6 +1646,45 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
   }
 
   // ---- Filters widgets ----
+  Widget _buildFiltersGrid() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(child: _buildCategoryFilter()),
+            const SizedBox(width: 8),
+            Expanded(child: _buildTenantFilter()),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: _buildRoomNumberFilter()),
+            const SizedBox(width: 8),
+            Expanded(child: _buildMonthFilter()),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: _buildYearFilter()),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  onPressed: _refreshData,
+                  icon: const Icon(Icons.refresh, color: Colors.black87),
+                  tooltip: 'รีเฟรช',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildCategoryFilter() {
     final categories = _meterReadings
         .map((e) => (e['room_category'] ?? '').toString())
@@ -1841,6 +1810,55 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMonthFilter() {
+    return SizedBox(
+      width: 160,
+      child: DropdownButtonFormField<int>(
+        value: _selectedMonth,
+        isDense: true,
+        decoration: const InputDecoration(
+          labelText: 'เดือน',
+          border: OutlineInputBorder(),
+        ),
+        items: [
+          const DropdownMenuItem(value: null, child: Text('ทั้งหมด')),
+          ...List.generate(12, (i) => i + 1)
+              .map((m) => DropdownMenuItem(value: m, child: Text(_getMonthName(m))))
+        ],
+        onChanged: (val) async {
+          setState(() => _selectedMonth = val);
+          await _loadMeterReadings();
+          await _loadStats();
+        },
+      ),
+    );
+  }
+
+  Widget _buildYearFilter() {
+    final currentYear = DateTime.now().year;
+    final years = List.generate(5, (i) => currentYear - i);
+    return SizedBox(
+      width: 140,
+      child: DropdownButtonFormField<int>(
+        value: _selectedYear,
+        isDense: true,
+        decoration: const InputDecoration(
+          labelText: 'ปี (ค.ศ.)',
+          border: OutlineInputBorder(),
+        ),
+        items: [
+          const DropdownMenuItem(value: null, child: Text('ทั้งหมด')),
+          ...years.map((y) => DropdownMenuItem(value: y, child: Text('${y + 543} (พ.ศ.)'))),
+        ],
+        onChanged: (val) async {
+          setState(() => _selectedYear = val);
+          await _loadMeterReadings();
+          await _loadStats();
+        },
+      ),
     );
   }
 
