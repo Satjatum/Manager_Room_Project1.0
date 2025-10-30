@@ -421,9 +421,19 @@ class MeterReadingService {
         };
       } else {
         // Normal Reading - มีเดือน/ปี, คำนวณ usage
-        final waterPrevious = readingData['water_previous_reading'] ?? 0.0;
-        final electricPrevious =
-            readingData['electric_previous_reading'] ?? 0.0;
+        int targetMonth = readingData['reading_month'];
+        int targetYear = readingData['reading_year'];
+
+        // ใช้ค่าก่อนหน้าจากรายการก่อนหน้า (เดือนก่อนหน้า/รายการล่าสุดก่อนเดือนนี้)
+        // เพื่อให้ความต่อเนื่อง: ค่าปัจจุบันของเดือนก่อนหน้า = ค่าก่อนหน้าของเดือนนี้
+        final prev = await _getPrevReading(
+            readingData['room_id'], targetMonth, targetYear);
+        final waterPrevious = prev != null
+            ? (prev['water_current_reading'] ?? 0.0).toDouble()
+            : (readingData['water_previous_reading'] ?? 0.0);
+        final electricPrevious = prev != null
+            ? (prev['electric_current_reading'] ?? 0.0).toDouble()
+            : (readingData['electric_previous_reading'] ?? 0.0);
         final waterCurrent = readingData['water_current_reading'] ?? 0.0;
         final electricCurrent = readingData['electric_current_reading'] ?? 0.0;
 
@@ -451,8 +461,8 @@ class MeterReadingService {
           'tenant_id': readingData['tenant_id'],
           'contract_id': readingData['contract_id'],
           'is_initial_reading': false,
-          'reading_month': readingData['reading_month'],
-          'reading_year': readingData['reading_year'],
+          'reading_month': targetMonth,
+          'reading_year': targetYear,
           'water_previous_reading': waterPrevious,
           'water_current_reading': waterCurrent,
           'water_usage': waterUsage,
@@ -580,24 +590,28 @@ class MeterReadingService {
           };
         }
 
-        // ตรวจสอบความต่อเนื่องกับเดือนถัดไป (ห้ามค่าเดือนนี้มากกว่าค่าก่อนหน้าของเดือนถัดไป)
+        // แก้ไขย้อนหลัง: ลบข้อมูลเดือนถัดไปอัตโนมัติถ้าสามารถลบได้ (ไม่ใช่ billed)
         final int? month = existing['reading_month'];
         final int? year = existing['reading_year'];
         final String roomId = existing['room_id'];
+        final List<Map<String, dynamic>> warnings = [];
         if (month != null && year != null && roomId.isNotEmpty) {
-          final next = await _getNextReading(roomId, month, year);
-          if (next != null) {
-            final double nextWaterPrev =
-                (next['water_previous_reading'] ?? 0.0).toDouble();
-            final double nextElecPrev =
-                (next['electric_previous_reading'] ?? 0.0).toDouble();
-            if (waterCurrent > nextWaterPrev || electricCurrent > nextElecPrev) {
-              return {
-                'success': false,
-                'message':
-                    'ค่าใหม่สูงกว่าค่าก่อนหน้าของเดือนถัดไป กรุณาแก้ไขเดือนถัดไปก่อน หรือปรับค่าเดือนนี้ให้ไม่เกิน ${nextWaterPrev.toStringAsFixed(2)}/${nextElecPrev.toStringAsFixed(2)}'
-              };
+          final nextList = await _getNextReadings(roomId, month, year);
+          for (final r in nextList) {
+            if (r['reading_status'] == 'billed') {
+              // ไม่สามารถลบได้ → แจ้งเตือนข้อมูลอาจไม่ต่อเนื่องแล้ว
+              warnings.add({
+                'type': 'locked_conflict',
+                'reading_id': r['reading_id'],
+                'message': 'พบข้อมูลเดือนถัดไปที่ออกบิลแล้ว ไม่สามารถลบเพื่อให้ค่าต่อเนื่องได้'
+              });
+              break; // หยุดที่ตัวแรกที่ลบไม่ได้
             }
+            // ลบรายการถัดไปที่ยังไม่ billed
+            await _supabase
+                .from('meter_readings')
+                .delete()
+                .eq('reading_id', r['reading_id']);
           }
         }
 
@@ -626,6 +640,7 @@ class MeterReadingService {
         'success': true,
         'message': 'อัปเดตค่ามิเตอร์สำเร็จ',
         'data': result,
+        'warnings': warnings,
       };
     } on PostgrestException catch (e) {
       return {
@@ -767,10 +782,35 @@ class MeterReadingService {
           .delete()
           .eq('reading_id', readingId);
 
+      // ลบเดือนถัดไปทั้งหมดที่ยังไม่ billed เพื่อให้ความต่อเนื่อง
+      final int? month = existing['reading_month'];
+      final int? year = existing['reading_year'];
+      final String roomId = existing['room_id'];
+      final List<Map<String, dynamic>> warnings = [];
+      if (!isInitialReading && month != null && year != null && roomId.isNotEmpty) {
+        final nextList = await _getNextReadings(roomId, month, year);
+        for (final r in nextList) {
+          if (r['reading_status'] == 'billed') {
+            // ไม่สามารถลบได้ ให้เตือน
+            warnings.add({
+              'type': 'locked_conflict',
+              'reading_id': r['reading_id'],
+              'message': 'พบข้อมูลเดือนถัดไปที่ออกบิลแล้ว ไม่สามารถลบเพื่อให้ค่าต่อเนื่องได้'
+            });
+            break;
+          }
+          await _supabase
+              .from('meter_readings')
+              .delete()
+              .eq('reading_id', r['reading_id']);
+        }
+      }
+
       return {
         'success': true,
         'message':
             isInitialReading ? 'ลบค่าฐานเริ่มต้นสำเร็จ' : 'ลบค่ามิเตอร์สำเร็จ',
+        'warnings': warnings,
       };
     } catch (e) {
       return {
@@ -1007,6 +1047,63 @@ class MeterReadingService {
       return nextYear;
     } catch (e) {
       return null;
+    }
+  }
+
+  /// หาเดือนก่อนหน้าของห้องเดียวกันที่อยู่ก่อน (ไม่นับ Initial)
+  static Future<Map<String, dynamic>?> _getPrevReading(
+      String roomId, int month, int year) async {
+    try {
+      // หาในปีเดียวกัน ที่เดือนน้อยกว่า
+      final sameYear = await _supabase
+          .from('meter_readings')
+          .select('*')
+          .eq('room_id', roomId)
+          .eq('is_initial_reading', false)
+          .eq('reading_year', year)
+          .lt('reading_month', month)
+          .order('reading_month', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      if (sameYear != null) return sameYear;
+
+      // หาในปีก่อนหน้า
+      final prevYear = await _supabase
+          .from('meter_readings')
+          .select('*')
+          .eq('room_id', roomId)
+          .eq('is_initial_reading', false)
+          .lt('reading_year', year)
+          .order('reading_year', ascending: false)
+          .order('reading_month', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return prevYear;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// ลิสต์เดือนถัดไปทั้งหมดเรียงตามเวลา (ไม่นับ Initial)
+  static Future<List<Map<String, dynamic>>> _getNextReadings(
+      String roomId, int month, int year) async {
+    try {
+      final result = await _supabase
+          .from('meter_readings')
+          .select('*')
+          .eq('room_id', roomId)
+          .eq('is_initial_reading', false)
+          .or('reading_year.gt.$year,reading_year.eq.$year')
+          .order('reading_year', ascending: true)
+          .order('reading_month', ascending: true);
+      // กรองให้เหลือจริงๆ เฉพาะที่มากกว่าคู่เดือน/ปี
+      return List<Map<String, dynamic>>.from(result).where((r) {
+        final y = (r['reading_year'] ?? 0) as int;
+        final m = (r['reading_month'] ?? 0) as int;
+        return (y > year) || (y == year && m > month);
+      }).toList();
+    } catch (e) {
+      return [];
     }
   }
 }

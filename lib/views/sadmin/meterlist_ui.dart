@@ -506,7 +506,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'ห้อง $roomNo • $cate • $tenant',
+                '$cate $roomNo',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -696,6 +696,10 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     bool editablePrevious = false,
     TextEditingController? previousController,
   }) {
+    final prevText = previous.toStringAsFixed(2);
+    final usageText = usage == null
+        ? ''
+        : (usage < 0 ? 'ผิด' : usage.toStringAsFixed(2));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -704,9 +708,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Previous (read-only or input)
-            SizedBox(
-              width: 160,
+            // Previous (read-only or input) - equal width
+            Expanded(
               child: editablePrevious && previousController != null
                   ? TextField(
                       controller: previousController,
@@ -718,18 +721,18 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                       ),
                       onChanged: (_) => onChanged(),
                     )
-                  : Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: usageColor.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(6),
+                  : TextField(
+                      controller: TextEditingController(text: prevText),
+                      readOnly: true,
+                      decoration: const InputDecoration(
+                        labelText: 'ก่อนหน้า',
+                        border: OutlineInputBorder(),
+                        isDense: true,
                       ),
-                      child: Text('ก่อนหน้า: ${previous.toStringAsFixed(2)}',
-                          overflow: TextOverflow.ellipsis),
                     ),
             ),
             const SizedBox(width: 8),
-            // Current input
+            // Current input - equal width
             Expanded(
               child: TextField(
                 controller: controller,
@@ -745,22 +748,23 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               ),
             ),
             const SizedBox(width: 8),
-            // Usage text
-            ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 120),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.calculate, size: 16, color: (usage == null || usage >= 0) ? usageColor : Colors.red),
-                  const SizedBox(width: 6),
-                  Text(
-                    usage == null
-                        ? '-'
-                        : (usage < 0 ? 'ผิด' : '${usage.toStringAsFixed(2)} หน่วย'),
-                    style: TextStyle(color: (usage == null || usage >= 0) ? usageColor : Colors.red),
-                    overflow: TextOverflow.ellipsis,
+            // Usage as read-only field - equal width
+            Expanded(
+              child: TextField(
+                controller: TextEditingController(text: usageText),
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: 'หน่วย',
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                  suffixText: (usage == null || usage < 0) ? null : 'หน่วย',
+                  suffixStyle: TextStyle(
+                    color: (usage == null || usage >= 0) ? usageColor : Colors.red,
                   ),
-                ],
+                ),
+                style: TextStyle(
+                  color: (usage == null || usage >= 0) ? usageColor : Colors.red,
+                ),
               ),
             ),
           ],
@@ -836,6 +840,10 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       final res = await MeterReadingService.createMeterReading(payload);
       if (res['success'] == true) {
         _showSuccessSnackBar('บันทึกสำเร็จ และยืนยันอัตโนมัติ');
+        final warns = List.from(res['warnings'] ?? const []);
+        if (warns.isNotEmpty) {
+          _showWarnSnackBar('พบห้องข้อมูลผิดพลาด บางเดือนถัดไปไม่สามารถลบได้');
+        }
         _savedRoomIds.add(roomId);
         // Store as existing for read-only view
         final data = Map<String, dynamic>.from(res['data'] ?? {});
@@ -897,6 +905,10 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       final res = await MeterReadingService.updateMeterReading(readingId, payload);
       if (res['success'] == true) {
         _showSuccessSnackBar('บันทึกการแก้ไขสำเร็จ');
+        final warns = List.from(res['warnings'] ?? const []);
+        if (warns.isNotEmpty) {
+          _showWarnSnackBar('พบห้องข้อมูลผิดพลาด บางเดือนถัดไปออกบิลแล้ว ไม่สามารถลบเพื่อให้ต่อเนื่องได้');
+        }
         final data = Map<String, dynamic>.from(res['data'] ?? {});
         _existingByRoom[roomId] = data;
         _editingRoomIds.remove(roomId);
@@ -935,6 +947,10 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       final res = await MeterReadingService.deleteMeterReading(readingId);
       if (res['success'] == true) {
         _showSuccessSnackBar('ลบข้อมูลสำเร็จ');
+        final warns = List.from(res['warnings'] ?? const []);
+        if (warns.isNotEmpty) {
+          _showWarnSnackBar('พบห้องข้อมูลผิดพลาด บางเดือนถัดไปออกบิลแล้ว ไม่สามารถลบเพื่อให้ต่อเนื่องได้');
+        }
         _existingByRoom.remove(roomId);
         _savedRoomIds.remove(roomId);
         _editingRoomIds.remove(roomId);
@@ -991,6 +1007,25 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
           ],
         ),
         backgroundColor: Colors.red[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _showWarnSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.amber[800],
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         duration: const Duration(seconds: 4),
