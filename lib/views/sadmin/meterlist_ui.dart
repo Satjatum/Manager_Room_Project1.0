@@ -42,6 +42,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
   String? _selectedBranchId;
   String? _selectedRoomId;
   String? _selectedTenantId;
+  String? _selectedCategory;
+  String _roomNumberQuery = '';
   String _selectedStatus = 'all';
   int? _selectedMonth;
   int? _selectedYear;
@@ -315,70 +317,30 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
 
                     // Stats & Controls row
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (_stats != null)
                           Expanded(child: _buildTrackingBar()),
                         const SizedBox(width: 12),
-                        // Month/Year filter popup and refresh
-                        PopupMenuButton<String>(
-                          icon: const Icon(Icons.filter_list,
-                              color: Colors.black87),
-                          tooltip: 'ตัวกรอง',
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          itemBuilder: (context) => [
-                            const PopupMenuItem<String>(
-                              value: null,
-                              enabled: false,
-                              child: Row(
-                                children: [
-                                  Icon(Icons.calendar_month,
-                                      size: 20, color: AppTheme.primary),
-                                  SizedBox(width: 8),
-                                  Text('เดือน/ปี',
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold)),
-                                ],
+                        // Filters for category, tenant, room number, month/year
+                        Expanded(
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.end,
+                            children: [
+                              _buildCategoryFilter(),
+                              _buildTenantFilter(),
+                              _buildRoomNumberFilter(),
+                              _buildMonthYearFilter(),
+                              IconButton(
+                                onPressed: _refreshData,
+                                icon: const Icon(Icons.refresh,
+                                    color: Colors.black87),
+                                tooltip: 'รีเฟรช',
                               ),
-                            ),
-                            ...List.generate(12, (index) {
-                              return PopupMenuItem<String>(
-                                value: 'month_${index + 1}',
-                                child: Text(_getMonthName(index + 1)),
-                              );
-                            }),
-                            const PopupMenuDivider(),
-                            ...List.generate(5, (index) {
-                              final year = DateTime.now().year - index;
-                              return PopupMenuItem<String>(
-                                value: 'year_$year',
-                                child: Text('$year'),
-                              );
-                            }),
-                          ],
-                          onSelected: (String? value) async {
-                            if (value != null) {
-                              if (value.startsWith('month_')) {
-                                setState(() {
-                                  _selectedMonth = int.parse(
-                                      value.replaceFirst('month_', ''));
-                                });
-                              } else if (value.startsWith('year_')) {
-                                setState(() {
-                                  _selectedYear = int.parse(
-                                      value.replaceFirst('year_', ''));
-                                });
-                              }
-                              await _loadMeterReadings();
-                              await _loadStats();
-                            }
-                          },
-                        ),
-                        IconButton(
-                          onPressed: _refreshData,
-                          icon:
-                              const Icon(Icons.refresh, color: Colors.black87),
-                          tooltip: 'รีเฟรช',
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -472,13 +434,10 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
                             color: AppTheme.primary,
                             child: LayoutBuilder(
                               builder: (context, constraints) {
-                                if (isMobileApp) {
+                                if (isMobileApp || constraints.maxWidth <= 900) {
                                   return _buildListView();
                                 }
-                                if (constraints.maxWidth > 600) {
-                                  return _buildGridView(constraints.maxWidth);
-                                }
-                                return _buildListView();
+                                return _buildDesktopTableView(constraints.maxWidth);
                               },
                             ),
                           ),
@@ -733,6 +692,140 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
     );
   }
 
+  // Desktop: DataTable view
+  Widget _buildDesktopTableView(double screenWidth) {
+    final columns = <DataColumn>[
+      const DataColumn(label: Text('เลขที่')),
+      const DataColumn(label: Text('ห้อง')),
+      const DataColumn(label: Text('ผู้เช่า')),
+      const DataColumn(label: Text('น้ำ ก่อน/ปัจจุบัน/ใช้')),
+      const DataColumn(label: Text('ไฟ ก่อน/ปัจจุบัน/ใช้')),
+      const DataColumn(label: Text('เดือน/ปี')),
+      const DataColumn(label: Text('วันที่')),
+      const DataColumn(label: Text('สถานะ')),
+      const DataColumn(label: Text('การกระทำ')),
+    ];
+
+    final rows = _filteredReadings.map((reading) {
+      final String id = reading['reading_id'];
+      final bool editing = _editing[id] == true;
+
+      Widget waterCell() {
+        final prev = (reading['water_previous_reading'] ?? 0.0).toDouble();
+        if (!editing) {
+          final cur = (reading['water_current_reading'] ?? 0.0).toDouble();
+          final usage = (reading['water_usage'] ?? (cur - prev)).toDouble();
+          return Text('${prev.toStringAsFixed(2)} / ${cur.toStringAsFixed(2)} / ${usage.toStringAsFixed(2)}');
+        }
+        final ctrl = _waterControllers[id] ??= TextEditingController(
+          text: (reading['water_current_reading'] ?? '').toString(),
+        );
+        final curVal = double.tryParse(ctrl.text.trim()) ?? prev;
+        final usage = (curVal - prev);
+        return Row(
+          children: [
+            Text(prev.toStringAsFixed(2), style: const TextStyle(color: Colors.grey)),
+            const SizedBox(width: 6),
+            SizedBox(
+              width: 90,
+              child: TextField(
+                controller: ctrl,
+                onChanged: (_) => setState(() {}),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Chip(label: Text(usage < 0 ? 'ผิด' : usage.toStringAsFixed(2)), backgroundColor: usage < 0 ? Colors.red.shade100 : Colors.blue.shade50),
+          ],
+        );
+      }
+
+      Widget elecCell() {
+        final prev = (reading['electric_previous_reading'] ?? 0.0).toDouble();
+        if (!editing) {
+          final cur = (reading['electric_current_reading'] ?? 0.0).toDouble();
+          final usage = (reading['electric_usage'] ?? (cur - prev)).toDouble();
+          return Text('${prev.toStringAsFixed(2)} / ${cur.toStringAsFixed(2)} / ${usage.toStringAsFixed(2)}');
+        }
+        final ctrl = _electricControllers[id] ??= TextEditingController(
+          text: (reading['electric_current_reading'] ?? '').toString(),
+        );
+        final curVal = double.tryParse(ctrl.text.trim()) ?? prev;
+        final usage = (curVal - prev);
+        return Row(
+          children: [
+            Text(prev.toStringAsFixed(2), style: const TextStyle(color: Colors.grey)),
+            const SizedBox(width: 6),
+            SizedBox(
+              width: 90,
+              child: TextField(
+                controller: ctrl,
+                onChanged: (_) => setState(() {}),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Chip(label: Text(usage < 0 ? 'ผิด' : usage.toStringAsFixed(2)), backgroundColor: usage < 0 ? Colors.red.shade100 : Colors.orange.shade50),
+          ],
+        );
+      }
+
+      final month = reading['reading_month'];
+      final year = reading['reading_year'];
+      final date = reading['reading_date'] != null ? DateTime.parse(reading['reading_date']) : null;
+      final status = reading['reading_status'] ?? 'draft';
+      final statusColor = _getStatusColor(status);
+      final readingNumber = reading['reading_number'] ?? '';
+
+      return DataRow(cells: [
+        DataCell(Text(readingNumber)),
+        DataCell(Text(reading['room_number'] ?? '')),
+        DataCell(Text(reading['tenant_name'] ?? '')),
+        DataCell(waterCell()),
+        DataCell(elecCell()),
+        DataCell(Text('${_getMonthName(month ?? 1)} ${(year ?? DateTime.now().year) + 543}')),
+        DataCell(Text(date != null ? _formatDateTime(date) : '-')),
+        DataCell(Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: statusColor.withOpacity(0.1),
+            border: Border.all(color: statusColor),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(_getStatusText(status), style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12)),
+        )),
+        DataCell(
+          editing
+              ? Row(
+                  children: [
+                    IconButton(
+                      tooltip: 'บันทึก',
+                      icon: const Icon(Icons.save, color: AppTheme.primary),
+                      onPressed: () => _saveInlineEdit(reading),
+                    ),
+                    IconButton(
+                      tooltip: 'ยกเลิก',
+                      icon: const Icon(Icons.close, color: Colors.red),
+                      onPressed: () => _cancelInlineEdit(id),
+                    ),
+                  ],
+                )
+              : _buildActionButtons(reading, MediaQuery.of(context).size),
+        ),
+      ]);
+    }).toList();
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minWidth: 1100),
+        child: DataTable(columns: columns, rows: rows),
+      ),
+    );
+  }
+
   Widget _buildLoadMoreButton() {
     if (!_hasMoreData) return const SizedBox.shrink();
 
@@ -906,7 +999,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
                   ),
                   const Spacer(),
                   Text(
-                    'เดือน: ${_getMonthName(reading['reading_month'] ?? 1)} ${reading['reading_year'] ?? DateTime.now().year}',
+                    'เดือน: ${_getMonthName(reading['reading_month'] ?? 1)} ${(reading['reading_year'] ?? DateTime.now().year) + 543}',
                     style: TextStyle(
                       color: Colors.grey[500],
                       fontSize: 12,
@@ -1289,6 +1382,27 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
           .toList();
     }
 
+    // Filter by category
+    if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
+      filtered = filtered
+          .where((r) => (r['room_category'] ?? '').toString() == _selectedCategory)
+          .toList();
+    }
+
+    // Filter by tenant
+    if (_selectedTenantId != null && _selectedTenantId!.isNotEmpty) {
+      filtered =
+          filtered.where((r) => r['tenant_id'] == _selectedTenantId).toList();
+    }
+
+    // Filter by room number query (contains)
+    if (_roomNumberQuery.isNotEmpty) {
+      final q = _roomNumberQuery.toLowerCase();
+      filtered = filtered
+          .where((r) => (r['room_number'] ?? '').toString().toLowerCase().contains(q))
+          .toList();
+    }
+
     // Filter by search
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((reading) {
@@ -1580,6 +1694,16 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
       });
 
       if (res['success'] == true) {
+        // Auto-confirm after save per new rules (skip if already billed/cancelled)
+        final status = reading['reading_status'] ?? 'draft';
+        if (status != 'billed' && status != 'cancelled') {
+          try {
+            final conf = await MeterReadingService.confirmMeterReading(id);
+            if (!(conf['success'] == true)) {
+              _showErrorSnackBar(conf['message'] ?? 'ไม่สามารถยืนยันหลังบันทึกได้');
+            }
+          } catch (_) {}
+        }
         _showSuccessSnackBar('บันทึกการแก้ไขสำเร็จ');
         _cancelInlineEdit(id);
         _refreshData();
@@ -1589,6 +1713,135 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
     } catch (e) {
       _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
     }
+  }
+
+  // ---- Filters widgets ----
+  Widget _buildCategoryFilter() {
+    final categories = _meterReadings
+        .map((e) => (e['room_category'] ?? '').toString())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    return SizedBox(
+      width: 200,
+      child: DropdownButtonFormField<String>(
+        value: _selectedCategory,
+        isDense: true,
+        decoration: const InputDecoration(
+          labelText: 'หมวดหมู่ห้อง',
+          border: OutlineInputBorder(),
+        ),
+        items: [
+          const DropdownMenuItem(value: null, child: Text('ทั้งหมด')),
+          ...categories.map((c) => DropdownMenuItem(value: c, child: Text(c))),
+        ],
+        onChanged: (val) {
+          setState(() => _selectedCategory = val);
+          _applyFilters();
+        },
+      ),
+    );
+  }
+
+  Widget _buildTenantFilter() {
+    final tenants = _meterReadings
+        .map((e) => {
+              'id': (e['tenant_id'] ?? '').toString(),
+              'name': (e['tenant_name'] ?? '').toString()
+            })
+        .where((e) => e['id']!.isNotEmpty)
+        .toSet()
+        .toList();
+    return SizedBox(
+      width: 220,
+      child: DropdownButtonFormField<String>(
+        value: _selectedTenantId,
+        isDense: true,
+        decoration: const InputDecoration(
+          labelText: 'ผู้เช่า',
+          border: OutlineInputBorder(),
+        ),
+        items: [
+          const DropdownMenuItem(value: null, child: Text('ทั้งหมด')),
+          ...tenants.map((t) => DropdownMenuItem(
+              value: t['id'], child: Text(t['name']!.isEmpty ? '-' : t['name']!))),
+        ],
+        onChanged: (val) {
+          setState(() => _selectedTenantId = val);
+          _applyFilters();
+        },
+      ),
+    );
+  }
+
+  Widget _buildRoomNumberFilter() {
+    return SizedBox(
+      width: 160,
+      child: TextField(
+        decoration: const InputDecoration(
+          labelText: 'เลขห้อง',
+          border: OutlineInputBorder(),
+          isDense: true,
+        ),
+        onChanged: (v) {
+          setState(() => _roomNumberQuery = v);
+          _applyFilters();
+        },
+      ),
+    );
+  }
+
+  Widget _buildMonthYearFilter() {
+    final currentYear = DateTime.now().year;
+    final years = List.generate(5, (i) => currentYear - i);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 160,
+          child: DropdownButtonFormField<int>(
+            value: _selectedMonth,
+            isDense: true,
+            decoration: const InputDecoration(
+              labelText: 'เดือน',
+              border: OutlineInputBorder(),
+            ),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('ทั้งหมด')),
+              ...List.generate(12, (i) => i + 1)
+                  .map((m) => DropdownMenuItem(value: m, child: Text(_getMonthName(m))))
+            ],
+            onChanged: (val) async {
+              setState(() => _selectedMonth = val);
+              await _loadMeterReadings();
+              await _loadStats();
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 140,
+          child: DropdownButtonFormField<int>(
+            value: _selectedYear,
+            isDense: true,
+            decoration: const InputDecoration(
+              labelText: 'ปี (ค.ศ.)',
+              border: OutlineInputBorder(),
+            ),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('ทั้งหมด')),
+              ...years.map((y) => DropdownMenuItem(value: y, child: Text('${y + 543} (พ.ศ.)'))),
+            ],
+            onChanged: (val) async {
+              setState(() => _selectedYear = val);
+              await _loadMeterReadings();
+              await _loadStats();
+            },
+          ),
+        ),
+      ],
+    );
   }
 
   // ยืนยันค่ามิเตอร์
