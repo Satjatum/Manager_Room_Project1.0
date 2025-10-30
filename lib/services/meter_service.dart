@@ -294,20 +294,20 @@ class MeterReadingService {
       String roomId, int month, int year,
       {List<String>? statuses}) async {
     try {
+      // Build filters first, then apply limit at the end (to keep filter builder type)
       var query = _supabase
           .from('meter_readings')
           .select('reading_id')
           .eq('room_id', roomId)
           .eq('reading_month', month)
           .eq('reading_year', year)
-          .eq('is_initial_reading', false) // ไม่นับ initial reading
-          .limit(1);
+          .eq('is_initial_reading', false); // ไม่นับ initial reading
 
       if (statuses != null && statuses.isNotEmpty) {
         query = query.inFilter('reading_status', statuses);
       }
 
-      final result = await query;
+      final result = await query.limit(1);
       return result.isNotEmpty;
     } catch (e) {
       return false;
