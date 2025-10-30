@@ -124,7 +124,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         final roomId = r['room_id']?.toString();
         if (roomId == null) return;
         try {
-          final prev = await MeterReadingService.getSuggestedPreviousReadings(roomId);
+          final prev = await MeterReadingService.getPreviousForMonth(
+              roomId, _selectedMonth, _selectedYear);
           if (prev == null) {
             // No previous at all -> require input for previous
             _needsPrevWaterInput.add(roomId);
@@ -960,7 +961,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         _noteCtrl[roomId]?.clear();
         // Refresh previous suggestions (optional)
         try {
-          final prev = await MeterReadingService.getSuggestedPreviousReadings(roomId);
+          final prev = await MeterReadingService.getPreviousForMonth(
+              roomId, _selectedMonth, _selectedYear);
           _prevWaterByRoom[roomId] = (prev?['water_previous'] ?? 0.0).toDouble();
           _prevElecByRoom[roomId] = (prev?['electric_previous'] ?? 0.0).toDouble();
         } catch (_) {}

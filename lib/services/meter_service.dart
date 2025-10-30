@@ -1017,6 +1017,70 @@ class MeterReadingService {
     }
   }
 
+  /// ค่าก่อนหน้าสำหรับเดือน/ปีที่เลือก: คืนค่าปัจจุบันของเดือนก่อนหน้าเป็น "ก่อนหน้า"
+  /// กรณีหาไม่เจอ ให้ fallback เป็น Initial Reading ถ้ามี
+  static Future<Map<String, dynamic>?> getPreviousForMonth(
+      String roomId, int targetMonth, int targetYear) async {
+    try {
+      // หาในปีเดียวกัน ที่เดือนน้อยกว่า (เฉพาะที่ยืนยันแล้ว/ออกบิลแล้ว)
+      final sameYear = await _supabase
+          .from('meter_readings')
+          .select('*')
+          .eq('room_id', roomId)
+          .eq('is_initial_reading', false)
+          .inFilter('reading_status', ['confirmed', 'billed'])
+          .eq('reading_year', targetYear)
+          .lt('reading_month', targetMonth)
+          .order('reading_month', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      if (sameYear != null) {
+        return {
+          'water_previous': (sameYear['water_current_reading'] ?? 0.0).toDouble(),
+          'electric_previous':
+              (sameYear['electric_current_reading'] ?? 0.0).toDouble(),
+          'source': 'prev_month_same_year',
+        };
+      }
+
+      // หาในปีก่อนหน้า (เฉพาะที่ยืนยันแล้ว/ออกบิลแล้ว)
+      final prevYear = await _supabase
+          .from('meter_readings')
+          .select('*')
+          .eq('room_id', roomId)
+          .eq('is_initial_reading', false)
+          .inFilter('reading_status', ['confirmed', 'billed'])
+          .lt('reading_year', targetYear)
+          .order('reading_year', ascending: false)
+          .order('reading_month', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      if (prevYear != null) {
+        return {
+          'water_previous': (prevYear['water_current_reading'] ?? 0.0).toDouble(),
+          'electric_previous':
+              (prevYear['electric_current_reading'] ?? 0.0).toDouble(),
+          'source': 'prev_month_prev_year',
+        };
+      }
+
+      // Fallback: ใช้ Initial Reading ถ้ามี
+      final initial = await getInitialReading(roomId);
+      if (initial != null) {
+        return {
+          'water_previous': (initial['water_current_reading'] ?? 0.0).toDouble(),
+          'electric_previous':
+              (initial['electric_current_reading'] ?? 0.0).toDouble(),
+          'source': 'initial_reading',
+        };
+      }
+
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   /// หาเดือนถัดไปของห้องเดียวกัน (ไม่นับ Initial)
   static Future<Map<String, dynamic>?> _getNextReading(
       String roomId, int month, int year) async {
