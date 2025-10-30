@@ -538,6 +538,8 @@ class MeterReadingService {
       final isInitialReading = existing['is_initial_reading'] ?? false;
 
       Map<String, dynamic> updateData;
+      // เตรียม warnings ให้ใช้ได้ทุกกรณี (ทั้ง initial และ normal)
+      final List<Map<String, dynamic>> warnings = [];
 
       if (isInitialReading) {
         // Initial Reading - อัปเดตค่าเดียวกัน
@@ -594,7 +596,6 @@ class MeterReadingService {
         final int? month = existing['reading_month'];
         final int? year = existing['reading_year'];
         final String roomId = existing['room_id'];
-        final List<Map<String, dynamic>> warnings = [];
         if (month != null && year != null && roomId.isNotEmpty) {
           final nextList = await _getNextReadings(roomId, month, year);
           for (final r in nextList) {
