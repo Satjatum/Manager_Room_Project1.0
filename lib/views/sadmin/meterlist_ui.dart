@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:manager_room_project/views/sadmin/invoice_add_ui.dart';
-import 'package:manager_room_project/views/sadmin/meter_add_ui.dart';
-import 'package:manager_room_project/views/sadmin/meter_edit_ui.dart';
 import 'package:manager_room_project/views/sadmin/meterlist_detail_ui.dart';
 import 'package:manager_room_project/views/utility_setting_ui.dart';
 import 'package:manager_room_project/views/widgets/subnavbar.dart';
@@ -58,6 +56,11 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
   // แคชตรวจสอบว่าแต่ละสาขามีอัตราค่าบริการที่เปิดใช้งานหรือไม่
   final Map<String, bool> _branchHasActiveRates = {};
   bool _selectedBranchHasRates = true;
+
+  // Inline edit state
+  final Map<String, bool> _editing = {}; // reading_id -> editing?
+  final Map<String, TextEditingController> _waterControllers = {}; // reading_id
+  final Map<String, TextEditingController> _electricControllers = {}; // reading_id
 
   @override
   void initState() {
@@ -483,20 +486,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
             ],
           ),
         ),
-        floatingActionButton: canCreateReading
-            ? FloatingActionButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => MeterReadingFormPage()),
-                  ).then((_) => _refreshData());
-                },
-                backgroundColor: AppTheme.primary,
-                child: const Icon(Icons.add, color: Colors.white),
-                tooltip: 'เพิ่มบันทึกค่ามิเตอร์',
-              )
-            : null,
+        // Inline workflow: no separate Add page; input is handled elsewhere
+        floatingActionButton: null,
         bottomNavigationBar: Subnavbar(
           currentIndex: 3,
           branchId: widget.branchId,
@@ -891,6 +882,12 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
                 ),
                 child: _buildReadingInfoResponsive(reading, isMobile),
               ),
+
+              // Inline edit section
+              if (_editing[readingId] == true) ...[
+                const SizedBox(height: 12),
+                _buildInlineEditSection(reading),
+              ],
               const SizedBox(height: 12),
 
               // Date and notes
@@ -1037,16 +1034,16 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
       ),
     );
 
-    // ปุ่มแก้ไข (เฉพาะ draft)
-    if (status == 'draft') {
+    // ปุ่มแก้ไขแบบอินไลน์ (อนุญาต draft และ confirmed)
+    if (status == 'draft' || status == 'confirmed') {
       menuItems.add(
         PopupMenuItem<String>(
-          value: 'edit',
+          value: _editing[readingId] == true ? 'edit_cancel' : 'edit_inline',
           child: Row(
             children: [
               Icon(Icons.edit, size: 18, color: Colors.orange[600]),
               const SizedBox(width: 12),
-              const Text('แก้ไข'),
+              Text(_editing[readingId] == true ? 'ยกเลิกแก้ไข' : 'แก้ไขแบบอินไลน์'),
             ],
           ),
         ),
@@ -1147,15 +1144,11 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
             ).then((_) => _refreshData());
             break;
 
-          case 'edit':
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => MeterReadingEditPage(
-                  readingId: readingId,
-                ),
-              ),
-            ).then((_) => _refreshData());
+          case 'edit_inline':
+            _startInlineEdit(reading);
+            break;
+          case 'edit_cancel':
+            _cancelInlineEdit(readingId);
             break;
 
           case 'confirm':
@@ -1395,6 +1388,207 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage>
       _loadStats(),
     ]);
     await _updateBranchRatesCache();
+  }
+
+  // ----- Inline Edit Helpers -----
+  void _startInlineEdit(Map<String, dynamic> reading) {
+    final String id = reading['reading_id'];
+    _editing[id] = true;
+
+    // Initialize controllers with current values
+    _waterControllers[id]?.dispose();
+    _electricControllers[id]?.dispose();
+    _waterControllers[id] = TextEditingController(
+      text: (reading['water_current_reading'] ?? '').toString(),
+    );
+    _electricControllers[id] = TextEditingController(
+      text: (reading['electric_current_reading'] ?? '').toString(),
+    );
+    setState(() {});
+  }
+
+  void _cancelInlineEdit(String readingId) {
+    _editing[readingId] = false;
+    _waterControllers[readingId]?.dispose();
+    _electricControllers[readingId]?.dispose();
+    _waterControllers.remove(readingId);
+    _electricControllers.remove(readingId);
+    setState(() {});
+  }
+
+  Widget _buildInlineEditSection(Map<String, dynamic> reading) {
+    final String id = reading['reading_id'];
+    final waterPrev = (reading['water_previous_reading'] ?? 0.0).toDouble();
+    final elecPrev = (reading['electric_previous_reading'] ?? 0.0).toDouble();
+
+    final waterCtrl = _waterControllers[id] ??= TextEditingController(
+      text: (reading['water_current_reading'] ?? '').toString(),
+    );
+    final elecCtrl = _electricControllers[id] ??= TextEditingController(
+      text: (reading['electric_current_reading'] ?? '').toString(),
+    );
+
+    double waterCur = double.tryParse(waterCtrl.text.trim()) ?? waterPrev;
+    double elecCur = double.tryParse(elecCtrl.text.trim()) ?? elecPrev;
+
+    final waterUsage = (waterCur - waterPrev).clamp(-9999999, 9999999).toDouble();
+    final elecUsage = (elecCur - elecPrev).clamp(-9999999, 9999999).toDouble();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: waterCtrl,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'ค่าน้ำปัจจุบัน',
+                  prefixIcon: Icon(Icons.water_drop, color: Colors.blue),
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextField(
+                controller: elecCtrl,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'ค่าไฟปัจจุบัน',
+                  prefixIcon: Icon(Icons.electric_bolt, color: Colors.orange),
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _buildUsagePreview(
+                title: 'ใช้น้ำ',
+                usage: waterUsage,
+                color: Colors.blue,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildUsagePreview(
+                title: 'ใช้ไฟ',
+                usage: elecUsage,
+                color: Colors.orange,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            ElevatedButton.icon(
+              onPressed: () => _saveInlineEdit(reading),
+              icon: const Icon(Icons.save),
+              label: const Text('บันทึก'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton.icon(
+              onPressed: () => _cancelInlineEdit(id),
+              icon: const Icon(Icons.close),
+              label: const Text('ยกเลิก'),
+            ),
+          ],
+        )
+      ],
+    );
+  }
+
+  Widget _buildUsagePreview({
+    required String title,
+    required double usage,
+    required Color color,
+  }) {
+    final isValid = usage >= 0;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: (isValid ? color : Colors.red).withOpacity(0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isValid ? color.withOpacity(0.4) : Colors.red.withOpacity(0.6),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(isValid ? Icons.calculate : Icons.warning,
+              size: 18, color: isValid ? color : Colors.red),
+          const SizedBox(width: 8),
+          Text(
+            '$title: ${usage < 0 ? 'ค่าปัจจุบันต้องไม่ต่ำกว่าก่อนหน้า' : usage.toStringAsFixed(2) + ' หน่วย'}',
+            style: TextStyle(
+              color: isValid ? color : Colors.red,
+              fontWeight: FontWeight.w600,
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveInlineEdit(Map<String, dynamic> reading) async {
+    final String id = reading['reading_id'];
+    final double prevWater =
+        (reading['water_previous_reading'] ?? 0.0).toDouble();
+    final double prevElec =
+        (reading['electric_previous_reading'] ?? 0.0).toDouble();
+
+    final String waterText = _waterControllers[id]?.text.trim() ?? '';
+    final String elecText = _electricControllers[id]?.text.trim() ?? '';
+
+    final double? curWater = waterText.isEmpty ? null : double.tryParse(waterText);
+    final double? curElec = elecText.isEmpty ? null : double.tryParse(elecText);
+
+    if (curWater == null || curElec == null) {
+      _showErrorSnackBar('กรุณากรอกตัวเลขให้ถูกต้อง');
+      return;
+    }
+
+    if (curWater < prevWater) {
+      _showErrorSnackBar('ค่าน้ำปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า');
+      return;
+    }
+    if (curElec < prevElec) {
+      _showErrorSnackBar('ค่าไฟปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า');
+      return;
+    }
+
+    try {
+      final res = await MeterReadingService.updateMeterReading(id, {
+        'water_current_reading': curWater,
+        'electric_current_reading': curElec,
+        'reading_date': DateTime.now().toIso8601String().split('T')[0],
+        'reading_notes': reading['reading_notes'],
+      });
+
+      if (res['success'] == true) {
+        _showSuccessSnackBar('บันทึกการแก้ไขสำเร็จ');
+        _cancelInlineEdit(id);
+        _refreshData();
+      } else {
+        _showErrorSnackBar(res['message'] ?? 'เกิดข้อผิดพลาด');
+      }
+    } catch (e) {
+      _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+    }
   }
 
   // ยืนยันค่ามิเตอร์
