@@ -42,6 +42,11 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
   // Previous readings per room_id
   final Map<String, double> _prevWaterByRoom = {};
   final Map<String, double> _prevElecByRoom = {};
+  // For rooms with no history: allow entering "previous" too
+  final Map<String, TextEditingController> _prevWaterCtrl = {};
+  final Map<String, TextEditingController> _prevElecCtrl = {};
+  final Set<String> _needsPrevWaterInput = {};
+  final Set<String> _needsPrevElecInput = {};
 
   // Controllers per room_id
   final Map<String, TextEditingController> _waterCtrl = {};
@@ -120,16 +125,27 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         if (roomId == null) return;
         try {
           final prev = await MeterReadingService.getSuggestedPreviousReadings(roomId);
-          _prevWaterByRoom[roomId] = (prev?['water_previous'] ?? 0.0).toDouble();
-          _prevElecByRoom[roomId] = (prev?['electric_previous'] ?? 0.0).toDouble();
+          if (prev == null) {
+            // No previous at all -> require input for previous
+            _needsPrevWaterInput.add(roomId);
+            _needsPrevElecInput.add(roomId);
+            _prevWaterByRoom[roomId] = 0.0;
+            _prevElecByRoom[roomId] = 0.0;
+          } else {
+            _prevWaterByRoom[roomId] = (prev['water_previous'] ?? 0.0).toDouble();
+            _prevElecByRoom[roomId] = (prev['electric_previous'] ?? 0.0).toDouble();
+          }
         } catch (_) {
           _prevWaterByRoom[roomId] = 0.0;
           _prevElecByRoom[roomId] = 0.0;
+          // On error, keep as not requiring previous input; user can still input current
         }
         // Init controllers if not exist
         _waterCtrl.putIfAbsent(roomId, () => TextEditingController());
         _elecCtrl.putIfAbsent(roomId, () => TextEditingController());
         _noteCtrl.putIfAbsent(roomId, () => TextEditingController());
+        _prevWaterCtrl.putIfAbsent(roomId, () => TextEditingController());
+        _prevElecCtrl.putIfAbsent(roomId, () => TextEditingController());
       }));
 
       // Fetch existing readings of the selected month/year for each room
@@ -453,6 +469,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     final wCtrl = _waterCtrl[roomId] ??= TextEditingController();
     final eCtrl = _elecCtrl[roomId] ??= TextEditingController();
     final nCtrl = _noteCtrl[roomId] ??= TextEditingController();
+    final pwCtrl = _prevWaterCtrl[roomId] ??= TextEditingController();
+    final peCtrl = _prevElecCtrl[roomId] ??= TextEditingController();
 
     final existing = _existingByRoom[roomId];
     final isEditing = _editingRoomIds.contains(roomId);
@@ -460,10 +478,10 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     // Resolve previous/current for display/input depending on state
     final displayPrevW = (existing != null && isEditing)
         ? (existing['water_previous_reading'] ?? prevW).toDouble()
-        : prevW;
+        : (_needsPrevWaterInput.contains(roomId) ? (double.tryParse(pwCtrl.text.trim()) ?? prevW) : prevW);
     final displayPrevE = (existing != null && isEditing)
         ? (existing['electric_previous_reading'] ?? prevE).toDouble()
-        : prevE;
+        : (_needsPrevElecInput.contains(roomId) ? (double.tryParse(peCtrl.text.trim()) ?? prevE) : prevE);
 
     final curW = double.tryParse(wCtrl.text.trim());
     final curE = double.tryParse(eCtrl.text.trim());
@@ -562,6 +580,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               usage: usageW,
               usageColor: Colors.blue[700]!,
               onChanged: () => setState(() {}),
+              editablePrevious: _needsPrevWaterInput.contains(roomId) && existing == null,
+              previousController: pwCtrl,
             ),
             const SizedBox(height: 12),
             _buildInputLine(
@@ -573,6 +593,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               usage: usageE,
               usageColor: Colors.orange[700]!,
               onChanged: () => setState(() {}),
+              editablePrevious: _needsPrevElecInput.contains(roomId) && existing == null,
+              previousController: peCtrl,
             ),
             const SizedBox(height: 12),
             TextField(
@@ -671,6 +693,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     double? usage,
     required Color usageColor,
     required VoidCallback onChanged,
+    bool editablePrevious = false,
+    TextEditingController? previousController,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -678,16 +702,34 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(
-                color: usageColor.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text('ก่อนหน้า: ${previous.toStringAsFixed(2)}'),
+            // Previous (read-only or input)
+            SizedBox(
+              width: 160,
+              child: editablePrevious && previousController != null
+                  ? TextField(
+                      controller: previousController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'ก่อนหน้า',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      onChanged: (_) => onChanged(),
+                    )
+                  : Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: usageColor.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text('ก่อนหน้า: ${previous.toStringAsFixed(2)}',
+                          overflow: TextOverflow.ellipsis),
+                    ),
             ),
             const SizedBox(width: 8),
+            // Current input
             Expanded(
               child: TextField(
                 controller: controller,
@@ -702,17 +744,27 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                 onChanged: (_) => onChanged(),
               ),
             ),
+            const SizedBox(width: 8),
+            // Usage text
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 120),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.calculate, size: 16, color: (usage == null || usage >= 0) ? usageColor : Colors.red),
+                  const SizedBox(width: 6),
+                  Text(
+                    usage == null
+                        ? '-'
+                        : (usage < 0 ? 'ผิด' : '${usage.toStringAsFixed(2)} หน่วย'),
+                    style: TextStyle(color: (usage == null || usage >= 0) ? usageColor : Colors.red),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
-        const SizedBox(height: 6),
-        Row(children: [
-          Icon(Icons.calculate, size: 16, color: usageColor),
-          const SizedBox(width: 6),
-          Text(
-            'ปัจจุบัน - ก่อนหน้า = ${usage == null ? '-' : usage < 0 ? 'ผิด' : usage.toStringAsFixed(2)} หน่วย',
-            style: TextStyle(color: (usage == null || usage >= 0) ? usageColor : Colors.red),
-          ),
-        ]),
       ],
     );
   }
@@ -729,8 +781,25 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     final wCtrl = _waterCtrl[roomId]!;
     final eCtrl = _elecCtrl[roomId]!;
     final nCtrl = _noteCtrl[roomId]!;
-    final prevW = _prevWaterByRoom[roomId] ?? 0.0;
-    final prevE = _prevElecByRoom[roomId] ?? 0.0;
+    double prevW = _prevWaterByRoom[roomId] ?? 0.0;
+    double prevE = _prevElecByRoom[roomId] ?? 0.0;
+    // If requires previous input, read from controllers
+    if (_needsPrevWaterInput.contains(roomId)) {
+      final pv = double.tryParse((_prevWaterCtrl[roomId]?.text ?? '').trim());
+      if (pv == null) {
+        _showErrorSnackBar('กรุณากรอกค่าน้ำก่อนหน้าให้ถูกต้อง');
+        return;
+      }
+      prevW = pv;
+    }
+    if (_needsPrevElecInput.contains(roomId)) {
+      final pv = double.tryParse((_prevElecCtrl[roomId]?.text ?? '').trim());
+      if (pv == null) {
+        _showErrorSnackBar('กรุณากรอกค่าไฟก่อนหน้าให้ถูกต้อง');
+        return;
+      }
+      prevE = pv;
+    }
     final curW = double.tryParse(wCtrl.text.trim());
     final curE = double.tryParse(eCtrl.text.trim());
 
