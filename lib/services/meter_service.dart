@@ -1,8 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
-import '../services/image_service.dart';
 import '../models/user_models.dart';
-import 'dart:io';
+// Images no longer used for meter readings per new requirements
 
 class MeterReadingService {
   static final SupabaseClient _supabase = Supabase.instance.client;
@@ -292,9 +291,10 @@ class MeterReadingService {
 
   /// ตรวจสอบว่ามีการบันทึกค่ามิเตอร์สำหรับเดือนและปีนี้แล้วหรือไม่
   static Future<bool> hasReadingForMonth(
-      String roomId, int month, int year) async {
+      String roomId, int month, int year,
+      {List<String>? statuses}) async {
     try {
-      final result = await _supabase
+      var query = _supabase
           .from('meter_readings')
           .select('reading_id')
           .eq('room_id', roomId)
@@ -303,6 +303,11 @@ class MeterReadingService {
           .eq('is_initial_reading', false) // ไม่นับ initial reading
           .limit(1);
 
+      if (statuses != null && statuses.isNotEmpty) {
+        query = query.inFilter('reading_status', statuses);
+      }
+
+      final result = await query;
       return result.isNotEmpty;
     } catch (e) {
       return false;
@@ -365,14 +370,15 @@ class MeterReadingService {
           return {'success': false, 'message': 'กรุณาระบุปีที่บันทึก'};
         }
 
-        // ตรวจสอบว่ามีการบันทึกสำหรับเดือนนี้แล้วหรือไม่
-        final hasExisting = await hasReadingForMonth(
+        // ตรวจสอบว่ามีการบันทึกสำหรับเดือนนี้แล้วหรือไม่ (นับเฉพาะที่ยืนยันแล้ว/ออกบิลแล้ว)
+        final hasExistingConfirmed = await hasReadingForMonth(
           readingData['room_id'],
           readingData['reading_month'],
           readingData['reading_year'],
+          statuses: ['confirmed', 'billed'],
         );
 
-        if (hasExisting) {
+        if (hasExistingConfirmed) {
           return {
             'success': false,
             'message': 'มีการบันทึกค่ามิเตอร์สำหรับเดือนนี้แล้ว'
@@ -402,11 +408,9 @@ class MeterReadingService {
           'water_previous_reading': waterCurrent,
           'water_current_reading': waterCurrent,
           'water_usage': 0.0,
-          'water_meter_image': readingData['water_meter_image'],
           'electric_previous_reading': electricCurrent,
           'electric_current_reading': electricCurrent,
           'electric_usage': 0.0,
-          'electric_meter_image': readingData['electric_meter_image'],
           'reading_status': 'confirmed', // Auto-confirm
           'reading_date': readingData['reading_date'] ??
               DateTime.now().toIso8601String().split('T')[0],
@@ -452,16 +456,17 @@ class MeterReadingService {
           'water_previous_reading': waterPrevious,
           'water_current_reading': waterCurrent,
           'water_usage': waterUsage,
-          'water_meter_image': readingData['water_meter_image'],
           'electric_previous_reading': electricPrevious,
           'electric_current_reading': electricCurrent,
           'electric_usage': electricUsage,
-          'electric_meter_image': readingData['electric_meter_image'],
-          'reading_status': 'draft',
+          // สร้างแล้วเป็นสถานะยืนยันทันทีตามข้อกำหนดใหม่
+          'reading_status': 'confirmed',
           'reading_date': readingData['reading_date'] ??
               DateTime.now().toIso8601String().split('T')[0],
           'reading_notes': readingData['reading_notes'],
           'created_by': currentUser.userId,
+          'confirmed_by': currentUser.userId,
+          'confirmed_at': DateTime.now().toIso8601String(),
         };
       }
 
@@ -519,14 +524,8 @@ class MeterReadingService {
         return {'success': false, 'message': 'ไม่พบข้อมูลค่ามิเตอร์'};
       }
 
-      // ไม่ให้แก้ไขถ้ายืนยันแล้ว (ยกเว้น Initial Reading)
+      // อนุญาตให้แก้ไขได้ตลอดตามข้อกำหนดใหม่
       final isInitialReading = existing['is_initial_reading'] ?? false;
-      if (!isInitialReading && existing['reading_status'] == 'confirmed') {
-        return {
-          'success': false,
-          'message': 'ไม่สามารถแก้ไขค่ามิเตอร์ที่ยืนยันแล้ว'
-        };
-      }
 
       Map<String, dynamic> updateData;
 
@@ -543,11 +542,9 @@ class MeterReadingService {
           'water_previous_reading': waterCurrent,
           'water_current_reading': waterCurrent,
           'water_usage': 0.0,
-          'water_meter_image': readingData['water_meter_image'],
           'electric_previous_reading': electricCurrent,
           'electric_current_reading': electricCurrent,
           'electric_usage': 0.0,
-          'electric_meter_image': readingData['electric_meter_image'],
           'reading_date': readingData['reading_date'],
           'reading_notes': readingData['reading_notes'],
         };
@@ -587,11 +584,9 @@ class MeterReadingService {
           'water_previous_reading': waterPrevious,
           'water_current_reading': waterCurrent,
           'water_usage': waterUsage,
-          'water_meter_image': readingData['water_meter_image'],
           'electric_previous_reading': electricPrevious,
           'electric_current_reading': electricCurrent,
           'electric_usage': electricUsage,
-          'electric_meter_image': readingData['electric_meter_image'],
           'reading_date': readingData['reading_date'],
           'reading_notes': readingData['reading_notes'],
         };
@@ -748,14 +743,6 @@ class MeterReadingService {
         }
       }
 
-      // ลบรูปภาพจาก storage
-      if (existing['water_meter_image'] != null) {
-        await ImageService.deleteImage(existing['water_meter_image']);
-      }
-      if (existing['electric_meter_image'] != null) {
-        await ImageService.deleteImage(existing['electric_meter_image']);
-      }
-
       // ลบข้อมูล
       await _supabase
           .from('meter_readings')
@@ -817,7 +804,9 @@ class MeterReadingService {
       var query = _supabase.from('rental_contracts').select('''
         contract_id,
         rooms!inner(room_id, room_number, branch_id,
-          branches!inner(branch_name)),
+          branches!inner(branch_name),
+          room_categories!inner(roomcate_id, roomcate_name)
+        ),
         tenants!inner(tenant_id, tenant_fullname, tenant_phone)
       ''').eq('contract_status', 'active');
 
@@ -840,6 +829,7 @@ class MeterReadingService {
           'room_id': contract['rooms']['room_id'],
           'room_number': contract['rooms']['room_number'],
           'branch_name': contract['rooms']['branches']['branch_name'],
+          'room_category_name': contract['rooms']?['room_categories']?['roomcate_name'],
           'tenant_id': contract['tenants']['tenant_id'],
           'tenant_name': contract['tenants']['tenant_fullname'],
           'tenant_phone': contract['tenants']['tenant_phone'],
