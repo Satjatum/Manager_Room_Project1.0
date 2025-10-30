@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:manager_room_project/views/widgets/subnavbar.dart';
 import '../../services/meter_service.dart';
-import '../../services/branch_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_models.dart';
 import '../widgets/colors.dart';
@@ -27,9 +26,13 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
   // User/permission
   UserModel? _currentUser;
 
-  // Branches
-  List<Map<String, dynamic>> _branches = [];
-  String? _selectedBranchId;
+  // Filters
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+  final _roomNumberController = TextEditingController();
+  String _roomNumberQuery = '';
+  String? _selectedCategory;
+  List<String> _categories = [];
 
   // Rooms (active contracts)
   List<Map<String, dynamic>> _rooms = [];
@@ -53,16 +56,12 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
   final Map<String, Map<String, dynamic>> _existingByRoom = {};
   final Set<String> _editingRoomIds = {};
 
-  // Filters
-  final _searchController = TextEditingController();
-  String _searchQuery = '';
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year; // ค.ศ. (แสดงผล พ.ศ.)
 
   @override
   void initState() {
     super.initState();
-    _selectedBranchId = widget.branchId;
     _init();
   }
 
@@ -72,6 +71,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     for (final c in _elecCtrl.values) c.dispose();
     for (final c in _noteCtrl.values) c.dispose();
     _searchController.dispose();
+    _roomNumberController.dispose();
     super.dispose();
   }
 
@@ -81,7 +81,6 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       _currentUser = await AuthService.getCurrentUser();
       if (_currentUser == null) return;
 
-      await _loadBranches();
       await _loadRoomsAndPrevious();
     } catch (e) {
       _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
@@ -90,28 +89,11 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     }
   }
 
-  Future<void> _loadBranches() async {
-    try {
-      if (_currentUser?.userRole == UserRole.superAdmin) {
-        _branches = await BranchService.getAllBranches();
-      } else {
-        _branches = await BranchService.getBranchesByUser();
-      }
-      // If not provided from navigation, default to first branch if available
-      _selectedBranchId ??= _branches.isNotEmpty ? _branches.first['branch_id'] : null;
-      setState(() {});
-    } catch (e) {
-      // ignore silently, still allow page to work
-    }
-  }
-
   Future<void> _loadRoomsAndPrevious() async {
     setState(() => _loadingRooms = true);
     try {
       // Load active rooms for selected branch
-      _rooms = await MeterReadingService.getActiveRoomsForMeterReading(
-        branchId: _selectedBranchId,
-      );
+      _rooms = await MeterReadingService.getActiveRoomsForMeterReading();
 
       // Sort by room number (asc) then category
       _rooms.sort((a, b) {
@@ -123,6 +105,14 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         final bc = (b['room_category_name'] ?? '').toString();
         return ac.compareTo(bc);
       });
+
+      // Build categories list
+      final setCats = <String>{};
+      for (final r in _rooms) {
+        final c = (r['room_category_name'] ?? '').toString();
+        if (c.isNotEmpty) setCats.add(c);
+      }
+      _categories = setCats.toList()..sort();
 
       // Fetch previous readings for each room in parallel
       await Future.wait(_rooms.map((r) async {
@@ -277,76 +267,96 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                   ),
                   const SizedBox(height: 12),
 
-                  Row(
-                    children: [
-                      // Branch selector (if available or not forced by navigation)
-                      if (_branches.isNotEmpty)
-                        SizedBox(
-                          width: 260,
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedBranchId,
-                            decoration: const InputDecoration(
-                              labelText: 'สาขา',
-                              border: OutlineInputBorder(),
-                              isDense: true,
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isNarrow = constraints.maxWidth < 680;
+                      final itemWidth = isNarrow ? constraints.maxWidth : (constraints.maxWidth - 16) / 2;
+                      return Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          SizedBox(
+                            width: itemWidth,
+                            child: TextField(
+                              controller: _roomNumberController,
+                              onChanged: (v) => setState(() => _roomNumberQuery = v),
+                              decoration: const InputDecoration(
+                                labelText: 'เลขห้อง',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                                prefixIcon: Icon(Icons.meeting_room_outlined),
+                              ),
                             ),
-                            items: _branches
-                                .map((b) => DropdownMenuItem<String>(
-                                      value: b['branch_id'],
-                                      child: Text(b['branch_name'] ?? '-'),
-                                    ))
-                                .toList(),
-                            onChanged: (val) async {
-                              setState(() => _selectedBranchId = val);
-                              await _loadRoomsAndPrevious();
-                            },
                           ),
-                        ),
-                      if (_branches.isNotEmpty) const SizedBox(width: 8),
-                      SizedBox(
-                        width: 180,
-                        child: DropdownButtonFormField<int>(
-                          value: _selectedMonth,
-                          decoration: const InputDecoration(
-                            labelText: 'เดือน',
-                            border: OutlineInputBorder(),
-                            isDense: true,
+                          SizedBox(
+                            width: itemWidth,
+                            child: DropdownButtonFormField<String>(
+                              value: _selectedCategory,
+                              decoration: const InputDecoration(
+                                labelText: 'หมวดหมู่ห้อง',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              items: [
+                                const DropdownMenuItem<String>(
+                                    value: null, child: Text('ทั้งหมด')),
+                                ..._categories
+                                    .map((c) => DropdownMenuItem<String>(value: c, child: Text(c)))
+                                    .toList(),
+                              ],
+                              onChanged: (val) => setState(() => _selectedCategory = val),
+                            ),
                           ),
-                          items: List.generate(12, (i) => i + 1)
-                              .map((m) => DropdownMenuItem(value: m, child: Text(_getMonthName(m))))
-                              .toList(),
-                          onChanged: (val) async {
-                            setState(() => _selectedMonth = val ?? _selectedMonth);
-                            await _loadRoomsAndPrevious();
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        width: 160,
-                        child: DropdownButtonFormField<int>(
-                          value: _selectedYear,
-                          decoration: const InputDecoration(
-                            labelText: 'ปี (พ.ศ.)',
-                            border: OutlineInputBorder(),
-                            isDense: true,
+                          SizedBox(
+                            width: itemWidth,
+                            child: DropdownButtonFormField<int>(
+                              value: _selectedMonth,
+                              decoration: const InputDecoration(
+                                labelText: 'เดือน',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              items: List.generate(12, (i) => i + 1)
+                                  .map((m) => DropdownMenuItem(value: m, child: Text(_getMonthName(m))))
+                                  .toList(),
+                              onChanged: (val) async {
+                                setState(() => _selectedMonth = val ?? _selectedMonth);
+                                await _loadRoomsAndPrevious();
+                              },
+                            ),
                           ),
-                          items: List.generate(6, (i) => DateTime.now().year - i)
-                              .map((y) => DropdownMenuItem(value: y, child: Text('${y + 543}')))
-                              .toList(),
-                          onChanged: (val) async {
-                            setState(() => _selectedYear = val ?? _selectedYear);
-                            await _loadRoomsAndPrevious();
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        tooltip: 'รีเฟรช',
-                        onPressed: _loadRoomsAndPrevious,
-                        icon: const Icon(Icons.refresh, color: Colors.black87),
-                      ),
-                    ],
+                          SizedBox(
+                            width: itemWidth,
+                            child: DropdownButtonFormField<int>(
+                              value: _selectedYear,
+                              decoration: const InputDecoration(
+                                labelText: 'ปี (พ.ศ.)',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              items: List.generate(6, (i) => DateTime.now().year - i)
+                                  .map((y) => DropdownMenuItem(value: y, child: Text('${y + 543}')))
+                                  .toList(),
+                              onChanged: (val) async {
+                                setState(() => _selectedYear = val ?? _selectedYear);
+                                await _loadRoomsAndPrevious();
+                              },
+                            ),
+                          ),
+                          SizedBox(
+                            width: isNarrow ? constraints.maxWidth : itemWidth,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: IconButton(
+                                tooltip: 'รีเฟรช',
+                                onPressed: _loadRoomsAndPrevious,
+                                icon: const Icon(Icons.refresh, color: Colors.black87),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
@@ -381,11 +391,27 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
 
   Widget _buildRoomsList(bool isMobileApp) {
     final filtered = _rooms.where((r) {
-      if (_searchQuery.isEmpty) return true;
-      final room = (r['room_number'] ?? '').toString().toLowerCase();
-      final tenant = (r['tenant_name'] ?? '').toString().toLowerCase();
-      final q = _searchQuery.toLowerCase();
-      return room.contains(q) || tenant.contains(q);
+      // free-text search (ห้องหรือผู้เช่า)
+      if (_searchQuery.isNotEmpty) {
+        final room = (r['room_number'] ?? '').toString().toLowerCase();
+        final tenant = (r['tenant_name'] ?? '').toString().toLowerCase();
+        final q = _searchQuery.toLowerCase();
+        if (!room.contains(q) && !tenant.contains(q)) return false;
+      }
+
+      // room number filter
+      if (_roomNumberQuery.isNotEmpty) {
+        final rn = (r['room_number'] ?? '').toString().toLowerCase();
+        if (!rn.contains(_roomNumberQuery.toLowerCase())) return false;
+      }
+
+      // category filter
+      if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
+        final cat = (r['room_category_name'] ?? '').toString();
+        if (cat != _selectedCategory) return false;
+      }
+
+      return true;
     }).toList();
 
     if (filtered.isEmpty) {

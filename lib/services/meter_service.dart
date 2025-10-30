@@ -580,6 +580,27 @@ class MeterReadingService {
           };
         }
 
+        // ตรวจสอบความต่อเนื่องกับเดือนถัดไป (ห้ามค่าเดือนนี้มากกว่าค่าก่อนหน้าของเดือนถัดไป)
+        final int? month = existing['reading_month'];
+        final int? year = existing['reading_year'];
+        final String roomId = existing['room_id'];
+        if (month != null && year != null && roomId.isNotEmpty) {
+          final next = await _getNextReading(roomId, month, year);
+          if (next != null) {
+            final double nextWaterPrev =
+                (next['water_previous_reading'] ?? 0.0).toDouble();
+            final double nextElecPrev =
+                (next['electric_previous_reading'] ?? 0.0).toDouble();
+            if (waterCurrent > nextWaterPrev || electricCurrent > nextElecPrev) {
+              return {
+                'success': false,
+                'message':
+                    'ค่าใหม่สูงกว่าค่าก่อนหน้าของเดือนถัดไป กรุณาแก้ไขเดือนถัดไปก่อน หรือปรับค่าเดือนนี้ให้ไม่เกิน ${nextWaterPrev.toStringAsFixed(2)}/${nextElecPrev.toStringAsFixed(2)}'
+              };
+            }
+          }
+        }
+
         updateData = {
           'water_previous_reading': waterPrevious,
           'water_current_reading': waterCurrent,
@@ -714,7 +735,11 @@ class MeterReadingService {
         return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
       }
 
-      if (currentUser.userRole != UserRole.superAdmin) {
+      // อนุญาตให้ผู้ใช้ที่มีสิทธิ์จัดการค่ามิเตอร์ หรือ SuperAdmin สามารถลบได้
+      if (!currentUser.hasAnyPermission([
+        DetailedPermission.all,
+        DetailedPermission.manageMeterReadings,
+      ])) {
         return {'success': false, 'message': 'ไม่มีสิทธิ์ในการลบค่ามิเตอร์'};
       }
 
@@ -727,14 +752,7 @@ class MeterReadingService {
       final isInitialReading = existing['is_initial_reading'] ?? false;
 
       if (!isInitialReading) {
-        // Normal Reading - ตรวจสอบสถานะ
-        if (existing['reading_status'] == 'confirmed') {
-          return {
-            'success': false,
-            'message': 'ไม่สามารถลบค่ามิเตอร์ที่ยืนยันแล้ว'
-          };
-        }
-
+        // Normal Reading - อนุญาตให้ลบที่ confirmed/draft/cancelled ได้ แต่ไม่อนุญาตลบที่ออกบิลแล้ว
         if (existing['reading_status'] == 'billed') {
           return {
             'success': false,
@@ -954,6 +972,40 @@ class MeterReadingService {
       return null;
     } catch (e) {
       print('Error getting suggested previous readings: $e');
+      return null;
+    }
+  }
+
+  /// หาเดือนถัดไปของห้องเดียวกัน (ไม่นับ Initial)
+  static Future<Map<String, dynamic>?> _getNextReading(
+      String roomId, int month, int year) async {
+    try {
+      // ลองหาในปีเดียวกัน เดือนที่มากกว่า
+      final sameYear = await _supabase
+          .from('meter_readings')
+          .select('*')
+          .eq('room_id', roomId)
+          .eq('is_initial_reading', false)
+          .eq('reading_year', year)
+          .gt('reading_month', month)
+          .order('reading_month', ascending: true)
+          .limit(1)
+          .maybeSingle();
+      if (sameYear != null) return sameYear;
+
+      // ถ้าไม่มี ให้หาในปีถัดไป
+      final nextYear = await _supabase
+          .from('meter_readings')
+          .select('*')
+          .eq('room_id', roomId)
+          .eq('is_initial_reading', false)
+          .gt('reading_year', year)
+          .order('reading_year', ascending: true)
+          .order('reading_month', ascending: true)
+          .limit(1)
+          .maybeSingle();
+      return nextYear;
+    } catch (e) {
       return null;
     }
   }
