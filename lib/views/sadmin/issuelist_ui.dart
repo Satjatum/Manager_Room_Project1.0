@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:manager_room_project/views/sadmin/issuelist_detail_ui.dart';
 import 'package:manager_room_project/views/tenant/issue_add_ui.dart';
 import 'package:manager_room_project/views/widgets/mainnavbar.dart';
-import 'package:manager_room_project/views/widgets/subnavbar.dart';
 import '../../services/issue_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/branch_service.dart';
@@ -659,13 +658,7 @@ class _IssuelistUiState extends State<IssuelistUi>
                 tooltip: 'แจ้งปัญหาใหม่',
               )
             : null,
-        bottomNavigationBar: Subnavbar(
-          // If role is Tenant -> subnavbar index 2 per requirement
-          currentIndex:
-              (_currentUser?.userRole == UserRole.tenant) ? 2 : 2,
-          branchId: widget.branchId,
-          branchName: widget.branchName,
-        ),
+        bottomNavigationBar: null,
       ),
     );
   }

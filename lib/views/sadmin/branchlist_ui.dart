@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'package:manager_room_project/views/sadmin/branchdash_ui.dart';
 import 'package:manager_room_project/views/sadmin/roomlist_ui.dart';
 import 'package:manager_room_project/views/widgets/mainnavbar.dart';
 import '../../models/user_models.dart';
@@ -922,7 +923,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => RoomListUI(
+        builder: (context) => BranchDashboardPage(
           branchId: branchId,
           branchName: branchName,
         ),

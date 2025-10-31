@@ -5,7 +5,6 @@ import 'package:manager_room_project/views/sadmin/room_edit_ui.dart';
 import 'package:manager_room_project/views/sadmin/roomcate_ui.dart';
 import 'package:manager_room_project/views/sadmin/roomlist_detail_ui.dart';
 import 'package:manager_room_project/views/sadmin/roomtype_ui.dart';
-import 'package:manager_room_project/views/widgets/subnavbar.dart';
 // เพิ่ม import หน้าจัดการข้อมูลพื้นฐาน
 
 import '../../models/user_models.dart';
@@ -1502,13 +1501,7 @@ class _RoomListUIState extends State<RoomListUI> {
                 child: Icon(Icons.add, color: Colors.white),
               )
             : null,
-        bottomNavigationBar: widget.hideBottomNav
-            ? null
-            : Subnavbar(
-                currentIndex: 0,
-                branchId: widget.branchId,
-                branchName: widget.branchName,
-              ),
+        bottomNavigationBar: null,
       ),
     );
   }

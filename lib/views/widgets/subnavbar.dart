@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:manager_room_project/views/sadmin/branchdash_ui.dart';
 // Removed: payment_qr_management_ui.dart (not used)
 import 'package:manager_room_project/views/sadmin/issuelist_ui.dart';
 import 'package:manager_room_project/views/sadmin/meterlist_ui.dart';
@@ -89,61 +90,14 @@ class _SubnavbarState extends State<Subnavbar> {
   void _setupSuperAdminNavigation() {
     _navigationItems = [
       NavItem(
-        icon: Icons.meeting_room_outlined,
-        activeIcon: Icons.meeting_room,
-        label: 'ห้อง', // Room list
-      ),
-      NavItem(
-        icon: Icons.people_outline,
-        activeIcon: Icons.people,
-        label: 'ผู้เช่า', // Tenant list
-      ),
-      NavItem(
-        icon: Icons.report_gmailerrorred_outlined,
-        activeIcon: Icons.report,
-        label: 'แจ้งปัญหา', // Issues list
-      ),
-      NavItem(
-        icon: Icons.speed_outlined,
-        activeIcon: Icons.speed,
-        label: 'มิเตอร์', // Meter readings list
-      ),
-      NavItem(
-        icon: Icons.receipt_long_outlined,
-        activeIcon: Icons.receipt_long,
-        label: 'บิลชำระ', // Payment verification
-      ),
-      NavItem(
-        icon: Icons.apartment_outlined,
-        activeIcon: Icons.apartment,
-        label: 'ตั้งค่าสาขา', // Branch settings
+        icon: Icons.dashboard_outlined,
+        activeIcon: Icons.dashboard,
+        label: 'แดชบอร์ด',
       ),
     ];
 
     _pages = [
-      RoomListUI(
-        branchId: widget.branchId,
-        branchName: widget.branchName,
-      ),
-      TenantListUI(
-        branchId: widget.branchId,
-        branchName: widget.branchName,
-      ),
-      IssuelistUi(
-        branchId: widget.branchId,
-        branchName: widget.branchName,
-      ),
-      MeterReadingsListPage(
-        branchId: widget.branchId,
-        branchName: widget.branchName,
-      ),
-      PaymentVerificationPage(
-        branchId: widget.branchId,
-      ),
-      SettingbranchUi(
-        branchId: widget.branchId ?? '',
-        branchName: widget.branchName,
-      ),
+      BranchDashboardPage(),
     ];
   }
 
@@ -233,7 +187,8 @@ class _SubnavbarState extends State<Subnavbar> {
     _pages = [
       const TenantdashUi(), // index 0
       const TenantBillsListPage(), // index 1
-      IssuelistUi( // index 2
+      IssuelistUi(
+        // index 2
         branchId: widget.branchId,
         branchName: widget.branchName,
       ),
