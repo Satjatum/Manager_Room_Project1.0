@@ -143,50 +143,65 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: DropdownButtonFormField<int>(
-                                value: _selectedMonth,
-                                decoration: const InputDecoration(
-                                  labelText: 'เดือน',
-                                  border: OutlineInputBorder(),
-                                  isDense: true,
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey[300]!),
+                            boxShadow: const [
+                              BoxShadow(
+                                  color: Color(0x0A000000),
+                                  blurRadius: 6,
+                                  spreadRadius: -2),
+                            ],
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<int>(
+                                  value: _selectedMonth,
+                                  decoration: const InputDecoration(
+                                    labelText: 'เดือน',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                  items: List.generate(12, (i) => i + 1)
+                                      .map((m) => DropdownMenuItem(
+                                          value: m,
+                                          child: Text(_getMonthName(m))))
+                                      .toList(),
+                                  onChanged: (v) async {
+                                    setState(() =>
+                                        _selectedMonth = v ?? _selectedMonth);
+                                    await _loadData();
+                                  },
                                 ),
-                                items: List.generate(12, (i) => i + 1)
-                                    .map((m) => DropdownMenuItem(
-                                        value: m,
-                                        child: Text(_getMonthName(m))))
-                                    .toList(),
-                                onChanged: (v) async {
-                                  setState(() =>
-                                      _selectedMonth = v ?? _selectedMonth);
-                                  await _loadData();
-                                },
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: DropdownButtonFormField<int>(
-                                value: _selectedYear,
-                                decoration: const InputDecoration(
-                                  labelText: 'ปี (พ.ศ.)',
-                                  border: OutlineInputBorder(),
-                                  isDense: true,
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: DropdownButtonFormField<int>(
+                                  value: _selectedYear,
+                                  decoration: const InputDecoration(
+                                    labelText: 'ปี (พ.ศ.)',
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                  ),
+                                  items: List.generate(
+                                          6, (i) => DateTime.now().year - i)
+                                      .map((y) => DropdownMenuItem(
+                                          value: y, child: Text('${y + 543}')))
+                                      .toList(),
+                                  onChanged: (v) async {
+                                    setState(() =>
+                                        _selectedYear = v ?? _selectedYear);
+                                    await _loadData();
+                                  },
                                 ),
-                                items: List.generate(
-                                        6, (i) => DateTime.now().year - i)
-                                    .map((y) => DropdownMenuItem(
-                                        value: y, child: Text('${y + 543}')))
-                                    .toList(),
-                                onChanged: (v) async {
-                                  setState(() =>
-                                      _selectedYear = v ?? _selectedYear);
-                                  await _loadData();
-                                },
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                       const SizedBox(height: 8),

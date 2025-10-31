@@ -355,104 +355,117 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                   ),
                   const SizedBox(height: 12),
 
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isNarrow = constraints.maxWidth < 680;
-                      final itemWidth = isNarrow
-                          ? constraints.maxWidth
-                          : (constraints.maxWidth - 16) / 2;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _roomNumberController,
-                                  onChanged: (v) =>
-                                      setState(() => _roomNumberQuery = v),
-                                  decoration: const InputDecoration(
-                                    labelText: 'เลขห้อง',
-                                    border: OutlineInputBorder(),
-                                    isDense: true,
-                                    prefixIcon:
-                                        Icon(Icons.meeting_room_outlined),
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                      boxShadow: const [
+                        BoxShadow(
+                            color: Color(0x0A000000), blurRadius: 6, spreadRadius: -2),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isNarrow = constraints.maxWidth < 680;
+                        final itemWidth = isNarrow
+                            ? constraints.maxWidth
+                            : (constraints.maxWidth - 16) / 2;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _roomNumberController,
+                                    onChanged: (v) =>
+                                        setState(() => _roomNumberQuery = v),
+                                    decoration: const InputDecoration(
+                                      labelText: 'เลขห้อง',
+                                      border: OutlineInputBorder(),
+                                      isDense: true,
+                                      prefixIcon:
+                                          Icon(Icons.meeting_room_outlined),
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: DropdownButtonFormField<String>(
-                                  value: _selectedCategory,
-                                  decoration: const InputDecoration(
-                                    labelText: 'หมวดหมู่ห้อง',
-                                    border: OutlineInputBorder(),
-                                    isDense: true,
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: DropdownButtonFormField<String>(
+                                    value: _selectedCategory,
+                                    decoration: const InputDecoration(
+                                      labelText: 'หมวดหมู่ห้อง',
+                                      border: OutlineInputBorder(),
+                                      isDense: true,
+                                    ),
+                                    items: [
+                                      const DropdownMenuItem<String>(
+                                          value: null, child: Text('ทั้งหมด')),
+                                      ..._categories
+                                          .map((c) => DropdownMenuItem<String>(
+                                              value: c, child: Text(c)))
+                                          .toList(),
+                                    ],
+                                    onChanged: (val) => setState(
+                                        () => _selectedCategory = val),
                                   ),
-                                  items: [
-                                    const DropdownMenuItem<String>(
-                                        value: null, child: Text('ทั้งหมด')),
-                                    ..._categories
-                                        .map((c) => DropdownMenuItem<String>(
-                                            value: c, child: Text(c)))
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: DropdownButtonFormField<int>(
+                                    value: _selectedMonth,
+                                    decoration: const InputDecoration(
+                                      labelText: 'เดือน',
+                                      border: OutlineInputBorder(),
+                                      isDense: true,
+                                    ),
+                                    items: List.generate(12, (i) => i + 1)
+                                        .map((m) => DropdownMenuItem(
+                                            value: m,
+                                            child: Text(_getMonthName(m))))
                                         .toList(),
-                                  ],
-                                  onChanged: (val) => setState(
-                                      () => _selectedCategory = val),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: DropdownButtonFormField<int>(
-                                  value: _selectedMonth,
-                                  decoration: const InputDecoration(
-                                    labelText: 'เดือน',
-                                    border: OutlineInputBorder(),
-                                    isDense: true,
+                                    onChanged: (val) async {
+                                      setState(() => _selectedMonth =
+                                          val ?? _selectedMonth);
+                                      await _loadRoomsAndPrevious();
+                                    },
                                   ),
-                                  items: List.generate(12, (i) => i + 1)
-                                      .map((m) => DropdownMenuItem(
-                                          value: m,
-                                          child: Text(_getMonthName(m))))
-                                      .toList(),
-                                  onChanged: (val) async {
-                                    setState(() => _selectedMonth =
-                                        val ?? _selectedMonth);
-                                    await _loadRoomsAndPrevious();
-                                  },
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: DropdownButtonFormField<int>(
-                                  value: _selectedYear,
-                                  decoration: const InputDecoration(
-                                    labelText: 'ปี (พ.ศ.)',
-                                    border: OutlineInputBorder(),
-                                    isDense: true,
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: DropdownButtonFormField<int>(
+                                    value: _selectedYear,
+                                    decoration: const InputDecoration(
+                                      labelText: 'ปี (พ.ศ.)',
+                                      border: OutlineInputBorder(),
+                                      isDense: true,
+                                    ),
+                                    items: List.generate(
+                                            6, (i) => DateTime.now().year - i)
+                                        .map((y) => DropdownMenuItem(
+                                            value: y,
+                                            child: Text('${y + 543}')))
+                                        .toList(),
+                                    onChanged: (val) async {
+                                      setState(() => _selectedYear =
+                                          val ?? _selectedYear);
+                                      await _loadRoomsAndPrevious();
+                                    },
                                   ),
-                                  items: List.generate(
-                                          6, (i) => DateTime.now().year - i)
-                                      .map((y) => DropdownMenuItem(
-                                          value: y,
-                                          child: Text('${y + 543}')))
-                                      .toList(),
-                                  onChanged: (val) async {
-                                    setState(() => _selectedYear =
-                                        val ?? _selectedYear);
-                                    await _loadRoomsAndPrevious();
-                                  },
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      );
-                    },
+                              ],
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                   const SizedBox(height: 8),
                   _buildPeriodBanner(),
