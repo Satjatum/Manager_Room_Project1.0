@@ -287,122 +287,105 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     final bool isMobileApp = !kIsWeb &&
         (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
 
-    return WillPopScope(
-      onWillPop: () async {
-        if (widget.branchId == null) return true;
-        final allow = await _confirmExitBranch();
-        return allow;
-      },
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: _loading
-              ? const Center(
-                  child: CircularProgressIndicator(color: AppTheme.primary),
-                )
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header (meterlist style)
-                      Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.arrow_back_ios_new,
-                                  color: Colors.black87),
-                              onPressed: () async {
-                                if (widget.branchId == null) {
-                                  if (Navigator.of(context).canPop()) {
-                                    Navigator.of(context).pop();
-                                  }
-                                  return;
-                                }
-                                final allow = await _confirmExitBranch();
-                                if (allow &&
-                                    mounted &&
-                                    Navigator.of(context).canPop()) {
-                                  Navigator.of(context).pop();
-                                }
-                              },
-                              tooltip: 'ย้อนกลับ',
-                            ),
-                            const SizedBox(width: 8),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'ตรวจสอบสลิปชำระเงิน',
-                                    style: TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
-                                    ),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: _loading
+            ? const Center(
+                child: CircularProgressIndicator(color: AppTheme.primary),
+              )
+            : RefreshIndicator(
+                onRefresh: _load,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header (meterlist style)
+                    Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.arrow_back_ios_new,
+                                color: Colors.black87),
+                            onPressed: () {
+                              if (Navigator.of(context).canPop()) {
+                                Navigator.of(context).pop();
+                              }
+                            },
+                            tooltip: 'ย้อนกลับ',
+                          ),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'ตรวจสอบสลิปชำระเงิน',
+                                  style: TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
                                   ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'ตรวจสอบ อนุมัติ/ปฏิเสธ และติดตามสถานะการชำระ',
-                                    style: TextStyle(
-                                        fontSize: 14, color: Colors.black54),
-                                  ),
-                                ],
-                              ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'ตรวจสอบ อนุมัติ/ปฏิเสธ และติดตามสถานะการชำระ',
+                                  style: TextStyle(
+                                      fontSize: 14, color: Colors.black54),
+                                ),
+                              ],
                             ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Tabs (neutral like meterlist)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: TabBar(
+                          controller: _tabController,
+                          isScrollable: true,
+                          labelColor: Colors.black87,
+                          unselectedLabelColor: Colors.black54,
+                          indicatorColor: AppTheme.primary,
+                          indicatorWeight: 3,
+                          tabs: const [
+                            Tab(text: 'ค้างชำระ'),
+                            Tab(text: 'รอดำเนินการ'),
+                            Tab(text: 'ชำระแล้ว'),
+                            Tab(text: 'ปฏิเสธ'),
                           ],
                         ),
                       ),
+                    ),
 
-                      // Tabs (neutral like meterlist)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: TabBar(
-                            controller: _tabController,
-                            isScrollable: true,
-                            labelColor: Colors.black87,
-                            unselectedLabelColor: Colors.black54,
-                            indicatorColor: AppTheme.primary,
-                            indicatorWeight: 3,
-                            tabs: const [
-                              Tab(text: 'ค้างชำระ'),
-                              Tab(text: 'รอดำเนินการ'),
-                              Tab(text: 'ชำระแล้ว'),
-                              Tab(text: 'ปฏิเสธ'),
-                            ],
-                          ),
-                        ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          // On mobile app, always show list for simplicity
+                          if (isMobileApp || constraints.maxWidth <= 600) {
+                            return (_tabController.index == 0)
+                                ? _buildInvoiceListView()
+                                : _buildSlipListView();
+                          }
+
+                          // Web/Desktop: grid for wider screens
+                          if (_tabController.index == 0) {
+                            return _buildInvoiceGridView(constraints.maxWidth);
+                          } else {
+                            return _buildSlipGridView(constraints.maxWidth);
+                          }
+                        },
                       ),
-
-                      const SizedBox(height: 8),
-                      Expanded(
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            // On mobile app, always show list for simplicity
-                            if (isMobileApp || constraints.maxWidth <= 600) {
-                              return (_tabController.index == 0)
-                                  ? _buildInvoiceListView()
-                                  : _buildSlipListView();
-                            }
-
-                            // Web/Desktop: grid for wider screens
-                            if (_tabController.index == 0) {
-                              return _buildInvoiceGridView(
-                                  constraints.maxWidth);
-                            } else {
-                              return _buildSlipGridView(constraints.maxWidth);
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-        ),
+              ),
       ),
     );
   }

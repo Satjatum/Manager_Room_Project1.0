@@ -519,131 +519,134 @@ class _TenantListUIState extends State<TenantListUI> {
         screenWidth >= tabletBreakpoint && screenWidth < desktopBreakpoint;
     final isMobile = screenWidth < mobileBreakpoint;
 
-    final String? lockedBranchId =
-        (widget.branchId != null && widget.branchId!.trim().isNotEmpty)
-            ? widget.branchId
-            : null;
-
-    Future<bool> _confirmExitBranch() async {
-      if (lockedBranchId == null) return true;
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('ยืนยันการออกจากสาขา'),
-          content: const Text('คุณต้องการกลับไปหน้าเลือกสาขาหรือไม่?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('ยกเลิก'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('ยืนยัน'),
-            ),
-          ],
-        ),
-      );
-      if (confirm == true) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        return false;
-      }
-      return false;
-    }
-
-    return WillPopScope(
-      onWillPop: _confirmExitBranch,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Section (match branchlist_ui)
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new,
-                          color: Colors.black87),
-                      onPressed: () async {
-                        if (lockedBranchId != null) {
-                          await _confirmExitBranch();
-                        } else if (Navigator.of(context).canPop()) {
-                          Navigator.of(context).pop();
-                        }
-                      },
-                      tooltip: 'ย้อนกลับ',
-                    ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Tenant Management',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.all(24),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    tooltip: 'ย้อนกลับ',
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tenant Management',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
                           ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Manage your tenants and details',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Search and Filter Section (branchlist style)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    // Search Bar
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: _onSearchChanged,
-                        decoration: InputDecoration(
-                          hintText: 'Search tenants by name, phone or id card',
-                          hintStyle:
-                              TextStyle(color: Colors.grey[500], fontSize: 14),
-                          prefixIcon: Icon(Icons.search,
-                              color: Colors.grey[600], size: 20),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: Icon(Icons.clear,
-                                      color: Colors.grey[600], size: 20),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    _onSearchChanged('');
-                                  },
-                                )
-                              : null,
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
                         ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Manage your tenants and details',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Search and Filter Section (branchlist style)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  // Search Bar
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: _onSearchChanged,
+                      decoration: InputDecoration(
+                        hintText: 'Search tenants by name, phone or id card',
+                        hintStyle:
+                            TextStyle(color: Colors.grey[500], fontSize: 14),
+                        prefixIcon: Icon(Icons.search,
+                            color: Colors.grey[600], size: 20),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(Icons.clear,
+                                    color: Colors.grey[600], size: 20),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _onSearchChanged('');
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                  ),
+                  const SizedBox(height: 12),
 
-                    // Status Filter
+                  // Status Filter
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.filter_list,
+                            size: 20, color: Colors.grey[700]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedStatus,
+                              isExpanded: true,
+                              icon: const Icon(Icons.keyboard_arrow_down,
+                                  size: 20),
+                              style: const TextStyle(
+                                  fontSize: 14, color: Colors.black87),
+                              onChanged: _onStatusChanged,
+                              items: const [
+                                DropdownMenuItem(
+                                    value: 'all', child: Text('All')),
+                                DropdownMenuItem(
+                                    value: 'active', child: Text('Active')),
+                                DropdownMenuItem(
+                                    value: 'inactive', child: Text('Inactive')),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Branch Filter (if available and no initial branch)
+                  if (_branches.isNotEmpty && widget.branchId == null) ...[
+                    const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 4),
@@ -653,125 +656,81 @@ class _TenantListUIState extends State<TenantListUI> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.filter_list,
+                          Icon(Icons.place_outlined,
                               size: 20, color: Colors.grey[700]),
                           const SizedBox(width: 8),
                           Expanded(
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
-                                value: _selectedStatus,
+                                value: _selectedBranchId ?? 'all',
                                 isExpanded: true,
                                 icon: const Icon(Icons.keyboard_arrow_down,
                                     size: 20),
                                 style: const TextStyle(
                                     fontSize: 14, color: Colors.black87),
-                                onChanged: _onStatusChanged,
-                                items: const [
-                                  DropdownMenuItem(
-                                      value: 'all', child: Text('All')),
-                                  DropdownMenuItem(
-                                      value: 'active', child: Text('Active')),
-                                  DropdownMenuItem(
-                                      value: 'inactive',
-                                      child: Text('Inactive')),
+                                items: [
+                                  const DropdownMenuItem(
+                                      value: 'all', child: Text('ทุกสาขา')),
+                                  ..._branches.map((branch) {
+                                    return DropdownMenuItem<String>(
+                                      value: branch['branch_id'] as String,
+                                      child: Text(branch['branch_name'] ?? ''),
+                                    );
+                                  }).toList(),
                                 ],
+                                onChanged: (value) {
+                                  _onBranchChanged(
+                                      value == 'all' ? null : value);
+                                },
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-
-                    // Branch Filter (if available and no initial branch)
-                    if (_branches.isNotEmpty && widget.branchId == null) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.place_outlined,
-                                size: 20, color: Colors.grey[700]),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedBranchId ?? 'all',
-                                  isExpanded: true,
-                                  icon: const Icon(Icons.keyboard_arrow_down,
-                                      size: 20),
-                                  style: const TextStyle(
-                                      fontSize: 14, color: Colors.black87),
-                                  items: [
-                                    const DropdownMenuItem(
-                                        value: 'all', child: Text('ทุกสาขา')),
-                                    ..._branches.map((branch) {
-                                      return DropdownMenuItem<String>(
-                                        value: branch['branch_id'] as String,
-                                        child:
-                                            Text(branch['branch_name'] ?? ''),
-                                      );
-                                    }).toList(),
-                                  ],
-                                  onChanged: (value) {
-                                    _onBranchChanged(
-                                        value == 'all' ? null : value);
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                   ],
-                ),
+                ],
               ),
+            ),
 
-              const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-              // Results Count
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Text(
-                  'Showing ${_filteredTenants.length} of ${_tenants.length} tenants',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                ),
+            // Results Count
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Text(
+                'Showing ${_filteredTenants.length} of ${_tenants.length} tenants',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
               ),
+            ),
 
-              // List/Grid
-              Expanded(
-                child: _isLoading
-                    ? _buildLoadingState()
-                    : _filteredTenants.isEmpty
-                        ? _buildEmptyState(isMobile)
-                        : RefreshIndicator(
-                            onRefresh: _loadTenants,
-                            color: AppTheme.primary,
-                            child: _buildTenantList(
-                                screenWidth, isDesktop, isTablet),
-                          ),
-              ),
-            ],
-          ),
+            // List/Grid
+            Expanded(
+              child: _isLoading
+                  ? _buildLoadingState()
+                  : _filteredTenants.isEmpty
+                      ? _buildEmptyState(isMobile)
+                      : RefreshIndicator(
+                          onRefresh: _loadTenants,
+                          color: AppTheme.primary,
+                          child: _buildTenantList(
+                              screenWidth, isDesktop, isTablet),
+                        ),
+            ),
+          ],
         ),
-        floatingActionButton: _canManage
-            ? FloatingActionButton(
-                onPressed: _navigateToAddTenant,
-                backgroundColor: AppTheme.primary,
-                child: Icon(
-                  Icons.add,
-                  color: Colors.white,
-                ),
-              )
-            : null,
-        bottomNavigationBar: null,
       ),
+      floatingActionButton: _canManage
+          ? FloatingActionButton(
+              onPressed: _navigateToAddTenant,
+              backgroundColor: AppTheme.primary,
+              child: Icon(
+                Icons.add,
+                color: Colors.white,
+              ),
+            )
+          : null,
+      bottomNavigationBar: null,
     );
   }
 
