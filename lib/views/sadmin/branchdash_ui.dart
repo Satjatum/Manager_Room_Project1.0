@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:manager_room_project/views/sadmin/roomlist_ui.dart';
 import 'package:manager_room_project/views/sadmin/tenantlist_ui.dart';
 import 'package:manager_room_project/views/sadmin/issuelist_ui.dart';
@@ -37,6 +38,7 @@ class BranchDashboardPage extends StatelessWidget {
       );
       return ok == true;
     }
+
     final items = [
       _DashItem(
         icon: Icons.meeting_room_outlined,
@@ -132,58 +134,141 @@ class BranchDashboardPage extends StatelessWidget {
       ),
     ];
 
+    final platform = Theme.of(context).platform;
+    final bool isMobileApp = !kIsWeb &&
+        (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
+
     return WillPopScope(
       onWillPop: _confirmExit,
       child: Scaffold(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-            onPressed: () async {
-              if (await _confirmExit()) {
-                if (Navigator.of(context).canPop()) Navigator.of(context).pop();
-              }
-            },
-            tooltip: 'ย้อนกลับ',
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header section (theme-aligned with branchlist_ui / settingbranch_ui)
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new,
+                          color: Colors.black87),
+                      onPressed: () async {
+                        if (await _confirmExit()) {
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          }
+                        }
+                      },
+                      tooltip: 'ย้อนกลับ',
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'แดชบอร์ดสาขา',
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            (branchName == null || branchName!.isEmpty)
+                                ? 'เลือกเมนูการทำงานของสาขา'
+                                : 'เลือกเมนูการทำงานของสาขา',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          // เอารหัสสาขาออก และย้ายชื่อสาขาไปแสดงในส่วนเนื้อหาด้านล่างเป็น Card
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Content section — Responsive breakpoints; center only on phone
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final maxW = _maxContentWidth(constraints.maxWidth);
+                    // Determine columns by available width
+                    int cross = 4;
+                    if (maxW < 360) {
+                      cross = 2; // Mobile S
+                    } else if (maxW < 480) {
+                      cross = 3; // Mobile M/L
+                    } else {
+                      cross = 4; // Tablet and above
+                    }
+
+                    final content = ListView(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                      children: [
+                        if ((branchName ?? '').isNotEmpty)
+                          _BranchNameCard(name: branchName!),
+                        const SizedBox(height: 8),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: cross,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: 0.9,
+                          ),
+                          itemCount: items.length,
+                          itemBuilder: (context, i) => _DashCard(item: items[i]),
+                        ),
+                      ],
+                    );
+
+                    if (isMobileApp) {
+                      // Center on native phones
+                      return Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: maxW),
+                          child: content,
+                        ),
+                      );
+                    }
+                    // Desktop/Web: left align within responsive max width
+                    return Align(
+                      alignment: Alignment.topLeft,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: maxW),
+                        child: content,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-          title: Text(branchName == null || branchName!.isEmpty
-              ? 'แดชบอร์ดสาขา'
-              : 'แดชบอร์ด — $branchName'),
-          backgroundColor: AppTheme.primary,
-          foregroundColor: Colors.white,
         ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          int cols = 2;
-          final w = constraints.maxWidth;
-          if (w >= 1200) cols = 4;
-          else if (w >= 900) cols = 3;
-
-          if (cols == 1) {
-            return ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, i) => _DashCard(item: items[i]),
-            );
-          }
-
-          return GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: cols,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.25,
-            ),
-            itemCount: items.length,
-            itemBuilder: (context, i) => _DashCard(item: items[i]),
-          );
-        },
-      ),
       ),
     );
   }
+}
+
+// Responsive content widths (Mobile S/M/L, Tablet, Laptop, Laptop L, 4K)
+double _maxContentWidth(double screenWidth) {
+  if (screenWidth >= 2560) return 1280; // 4K
+  if (screenWidth >= 1440) return 1100; // Laptop L
+  if (screenWidth >= 1200) return 1000; // Laptop
+  if (screenWidth >= 900) return 860; // Tablet landscape / small desktop
+  if (screenWidth >= 600) return 560; // Mobile L / Tablet portrait
+  return screenWidth; // Mobile S/M
 }
 
 class _DashItem {
@@ -211,37 +296,77 @@ class _DashCard extends StatelessWidget {
             border: Border.all(color: Colors.grey[300]!),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: AppTheme.primary.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12),
+                    shape: BoxShape.circle,
                   ),
-                  child: Icon(item.icon, color: AppTheme.primary, size: 28),
+                  child: Icon(item.icon, color: AppTheme.primary, size: 24),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Text(
                   item.label,
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const Spacer(),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Icon(Icons.arrow_forward, size: 18, color: Colors.grey[500]),
-                )
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ชิปแสดงข้อมูล (กรอบ + ไอคอน) สำหรับชื่อสาขา/รหัสสาขา
+class _BranchNameCard extends StatelessWidget {
+  final String name;
+  const _BranchNameCard({required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child:
+                  const Icon(Icons.business, color: AppTheme.primary, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       ),
     );
