@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:manager_room_project/views/sadmin/roomlist_ui.dart';
 import 'package:manager_room_project/views/sadmin/tenantlist_ui.dart';
 import 'package:manager_room_project/views/sadmin/issuelist_ui.dart';
@@ -132,55 +133,123 @@ class BranchDashboardPage extends StatelessWidget {
       ),
     ];
 
+    final platform = Theme.of(context).platform;
+    final bool isMobileApp = !kIsWeb &&
+        (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
+
     return WillPopScope(
       onWillPop: _confirmExit,
       child: Scaffold(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-            onPressed: () async {
-              if (await _confirmExit()) {
-                if (Navigator.of(context).canPop()) Navigator.of(context).pop();
-              }
-            },
-            tooltip: 'ย้อนกลับ',
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header section (theme-aligned with branchlist_ui / settingbranch_ui)
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new,
+                          color: Colors.black87),
+                      onPressed: () async {
+                        if (await _confirmExit()) {
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          }
+                        }
+                      },
+                      tooltip: 'ย้อนกลับ',
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'แดชบอร์ดสาขา',
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            (branchName == null || branchName!.isEmpty)
+                                ? 'เลือกเมนูการทำงานของสาขา'
+                                : 'สาขา: $branchName',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Content section (responsive like settingbranch_ui)
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // On native mobile (Android/iOS) show vertical list for usability
+                    if (isMobileApp) {
+                      return ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                        itemCount: items.length,
+                        itemBuilder: (context, i) => Column(
+                          children: [
+                            _DashCard(item: items[i]),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      );
+                    }
+
+                    int crossAxisCount = 1;
+                    if (constraints.maxWidth > 1200) {
+                      crossAxisCount = 4;
+                    } else if (constraints.maxWidth > 900) {
+                      crossAxisCount = 3;
+                    } else if (constraints.maxWidth > 600) {
+                      crossAxisCount = 2;
+                    }
+
+                    if (crossAxisCount == 1) {
+                      return ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                        itemCount: items.length,
+                        itemBuilder: (context, i) => Column(
+                          children: [
+                            _DashCard(item: items[i]),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return GridView.builder(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 1.25,
+                      ),
+                      itemCount: items.length,
+                      itemBuilder: (context, i) => _DashCard(item: items[i]),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-          title: Text(branchName == null || branchName!.isEmpty
-              ? 'แดชบอร์ดสาขา'
-              : 'แดชบอร์ด — $branchName'),
-          backgroundColor: AppTheme.primary,
-          foregroundColor: Colors.white,
         ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          int cols = 2;
-          final w = constraints.maxWidth;
-          if (w >= 1200) cols = 4;
-          else if (w >= 900) cols = 3;
-
-          if (cols == 1) {
-            return ListView.separated(
-              padding: const EdgeInsets.all(16),
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, i) => _DashCard(item: items[i]),
-            );
-          }
-
-          return GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: cols,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.25,
-            ),
-            itemCount: items.length,
-            itemBuilder: (context, i) => _DashCard(item: items[i]),
-          );
-        },
-      ),
       ),
     );
   }
