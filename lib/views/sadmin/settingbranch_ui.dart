@@ -96,7 +96,6 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
 
     return Scaffold(
         backgroundColor: Colors.white,
-        bottomNavigationBar: null,
         body: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

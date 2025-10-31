@@ -176,8 +176,10 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             _prevWaterByRoom[roomId] = 0.0;
             _prevElecByRoom[roomId] = 0.0;
           } else {
-            _prevWaterByRoom[roomId] = (prev['water_previous'] ?? 0.0).toDouble();
-            _prevElecByRoom[roomId] = (prev['electric_previous'] ?? 0.0).toDouble();
+            _prevWaterByRoom[roomId] =
+                (prev['water_previous'] ?? 0.0).toDouble();
+            _prevElecByRoom[roomId] =
+                (prev['electric_previous'] ?? 0.0).toDouble();
           }
         } catch (_) {
           _prevWaterByRoom[roomId] = 0.0;
@@ -280,9 +282,11 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        color: Colors.black87),
                     onPressed: () {
-                      if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+                      if (Navigator.of(context).canPop())
+                        Navigator.of(context).pop();
                     },
                     tooltip: 'ย้อนกลับ',
                   ),
@@ -302,7 +306,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                         const SizedBox(height: 4),
                         Text(
                           'รอบเดือน: ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
-                          style: const TextStyle(fontSize: 14, color: Colors.black54),
+                          style: const TextStyle(
+                              fontSize: 14, color: Colors.black54),
                         ),
                       ],
                     ),
@@ -328,11 +333,14 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                       onChanged: (v) => setState(() => _searchQuery = v),
                       decoration: InputDecoration(
                         hintText: 'ค้นหาเลขห้อง หรือชื่อผู้เช่า...',
-                        hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
-                        prefixIcon: Icon(Icons.search, color: Colors.grey[600], size: 20),
+                        hintStyle:
+                            TextStyle(color: Colors.grey[500], fontSize: 14),
+                        prefixIcon: Icon(Icons.search,
+                            color: Colors.grey[600], size: 20),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
-                                icon: Icon(Icons.clear, color: Colors.grey[600], size: 20),
+                                icon: Icon(Icons.clear,
+                                    color: Colors.grey[600], size: 20),
                                 onPressed: () {
                                   _searchController.clear();
                                   setState(() => _searchQuery = '');
@@ -340,7 +348,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                               )
                             : null,
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
                       ),
                     ),
                   ),
@@ -349,7 +358,9 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final isNarrow = constraints.maxWidth < 680;
-                      final itemWidth = isNarrow ? constraints.maxWidth : (constraints.maxWidth - 16) / 2;
+                      final itemWidth = isNarrow
+                          ? constraints.maxWidth
+                          : (constraints.maxWidth - 16) / 2;
                       return Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -358,7 +369,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                             width: itemWidth,
                             child: TextField(
                               controller: _roomNumberController,
-                              onChanged: (v) => setState(() => _roomNumberQuery = v),
+                              onChanged: (v) =>
+                                  setState(() => _roomNumberQuery = v),
                               decoration: const InputDecoration(
                                 labelText: 'เลขห้อง',
                                 border: OutlineInputBorder(),
@@ -380,10 +392,12 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                                 const DropdownMenuItem<String>(
                                     value: null, child: Text('ทั้งหมด')),
                                 ..._categories
-                                    .map((c) => DropdownMenuItem<String>(value: c, child: Text(c)))
+                                    .map((c) => DropdownMenuItem<String>(
+                                        value: c, child: Text(c)))
                                     .toList(),
                               ],
-                              onChanged: (val) => setState(() => _selectedCategory = val),
+                              onChanged: (val) =>
+                                  setState(() => _selectedCategory = val),
                             ),
                           ),
                           SizedBox(
@@ -396,10 +410,12 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                                 isDense: true,
                               ),
                               items: List.generate(12, (i) => i + 1)
-                                  .map((m) => DropdownMenuItem(value: m, child: Text(_getMonthName(m))))
+                                  .map((m) => DropdownMenuItem(
+                                      value: m, child: Text(_getMonthName(m))))
                                   .toList(),
                               onChanged: (val) async {
-                                setState(() => _selectedMonth = val ?? _selectedMonth);
+                                setState(() =>
+                                    _selectedMonth = val ?? _selectedMonth);
                                 await _loadRoomsAndPrevious();
                               },
                             ),
@@ -413,11 +429,14 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                                 border: OutlineInputBorder(),
                                 isDense: true,
                               ),
-                              items: List.generate(6, (i) => DateTime.now().year - i)
-                                  .map((y) => DropdownMenuItem(value: y, child: Text('${y + 543}')))
+                              items: List.generate(
+                                      6, (i) => DateTime.now().year - i)
+                                  .map((y) => DropdownMenuItem(
+                                      value: y, child: Text('${y + 543}')))
                                   .toList(),
                               onChanged: (val) async {
-                                setState(() => _selectedYear = val ?? _selectedYear);
+                                setState(
+                                    () => _selectedYear = val ?? _selectedYear);
                                 await _loadRoomsAndPrevious();
                               },
                             ),
@@ -429,7 +448,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                               child: IconButton(
                                 tooltip: 'รีเฟรช',
                                 onPressed: _loadRoomsAndPrevious,
-                                icon: const Icon(Icons.refresh, color: Colors.black87),
+                                icon: const Icon(Icons.refresh,
+                                    color: Colors.black87),
                               ),
                             ),
                           ),
@@ -453,7 +473,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                         children: [
                           CircularProgressIndicator(color: AppTheme.primary),
                           const SizedBox(height: 16),
-                          Text('กำลังโหลดห้อง...', style: TextStyle(color: Colors.grey[600])),
+                          Text('กำลังโหลดห้อง...',
+                              style: TextStyle(color: Colors.grey[600])),
                         ],
                       ),
                     )
@@ -462,7 +483,6 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
           ],
         ),
       ),
-      bottomNavigationBar: null,
     );
   }
 
@@ -472,7 +492,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     Color color;
     IconData icon;
     if (_isPastPeriod) {
-      message = 'เดือนที่ผ่านมาย้อนหลัง: ดูได้อย่างเดียว แก้ไข/ลบ/สร้างย้อนหลังไม่ได้';
+      message =
+          'เดือนที่ผ่านมาย้อนหลัง: ดูได้อย่างเดียว แก้ไข/ลบ/สร้างย้อนหลังไม่ได้';
       color = Colors.blueGrey.shade50;
       icon = Icons.info_outline;
     } else {
@@ -534,9 +555,11 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.meeting_room_outlined, size: 64, color: Colors.grey[400]),
+            Icon(Icons.meeting_room_outlined,
+                size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
-            Text('ไม่พบบัญชีห้องที่ใช้งาน', style: TextStyle(color: Colors.grey[600])),
+            Text('ไม่พบบัญชีห้องที่ใช้งาน',
+                style: TextStyle(color: Colors.grey[600])),
           ],
         ),
       );
@@ -606,8 +629,21 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     final usageE = curE == null ? null : (curE - displayPrevE);
     final validW = curW != null && curW >= displayPrevW;
     final validE = curE != null && curE >= displayPrevE;
-    final canSaveNew = _isCurrentPeriod && !_savingRoomIds.contains(roomId) && existing == null && validW && validE && curW != null && curE != null;
-    final canSaveEdit = _isCurrentPeriod && !_savingRoomIds.contains(roomId) && existing != null && isEditing && validW && validE && curW != null && curE != null;
+    final canSaveNew = _isCurrentPeriod &&
+        !_savingRoomIds.contains(roomId) &&
+        existing == null &&
+        validW &&
+        validE &&
+        curW != null &&
+        curE != null;
+    final canSaveEdit = _isCurrentPeriod &&
+        !_savingRoomIds.contains(roomId) &&
+        existing != null &&
+        isEditing &&
+        validW &&
+        validE &&
+        curW != null &&
+        curE != null;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -624,14 +660,17 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             Expanded(
               child: Text(
                 '$cate $roomNo',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             if (_existingByRoom.containsKey(roomId))
               const Padding(
                 padding: EdgeInsets.only(left: 8.0),
-                child: Chip(label: Text('มีข้อมูลเดือนนี้'), backgroundColor: Color(0xFFE8F5E9)),
+                child: Chip(
+                    label: Text('มีข้อมูลเดือนนี้'),
+                    backgroundColor: Color(0xFFE8F5E9)),
               ),
           ],
         ),
@@ -648,13 +687,15 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             const SizedBox(height: 8),
             _buildReadonlyLine(
               label: 'ค่าไฟ',
-              previous: (existing['electric_previous_reading'] ?? 0.0).toDouble(),
+              previous:
+                  (existing['electric_previous_reading'] ?? 0.0).toDouble(),
               current: (existing['electric_current_reading'] ?? 0.0).toDouble(),
               color: Colors.orange[700]!,
             ),
             const SizedBox(height: 8),
             if ((existing['reading_notes'] ?? '').toString().isNotEmpty)
-              Text('หมายเหตุ: ${existing['reading_notes']}', style: const TextStyle(color: Colors.black87)),
+              Text('หมายเหตุ: ${existing['reading_notes']}',
+                  style: const TextStyle(color: Colors.black87)),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -665,9 +706,14 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                         : () {
                             // enter edit mode and prefill controllers
                             _editingRoomIds.add(roomId);
-                            wCtrl.text = (existing['water_current_reading'] ?? '').toString();
-                            eCtrl.text = (existing['electric_current_reading'] ?? '').toString();
-                            nCtrl.text = (existing['reading_notes'] ?? '').toString();
+                            wCtrl.text =
+                                (existing['water_current_reading'] ?? '')
+                                    .toString();
+                            eCtrl.text =
+                                (existing['electric_current_reading'] ?? '')
+                                    .toString();
+                            nCtrl.text =
+                                (existing['reading_notes'] ?? '').toString();
                             setState(() {});
                           },
                     icon: const Icon(Icons.edit),
@@ -677,13 +723,16 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                   TextButton.icon(
                     onPressed: _savingRoomIds.contains(roomId)
                         ? null
-                        : () => _confirmDelete(existing['reading_id'].toString(), roomId),
+                        : () => _confirmDelete(
+                            existing['reading_id'].toString(), roomId),
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    label: const Text('ลบ', style: TextStyle(color: Colors.red)),
+                    label:
+                        const Text('ลบ', style: TextStyle(color: Colors.red)),
                   ),
                 ],
                 const Spacer(),
-                Text('เดือน ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
+                Text(
+                    'เดือน ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
                     style: TextStyle(color: Colors.grey[700])),
               ],
             ),
@@ -757,7 +806,11 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                   ElevatedButton.icon(
                     onPressed: canSaveNew ? () => _saveRow(room) : null,
                     icon: _savingRoomIds.contains(roomId)
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.save),
                     label: const Text('บันทึกแถวนี้'),
                     style: ElevatedButton.styleFrom(
@@ -769,7 +822,11 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                   ElevatedButton.icon(
                     onPressed: canSaveEdit ? () => _updateRow(roomId) : null,
                     icon: _savingRoomIds.contains(roomId)
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.save_as_outlined),
                     label: const Text('บันทึกการแก้ไข'),
                     style: ElevatedButton.styleFrom(
@@ -793,7 +850,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                   ),
                 ],
                 const Spacer(),
-                Text('เดือน ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
+                Text(
+                    'เดือน ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
                     style: TextStyle(color: Colors.grey[700])),
               ],
             ),
@@ -807,7 +865,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     final String msg = _isPastPeriod
         ? 'ดูข้อมูลย้อนหลังได้เท่านั้น ไม่อนุญาตให้บันทึกย้อนหลังในเดือนนี้'
         : 'เดือนอนาคตยังไม่เปิดให้บันทึก กรุณาเลือกเดือนปัจจุบัน';
-    final Color bg = _isPastPeriod ? Colors.blueGrey.shade50 : Colors.amber.shade50;
+    final Color bg =
+        _isPastPeriod ? Colors.blueGrey.shade50 : Colors.amber.shade50;
     final IconData icon = _isPastPeriod ? Icons.info_outline : Icons.lock_clock;
     return Container(
       width: double.infinity,
@@ -839,8 +898,11 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(6)),
-          child: Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+          decoration: BoxDecoration(
+              color: color.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(6)),
+          child: Text(label,
+              style: TextStyle(color: color, fontWeight: FontWeight.w600)),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -866,9 +928,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     TextEditingController? previousController,
   }) {
     final prevText = previous.toStringAsFixed(2);
-    final usageText = usage == null
-        ? ''
-        : (usage < 0 ? 'ผิด' : usage.toStringAsFixed(2));
+    final usageText =
+        usage == null ? '' : (usage < 0 ? 'ผิด' : usage.toStringAsFixed(2));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -882,7 +943,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               child: editablePrevious && previousController != null
                   ? TextField(
                       controller: previousController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
                         labelText: 'ก่อนหน้า',
                         border: OutlineInputBorder(),
@@ -905,7 +967,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             Expanded(
               child: TextField(
                 controller: controller,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   labelText: 'ปัจจุบัน',
                   prefixIcon: icon,
@@ -928,11 +991,13 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                   isDense: true,
                   suffixText: (usage == null || usage < 0) ? null : 'หน่วย',
                   suffixStyle: TextStyle(
-                    color: (usage == null || usage >= 0) ? usageColor : Colors.red,
+                    color:
+                        (usage == null || usage >= 0) ? usageColor : Colors.red,
                   ),
                 ),
                 style: TextStyle(
-                  color: (usage == null || usage >= 0) ? usageColor : Colors.red,
+                  color:
+                      (usage == null || usage >= 0) ? usageColor : Colors.red,
                 ),
               ),
             ),
@@ -1084,12 +1149,14 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         'reading_date': DateTime.now().toIso8601String().split('T')[0],
         'reading_notes': nCtrl.text.trim().isEmpty ? null : nCtrl.text.trim(),
       };
-      final res = await MeterReadingService.updateMeterReading(readingId, payload);
+      final res =
+          await MeterReadingService.updateMeterReading(readingId, payload);
       if (res['success'] == true) {
         _showSuccessSnackBar('บันทึกการแก้ไขสำเร็จ');
         final warns = List.from(res['warnings'] ?? const []);
         if (warns.isNotEmpty) {
-          _showWarnSnackBar('พบห้องข้อมูลผิดพลาด บางเดือนถัดไปออกบิลแล้ว ไม่สามารถลบเพื่อให้ต่อเนื่องได้');
+          _showWarnSnackBar(
+              'พบห้องข้อมูลผิดพลาด บางเดือนถัดไปออกบิลแล้ว ไม่สามารถลบเพื่อให้ต่อเนื่องได้');
         }
         final data = Map<String, dynamic>.from(res['data'] ?? {});
         _existingByRoom[roomId] = data;
@@ -1116,8 +1183,12 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         title: const Text('ยืนยันการลบ'),
         content: const Text('ต้องการลบข้อมูลค่ามิเตอร์ของเดือนนี้ใช่หรือไม่?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('ยกเลิก')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('ลบ')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('ยกเลิก')),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('ลบ')),
         ],
       ),
     );
@@ -1131,7 +1202,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         _showSuccessSnackBar('ลบข้อมูลสำเร็จ');
         final warns = List.from(res['warnings'] ?? const []);
         if (warns.isNotEmpty) {
-          _showWarnSnackBar('พบห้องข้อมูลผิดพลาด บางเดือนถัดไปออกบิลแล้ว ไม่สามารถลบเพื่อให้ต่อเนื่องได้');
+          _showWarnSnackBar(
+              'พบห้องข้อมูลผิดพลาด บางเดือนถัดไปออกบิลแล้ว ไม่สามารถลบเพื่อให้ต่อเนื่องได้');
         }
         _existingByRoom.remove(roomId);
         _savedRoomIds.remove(roomId);
@@ -1144,8 +1216,10 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         try {
           final prev = await MeterReadingService.getPreviousForMonth(
               roomId, _selectedMonth, _selectedYear);
-          _prevWaterByRoom[roomId] = (prev?['water_previous'] ?? 0.0).toDouble();
-          _prevElecByRoom[roomId] = (prev?['electric_previous'] ?? 0.0).toDouble();
+          _prevWaterByRoom[roomId] =
+              (prev?['water_previous'] ?? 0.0).toDouble();
+          _prevElecByRoom[roomId] =
+              (prev?['electric_previous'] ?? 0.0).toDouble();
         } catch (_) {}
         setState(() {});
       } else {
