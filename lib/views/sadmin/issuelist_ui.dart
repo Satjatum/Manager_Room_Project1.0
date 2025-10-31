@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:manager_room_project/views/sadmin/issuelist_detail_ui.dart';
 import 'package:manager_room_project/views/tenant/issue_add_ui.dart';
-import 'package:manager_room_project/views/widgets/mainnavbar.dart';
 import '../../services/issue_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/branch_service.dart';
@@ -356,40 +355,7 @@ class _IssuelistUiState extends State<IssuelistUi>
         ]) ??
         false;
 
-    final String? lockedBranchId =
-        (widget.branchId != null && widget.branchId!.trim().isNotEmpty)
-            ? widget.branchId
-            : null;
-
-    Future<bool> _confirmExitBranch() async {
-      if (lockedBranchId == null) return true;
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('ยืนยันการออกจากสาขา'),
-          content: const Text('คุณต้องการกลับไปหน้าเลือกสาขาหรือไม่?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('ยกเลิก'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('ยืนยัน'),
-            ),
-          ],
-        ),
-      );
-      if (confirm == true) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        return false;
-      }
-      return false;
-    }
-
-    return WillPopScope(
-      onWillPop: _confirmExitBranch,
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: Colors.white,
         body: Column(
           children: [
@@ -407,10 +373,8 @@ class _IssuelistUiState extends State<IssuelistUi>
                           IconButton(
                             icon: const Icon(Icons.arrow_back_ios_new,
                                 color: Colors.black87),
-                            onPressed: () async {
-                              if (lockedBranchId != null) {
-                                await _confirmExitBranch();
-                              } else if (Navigator.of(context).canPop()) {
+                            onPressed: () {
+                              if (Navigator.of(context).canPop()) {
                                 Navigator.of(context).pop();
                               }
                             },
@@ -659,7 +623,6 @@ class _IssuelistUiState extends State<IssuelistUi>
               )
             : null,
         bottomNavigationBar: null,
-      ),
     );
   }
 

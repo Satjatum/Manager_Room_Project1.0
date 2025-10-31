@@ -94,35 +94,7 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
     final bool isMobileApp = !kIsWeb &&
         (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
 
-    return WillPopScope(
-      onWillPop: () async {
-        if (lockedBranchId != null) {
-          final confirm = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('ยืนยันการออกจากสาขา'),
-              content: const Text('คุณต้องการกลับไปหน้าเลือกสาขาหรือไม่?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('ยกเลิก'),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('ยืนยัน'),
-                ),
-              ],
-            ),
-          );
-          if (confirm == true) {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-            return false;
-          }
-          return false;
-        }
-        return true;
-      },
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
           child: Column(
@@ -137,33 +109,8 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
                     IconButton(
                       icon: const Icon(Icons.arrow_back_ios_new,
                           color: Colors.black87),
-                      onPressed: () async {
-                        if (lockedBranchId != null) {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('ยืนยันการออกจากสาขา'),
-                              content: const Text(
-                                  'คุณต้องการกลับไปหน้าเลือกสาขาหรือไม่?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.of(context).pop(false),
-                                  child: const Text('ยกเลิก'),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () =>
-                                      Navigator.of(context).pop(true),
-                                  child: const Text('ยืนยัน'),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (confirm == true) {
-                            Navigator.of(context)
-                                .popUntil((route) => route.isFirst);
-                          }
-                        } else if (Navigator.of(context).canPop()) {
+                      onPressed: () {
+                        if (Navigator.of(context).canPop()) {
                           Navigator.of(context).pop();
                         }
                       },
@@ -256,8 +203,7 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }
 

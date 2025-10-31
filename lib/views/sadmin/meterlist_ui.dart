@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../../services/meter_service.dart';
+import '../../services/utility_rate_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_models.dart';
 import '../widgets/colors.dart';
@@ -60,6 +61,12 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
   final Map<String, Map<String, dynamic>> _existingByRoom = {};
   final Set<String> _editingRoomIds = {};
 
+  // Dynamic metered rates from utility settings (by branch)
+  List<Map<String, dynamic>> _meteredRates = [];
+  // Controllers for dynamic meters per room and rate_id
+  final Map<String, Map<String, TextEditingController>> _dynPrevCtrls = {};
+  final Map<String, Map<String, TextEditingController>> _dynCurCtrls = {};
+
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year; // ค.ศ. (แสดงผล พ.ศ.)
 
@@ -98,13 +105,36 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     try {
       _currentUser = await AuthService.getCurrentUser();
       if (_currentUser == null) return;
-
+      await _loadMeteredRates();
       await _loadRoomsAndPrevious();
     } catch (e) {
       _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _loadMeteredRates() async {
+    try {
+      final branchId = widget.branchId;
+      if (branchId == null || branchId.isEmpty) {
+        _meteredRates = [];
+        return;
+      }
+      _meteredRates = await UtilityRatesService.getMeteredRates(branchId);
+    } catch (e) {
+      _meteredRates = [];
+    }
+  }
+
+  bool _isWaterRate(Map<String, dynamic> rate) {
+    final name = (rate['rate_name'] ?? '').toString().toLowerCase();
+    return name.contains('น้ำ') || name.contains('water');
+  }
+
+  bool _isElectricRate(Map<String, dynamic> rate) {
+    final name = (rate['rate_name'] ?? '').toString().toLowerCase();
+    return name.contains('ไฟ') || name.contains('electric');
   }
 
   Future<void> _loadRoomsAndPrevious() async {
@@ -162,6 +192,25 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         _noteCtrl.putIfAbsent(roomId, () => TextEditingController());
         _prevWaterCtrl.putIfAbsent(roomId, () => TextEditingController());
         _prevElecCtrl.putIfAbsent(roomId, () => TextEditingController());
+        // Init dynamic controllers for this room (include all metered rates)
+        if (_meteredRates.isNotEmpty) {
+          _dynPrevCtrls.putIfAbsent(roomId, () => {});
+          _dynCurCtrls.putIfAbsent(roomId, () => {});
+          for (final rate in _meteredRates) {
+            final rateId = (rate['rate_id'] ?? '').toString();
+            if (rateId.isEmpty) continue;
+            final prev = _dynPrevCtrls[roomId]!.putIfAbsent(rateId, () => TextEditingController());
+            _dynCurCtrls[roomId]!.putIfAbsent(rateId, () => TextEditingController());
+            // Prefill water/electric previous from computed suggestions
+            if ((prev.text.isEmpty)) {
+              if (_isWaterRate(Map<String, dynamic>.from(rate))) {
+                prev.text = (_prevWaterByRoom[roomId] ?? 0.0).toString();
+              } else if (_isElectricRate(Map<String, dynamic>.from(rate))) {
+                prev.text = (_prevElecByRoom[roomId] ?? 0.0).toString();
+              }
+            }
+          }
+        }
       }));
 
       // Fetch existing readings of the selected month/year for each room
@@ -549,19 +598,33 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     final isEditing = _editingRoomIds.contains(roomId);
 
     // Resolve previous/current for display/input depending on state
+    // Resolve water/electric from dynamic controllers (from Utility Settings)
+    String? waterRateId;
+    String? electricRateId;
+    for (final rate in _meteredRates) {
+      final r = Map<String, dynamic>.from(rate);
+      final rid = (r['rate_id'] ?? '').toString();
+      if (rid.isEmpty) continue;
+      if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
+      if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
+    }
+
+    final prevMapDyn = _dynPrevCtrls[roomId];
+    final curMapDyn = _dynCurCtrls[roomId];
+    final pvWCtrlDyn = (waterRateId != null && prevMapDyn != null) ? prevMapDyn[waterRateId!] : null;
+    final cvWCtrlDyn = (waterRateId != null && curMapDyn != null) ? curMapDyn[waterRateId!] : null;
+    final pvECtrlDyn = (electricRateId != null && prevMapDyn != null) ? prevMapDyn[electricRateId!] : null;
+    final cvECtrlDyn = (electricRateId != null && curMapDyn != null) ? curMapDyn[electricRateId!] : null;
+
     final displayPrevW = (existing != null && isEditing)
         ? (existing['water_previous_reading'] ?? prevW).toDouble()
-        : (_needsPrevWaterInput.contains(roomId)
-            ? (double.tryParse(pwCtrl.text.trim()) ?? prevW)
-            : prevW);
+        : (double.tryParse((pvWCtrlDyn?.text ?? '').trim()) ?? prevW);
     final displayPrevE = (existing != null && isEditing)
         ? (existing['electric_previous_reading'] ?? prevE).toDouble()
-        : (_needsPrevElecInput.contains(roomId)
-            ? (double.tryParse(peCtrl.text.trim()) ?? prevE)
-            : prevE);
+        : (double.tryParse((pvECtrlDyn?.text ?? '').trim()) ?? prevE);
 
-    final curW = double.tryParse(wCtrl.text.trim());
-    final curE = double.tryParse(eCtrl.text.trim());
+    final curW = double.tryParse((cvWCtrlDyn?.text ?? '').trim());
+    final curE = double.tryParse((cvECtrlDyn?.text ?? '').trim());
     final usageW = curW == null ? null : (curW - displayPrevW);
     final usageE = curE == null ? null : (curE - displayPrevE);
     final validW = curW != null && curW >= displayPrevW;
@@ -681,35 +744,52 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
           ] else ...[
             // Input view (new or editing existing)
             const SizedBox(height: 8),
-            _buildInputLine(
-              label: 'ค่าน้ำ',
-              previous: displayPrevW,
-              controller: wCtrl,
-              icon: const Icon(Icons.water_drop, color: Colors.blue),
-              error:
-                  (curW != null && !validW) ? 'ต้องไม่ต่ำกว่าก่อนหน้า' : null,
-              usage: usageW,
-              usageColor: Colors.blue[700]!,
-              onChanged: () => setState(() {}),
-              editablePrevious:
-                  _needsPrevWaterInput.contains(roomId) && existing == null,
-              previousController: pwCtrl,
-            ),
-            const SizedBox(height: 12),
-            _buildInputLine(
-              label: 'ค่าไฟ',
-              previous: displayPrevE,
-              controller: eCtrl,
-              icon: const Icon(Icons.electric_bolt, color: Colors.orange),
-              error:
-                  (curE != null && !validE) ? 'ต้องไม่ต่ำกว่าก่อนหน้า' : null,
-              usage: usageE,
-              usageColor: Colors.orange[700]!,
-              onChanged: () => setState(() {}),
-              editablePrevious:
-                  _needsPrevElecInput.contains(roomId) && existing == null,
-              previousController: peCtrl,
-            ),
+            // Dynamic meter lines from utility settings (UI only) — include all metered rates (water/electric/others)
+            ...() {
+              final rates = _meteredRates;
+              if (rates.isEmpty) return <Widget>[];
+              return <Widget>[
+                ...rates.map((rate) {
+                  final rateId = (rate['rate_id'] ?? '').toString();
+                  if (rateId.isEmpty) return const SizedBox.shrink();
+                  final name = (rate['rate_name'] ?? 'มิเตอร์').toString();
+                  final prevMap = _dynPrevCtrls[roomId] ?? const {};
+                  final curMap = _dynCurCtrls[roomId] ?? const {};
+                  final pvCtrl = prevMap[rateId] ?? TextEditingController();
+                  final cvCtrl = curMap[rateId] ?? TextEditingController();
+                  final isWater = _isWaterRate(Map<String, dynamic>.from(rate));
+                  final isElec = _isElectricRate(Map<String, dynamic>.from(rate));
+                  final icon = isWater
+                      ? const Icon(Icons.water_drop, color: Colors.blue)
+                      : isElec
+                          ? const Icon(Icons.electric_bolt, color: Colors.orange)
+                          : const Icon(Icons.speed_outlined, color: Color(0xFF10B981));
+                  final prevVal = double.tryParse(pvCtrl.text.trim()) ?? (isWater ? prevW : isElec ? prevE : 0.0);
+                  final curVal = double.tryParse(cvCtrl.text.trim());
+                  final usage = curVal == null ? null : (curVal - prevVal);
+                  final err = (curVal != null && curVal < prevVal) ? 'ต้องไม่ต่ำกว่าก่อนหน้า' : null;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildInputLine(
+                      label: name,
+                      previous: prevVal,
+                      controller: cvCtrl,
+                      icon: icon,
+                      error: err,
+                      usage: usage,
+                      usageColor: isWater
+                          ? Colors.blue[700]!
+                          : isElec
+                              ? Colors.orange[700]!
+                              : const Color(0xFF10B981),
+                      onChanged: () => setState(() {}),
+                      editablePrevious: true,
+                      previousController: pvCtrl,
+                    ),
+                  );
+                }).toList(),
+              ];
+            }(),
             const SizedBox(height: 12),
             TextField(
               controller: nCtrl,
@@ -935,31 +1015,30 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       _showErrorSnackBar('ข้อมูลไม่ครบ ไม่สามารถบันทึกได้');
       return;
     }
-
-    final wCtrl = _waterCtrl[roomId]!;
-    final eCtrl = _elecCtrl[roomId]!;
     final nCtrl = _noteCtrl[roomId]!;
-    double prevW = _prevWaterByRoom[roomId] ?? 0.0;
-    double prevE = _prevElecByRoom[roomId] ?? 0.0;
-    // If requires previous input, read from controllers
-    if (_needsPrevWaterInput.contains(roomId)) {
-      final pv = double.tryParse((_prevWaterCtrl[roomId]?.text ?? '').trim());
-      if (pv == null) {
-        _showErrorSnackBar('กรุณากรอกค่าน้ำก่อนหน้าให้ถูกต้อง');
-        return;
-      }
-      prevW = pv;
+    // Resolve water/electric rate IDs
+    String? waterRateId;
+    String? electricRateId;
+    for (final rate in _meteredRates) {
+      final r = Map<String, dynamic>.from(rate);
+      final rid = (r['rate_id'] ?? '').toString();
+      if (rid.isEmpty) continue;
+      if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
+      if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
     }
-    if (_needsPrevElecInput.contains(roomId)) {
-      final pv = double.tryParse((_prevElecCtrl[roomId]?.text ?? '').trim());
-      if (pv == null) {
-        _showErrorSnackBar('กรุณากรอกค่าไฟก่อนหน้าให้ถูกต้อง');
-        return;
-      }
-      prevE = pv;
+    if (waterRateId == null || electricRateId == null) {
+      _showErrorSnackBar('กรุณาตั้งค่าเรตค่าน้ำและค่าไฟใน Utility Settings ก่อน');
+      return;
     }
-    final curW = double.tryParse(wCtrl.text.trim());
-    final curE = double.tryParse(eCtrl.text.trim());
+    final pvWCtrl = _dynPrevCtrls[roomId]?[waterRateId!];
+    final pvECtrl = _dynPrevCtrls[roomId]?[electricRateId!];
+    final cvWCtrl = _dynCurCtrls[roomId]?[waterRateId!];
+    final cvECtrl = _dynCurCtrls[roomId]?[electricRateId!];
+
+    double prevW = double.tryParse((pvWCtrl?.text ?? '').trim()) ?? (_prevWaterByRoom[roomId] ?? 0.0);
+    double prevE = double.tryParse((pvECtrl?.text ?? '').trim()) ?? (_prevElecByRoom[roomId] ?? 0.0);
+    final curW = double.tryParse((cvWCtrl?.text ?? '').trim());
+    final curE = double.tryParse((cvECtrl?.text ?? '').trim());
 
     if (curW == null || curE == null) {
       _showErrorSnackBar('กรุณากรอกตัวเลขให้ถูกต้อง');
@@ -1003,8 +1082,9 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         final data = Map<String, dynamic>.from(res['data'] ?? {});
         _existingByRoom[roomId] = data;
         // Clear inputs and refresh previous suggestions for next month logic
-        wCtrl.clear();
-        eCtrl.clear();
+        // Clear inputs
+        cvWCtrl?.clear();
+        cvECtrl?.clear();
         nCtrl.clear();
         setState(() {});
       } else {
@@ -1020,15 +1100,28 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
   Future<void> _updateRow(String roomId) async {
     final existing = _existingByRoom[roomId];
     if (existing == null) return;
-
-    final wCtrl = _waterCtrl[roomId]!;
-    final eCtrl = _elecCtrl[roomId]!;
     final nCtrl = _noteCtrl[roomId]!;
 
     final prevW = (existing['water_previous_reading'] ?? 0.0).toDouble();
     final prevE = (existing['electric_previous_reading'] ?? 0.0).toDouble();
-    final curW = double.tryParse(wCtrl.text.trim());
-    final curE = double.tryParse(eCtrl.text.trim());
+    // Resolve current from dynamic controllers
+    String? waterRateId;
+    String? electricRateId;
+    for (final rate in _meteredRates) {
+      final r = Map<String, dynamic>.from(rate);
+      final rid = (r['rate_id'] ?? '').toString();
+      if (rid.isEmpty) continue;
+      if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
+      if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
+    }
+    if (waterRateId == null || electricRateId == null) {
+      _showErrorSnackBar('กรุณาตั้งค่าเรตค่าน้ำและค่าไฟใน Utility Settings ก่อน');
+      return;
+    }
+    final cvWCtrl = _dynCurCtrls[roomId]?[waterRateId!];
+    final cvECtrl = _dynCurCtrls[roomId]?[electricRateId!];
+    final curW = double.tryParse((cvWCtrl?.text ?? '').trim());
+    final curE = double.tryParse((cvECtrl?.text ?? '').trim());
 
     if (curW == null || curE == null) {
       _showErrorSnackBar('กรุณากรอกตัวเลขให้ถูกต้อง');
@@ -1069,8 +1162,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         _existingByRoom[roomId] = data;
         _editingRoomIds.remove(roomId);
         // Clear inputs
-        wCtrl.clear();
-        eCtrl.clear();
+        cvWCtrl?.clear();
+        cvECtrl?.clear();
         nCtrl.clear();
         setState(() {});
       } else {
