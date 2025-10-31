@@ -186,25 +186,7 @@ class BranchDashboardPage extends StatelessWidget {
                               color: Colors.grey[600],
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 8,
-                            children: [
-                              _InfoChipBox(
-                                icon: Icons.business,
-                                label: 'ชื่อสาขา',
-                                value: branchName ?? '-',
-                              ),
-                              _InfoChipBox(
-                                icon: Icons.qr_code_2,
-                                label: 'รหัสสาขา',
-                                value: (branchId == null || branchId!.isEmpty)
-                                    ? '-'
-                                    : branchId!,
-                              ),
-                            ],
-                          )
+                          // เอารหัสสาขาออก และย้ายชื่อสาขาไปแสดงในส่วนเนื้อหาด้านล่างเป็น Card
                         ],
                       ),
                     ),
@@ -222,17 +204,26 @@ class BranchDashboardPage extends StatelessWidget {
                       alignment: Alignment.topCenter,
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: maxGridWidth),
-                        child: GridView.builder(
+                        child: ListView(
                           padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 0.9,
-                          ),
-                          itemCount: items.length,
-                          itemBuilder: (context, i) => _DashCard(item: items[i]),
+                          children: [
+                            if ((branchName ?? '').isNotEmpty)
+                              _BranchNameCard(name: branchName!),
+                            const SizedBox(height: 8),
+                            GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 4,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: 0.9,
+                              ),
+                              itemCount: items.length,
+                              itemBuilder: (context, i) => _DashCard(item: items[i]),
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -306,52 +297,43 @@ class _DashCard extends StatelessWidget {
 }
 
 // ชิปแสดงข้อมูล (กรอบ + ไอคอน) สำหรับชื่อสาขา/รหัสสาขา
-class _InfoChipBox extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  const _InfoChipBox({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+class _BranchNameCard extends StatelessWidget {
+  final String name;
+  const _BranchNameCard({required this.name});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: Colors.grey[700]),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-          ),
-          const SizedBox(width: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: Colors.black87,
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0,
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
               ),
-              overflow: TextOverflow.ellipsis,
+              child: const Icon(Icons.business, color: AppTheme.primary, size: 20),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
