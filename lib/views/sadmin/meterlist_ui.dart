@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:manager_room_project/views/widgets/subnavbar.dart';
 import '../../services/meter_service.dart';
+import '../../services/utility_rate_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_models.dart';
 import '../widgets/colors.dart';
@@ -61,6 +61,12 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
   final Map<String, Map<String, dynamic>> _existingByRoom = {};
   final Set<String> _editingRoomIds = {};
 
+  // Dynamic metered rates from utility settings (by branch)
+  List<Map<String, dynamic>> _meteredRates = [];
+  // Controllers for dynamic meters per room and rate_id
+  final Map<String, Map<String, TextEditingController>> _dynPrevCtrls = {};
+  final Map<String, Map<String, TextEditingController>> _dynCurCtrls = {};
+
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year; // ค.ศ. (แสดงผล พ.ศ.)
 
@@ -99,12 +105,25 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     try {
       _currentUser = await AuthService.getCurrentUser();
       if (_currentUser == null) return;
-
+      await _loadMeteredRates();
       await _loadRoomsAndPrevious();
     } catch (e) {
       _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadMeteredRates() async {
+    try {
+      final branchId = widget.branchId;
+      if (branchId == null || branchId.isEmpty) {
+        _meteredRates = [];
+        return;
+      }
+      _meteredRates = await UtilityRatesService.getMeteredRates(branchId);
+    } catch (e) {
+      _meteredRates = [];
     }
   }
 
@@ -161,6 +180,17 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         _noteCtrl.putIfAbsent(roomId, () => TextEditingController());
         _prevWaterCtrl.putIfAbsent(roomId, () => TextEditingController());
         _prevElecCtrl.putIfAbsent(roomId, () => TextEditingController());
+        // Init dynamic controllers for this room
+        if (_meteredRates.isNotEmpty) {
+          _dynPrevCtrls.putIfAbsent(roomId, () => {});
+          _dynCurCtrls.putIfAbsent(roomId, () => {});
+          for (final rate in _meteredRates) {
+            final rateId = (rate['rate_id'] ?? '').toString();
+            if (rateId.isEmpty) continue;
+            _dynPrevCtrls[roomId]!.putIfAbsent(rateId, () => TextEditingController());
+            _dynCurCtrls[roomId]!.putIfAbsent(rateId, () => TextEditingController());
+          }
+        }
       }));
 
       // Fetch existing readings of the selected month/year for each room
@@ -414,11 +444,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
           ],
         ),
       ),
-      bottomNavigationBar: Subnavbar(
-        currentIndex: 3,
-        branchId: widget.branchId,
-        branchName: widget.branchName,
-      ),
+      bottomNavigationBar: null,
     );
   }
 
@@ -658,6 +684,37 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               editablePrevious: _needsPrevElecInput.contains(roomId) && existing == null,
               previousController: peCtrl,
             ),
+            // Dynamic meter lines from utility settings (UI only)
+            if (_meteredRates.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              ..._meteredRates.map((rate) {
+                final rateId = (rate['rate_id'] ?? '').toString();
+                if (rateId.isEmpty) return const SizedBox.shrink();
+                final prevMap = _dynPrevCtrls[roomId] ?? const {};
+                final curMap = _dynCurCtrls[roomId] ?? const {};
+                final pvCtrl = prevMap[rateId] ?? TextEditingController();
+                final cvCtrl = curMap[rateId] ?? TextEditingController();
+                final prevVal = double.tryParse(pvCtrl.text.trim()) ?? 0.0;
+                final curVal = double.tryParse(cvCtrl.text.trim());
+                final usage = curVal == null ? null : (curVal - prevVal);
+                final err = (curVal != null && curVal < prevVal) ? 'ต้องไม่ต่ำกว่าก่อนหน้า' : null;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildInputLine(
+                    label: (rate['rate_name'] ?? 'มิเตอร์เสริม').toString(),
+                    previous: prevVal,
+                    controller: cvCtrl,
+                    icon: const Icon(Icons.speed_outlined, color: Color(0xFF10B981)),
+                    error: err,
+                    usage: usage,
+                    usageColor: const Color(0xFF10B981),
+                    onChanged: () => setState(() {}),
+                    editablePrevious: true,
+                    previousController: pvCtrl,
+                  ),
+                );
+              }).toList(),
+            ],
             const SizedBox(height: 12),
             TextField(
               controller: nCtrl,
