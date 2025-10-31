@@ -127,6 +127,16 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     }
   }
 
+  bool _isWaterRate(Map<String, dynamic> rate) {
+    final name = (rate['rate_name'] ?? '').toString().toLowerCase();
+    return name.contains('น้ำ') || name.contains('water');
+  }
+
+  bool _isElectricRate(Map<String, dynamic> rate) {
+    final name = (rate['rate_name'] ?? '').toString().toLowerCase();
+    return name.contains('ไฟ') || name.contains('electric');
+  }
+
   Future<void> _loadRoomsAndPrevious() async {
     setState(() => _loadingRooms = true);
     try {
@@ -181,10 +191,13 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         _prevWaterCtrl.putIfAbsent(roomId, () => TextEditingController());
         _prevElecCtrl.putIfAbsent(roomId, () => TextEditingController());
         // Init dynamic controllers for this room
-        if (_meteredRates.isNotEmpty) {
+        final dynamicRates = _meteredRates
+            .where((r) => !_isWaterRate(Map<String, dynamic>.from(r)) && !_isElectricRate(Map<String, dynamic>.from(r)))
+            .toList();
+        if (dynamicRates.isNotEmpty) {
           _dynPrevCtrls.putIfAbsent(roomId, () => {});
           _dynCurCtrls.putIfAbsent(roomId, () => {});
-          for (final rate in _meteredRates) {
+          for (final rate in dynamicRates) {
             final rateId = (rate['rate_id'] ?? '').toString();
             if (rateId.isEmpty) continue;
             _dynPrevCtrls[roomId]!.putIfAbsent(rateId, () => TextEditingController());
@@ -684,37 +697,43 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               editablePrevious: _needsPrevElecInput.contains(roomId) && existing == null,
               previousController: peCtrl,
             ),
-            // Dynamic meter lines from utility settings (UI only)
-            if (_meteredRates.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              ..._meteredRates.map((rate) {
-                final rateId = (rate['rate_id'] ?? '').toString();
-                if (rateId.isEmpty) return const SizedBox.shrink();
-                final prevMap = _dynPrevCtrls[roomId] ?? const {};
-                final curMap = _dynCurCtrls[roomId] ?? const {};
-                final pvCtrl = prevMap[rateId] ?? TextEditingController();
-                final cvCtrl = curMap[rateId] ?? TextEditingController();
-                final prevVal = double.tryParse(pvCtrl.text.trim()) ?? 0.0;
-                final curVal = double.tryParse(cvCtrl.text.trim());
-                final usage = curVal == null ? null : (curVal - prevVal);
-                final err = (curVal != null && curVal < prevVal) ? 'ต้องไม่ต่ำกว่าก่อนหน้า' : null;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildInputLine(
-                    label: (rate['rate_name'] ?? 'มิเตอร์เสริม').toString(),
-                    previous: prevVal,
-                    controller: cvCtrl,
-                    icon: const Icon(Icons.speed_outlined, color: Color(0xFF10B981)),
-                    error: err,
-                    usage: usage,
-                    usageColor: const Color(0xFF10B981),
-                    onChanged: () => setState(() {}),
-                    editablePrevious: true,
-                    previousController: pvCtrl,
-                  ),
-                );
-              }).toList(),
-            ],
+            // Dynamic meter lines from utility settings (UI only) — exclude Water/Electric to avoid duplicate rows
+            ...() {
+              final dynamicRates = _meteredRates
+                  .where((r) => !_isWaterRate(Map<String, dynamic>.from(r)) && !_isElectricRate(Map<String, dynamic>.from(r)))
+                  .toList();
+              if (dynamicRates.isEmpty) return <Widget>[];
+              return <Widget>[
+                const SizedBox(height: 12),
+                ...dynamicRates.map((rate) {
+                  final rateId = (rate['rate_id'] ?? '').toString();
+                  if (rateId.isEmpty) return const SizedBox.shrink();
+                  final prevMap = _dynPrevCtrls[roomId] ?? const {};
+                  final curMap = _dynCurCtrls[roomId] ?? const {};
+                  final pvCtrl = prevMap[rateId] ?? TextEditingController();
+                  final cvCtrl = curMap[rateId] ?? TextEditingController();
+                  final prevVal = double.tryParse(pvCtrl.text.trim()) ?? 0.0;
+                  final curVal = double.tryParse(cvCtrl.text.trim());
+                  final usage = curVal == null ? null : (curVal - prevVal);
+                  final err = (curVal != null && curVal < prevVal) ? 'ต้องไม่ต่ำกว่าก่อนหน้า' : null;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildInputLine(
+                      label: (rate['rate_name'] ?? 'มิเตอร์เสริม').toString(),
+                      previous: prevVal,
+                      controller: cvCtrl,
+                      icon: const Icon(Icons.speed_outlined, color: Color(0xFF10B981)),
+                      error: err,
+                      usage: usage,
+                      usageColor: const Color(0xFF10B981),
+                      onChanged: () => setState(() {}),
+                      editablePrevious: true,
+                      previousController: pvCtrl,
+                    ),
+                  );
+                }).toList(),
+              ];
+            }(),
             const SizedBox(height: 12),
             TextField(
               controller: nCtrl,
