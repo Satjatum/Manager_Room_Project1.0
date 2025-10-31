@@ -466,33 +466,19 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             const SizedBox(height: 8),
 
             Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final maxWidth = _maxContentWidth(constraints.maxWidth);
-                  return Align(
-                    alignment: Alignment.topCenter,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: maxWidth),
-                      child: _isLoading || _loadingRooms
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  CircularProgressIndicator(
-                                      color: AppTheme.primary),
-                                  const SizedBox(height: 16),
-                                  Text('กำลังโหลดห้อง...',
-                                      style:
-                                          TextStyle(color: Colors.grey[600])),
-                                ],
-                              ),
-                            )
-                          : _buildRoomsList(isMobileApp,
-                              maxContentWidth: maxWidth),
-                    ),
-                  );
-                },
-              ),
+              child: _isLoading || _loadingRooms
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(color: AppTheme.primary),
+                          const SizedBox(height: 16),
+                          Text('กำลังโหลดห้อง...',
+                              style: TextStyle(color: Colors.grey[600])),
+                        ],
+                      ),
+                    )
+                  : _buildRoomsList(isMobileApp),
             ),
           ],
         ),
@@ -549,7 +535,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     );
   }
 
-  Widget _buildRoomsList(bool isMobileApp, {double? maxContentWidth}) {
+  Widget _buildRoomsList(bool isMobileApp) {
     final filtered = _rooms.where((r) {
       // free-text search (ห้องหรือผู้เช่า)
       if (_searchQuery.isNotEmpty) {
@@ -597,14 +583,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         itemCount: filtered.length,
         itemBuilder: (context, index) {
           final r = filtered[index];
-          return Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                  maxWidth: maxContentWidth ?? _maxContentWidth(1200)),
-              child: _buildRoomCard(r),
-            ),
-          );
+          return _buildRoomCard(r);
         },
       ),
     );
@@ -842,35 +821,53 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             Row(
               children: [
                 if (existing == null) ...[
-                  ElevatedButton.icon(
+                  ElevatedButton(
                     onPressed: canSaveNew ? () => _saveRow(room) : null,
-                    icon: _savingRoomIds.contains(roomId)
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.save),
-                    label: const Text('บันทึกแถวนี้'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primary,
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: const Size(0, 36),
+                      textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_savingRoomIds.contains(roomId))
+                          const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          ),
+                        if (_savingRoomIds.contains(roomId)) const SizedBox(width: 8),
+                        const Text('บันทึกแถวนี้'),
+                      ],
                     ),
                   ),
                 ] else ...[
-                  ElevatedButton.icon(
+                  ElevatedButton(
                     onPressed: canSaveEdit ? () => _updateRow(roomId) : null,
-                    icon: _savingRoomIds.contains(roomId)
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.save_as_outlined),
-                    label: const Text('บันทึกการแก้ไข'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primary,
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: const Size(0, 36),
+                      textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_savingRoomIds.contains(roomId))
+                          const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          ),
+                        if (_savingRoomIds.contains(roomId)) const SizedBox(width: 8),
+                        const Text('บันทึกการแก้ไข'),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),
