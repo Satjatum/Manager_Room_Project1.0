@@ -8,7 +8,6 @@ import 'package:manager_room_project/models/user_models.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/views/sadmin/payment_verification_detail_ui.dart';
 import 'package:manager_room_project/services/receipt_print_service.dart';
-import 'package:manager_room_project/views/widgets/subnavbar.dart';
 
 class PaymentVerificationPage extends StatefulWidget {
   final String? branchId;
@@ -296,10 +295,6 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        bottomNavigationBar: Subnavbar(
-          currentIndex: 4,
-          branchId: widget.branchId,
-        ),
         body: SafeArea(
           child: _loading
               ? const Center(

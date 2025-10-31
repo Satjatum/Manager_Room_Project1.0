@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/subnavbar.dart';
 import '../widgets/colors.dart';
 import '../../services/meter_service.dart';
 import 'invoice_add_ui.dart';
@@ -50,8 +49,9 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
       // Filter only readings that are not yet billed
       _readings = list.where((r) => (r['invoice_id'] == null)).toList();
       // Sort by room number
-      _readings.sort((a, b) =>
-          (a['room_number'] ?? '').toString().compareTo((b['room_number'] ?? '').toString()));
+      _readings.sort((a, b) => (a['room_number'] ?? '')
+          .toString()
+          .compareTo((b['room_number'] ?? '').toString()));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -104,7 +104,8 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                       isDense: true,
                     ),
                     items: List.generate(12, (i) => i + 1)
-                        .map((m) => DropdownMenuItem(value: m, child: Text(_getMonthName(m))))
+                        .map((m) => DropdownMenuItem(
+                            value: m, child: Text(_getMonthName(m))))
                         .toList(),
                     onChanged: (v) async {
                       setState(() => _selectedMonth = v ?? _selectedMonth);
@@ -122,7 +123,8 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                       isDense: true,
                     ),
                     items: List.generate(6, (i) => DateTime.now().year - i)
-                        .map((y) => DropdownMenuItem(value: y, child: Text('${y + 543}')))
+                        .map((y) => DropdownMenuItem(
+                            value: y, child: Text('${y + 543}')))
                         .toList(),
                     onChanged: (v) async {
                       setState(() => _selectedYear = v ?? _selectedYear);
@@ -139,10 +141,10 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
               ],
             ),
           ),
-
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppTheme.primary))
                 : _readings.isEmpty
                     ? _buildEmpty()
                     : RefreshIndicator(
@@ -151,20 +153,15 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                         child: ListView.separated(
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                           itemCount: _readings.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 8),
-                          itemBuilder: (context, index) => _buildReadingTile(_readings[index]),
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 8),
+                          itemBuilder: (context, index) =>
+                              _buildReadingTile(_readings[index]),
                         ),
                       ),
           ),
         ],
       ),
-      bottomNavigationBar: widget.hideBottomNav
-          ? null
-          : Subnavbar(
-              currentIndex: 3,
-              branchId: widget.branchId,
-              branchName: widget.branchName,
-            ),
     );
   }
 

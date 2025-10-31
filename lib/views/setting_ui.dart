@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:manager_room_project/views/widgets/subnavbar.dart';
+
 import 'widgets/mainnavbar.dart';
 import '../services/auth_service.dart';
 import '../middleware/auth_middleware.dart';
@@ -184,10 +184,6 @@ class _SettingUiState extends State<SettingUi> {
         elevation: 1,
       ),
       body: _buildResponsiveBody(isMobile, isTablet, isWeb),
-      // If role is Tenant -> subnavbar index 3. Otherwise use Mainnavbar index 2.
-      bottomNavigationBar: currentUser!.userRole == UserRole.tenant
-          ? const Subnavbar(currentIndex: 3)
-          : const Mainnavbar(currentIndex: 2),
     );
   }
 

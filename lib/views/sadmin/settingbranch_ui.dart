@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:manager_room_project/views/payment_qr_management_ui.dart';
 import 'package:manager_room_project/views/payment_setting_ui.dart';
 import 'package:manager_room_project/views/utility_setting_ui.dart';
-import 'package:manager_room_project/views/widgets/subnavbar.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/views/sadmin/amenities_ui.dart';
 import 'package:manager_room_project/views/sadmin/roomtype_ui.dart';
@@ -125,11 +124,6 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        bottomNavigationBar: Subnavbar(
-          currentIndex: 5,
-          branchId: widget.branchId,
-          branchName: widget.branchName,
-        ),
         body: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
