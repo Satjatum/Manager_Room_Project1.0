@@ -3,7 +3,6 @@ import 'package:manager_room_project/views/sadmin/tenant_add_ui.dart';
 import 'package:manager_room_project/views/sadmin/tenant_edit_ui.dart';
 import 'package:manager_room_project/views/sadmin/tenantlist_detail_ui.dart';
 import 'package:manager_room_project/views/widgets/mainnavbar.dart';
-import 'package:manager_room_project/views/widgets/subnavbar.dart';
 import '../../models/user_models.dart';
 import '../../middleware/auth_middleware.dart';
 import '../../services/tenant_service.dart';
@@ -771,13 +770,7 @@ class _TenantListUIState extends State<TenantListUI> {
                 ),
               )
             : null,
-        bottomNavigationBar: widget.hideBottomNav
-            ? null
-            : Subnavbar(
-                currentIndex: 1,
-                branchId: widget.branchId,
-                branchName: widget.branchName,
-              ),
+        bottomNavigationBar: null,
       ),
     );
   }
