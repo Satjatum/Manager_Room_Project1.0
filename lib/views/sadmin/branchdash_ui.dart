@@ -38,6 +38,7 @@ class BranchDashboardPage extends StatelessWidget {
       );
       return ok == true;
     }
+
     final items = [
       _DashItem(
         icon: Icons.meeting_room_outlined,
@@ -194,48 +195,59 @@ class BranchDashboardPage extends StatelessWidget {
                 ),
               ),
 
-              // Content section (Grid 4 ต่อแถว, จัดให้อยู่กึ่งกลางหน้าจอ)
+              // Content section — Responsive breakpoints; center only on phone
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    // จำกัดความกว้างเพื่อให้กริดอยู่กลางจอเหมือนไอคอนมือถือ
-                    const double maxGridWidth = 560; // กริด 4 ช่องกำลังสวยบนเดสก์ท็อป
-                    final double containerWidth =
-                        constraints.maxWidth.clamp(0, maxGridWidth);
-
-                    // Responsive: ลดจำนวนคอลัมน์เมื่อหน้าจอแคบมาก
+                    final maxW = _maxContentWidth(constraints.maxWidth);
+                    // Determine columns by available width
                     int cross = 4;
-                    if (containerWidth < 360) {
-                      cross = 2;
-                    } else if (containerWidth < 480) {
-                      cross = 3;
+                    if (maxW < 360) {
+                      cross = 2; // Mobile S
+                    } else if (maxW < 480) {
+                      cross = 3; // Mobile M/L
+                    } else {
+                      cross = 4; // Tablet and above
                     }
 
-                    return Align(
-                      alignment: Alignment.topCenter,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: maxGridWidth),
-                        child: ListView(
-                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-                          children: [
-                            if ((branchName ?? '').isNotEmpty)
-                              _BranchNameCard(name: branchName!),
-                            const SizedBox(height: 8),
-                            GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: cross,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 16,
-                                childAspectRatio: 0.9,
-                              ),
-                              itemCount: items.length,
-                              itemBuilder: (context, i) => _DashCard(item: items[i]),
-                            ),
-                          ],
+                    final content = ListView(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                      children: [
+                        if ((branchName ?? '').isNotEmpty)
+                          _BranchNameCard(name: branchName!),
+                        const SizedBox(height: 8),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: cross,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: 0.9,
+                          ),
+                          itemCount: items.length,
+                          itemBuilder: (context, i) => _DashCard(item: items[i]),
                         ),
+                      ],
+                    );
+
+                    if (isMobileApp) {
+                      // Center on native phones
+                      return Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: maxW),
+                          child: content,
+                        ),
+                      );
+                    }
+                    // Desktop/Web: left align within responsive max width
+                    return Align(
+                      alignment: Alignment.topLeft,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: maxW),
+                        child: content,
                       ),
                     );
                   },
@@ -247,6 +259,16 @@ class BranchDashboardPage extends StatelessWidget {
       ),
     );
   }
+}
+
+// Responsive content widths (Mobile S/M/L, Tablet, Laptop, Laptop L, 4K)
+double _maxContentWidth(double screenWidth) {
+  if (screenWidth >= 2560) return 1280; // 4K
+  if (screenWidth >= 1440) return 1100; // Laptop L
+  if (screenWidth >= 1200) return 1000; // Laptop
+  if (screenWidth >= 900) return 860; // Tablet landscape / small desktop
+  if (screenWidth >= 600) return 560; // Mobile L / Tablet portrait
+  return screenWidth; // Mobile S/M
 }
 
 class _DashItem {
@@ -328,7 +350,8 @@ class _BranchNameCard extends StatelessWidget {
                 color: AppTheme.primary.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.business, color: AppTheme.primary, size: 20),
+              child:
+                  const Icon(Icons.business, color: AppTheme.primary, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
