@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:manager_room_project/views/payment_qr_management_ui.dart';
 import 'package:manager_room_project/views/payment_setting_ui.dart';
 import 'package:manager_room_project/views/utility_setting_ui.dart';
-import 'package:manager_room_project/views/widgets/subnavbar.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/views/sadmin/amenities_ui.dart';
 import 'package:manager_room_project/views/sadmin/roomtype_ui.dart';
@@ -95,41 +94,9 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
     final bool isMobileApp = !kIsWeb &&
         (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
 
-    return WillPopScope(
-      onWillPop: () async {
-        if (lockedBranchId != null) {
-          final confirm = await showDialog<bool>(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('ยืนยันการออกจากสาขา'),
-              content: const Text('คุณต้องการกลับไปหน้าเลือกสาขาหรือไม่?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('ยกเลิก'),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('ยืนยัน'),
-                ),
-              ],
-            ),
-          );
-          if (confirm == true) {
-            Navigator.of(context).popUntil((route) => route.isFirst);
-            return false;
-          }
-          return false;
-        }
-        return true;
-      },
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: Colors.white,
-        bottomNavigationBar: Subnavbar(
-          currentIndex: 5,
-          branchId: widget.branchId,
-          branchName: widget.branchName,
-        ),
+        bottomNavigationBar: null,
         body: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,33 +110,8 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
                     IconButton(
                       icon: const Icon(Icons.arrow_back_ios_new,
                           color: Colors.black87),
-                      onPressed: () async {
-                        if (lockedBranchId != null) {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('ยืนยันการออกจากสาขา'),
-                              content: const Text(
-                                  'คุณต้องการกลับไปหน้าเลือกสาขาหรือไม่?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.of(context).pop(false),
-                                  child: const Text('ยกเลิก'),
-                                ),
-                                ElevatedButton(
-                                  onPressed: () =>
-                                      Navigator.of(context).pop(true),
-                                  child: const Text('ยืนยัน'),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (confirm == true) {
-                            Navigator.of(context)
-                                .popUntil((route) => route.isFirst);
-                          }
-                        } else if (Navigator.of(context).canPop()) {
+                      onPressed: () {
+                        if (Navigator.of(context).canPop()) {
                           Navigator.of(context).pop();
                         }
                       },
@@ -262,8 +204,7 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }
 

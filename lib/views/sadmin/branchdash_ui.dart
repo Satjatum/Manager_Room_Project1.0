@@ -17,6 +17,26 @@ class BranchDashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Future<bool> _confirmExit() async {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('ออกจากแดชบอร์ดสาขา'),
+          content: const Text('คุณต้องการกลับไปหน้าก่อนหน้าหรือไม่?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('ยืนยัน'),
+            ),
+          ],
+        ),
+      );
+      return ok == true;
+    }
     final items = [
       _DashItem(
         icon: Icons.meeting_room_outlined,
@@ -112,15 +132,26 @@ class BranchDashboardPage extends StatelessWidget {
       ),
     ];
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(branchName == null || branchName!.isEmpty
-            ? 'แดชบอร์ดสาขา'
-            : 'แดชบอร์ด — $branchName'),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-      ),
+    return WillPopScope(
+      onWillPop: _confirmExit,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+            onPressed: () async {
+              if (await _confirmExit()) {
+                if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+              }
+            },
+            tooltip: 'ย้อนกลับ',
+          ),
+          title: Text(branchName == null || branchName!.isEmpty
+              ? 'แดชบอร์ดสาขา'
+              : 'แดชบอร์ด — $branchName'),
+          backgroundColor: AppTheme.primary,
+          foregroundColor: Colors.white,
+        ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           int cols = 2;
@@ -149,6 +180,7 @@ class BranchDashboardPage extends StatelessWidget {
             itemBuilder: (context, i) => _DashCard(item: items[i]),
           );
         },
+      ),
       ),
     );
   }

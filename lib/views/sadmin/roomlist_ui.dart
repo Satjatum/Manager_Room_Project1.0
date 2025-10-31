@@ -1066,40 +1066,7 @@ class _RoomListUIState extends State<RoomListUI> {
 
   @override
   Widget build(BuildContext context) {
-    final String? lockedBranchId =
-        (widget.branchId != null && widget.branchId!.trim().isNotEmpty)
-            ? widget.branchId
-            : null;
-
-    Future<bool> _confirmExitBranch() async {
-      if (lockedBranchId == null) return true;
-      final confirm = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('ยืนยันการออกจากสาขา'),
-          content: const Text('คุณต้องการกลับไปหน้าเลือกสาขาหรือไม่?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('ยกเลิก'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('ยืนยัน'),
-            ),
-          ],
-        ),
-      );
-      if (confirm == true) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        return false;
-      }
-      return false;
-    }
-
-    return WillPopScope(
-      onWillPop: _confirmExitBranch,
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
           child: Column(
@@ -1114,10 +1081,8 @@ class _RoomListUIState extends State<RoomListUI> {
                     IconButton(
                       icon:
                           Icon(Icons.arrow_back_ios_new, color: Colors.black87),
-                      onPressed: () async {
-                        if (lockedBranchId != null) {
-                          await _confirmExitBranch();
-                        } else if (Navigator.of(context).canPop()) {
+                      onPressed: () {
+                        if (Navigator.of(context).canPop()) {
                           Navigator.of(context).pop();
                         }
                       },
@@ -1502,8 +1467,7 @@ class _RoomListUIState extends State<RoomListUI> {
               )
             : null,
         bottomNavigationBar: null,
-      ),
-    );
+      );
   }
 
   Widget _buildEmptyState() {
