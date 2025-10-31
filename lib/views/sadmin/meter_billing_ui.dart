@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../widgets/colors.dart';
 import '../../services/meter_service.dart';
 import 'invoice_add_ui.dart';
@@ -82,85 +83,159 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final platform = Theme.of(context).platform;
+    final bool isMobileApp = !kIsWeb &&
+        (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
+
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('ออกบิลค่ามิเตอร์'),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    value: _selectedMonth,
-                    decoration: const InputDecoration(
-                      labelText: 'เดือน',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    items: List.generate(12, (i) => i + 1)
-                        .map((m) => DropdownMenuItem(
-                            value: m, child: Text(_getMonthName(m))))
-                        .toList(),
-                    onChanged: (v) async {
-                      setState(() => _selectedMonth = v ?? _selectedMonth);
-                      await _loadData();
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header (white)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        color: Colors.black87),
+                    onPressed: () {
+                      if (Navigator.of(context).canPop())
+                        Navigator.of(context).pop();
                     },
+                    tooltip: 'ย้อนกลับ',
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    value: _selectedYear,
-                    decoration: const InputDecoration(
-                      labelText: 'ปี (พ.ศ.)',
-                      border: OutlineInputBorder(),
-                      isDense: true,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'ออกบิลค่ามิเตอร์',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'เลือกเดือนและปีเพื่อแสดงรายการที่พร้อมออกบิล',
+                          style:
+                              TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        ),
+                      ],
                     ),
-                    items: List.generate(6, (i) => DateTime.now().year - i)
-                        .map((y) => DropdownMenuItem(
-                            value: y, child: Text('${y + 543}')))
-                        .toList(),
-                    onChanged: (v) async {
-                      setState(() => _selectedYear = v ?? _selectedYear);
-                      await _loadData();
-                    },
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  tooltip: 'รีเฟรช',
-                  onPressed: _loadData,
-                  icon: const Icon(Icons.refresh),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: _loading
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppTheme.primary))
-                : _readings.isEmpty
-                    ? _buildEmpty()
-                    : RefreshIndicator(
-                        onRefresh: _loadData,
-                        color: AppTheme.primary,
-                        child: ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                          itemCount: _readings.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 8),
-                          itemBuilder: (context, index) =>
-                              _buildReadingTile(_readings[index]),
+
+            // Filters and list within responsive container
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final maxW = _maxContentWidth(constraints.maxWidth);
+                  final content = Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: DropdownButtonFormField<int>(
+                                value: _selectedMonth,
+                                decoration: const InputDecoration(
+                                  labelText: 'เดือน',
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                                items: List.generate(12, (i) => i + 1)
+                                    .map((m) => DropdownMenuItem(
+                                        value: m,
+                                        child: Text(_getMonthName(m))))
+                                    .toList(),
+                                onChanged: (v) async {
+                                  setState(() =>
+                                      _selectedMonth = v ?? _selectedMonth);
+                                  await _loadData();
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: DropdownButtonFormField<int>(
+                                value: _selectedYear,
+                                decoration: const InputDecoration(
+                                  labelText: 'ปี (พ.ศ.)',
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                                items: List.generate(
+                                        6, (i) => DateTime.now().year - i)
+                                    .map((y) => DropdownMenuItem(
+                                        value: y, child: Text('${y + 543}')))
+                                    .toList(),
+                                onChanged: (v) async {
+                                  setState(() =>
+                                      _selectedYear = v ?? _selectedYear);
+                                  await _loadData();
+                                },
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-          ),
-        ],
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: _loading
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                    color: AppTheme.primary))
+                            : _readings.isEmpty
+                                ? _buildEmpty()
+                                : RefreshIndicator(
+                                    onRefresh: _loadData,
+                                    color: AppTheme.primary,
+                                    child: ListView.separated(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          24, 0, 24, 24),
+                                      itemCount: _readings.length,
+                                      separatorBuilder: (_, __) =>
+                                          const SizedBox(height: 8),
+                                      itemBuilder: (context, index) =>
+                                          _buildReadingTile(_readings[index]),
+                                    ),
+                                  ),
+                      ),
+                    ],
+                  );
+
+                  // Center on mobile, left-align on larger screens for readability
+                  if (isMobileApp) {
+                    return Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: maxW),
+                        child: content,
+                      ),
+                    );
+                  }
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxW),
+                      child: content,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -187,26 +262,70 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
     final water = ((r['water_usage'] ?? 0.0) as num).toDouble();
     final elec = ((r['electric_usage'] ?? 0.0) as num).toDouble();
 
-    return Card(
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: AppTheme.primary.withOpacity(0.1),
-          child: const Icon(Icons.meeting_room, color: AppTheme.primary),
-        ),
-        title: Text('ห้อง $roomNo — $tenant',
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(
-            'เดือน ${_getMonthName(r['reading_month'] ?? _selectedMonth)} ${_selectedYear + 543}\nน้ำ: ${water.toStringAsFixed(0)} หน่วย  |  ไฟ: ${elec.toStringAsFixed(0)} หน่วย'),
-        isThreeLine: true,
-        trailing: ElevatedButton.icon(
-          onPressed: () => _goToInvoice(r),
-          icon: const Icon(Icons.assignment_add),
-          label: const Text('ออกบิล'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primary,
-            foregroundColor: Colors.white,
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!, width: 1),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0F000000), blurRadius: 10, spreadRadius: -2),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.meeting_room, color: AppTheme.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ห้อง $roomNo — $tenant',
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 15),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'เดือน ${_getMonthName(r['reading_month'] ?? _selectedMonth)} ${_selectedYear + 543}',
+                    style:
+                        TextStyle(color: Colors.grey[700], fontSize: 13.5),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'น้ำ: ${water.toStringAsFixed(0)} หน่วย  |  ไฟ: ${elec.toStringAsFixed(0)} หน่วย',
+                    style: const TextStyle(fontSize: 13.5),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            ElevatedButton(
+              onPressed: () => _goToInvoice(r),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                minimumSize: const Size(0, 36),
+                textStyle:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              child: const Text('ออกบิล'),
+            ),
+          ],
         ),
       ),
     );
@@ -235,4 +354,14 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
       await _loadData();
     }
   }
+}
+
+// Responsive content widths (Mobile S/M/L, Tablet, Laptop, Laptop L, 4K)
+double _maxContentWidth(double screenWidth) {
+  if (screenWidth >= 2560) return 1280; // 4K
+  if (screenWidth >= 1440) return 1100; // Laptop L
+  if (screenWidth >= 1200) return 1000; // Laptop
+  if (screenWidth >= 900) return 860; // Tablet landscape / small desktop
+  if (screenWidth >= 600) return 560; // Mobile L / Tablet portrait
+  return screenWidth; // Mobile S/M
 }
