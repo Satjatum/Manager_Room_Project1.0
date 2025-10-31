@@ -466,24 +466,48 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             const SizedBox(height: 8),
 
             Expanded(
-              child: _isLoading || _loadingRooms
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(color: AppTheme.primary),
-                          const SizedBox(height: 16),
-                          Text('กำลังโหลดห้อง...',
-                              style: TextStyle(color: Colors.grey[600])),
-                        ],
-                      ),
-                    )
-                  : _buildRoomsList(isMobileApp),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final maxWidth = _maxContentWidth(constraints.maxWidth);
+                  return Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxWidth),
+                      child: _isLoading || _loadingRooms
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CircularProgressIndicator(
+                                      color: AppTheme.primary),
+                                  const SizedBox(height: 16),
+                                  Text('กำลังโหลดห้อง...',
+                                      style:
+                                          TextStyle(color: Colors.grey[600])),
+                                ],
+                              ),
+                            )
+                          : _buildRoomsList(isMobileApp,
+                              maxContentWidth: maxWidth),
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  // Responsive container widths (Mobile S/M/L, Tablet, Laptop, Laptop L, 4K)
+  double _maxContentWidth(double screenWidth) {
+    if (screenWidth >= 2560) return 1280; // 4K
+    if (screenWidth >= 1440) return 1100; // Laptop L
+    if (screenWidth >= 1200) return 1000; // Laptop
+    if (screenWidth >= 900) return 860; // Tablet landscape / small desktop
+    if (screenWidth >= 600) return 560; // Mobile L / Tablet portrait
+    return screenWidth; // Mobile S/M: full width
   }
 
   Widget _buildPeriodBanner() {
@@ -525,7 +549,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     );
   }
 
-  Widget _buildRoomsList(bool isMobileApp) {
+  Widget _buildRoomsList(bool isMobileApp, {double? maxContentWidth}) {
     final filtered = _rooms.where((r) {
       // free-text search (ห้องหรือผู้เช่า)
       if (_searchQuery.isNotEmpty) {
@@ -573,7 +597,14 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         itemCount: filtered.length,
         itemBuilder: (context, index) {
           final r = filtered[index];
-          return _buildRoomCard(r);
+          return Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                  maxWidth: maxContentWidth ?? _maxContentWidth(1200)),
+              child: _buildRoomCard(r),
+            ),
+          );
         },
       ),
     );
@@ -645,11 +676,19 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         curW != null &&
         curE != null;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
-      child: ExpansionTile(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!, width: 1),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0F000000), blurRadius: 10, spreadRadius: -2),
+        ],
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
         initiallyExpanded: false,
         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -857,6 +896,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             ),
           ],
         ],
+        ),
       ),
     );
   }
