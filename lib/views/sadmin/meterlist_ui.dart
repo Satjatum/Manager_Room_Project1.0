@@ -64,6 +64,20 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year; // ค.ศ. (แสดงผล พ.ศ.)
 
+  // Period helpers
+  bool get _isCurrentPeriod {
+    final now = DateTime.now();
+    return _selectedMonth == now.month && _selectedYear == now.year;
+  }
+
+  bool get _isFuturePeriod {
+    final now = DateTime.now();
+    return _selectedYear > now.year ||
+        (_selectedYear == now.year && _selectedMonth > now.month);
+  }
+
+  bool get _isPastPeriod => !_isCurrentPeriod && !_isFuturePeriod;
+
   @override
   void initState() {
     super.initState();
@@ -375,6 +389,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                       );
                     },
                   ),
+                  const SizedBox(height: 8),
+                  _buildPeriodBanner(),
                 ],
               ),
             ),
@@ -402,6 +418,44 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         currentIndex: 3,
         branchId: widget.branchId,
         branchName: widget.branchName,
+      ),
+    );
+  }
+
+  Widget _buildPeriodBanner() {
+    if (_isCurrentPeriod) return const SizedBox.shrink();
+    String message;
+    Color color;
+    IconData icon;
+    if (_isPastPeriod) {
+      message = 'เดือนที่ผ่านมาย้อนหลัง: ดูได้อย่างเดียว แก้ไข/ลบ/สร้างย้อนหลังไม่ได้';
+      color = Colors.blueGrey.shade50;
+      icon = Icons.info_outline;
+    } else {
+      message = 'เดือนอนาคต: ยังไม่เปิดให้บันทึก แสดงเพื่อดูข้อมูลเท่านั้น';
+      color = Colors.amber.shade50;
+      icon = Icons.lock_clock;
+    }
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.black87),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(color: Colors.black87),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -490,8 +544,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     final usageE = curE == null ? null : (curE - displayPrevE);
     final validW = curW != null && curW >= displayPrevW;
     final validE = curE != null && curE >= displayPrevE;
-    final canSaveNew = !_savingRoomIds.contains(roomId) && existing == null && validW && validE && curW != null && curE != null;
-    final canSaveEdit = !_savingRoomIds.contains(roomId) && existing != null && isEditing && validW && validE && curW != null && curE != null;
+    final canSaveNew = _isCurrentPeriod && !_savingRoomIds.contains(roomId) && existing == null && validW && validE && curW != null && curE != null;
+    final canSaveEdit = _isCurrentPeriod && !_savingRoomIds.contains(roomId) && existing != null && isEditing && validW && validE && curW != null && curE != null;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -542,33 +596,40 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             const SizedBox(height: 12),
             Row(
               children: [
-                OutlinedButton.icon(
-                  onPressed: _savingRoomIds.contains(roomId)
-                      ? null
-                      : () {
-                          // enter edit mode and prefill controllers
-                          _editingRoomIds.add(roomId);
-                          wCtrl.text = (existing['water_current_reading'] ?? '').toString();
-                          eCtrl.text = (existing['electric_current_reading'] ?? '').toString();
-                          nCtrl.text = (existing['reading_notes'] ?? '').toString();
-                          setState(() {});
-                        },
-                  icon: const Icon(Icons.edit),
-                  label: const Text('แก้ไข'),
-                ),
-                const SizedBox(width: 8),
-                TextButton.icon(
-                  onPressed: _savingRoomIds.contains(roomId)
-                      ? null
-                      : () => _confirmDelete(existing['reading_id'].toString(), roomId),
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  label: const Text('ลบ', style: TextStyle(color: Colors.red)),
-                ),
+                if (_isCurrentPeriod) ...[
+                  OutlinedButton.icon(
+                    onPressed: _savingRoomIds.contains(roomId)
+                        ? null
+                        : () {
+                            // enter edit mode and prefill controllers
+                            _editingRoomIds.add(roomId);
+                            wCtrl.text = (existing['water_current_reading'] ?? '').toString();
+                            eCtrl.text = (existing['electric_current_reading'] ?? '').toString();
+                            nCtrl.text = (existing['reading_notes'] ?? '').toString();
+                            setState(() {});
+                          },
+                    icon: const Icon(Icons.edit),
+                    label: const Text('แก้ไข'),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: _savingRoomIds.contains(roomId)
+                        ? null
+                        : () => _confirmDelete(existing['reading_id'].toString(), roomId),
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    label: const Text('ลบ', style: TextStyle(color: Colors.red)),
+                  ),
+                ],
                 const Spacer(),
                 Text('เดือน ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
                     style: TextStyle(color: Colors.grey[700])),
               ],
             ),
+          ] else if (!_isCurrentPeriod) ...[
+            // Non-current period: show disabled helper instead of inputs
+            const SizedBox(height: 8),
+            _buildDisabledHelp(),
+            const SizedBox(height: 8),
           ] else ...[
             // Input view (new or editing existing)
             const SizedBox(height: 8),
@@ -654,6 +715,30 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               ],
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDisabledHelp() {
+    final String msg = _isPastPeriod
+        ? 'ดูข้อมูลย้อนหลังได้เท่านั้น ไม่อนุญาตให้บันทึกย้อนหลังในเดือนนี้'
+        : 'เดือนอนาคตยังไม่เปิดให้บันทึก กรุณาเลือกเดือนปัจจุบัน';
+    final Color bg = _isPastPeriod ? Colors.blueGrey.shade50 : Colors.amber.shade50;
+    final IconData icon = _isPastPeriod ? Icons.info_outline : Icons.lock_clock;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.black87),
+          const SizedBox(width: 8),
+          Expanded(child: Text(msg)),
         ],
       ),
     );
