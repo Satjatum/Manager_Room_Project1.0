@@ -199,7 +199,18 @@ class BranchDashboardPage extends StatelessWidget {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     // จำกัดความกว้างเพื่อให้กริดอยู่กลางจอเหมือนไอคอนมือถือ
-                    const double maxGridWidth = 560; // ประมาณปุ่ม 4 ช่อง + spacing
+                    const double maxGridWidth = 560; // กริด 4 ช่องกำลังสวยบนเดสก์ท็อป
+                    final double containerWidth =
+                        constraints.maxWidth.clamp(0, maxGridWidth);
+
+                    // Responsive: ลดจำนวนคอลัมน์เมื่อหน้าจอแคบมาก
+                    int cross = 4;
+                    if (containerWidth < 360) {
+                      cross = 2;
+                    } else if (containerWidth < 480) {
+                      cross = 3;
+                    }
+
                     return Align(
                       alignment: Alignment.topCenter,
                       child: ConstrainedBox(
@@ -214,8 +225,8 @@ class BranchDashboardPage extends StatelessWidget {
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 4,
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: cross,
                                 crossAxisSpacing: 12,
                                 mainAxisSpacing: 16,
                                 childAspectRatio: 0.9,
