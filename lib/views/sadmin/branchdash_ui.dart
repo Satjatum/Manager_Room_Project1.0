@@ -180,12 +180,31 @@ class BranchDashboardPage extends StatelessWidget {
                           Text(
                             (branchName == null || branchName!.isEmpty)
                                 ? 'เลือกเมนูการทำงานของสาขา'
-                                : 'สาขา: $branchName',
+                                : 'เลือกเมนูการทำงานของสาขา',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[600],
                             ),
                           ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 8,
+                            children: [
+                              _InfoChipBox(
+                                icon: Icons.business,
+                                label: 'ชื่อสาขา',
+                                value: branchName ?? '-',
+                              ),
+                              _InfoChipBox(
+                                icon: Icons.qr_code_2,
+                                label: 'รหัสสาขา',
+                                value: (branchId == null || branchId!.isEmpty)
+                                    ? '-'
+                                    : branchId!,
+                              ),
+                            ],
+                          )
                         ],
                       ),
                     ),
@@ -193,56 +212,29 @@ class BranchDashboardPage extends StatelessWidget {
                 ),
               ),
 
-              // Content section (responsive like settingbranch_ui)
+              // Content section (Grid 4 ต่อแถว, จัดให้อยู่กึ่งกลางหน้าจอ)
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    // On native mobile (Android/iOS) show vertical list for usability
-                    if (isMobileApp) {
-                      return ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                        itemCount: items.length,
-                        itemBuilder: (context, i) => Column(
-                          children: [
-                            _DashCard(item: items[i]),
-                            const SizedBox(height: 16),
-                          ],
+                    // จำกัดความกว้างเพื่อให้กริดอยู่กลางจอเหมือนไอคอนมือถือ
+                    const double maxGridWidth = 560; // ประมาณปุ่ม 4 ช่อง + spacing
+                    return Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: maxGridWidth),
+                        child: GridView.builder(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 4,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: 0.9,
+                          ),
+                          itemCount: items.length,
+                          itemBuilder: (context, i) => _DashCard(item: items[i]),
                         ),
-                      );
-                    }
-
-                    int crossAxisCount = 1;
-                    if (constraints.maxWidth > 1200) {
-                      crossAxisCount = 4;
-                    } else if (constraints.maxWidth > 900) {
-                      crossAxisCount = 3;
-                    } else if (constraints.maxWidth > 600) {
-                      crossAxisCount = 2;
-                    }
-
-                    if (crossAxisCount == 1) {
-                      return ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                        itemCount: items.length,
-                        itemBuilder: (context, i) => Column(
-                          children: [
-                            _DashCard(item: items[i]),
-                            const SizedBox(height: 16),
-                          ],
-                        ),
-                      );
-                    }
-
-                    return GridView.builder(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 1.25,
                       ),
-                      itemCount: items.length,
-                      itemBuilder: (context, i) => _DashCard(item: items[i]),
                     );
                   },
                 ),
@@ -280,38 +272,86 @@ class _DashCard extends StatelessWidget {
             border: Border.all(color: Colors.grey[300]!),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: AppTheme.primary.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12),
+                    shape: BoxShape.circle,
                   ),
-                  child: Icon(item.icon, color: AppTheme.primary, size: 28),
+                  child: Icon(item.icon, color: AppTheme.primary, size: 24),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Text(
                   item.label,
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const Spacer(),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Icon(Icons.arrow_forward, size: 18, color: Colors.grey[500]),
-                )
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ชิปแสดงข้อมูล (กรอบ + ไอคอน) สำหรับชื่อสาขา/รหัสสาขา
+class _InfoChipBox extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _InfoChipBox({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: Colors.grey[700]),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
