@@ -125,7 +125,15 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         _meteredRates = [];
         return;
       }
-      _meteredRates = await UtilityRatesService.getMeteredRates(branchId);
+      final rates = await UtilityRatesService.getMeteredRates(branchId);
+      // ใช้เฉพาะค่าน้ำและค่าไฟเท่านั้น
+      _meteredRates = rates.where((r) {
+        final name = (r['rate_name'] ?? '').toString().toLowerCase();
+        return name.contains('น้ำ') ||
+            name.contains('water') ||
+            name.contains('ไฟ') ||
+            name.contains('electric');
+      }).toList();
     } catch (e) {
       _meteredRates = [];
     }
@@ -818,7 +826,16 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               // If billed -> show utilities snapshot from invoice (each utility as a line)
               if ((existing['reading_status'] ?? '') == 'billed' &&
                   _invoiceUtilsByRoom.containsKey(roomId)) ...[
-                ..._invoiceUtilsByRoom[roomId]!.map((u) {
+                ..._invoiceUtilsByRoom[roomId]!
+                    .where((u) {
+                      final name =
+                          (u['utility_name'] ?? '').toString().toLowerCase();
+                      return name.contains('น้ำ') ||
+                          name.contains('water') ||
+                          name.contains('ไฟ') ||
+                          name.contains('electric');
+                    })
+                    .map((u) {
                   final name = (u['utility_name'] ?? 'สาธารณูปโภค').toString();
                   final usage = (u['usage_amount'] ?? 0.0).toDouble();
                   final total = (u['total_amount'] ?? 0.0).toDouble();
@@ -955,9 +972,12 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             ] else ...[
               // Input view (new or editing existing)
               const SizedBox(height: 8),
-              // Dynamic meter lines from utility settings (UI only) — include all metered rates (water/electric/others)
+              // Dynamic meter lines from utility settings (UI only) — เฉพาะน้ำ/ไฟเท่านั้น
               ...() {
-                final rates = _meteredRates;
+                final rates = _meteredRates.where((rate) {
+                  final r = Map<String, dynamic>.from(rate);
+                  return _isWaterRate(r) || _isElectricRate(r);
+                }).toList();
                 if (rates.isEmpty) return <Widget>[];
                 return <Widget>[
                   ...rates.map((rate) {
