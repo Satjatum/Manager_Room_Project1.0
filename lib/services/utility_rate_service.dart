@@ -205,18 +205,8 @@ class UtilityRatesService {
   /// ลบอัตราค่าบริการ
   static Future<void> deleteUtilityRate(String rateId) async {
     try {
-      // ตรวจสอบว่ามีการใช้งานอยู่หรือไม่
-      final usageCheck = await _supabase
-          .from('meter_readings')
-          .select('reading_id')
-          .eq('rate_id', rateId)
-          .limit(1);
-
-      if (usageCheck.isNotEmpty) {
-        throw Exception(
-            'ไม่สามารถลบอัตราค่าบริการนี้ได้ เนื่องจากมีการใช้งานในบันทึกค่ามิเตอร์แล้ว');
-      }
-
+      // หมายเหตุ: โครงสร้างปัจจุบันไม่ได้ผูก rate_id ไว้กับตารางการใช้งานโดยตรง
+      // จึงอนุญาตให้ลบได้ทันที
       await _supabase.from('utility_rates').delete().eq('rate_id', rateId);
     } catch (e) {
       throw Exception('ไม่สามารถลบอัตราค่าบริการได้: $e');
