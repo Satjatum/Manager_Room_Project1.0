@@ -66,16 +66,21 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
   double _waterCurrentReading = 0.0;
   double _waterUsage = 0.0;
   double _waterRate = 0.0;
+  double _waterBaseCharge = 0.0; // fixed_amount + additional_charge ของค่าน้ำ
   double _waterCost = 0.0;
 
   double _electricPreviousReading = 0.0;
   double _electricCurrentReading = 0.0;
   double _electricUsage = 0.0;
   double _electricRate = 0.0;
+  double _electricBaseCharge = 0.0; // fixed_amount + additional_charge ของค่าไฟ
   double _electricCost = 0.0;
 
   // Other charges
   List<Map<String, dynamic>> _otherChargesList = [];
+
+  // รายการค่าบริการแบบมิเตอร์ (เพื่อ UI แบบไดนามิก)
+  List<Map<String, dynamic>> _meteredRates = [];
 
   // UI State
   bool _isLoading = false;
@@ -174,21 +179,31 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
       // แยกค่า rates ออกเป็น metered และ fixed
       _fixedRates =
           utilityRates.where((rate) => rate['is_fixed'] == true).toList();
+      _meteredRates =
+          utilityRates.where((rate) => rate['is_metered'] == true).toList();
 
       // ✅ เก็บ rate_id สำหรับน้ำและไฟ
       String? waterRateId;
       String? electricRateId;
 
       // ตั้งค่า rate สำหรับน้ำและไฟ
+      _waterBaseCharge = 0.0;
+      _electricBaseCharge = 0.0;
       for (var rate in utilityRates) {
         if (rate['is_metered'] == true) {
           final rateName = rate['rate_name'].toString().toLowerCase();
           if (rateName.contains('น้ำ') || rateName.contains('water')) {
             _waterRate = (rate['rate_price'] ?? 0.0).toDouble();
+            _waterBaseCharge = ((rate['fixed_amount'] ?? 0.0) +
+                    (rate['additional_charge'] ?? 0.0))
+                .toDouble();
             waterRateId = rate['rate_id'];
           }
           if (rateName.contains('ไฟ') || rateName.contains('electric')) {
             _electricRate = (rate['rate_price'] ?? 0.0).toDouble();
+            _electricBaseCharge = ((rate['fixed_amount'] ?? 0.0) +
+                    (rate['additional_charge'] ?? 0.0))
+                .toDouble();
             electricRateId = rate['rate_id'];
           }
         }
@@ -264,13 +279,9 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     _electricCurrentController.text =
         _electricCurrentReading.toStringAsFixed(0);
 
-    // คำนวดค่าใช้จ่าย
-    if (_waterUsage > 0 && _waterRate > 0) {
-      _waterCost = _waterUsage * _waterRate;
-    }
-    if (_electricUsage > 0 && _electricRate > 0) {
-      _electricCost = _electricUsage * _electricRate;
-    }
+    // คำนวณเฉพาะตามมิเตอร์ (ไม่รวมค่าบริการพื้นฐาน)
+    _waterCost = (_waterUsage * _waterRate);
+    _electricCost = (_electricUsage * _electricRate);
 
     _calculateUtilitiesTotal();
 
@@ -357,23 +368,27 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           '💰 โหลดการตั้งค่าการชำระเงินแล้ว: ${_paymentSettings != null}');
 
       // ตั้งค่า rate
+      _waterBaseCharge = 0.0;
+      _electricBaseCharge = 0.0;
       for (var rate in utilityRates) {
         final rateName = rate['rate_name'].toString().toLowerCase();
         if (rateName.contains('น้ำ') || rateName.contains('water')) {
           _waterRate = (rate['rate_price'] ?? 0.0).toDouble();
+          _waterBaseCharge = ((rate['fixed_amount'] ?? 0.0) +
+                  (rate['additional_charge'] ?? 0.0))
+              .toDouble();
         }
         if (rateName.contains('ไฟ') || rateName.contains('electric')) {
           _electricRate = (rate['rate_price'] ?? 0.0).toDouble();
+          _electricBaseCharge = ((rate['fixed_amount'] ?? 0.0) +
+                  (rate['additional_charge'] ?? 0.0))
+              .toDouble();
         }
       }
 
-      // คำนวดค่าใช้จ่าย
-      if (_waterUsage > 0 && _waterRate > 0) {
-        _waterCost = _waterUsage * _waterRate;
-      }
-      if (_electricUsage > 0 && _electricRate > 0) {
-        _electricCost = _electricUsage * _electricRate;
-      }
+      // คำนวณเฉพาะตามมิเตอร์ (ไม่รวมค่าบริการพื้นฐาน)
+      _waterCost = (_waterUsage * _waterRate);
+      _electricCost = (_electricUsage * _electricRate);
 
       _calculateUtilitiesTotal();
 
@@ -639,20 +654,22 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(_isFromMeterReading
-            ? 'สร้างใบแจ้งหนี้จากมิเตอร์'
-            : 'สร้างใบแจ้งหนี้'),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        title: Text(
+          _isFromMeterReading ? 'สร้างใบแจ้งหนี้จากมิเตอร์' : 'สร้างใบแจ้งหนี้',
+          style: const TextStyle(color: Colors.black),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 1,
         actions: [
           if (_currentStep > 0)
             TextButton.icon(
               onPressed: _previousStep,
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              icon: const Icon(Icons.arrow_back, color: Colors.black87),
               label:
-                  const Text('ย้อนกลับ', style: TextStyle(color: Colors.white)),
+                  const Text('ย้อนกลับ', style: TextStyle(color: Colors.black87)),
             ),
         ],
       ),
@@ -899,9 +916,9 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.purple[50],
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.purple[200]!),
+                  border: Border.all(color: Colors.grey[300]!),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -918,7 +935,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.purple,
+                        color: Colors.black87,
                       ),
                     ),
                   ],
@@ -1063,12 +1080,15 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.primary,
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Colors.grey[300]!),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -1086,8 +1106,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                     height: 4,
                     decoration: BoxDecoration(
                       color: isActive || isCompleted
-                          ? Colors.white
-                          : Colors.white.withOpacity(0.3),
+                          ? AppTheme.primary
+                          : Colors.grey[300],
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -1096,8 +1116,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                     _getStepTitle(index),
                     style: TextStyle(
                       color: isActive || isCompleted
-                          ? Colors.white
-                          : Colors.white.withOpacity(0.7),
+                          ? Colors.black
+                          : Colors.grey[600],
                       fontSize: 12,
                       fontWeight:
                           isActive ? FontWeight.bold : FontWeight.normal,
@@ -1341,7 +1361,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           Row(
             children: [
               const Text(
-                'ค่าบริการน้ำ-ไฟ',
+                'ค่าบริการ (มิเตอร์)',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
@@ -1382,6 +1402,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
             currentReading: _waterCurrentReading,
             usage: _waterUsage,
             rate: _waterRate,
+            baseCharge: 0.0,
             cost: _waterCost,
             controller: _waterCurrentController,
             isReadOnly: _isFromMeterReading,
@@ -1389,7 +1410,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
               setState(() {
                 _waterCurrentReading = double.tryParse(value) ?? 0.0;
                 _waterUsage = _waterCurrentReading - _waterPreviousReading;
-                _waterCost = _waterUsage * _waterRate;
+                _waterCost = (_waterUsage * _waterRate);
                 _calculateUtilitiesTotal();
               });
             },
@@ -1403,6 +1424,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
             currentReading: _electricCurrentReading,
             usage: _electricUsage,
             rate: _electricRate,
+            baseCharge: 0.0,
             cost: _electricCost,
             controller: _electricCurrentController,
             isReadOnly: _isFromMeterReading,
@@ -1411,7 +1433,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                 _electricCurrentReading = double.tryParse(value) ?? 0.0;
                 _electricUsage =
                     _electricCurrentReading - _electricPreviousReading;
-                _electricCost = _electricUsage * _electricRate;
+                _electricCost = (_electricUsage * _electricRate);
                 _calculateUtilitiesTotal();
               });
             },
@@ -1420,9 +1442,9 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.blue[50],
+              color: Colors.white,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue[200]!),
+              border: Border.all(color: Colors.grey[300]!),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1436,7 +1458,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: Colors.black87,
                   ),
                 ),
               ],
@@ -1455,6 +1477,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     required double currentReading,
     required double usage,
     required double rate,
+    required double baseCharge,
     required double cost,
     required TextEditingController controller,
     required bool isReadOnly,
@@ -1484,6 +1507,26 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
               ),
             ],
           ),
+          if (baseCharge > 0) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const SizedBox(width: 32),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'รวมค่าบริการพื้นฐาน +${baseCharge.toStringAsFixed(2)} บาท',
+                    style: TextStyle(fontSize: 11, color: color),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
           Row(
             children: [

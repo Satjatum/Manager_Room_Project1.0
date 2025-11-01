@@ -25,6 +25,20 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
   List<Map<String, dynamic>> branches = [];
   UserModel? currentUser;
 
+  bool _hasBothStandardMetered() {
+    bool hasWater = false;
+    bool hasElectric = false;
+    for (final r in utilityRates) {
+      if (r['is_metered'] == true) {
+        final name = (r['rate_name'] ?? '').toString().toLowerCase();
+        if (name.contains('น้ำ') || name.contains('water')) hasWater = true;
+        if (name.contains('ไฟ') || name.contains('electric')) hasElectric = true;
+      }
+      if (hasWater && hasElectric) return true;
+    }
+    return hasWater && hasElectric;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -125,8 +139,9 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
     final additionalController = TextEditingController(
         text: rate?['additional_charge']?.toString() ?? '0');
 
-    bool isMetered = rate?['is_metered'] ?? true;
-    bool isFixed = rate?['is_fixed'] ?? false;
+    final lockMeteredAddition = !isEdit && _hasBothStandardMetered();
+    bool isMetered = lockMeteredAddition ? false : (rate?['is_metered'] ?? true);
+    bool isFixed = rate?['is_fixed'] ?? !isMetered;
     bool isActive = rate?['is_active'] ?? true;
 
     showDialog(
@@ -202,10 +217,39 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                       icon: Icons.label_rounded,
                     ),
                     const SizedBox(height: 20),
+                    if (lockMeteredAddition)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.amber.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.lock, color: Colors.amber.shade700),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'สาขานี้มีค่าน้ำและค่าไฟแบบมิเตอร์ครบแล้ว จึงไม่สามารถเพิ่มอัตราแบบมิเตอร์ใหม่ได้',
+                                style: TextStyle(
+                                    color: Colors.amber.shade900, fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     _buildRateTypeSection(
                       isMetered: isMetered,
                       isFixed: isFixed,
                       onMeteredChanged: () {
+                        if (lockMeteredAddition) {
+                          _showErrorSnackBar(
+                              'ไม่สามารถเพิ่มแบบมิเตอร์ได้ (มีน้ำ/ไฟอยู่แล้ว)');
+                          return;
+                        }
                         setDialogState(() {
                           isMetered = true;
                           isFixed = false;
@@ -369,6 +413,13 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
 
                               if (isFixed && fixedController.text.isEmpty) {
                                 _showErrorSnackBar('กรุณากรอกจำนวนเงินคงที่');
+                                return;
+                              }
+
+                              // ล็อคการเพิ่มแบบมิเตอร์เมื่อมีน้ำ/ไฟครบแล้ว
+                              if (!isEdit && lockMeteredAddition && isMetered) {
+                                _showErrorSnackBar(
+                                    'สาขานี้มีค่าน้ำและค่าไฟแบบมิเตอร์ครบแล้ว ไม่สามารถเพิ่มแบบมิเตอร์ได้');
                                 return;
                               }
 
