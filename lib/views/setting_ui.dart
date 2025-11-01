@@ -184,6 +184,7 @@ class _SettingUiState extends State<SettingUi> {
         elevation: 1,
       ),
       body: _buildResponsiveBody(isMobile, isTablet, isWeb),
+      bottomNavigationBar: const Mainnavbar(currentIndex: 2),
     );
   }
 

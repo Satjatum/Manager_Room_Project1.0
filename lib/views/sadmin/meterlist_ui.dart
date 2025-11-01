@@ -250,7 +250,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             if (status == 'billed' && invoiceId.isNotEmpty) {
               try {
                 final inv = await InvoiceService.getInvoiceById(invoiceId);
-                final utils = List<Map<String, dynamic>>.from(inv?['utilities'] ?? const []);
+                final utils = List<Map<String, dynamic>>.from(
+                    inv?['utilities'] ?? const []);
                 _invoiceUtilsByRoom[roomId] = utils;
                 _invoiceIdByRoom[roomId] = invoiceId;
               } catch (_) {}
@@ -420,12 +421,11 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                                   Expanded(
                                     child: TextField(
                                       controller: _roomNumberController,
-                                      onChanged: (v) => setState(
-                                          () => _roomNumberQuery = v),
+                                      onChanged: (v) =>
+                                          setState(() => _roomNumberQuery = v),
                                       decoration: const InputDecoration(
                                         hintText: 'เลขห้อง',
                                         border: InputBorder.none,
-                                        isDense: true,
                                       ),
                                     ),
                                   ),
@@ -466,9 +466,9 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                                               value: null,
                                               child: Text('ทั้งหมด')),
                                           ..._categories
-                                              .map((c) => DropdownMenuItem<
-                                                      String?>(
-                                                  value: c, child: Text(c)))
+                                              .map((c) =>
+                                                  DropdownMenuItem<String?>(
+                                                      value: c, child: Text(c)))
                                               .toList(),
                                         ],
                                       ),
@@ -512,8 +512,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                                         items: List.generate(12, (i) => i + 1)
                                             .map((m) => DropdownMenuItem(
                                                 value: m,
-                                                child:
-                                                    Text(_getMonthName(m))))
+                                                child: Text(_getMonthName(m))))
                                             .toList(),
                                         onChanged: (val) async {
                                           setState(() => _selectedMonth =
@@ -553,8 +552,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                                         style: const TextStyle(
                                             fontSize: 14,
                                             color: Colors.black87),
-                                        items: List.generate(
-                                                6, (i) => DateTime.now().year - i)
+                                        items: List.generate(6,
+                                                (i) => DateTime.now().year - i)
                                             .map((y) => DropdownMenuItem(
                                                 value: y,
                                                 child: Text('${y + 543}')))
@@ -826,21 +825,21 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               // If billed -> show utilities snapshot from invoice (each utility as a line)
               if ((existing['reading_status'] ?? '') == 'billed' &&
                   _invoiceUtilsByRoom.containsKey(roomId)) ...[
-                ..._invoiceUtilsByRoom[roomId]!
-                    .where((u) {
-                      final name =
-                          (u['utility_name'] ?? '').toString().toLowerCase();
-                      return name.contains('น้ำ') ||
-                          name.contains('water') ||
-                          name.contains('ไฟ') ||
-                          name.contains('electric');
-                    })
-                    .map((u) {
+                ..._invoiceUtilsByRoom[roomId]!.where((u) {
+                  final name =
+                      (u['utility_name'] ?? '').toString().toLowerCase();
+                  return name.contains('น้ำ') ||
+                      name.contains('water') ||
+                      name.contains('ไฟ') ||
+                      name.contains('electric');
+                }).map((u) {
                   final name = (u['utility_name'] ?? 'สาธารณูปโภค').toString();
                   final usage = (u['usage_amount'] ?? 0.0).toDouble();
                   final total = (u['total_amount'] ?? 0.0).toDouble();
-                  final isWater = name.contains('น้ำ') || name.toLowerCase().contains('water');
-                  final isElec = name.contains('ไฟ') || name.toLowerCase().contains('electric');
+                  final isWater = name.contains('น้ำ') ||
+                      name.toLowerCase().contains('water');
+                  final isElec = name.contains('ไฟ') ||
+                      name.toLowerCase().contains('electric');
                   final color = isWater
                       ? Colors.blue[700]!
                       : isElec
@@ -896,23 +895,32 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                                   final r = Map<String, dynamic>.from(rate);
                                   final rid = (r['rate_id'] ?? '').toString();
                                   if (rid.isEmpty) continue;
-                                  if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
-                                  if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
+                                  if (waterRateId == null && _isWaterRate(r))
+                                    waterRateId = rid;
+                                  if (electricRateId == null &&
+                                      _isElectricRate(r)) electricRateId = rid;
                                 }
                                 if (waterRateId != null) {
                                   _dynCurCtrls[roomId]?[waterRateId!]?.text =
-                                      (existing['water_current_reading'] ?? '').toString();
+                                      (existing['water_current_reading'] ?? '')
+                                          .toString();
                                   _dynPrevCtrls[roomId]?[waterRateId!]?.text =
-                                      (existing['water_previous_reading'] ?? '').toString();
+                                      (existing['water_previous_reading'] ?? '')
+                                          .toString();
                                 }
                                 if (electricRateId != null) {
                                   _dynCurCtrls[roomId]?[electricRateId!]?.text =
-                                      (existing['electric_current_reading'] ?? '').toString();
-                                  _dynPrevCtrls[roomId]?[electricRateId!]?.text =
-                                      (existing['electric_previous_reading'] ?? '').toString();
+                                      (existing['electric_current_reading'] ??
+                                              '')
+                                          .toString();
+                                  _dynPrevCtrls[roomId]?[electricRateId!]
+                                          ?.text =
+                                      (existing['electric_previous_reading'] ??
+                                              '')
+                                          .toString();
                                 }
-                                nCtrl.text =
-                                    (existing['reading_notes'] ?? '').toString();
+                                nCtrl.text = (existing['reading_notes'] ?? '')
+                                    .toString();
                                 setState(() {});
                               },
                         icon: const Icon(Icons.edit),
@@ -1217,16 +1225,14 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         const SizedBox(height: 8),
         _buildReadonlyLine(
           label: 'ค่าน้ำ',
-          previous:
-              (prev['water_previous_reading'] ?? 0.0).toDouble(),
+          previous: (prev['water_previous_reading'] ?? 0.0).toDouble(),
           current: (prev['water_current_reading'] ?? 0.0).toDouble(),
           color: Colors.blue[700]!,
         ),
         const SizedBox(height: 8),
         _buildReadonlyLine(
           label: 'ค่าไฟ',
-          previous:
-              (prev['electric_previous_reading'] ?? 0.0).toDouble(),
+          previous: (prev['electric_previous_reading'] ?? 0.0).toDouble(),
           current: (prev['electric_current_reading'] ?? 0.0).toDouble(),
           color: Colors.orange[700]!,
         ),
@@ -1626,7 +1632,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             final rid = (r['rate_id'] ?? '').toString();
             if (rid.isEmpty) continue;
             if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
-            if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
+            if (electricRateId == null && _isElectricRate(r))
+              electricRateId = rid;
           }
           if (waterRateId != null) {
             _dynCurCtrls[roomId]?[waterRateId!]?.clear();
@@ -1663,7 +1670,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('ยืนยันการลบ (รวมบิลเดือนนี้)') ,
+        title: const Text('ยืนยันการลบ (รวมบิลเดือนนี้)'),
         content: const Text(
             'ต้องการลบข้อมูลค่ามิเตอร์และใบแจ้งหนี้ของเดือนนี้ใช่หรือไม่?'),
         actions: [

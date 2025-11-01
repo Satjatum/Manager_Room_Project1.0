@@ -315,13 +315,7 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                   const SizedBox(height: 4),
                   Text(
                     'เดือน ${_getMonthName(r['reading_month'] ?? _selectedMonth)} ${_selectedYear + 543}',
-                    style:
-                        TextStyle(color: Colors.grey[700], fontSize: 13.5),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'น้ำ: ${water.toStringAsFixed(0)} หน่วย  |  ไฟ: ${elec.toStringAsFixed(0)} หน่วย',
-                    style: const TextStyle(fontSize: 13.5),
+                    style: TextStyle(color: Colors.grey[700], fontSize: 13.5),
                   ),
                 ],
               ),
