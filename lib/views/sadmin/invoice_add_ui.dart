@@ -916,9 +916,9 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.purple[50],
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.purple[200]!),
+                  border: Border.all(color: Colors.grey[300]!),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -935,7 +935,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.purple,
+                        color: Colors.black87,
                       ),
                     ),
                   ],
@@ -1442,9 +1442,9 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.blue[50],
+              color: Colors.white,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue[200]!),
+              border: Border.all(color: Colors.grey[300]!),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1458,7 +1458,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue,
+                    color: Colors.black87,
                   ),
                 ),
               ],
