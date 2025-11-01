@@ -194,16 +194,16 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           final rateName = rate['rate_name'].toString().toLowerCase();
           if (rateName.contains('น้ำ') || rateName.contains('water')) {
             _waterRate = (rate['rate_price'] ?? 0.0).toDouble();
-            _waterBaseCharge =
-                ((rate['fixed_amount'] ?? 0.0) + (rate['additional_charge'] ?? 0.0))
-                    .toDouble();
+            _waterBaseCharge = ((rate['fixed_amount'] ?? 0.0) +
+                    (rate['additional_charge'] ?? 0.0))
+                .toDouble();
             waterRateId = rate['rate_id'];
           }
           if (rateName.contains('ไฟ') || rateName.contains('electric')) {
             _electricRate = (rate['rate_price'] ?? 0.0).toDouble();
-            _electricBaseCharge =
-                ((rate['fixed_amount'] ?? 0.0) + (rate['additional_charge'] ?? 0.0))
-                    .toDouble();
+            _electricBaseCharge = ((rate['fixed_amount'] ?? 0.0) +
+                    (rate['additional_charge'] ?? 0.0))
+                .toDouble();
             electricRateId = rate['rate_id'];
           }
         }
@@ -279,10 +279,9 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     _electricCurrentController.text =
         _electricCurrentReading.toStringAsFixed(0);
 
-    // คำนวดค่าใช้จ่าย
-    // รวมค่าบริการพื้นฐาน (base charge) เข้ากับต้นทุน
-    _waterCost = (_waterUsage * _waterRate) + _waterBaseCharge;
-    _electricCost = (_electricUsage * _electricRate) + _electricBaseCharge;
+    // คำนวณเฉพาะตามมิเตอร์ (ไม่รวมค่าบริการพื้นฐาน)
+    _waterCost = (_waterUsage * _waterRate);
+    _electricCost = (_electricUsage * _electricRate);
 
     _calculateUtilitiesTotal();
 
@@ -375,21 +374,21 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         final rateName = rate['rate_name'].toString().toLowerCase();
         if (rateName.contains('น้ำ') || rateName.contains('water')) {
           _waterRate = (rate['rate_price'] ?? 0.0).toDouble();
-          _waterBaseCharge =
-              ((rate['fixed_amount'] ?? 0.0) + (rate['additional_charge'] ?? 0.0))
-                  .toDouble();
+          _waterBaseCharge = ((rate['fixed_amount'] ?? 0.0) +
+                  (rate['additional_charge'] ?? 0.0))
+              .toDouble();
         }
         if (rateName.contains('ไฟ') || rateName.contains('electric')) {
           _electricRate = (rate['rate_price'] ?? 0.0).toDouble();
-          _electricBaseCharge =
-              ((rate['fixed_amount'] ?? 0.0) + (rate['additional_charge'] ?? 0.0))
-                  .toDouble();
+          _electricBaseCharge = ((rate['fixed_amount'] ?? 0.0) +
+                  (rate['additional_charge'] ?? 0.0))
+              .toDouble();
         }
       }
 
-      // คำนวดค่าใช้จ่าย
-      _waterCost = (_waterUsage * _waterRate) + _waterBaseCharge;
-      _electricCost = (_electricUsage * _electricRate) + _electricBaseCharge;
+      // คำนวณเฉพาะตามมิเตอร์ (ไม่รวมค่าบริการพื้นฐาน)
+      _waterCost = (_waterUsage * _waterRate);
+      _electricCost = (_electricUsage * _electricRate);
 
       _calculateUtilitiesTotal();
 
@@ -655,20 +654,22 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(_isFromMeterReading
-            ? 'สร้างใบแจ้งหนี้จากมิเตอร์'
-            : 'สร้างใบแจ้งหนี้'),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        title: Text(
+          _isFromMeterReading ? 'สร้างใบแจ้งหนี้จากมิเตอร์' : 'สร้างใบแจ้งหนี้',
+          style: const TextStyle(color: Colors.black),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 1,
         actions: [
           if (_currentStep > 0)
             TextButton.icon(
               onPressed: _previousStep,
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              icon: const Icon(Icons.arrow_back, color: Colors.black87),
               label:
-                  const Text('ย้อนกลับ', style: TextStyle(color: Colors.white)),
+                  const Text('ย้อนกลับ', style: TextStyle(color: Colors.black87)),
             ),
         ],
       ),
@@ -1079,12 +1080,15 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.primary,
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Colors.grey[300]!),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 3,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -1102,8 +1106,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                     height: 4,
                     decoration: BoxDecoration(
                       color: isActive || isCompleted
-                          ? Colors.white
-                          : Colors.white.withOpacity(0.3),
+                          ? AppTheme.primary
+                          : Colors.grey[300],
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -1112,8 +1116,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                     _getStepTitle(index),
                     style: TextStyle(
                       color: isActive || isCompleted
-                          ? Colors.white
-                          : Colors.white.withOpacity(0.7),
+                          ? Colors.black
+                          : Colors.grey[600],
                       fontSize: 12,
                       fontWeight:
                           isActive ? FontWeight.bold : FontWeight.normal,
@@ -1398,7 +1402,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
             currentReading: _waterCurrentReading,
             usage: _waterUsage,
             rate: _waterRate,
-            baseCharge: _waterBaseCharge,
+            baseCharge: 0.0,
             cost: _waterCost,
             controller: _waterCurrentController,
             isReadOnly: _isFromMeterReading,
@@ -1406,7 +1410,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
               setState(() {
                 _waterCurrentReading = double.tryParse(value) ?? 0.0;
                 _waterUsage = _waterCurrentReading - _waterPreviousReading;
-                _waterCost = (_waterUsage * _waterRate) + _waterBaseCharge;
+                _waterCost = (_waterUsage * _waterRate);
                 _calculateUtilitiesTotal();
               });
             },
@@ -1420,7 +1424,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
             currentReading: _electricCurrentReading,
             usage: _electricUsage,
             rate: _electricRate,
-            baseCharge: _electricBaseCharge,
+            baseCharge: 0.0,
             cost: _electricCost,
             controller: _electricCurrentController,
             isReadOnly: _isFromMeterReading,
@@ -1429,7 +1433,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                 _electricCurrentReading = double.tryParse(value) ?? 0.0;
                 _electricUsage =
                     _electricCurrentReading - _electricPreviousReading;
-                _electricCost = (_electricUsage * _electricRate) + _electricBaseCharge;
+                _electricCost = (_electricUsage * _electricRate);
                 _calculateUtilitiesTotal();
               });
             },
@@ -1509,14 +1513,15 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
               children: [
                 const SizedBox(width: 32),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     'รวมค่าบริการพื้นฐาน +${baseCharge.toStringAsFixed(2)} บาท',
-                    style: TextStyle(fontSize: 11, color: color[700]),
+                    style: TextStyle(fontSize: 11, color: color),
                   ),
                 ),
               ],
