@@ -193,6 +193,13 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                 (prev['water_previous'] ?? 0.0).toDouble();
             _prevElecByRoom[roomId] =
                 (prev['electric_previous'] ?? 0.0).toDouble();
+            // If previous equals 0, allow user to input previous manually
+            if ((_prevWaterByRoom[roomId] ?? 0.0) == 0.0) {
+              _needsPrevWaterInput.add(roomId);
+            }
+            if ((_prevElecByRoom[roomId] ?? 0.0) == 0.0) {
+              _needsPrevElecInput.add(roomId);
+            }
           }
         } catch (_) {
           _prevWaterByRoom[roomId] = 0.0;
@@ -1776,6 +1783,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     }
 
     final curMap = _dynCurCtrls[roomId];
+    final prevMap = _dynPrevCtrls[roomId];
     final nCtrl = _noteCtrl[roomId] ??= TextEditingController();
     // Clear current values for fresh input
     if (waterRateId != null && curMap != null) {
@@ -1788,6 +1796,14 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
 
     final prevW = (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
     final prevE = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
+    final needPrevWater = _needsPrevWaterInput.contains(roomId) || prevW == 0.0;
+    final needPrevElec = _needsPrevElecInput.contains(roomId) || prevE == 0.0;
+    final pvWCtrl = (waterRateId != null && prevMap != null)
+        ? prevMap[waterRateId!]
+        : null;
+    final pvECtrl = (electricRateId != null && prevMap != null)
+        ? prevMap[electricRateId!]
+        : null;
 
     await showDialog(
       context: context,
@@ -1812,14 +1828,29 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
-                    children: [
-                      const Icon(Icons.water_drop, color: Colors.blue),
-                      const SizedBox(width: 8),
-                      const Text('ค่าน้ำ'),
-                      const Spacer(),
-                      Text('ก่อนหน้า: ${prevW.toStringAsFixed(0)}'),
+                    children: const [
+                      Icon(Icons.water_drop, color: Colors.blue),
+                      SizedBox(width: 8),
+                      Text('ค่าน้ำ'),
                     ],
                   ),
+                  const SizedBox(height: 6),
+                  if (needPrevWater)
+                    TextField(
+                      controller: pvWCtrl,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'ก่อนหน้า (น้ำ)',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                    )
+                  else
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text('ก่อนหน้า: ${prevW.toStringAsFixed(0)}'),
+                    ),
                   const SizedBox(height: 6),
                   TextField(
                     controller: waterRateId != null && curMap != null
@@ -1835,14 +1866,29 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                   ),
                   const SizedBox(height: 12),
                   Row(
-                    children: [
-                      const Icon(Icons.electric_bolt, color: Colors.orange),
-                      const SizedBox(width: 8),
-                      const Text('ค่าไฟ'),
-                      const Spacer(),
-                      Text('ก่อนหน้า: ${prevE.toStringAsFixed(0)}'),
+                    children: const [
+                      Icon(Icons.electric_bolt, color: Colors.orange),
+                      SizedBox(width: 8),
+                      Text('ค่าไฟ'),
                     ],
                   ),
+                  const SizedBox(height: 6),
+                  if (needPrevElec)
+                    TextField(
+                      controller: pvECtrl,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'ก่อนหน้า (ไฟ)',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                    )
+                  else
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text('ก่อนหน้า: ${prevE.toStringAsFixed(0)}'),
+                    ),
                   const SizedBox(height: 6),
                   TextField(
                     controller: electricRateId != null && curMap != null
