@@ -1262,13 +1262,13 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
           children: [
             if (isNew) ...[
               ElevatedButton.icon(
-                onPressed: canCreate ? () => _showCreateDialog(room) : null,
+                onPressed: canCreate ? () => _showCreateDialogWater(room) : null,
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('กรอกข้อมูล'),
               ),
             ] else ...[
               OutlinedButton.icon(
-                onPressed: canEdit ? () => _showEditDialog(roomId) : null,
+                onPressed: canEdit ? () => _showEditDialogWater(roomId) : null,
                 icon: const Icon(Icons.edit, size: 18),
                 label: const Text('แก้ไข'),
               ),
@@ -1380,13 +1380,13 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
           children: [
             if (isNew) ...[
               ElevatedButton.icon(
-                onPressed: canCreate ? () => _showCreateDialog(room) : null,
+                onPressed: canCreate ? () => _showCreateDialogElectric(room) : null,
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('กรอกข้อมูล'),
               ),
             ] else ...[
               OutlinedButton.icon(
-                onPressed: canEdit ? () => _showEditDialog(roomId) : null,
+                onPressed: canEdit ? () => _showEditDialogElectric(roomId) : null,
                 icon: const Icon(Icons.edit, size: 18),
                 label: const Text('แก้ไข'),
               ),
@@ -1567,6 +1567,200 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     );
   }
 
+  // แก้ไขเฉพาะค่าน้ำ
+  Future<void> _showEditDialogWater(String roomId) async {
+    final existing = _existingByRoom[roomId];
+    if (existing == null) return;
+
+    String? waterRateId;
+    for (final rate in _meteredRates) {
+      final r = Map<String, dynamic>.from(rate);
+      final rid = (r['rate_id'] ?? '').toString();
+      if (rid.isEmpty) continue;
+      if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
+    }
+
+    final curMap = _dynCurCtrls[roomId];
+    final nCtrl = _noteCtrl[roomId] ??= TextEditingController();
+    if (waterRateId != null && curMap != null) {
+      curMap[waterRateId!]?.text =
+          (existing['water_current_reading'] ?? '').toString();
+    }
+    nCtrl.text = (existing['reading_notes'] ?? '').toString();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade300),
+          ),
+          title: const Text('แก้ไขค่าน้ำ เดือนนี้'),
+          content: SizedBox(
+            width: 420,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.water_drop, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      const Text('ค่าน้ำ'),
+                      const Spacer(),
+                      Text('ก่อนหน้า: '
+                          '${(existing['water_previous_reading'] ?? 0).toString()}'),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: waterRateId != null && curMap != null
+                        ? curMap[waterRateId!]
+                        : null,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'ปัจจุบัน (น้ำ)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: nCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'หมายเหตุ (ถ้ามี)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await _updateRowWater(roomId);
+                if (mounted) Navigator.pop(context);
+              },
+              child: const Text('บันทึก'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // แก้ไขเฉพาะค่าไฟ
+  Future<void> _showEditDialogElectric(String roomId) async {
+    final existing = _existingByRoom[roomId];
+    if (existing == null) return;
+
+    String? electricRateId;
+    for (final rate in _meteredRates) {
+      final r = Map<String, dynamic>.from(rate);
+      final rid = (r['rate_id'] ?? '').toString();
+      if (rid.isEmpty) continue;
+      if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
+    }
+
+    final curMap = _dynCurCtrls[roomId];
+    final nCtrl = _noteCtrl[roomId] ??= TextEditingController();
+    if (electricRateId != null && curMap != null) {
+      curMap[electricRateId!]?.text =
+          (existing['electric_current_reading'] ?? '').toString();
+    }
+    nCtrl.text = (existing['reading_notes'] ?? '').toString();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade300),
+          ),
+          title: const Text('แก้ไขค่าไฟ เดือนนี้'),
+          content: SizedBox(
+            width: 420,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.electric_bolt, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      const Text('ค่าไฟ'),
+                      const Spacer(),
+                      Text('ก่อนหน้า: '
+                          '${(existing['electric_previous_reading'] ?? 0).toString()}'),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: electricRateId != null && curMap != null
+                        ? curMap[electricRateId!]
+                        : null,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'ปัจจุบัน (ไฟ)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: nCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'หมายเหตุ (ถ้ามี)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await _updateRowElectric(roomId);
+                if (mounted) Navigator.pop(context);
+              },
+              child: const Text('บันทึก'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _showCreateDialog(Map<String, dynamic> room) async {
     final roomId = (room['room_id'] ?? '').toString();
 
@@ -1683,6 +1877,198 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             ElevatedButton(
               onPressed: () async {
                 await _saveRow(room);
+                if (mounted) Navigator.pop(context);
+              },
+              child: const Text('บันทึก'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // กรอกข้อมูลใหม่เฉพาะค่าน้ำ
+  Future<void> _showCreateDialogWater(Map<String, dynamic> room) async {
+    final roomId = (room['room_id'] ?? '').toString();
+
+    String? waterRateId;
+    for (final rate in _meteredRates) {
+      final r = Map<String, dynamic>.from(rate);
+      final rid = (r['rate_id'] ?? '').toString();
+      if (rid.isEmpty) continue;
+      if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
+    }
+
+    final curMap = _dynCurCtrls[roomId];
+    final nCtrl = _noteCtrl[roomId] ??= TextEditingController();
+    if (waterRateId != null && curMap != null) {
+      curMap[waterRateId!]?.text = '';
+    }
+    nCtrl.text = '';
+
+    final prevW = (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade300),
+          ),
+          title: const Text('กรอกค่าน้ำ เดือนนี้'),
+          content: SizedBox(
+            width: 420,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.water_drop, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      const Text('ค่าน้ำ'),
+                      const Spacer(),
+                      Text('ก่อนหน้า: ${prevW.toStringAsFixed(0)}'),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: waterRateId != null && curMap != null
+                        ? curMap[waterRateId!]
+                        : null,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'ปัจจุบัน (น้ำ)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: nCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'หมายเหตุ (ถ้ามี)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await _saveRowWater(room);
+                if (mounted) Navigator.pop(context);
+              },
+              child: const Text('บันทึก'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // กรอกข้อมูลใหม่เฉพาะค่าไฟ
+  Future<void> _showCreateDialogElectric(Map<String, dynamic> room) async {
+    final roomId = (room['room_id'] ?? '').toString();
+
+    String? electricRateId;
+    for (final rate in _meteredRates) {
+      final r = Map<String, dynamic>.from(rate);
+      final rid = (r['rate_id'] ?? '').toString();
+      if (rid.isEmpty) continue;
+      if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
+    }
+
+    final curMap = _dynCurCtrls[roomId];
+    final nCtrl = _noteCtrl[roomId] ??= TextEditingController();
+    if (electricRateId != null && curMap != null) {
+      curMap[electricRateId!]?.text = '';
+    }
+    nCtrl.text = '';
+
+    final prevE = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade300),
+          ),
+          title: const Text('กรอกค่าไฟ เดือนนี้'),
+          content: SizedBox(
+            width: 420,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.electric_bolt, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      const Text('ค่าไฟ'),
+                      const Spacer(),
+                      Text('ก่อนหน้า: ${prevE.toStringAsFixed(0)}'),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: electricRateId != null && curMap != null
+                        ? curMap[electricRateId!]
+                        : null,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'ปัจจุบัน (ไฟ)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: nCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'หมายเหตุ (ถ้ามี)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await _saveRowElectric(room);
                 if (mounted) Navigator.pop(context);
               },
               child: const Text('บันทึก'),
@@ -2109,6 +2495,154 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     }
   }
 
+  // บันทึก (สร้าง) เฉพาะค่าน้ำ — ค่าไฟจะถูกตั้งเท่าค่าก่อนหน้าอัตโนมัติ
+  Future<void> _saveRowWater(Map<String, dynamic> room) async {
+    final roomId = room['room_id']?.toString();
+    final tenantId = room['tenant_id']?.toString();
+    final contractId = room['contract_id']?.toString();
+    if (roomId == null || tenantId == null || contractId == null) {
+      _showErrorSnackBar('ข้อมูลไม่ครบ ไม่สามารถบันทึกได้');
+      return;
+    }
+    final nCtrl = _noteCtrl[roomId]!;
+
+    String? waterRateId;
+    String? electricRateId;
+    for (final rate in _meteredRates) {
+      final r = Map<String, dynamic>.from(rate);
+      final rid = (r['rate_id'] ?? '').toString();
+      if (rid.isEmpty) continue;
+      if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
+      if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
+    }
+    if (waterRateId == null || electricRateId == null) {
+      _showErrorSnackBar('กรุณาตั้งค่าเรตค่าน้ำและค่าไฟใน Utility Settings ก่อน');
+      return;
+    }
+    final curMap = _dynCurCtrls[roomId];
+    final prevW = (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
+    final prevE = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
+    final curW = double.tryParse((curMap?[waterRateId!]?.text ?? '').trim());
+    if (curW == null) {
+      _showErrorSnackBar('กรุณากรอกค่าน้ำให้ถูกต้อง');
+      return;
+    }
+    if (curW < prevW) {
+      _showErrorSnackBar('ค่าน้ำปัจจุบันต้องไม่ต่ำกว่าค่าก่อนหน้า');
+      return;
+    }
+
+    setState(() => _savingRoomIds.add(roomId));
+    try {
+      final payload = {
+        'room_id': roomId,
+        'tenant_id': tenantId,
+        'contract_id': contractId,
+        'is_initial_reading': false,
+        'reading_month': _selectedMonth,
+        'reading_year': _selectedYear,
+        'water_previous_reading': prevW,
+        'electric_previous_reading': prevE,
+        'water_current_reading': curW,
+        // ค่าไฟให้เท่ากับก่อนหน้า เพื่อผ่าน validation และแก้ไขภายหลังได้
+        'electric_current_reading': prevE,
+        'reading_date': DateTime.now().toIso8601String().split('T')[0],
+        'reading_notes': nCtrl.text.trim().isEmpty ? null : nCtrl.text.trim(),
+      };
+      final res = await MeterReadingService.createMeterReading(payload);
+      if (res['success'] == true) {
+        _showSuccessSnackBar('บันทึกค่าน้ำสำเร็จ');
+        _savedRoomIds.add(roomId);
+        final data = Map<String, dynamic>.from(res['data'] ?? {});
+        _existingByRoom[roomId] = data;
+        // ล้างช่องกรอกน้ำ
+        curMap?[waterRateId!]?.clear();
+        nCtrl.clear();
+        setState(() {});
+      } else {
+        _showErrorSnackBar(res['message'] ?? 'บันทึกไม่สำเร็จ');
+      }
+    } catch (e) {
+      _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+    } finally {
+      if (mounted) setState(() => _savingRoomIds.remove(roomId));
+    }
+  }
+
+  // บันทึก (สร้าง) เฉพาะค่าไฟ — ค่าน้ำจะถูกตั้งเท่าค่าก่อนหน้าอัตโนมัติ
+  Future<void> _saveRowElectric(Map<String, dynamic> room) async {
+    final roomId = room['room_id']?.toString();
+    final tenantId = room['tenant_id']?.toString();
+    final contractId = room['contract_id']?.toString();
+    if (roomId == null || tenantId == null || contractId == null) {
+      _showErrorSnackBar('ข้อมูลไม่ครบ ไม่สามารถบันทึกได้');
+      return;
+    }
+    final nCtrl = _noteCtrl[roomId]!;
+
+    String? waterRateId;
+    String? electricRateId;
+    for (final rate in _meteredRates) {
+      final r = Map<String, dynamic>.from(rate);
+      final rid = (r['rate_id'] ?? '').toString();
+      if (rid.isEmpty) continue;
+      if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
+      if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
+    }
+    if (waterRateId == null || electricRateId == null) {
+      _showErrorSnackBar('กรุณาตั้งค่าเรตค่าน้ำและค่าไฟใน Utility Settings ก่อน');
+      return;
+    }
+    final curMap = _dynCurCtrls[roomId];
+    final prevW = (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
+    final prevE = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
+    final curE = double.tryParse((curMap?[electricRateId!]?.text ?? '').trim());
+    if (curE == null) {
+      _showErrorSnackBar('กรุณากรอกค่าไฟให้ถูกต้อง');
+      return;
+    }
+    if (curE < prevE) {
+      _showErrorSnackBar('ค่าไฟปัจจุบันต้องไม่ต่ำกว่าค่าก่อนหน้า');
+      return;
+    }
+
+    setState(() => _savingRoomIds.add(roomId));
+    try {
+      final payload = {
+        'room_id': roomId,
+        'tenant_id': tenantId,
+        'contract_id': contractId,
+        'is_initial_reading': false,
+        'reading_month': _selectedMonth,
+        'reading_year': _selectedYear,
+        'water_previous_reading': prevW,
+        'electric_previous_reading': prevE,
+        // ค่าน้ำให้เท่ากับก่อนหน้า เพื่อผ่าน validation และแก้ไขภายหลังได้
+        'water_current_reading': prevW,
+        'electric_current_reading': curE,
+        'reading_date': DateTime.now().toIso8601String().split('T')[0],
+        'reading_notes': nCtrl.text.trim().isEmpty ? null : nCtrl.text.trim(),
+      };
+      final res = await MeterReadingService.createMeterReading(payload);
+      if (res['success'] == true) {
+        _showSuccessSnackBar('บันทึกค่าไฟสำเร็จ');
+        _savedRoomIds.add(roomId);
+        final data = Map<String, dynamic>.from(res['data'] ?? {});
+        _existingByRoom[roomId] = data;
+        // ล้างช่องกรอกไฟ
+        curMap?[electricRateId!]?.clear();
+        nCtrl.clear();
+        setState(() {});
+      } else {
+        _showErrorSnackBar(res['message'] ?? 'บันทึกไม่สำเร็จ');
+      }
+    } catch (e) {
+      _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+    } finally {
+      if (mounted) setState(() => _savingRoomIds.remove(roomId));
+    }
+  }
+
   Future<void> _updateRow(String roomId) async {
     final existing = _existingByRoom[roomId];
     if (existing == null) return;
@@ -2178,6 +2712,122 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         // Clear inputs
         cvWCtrl?.clear();
         cvECtrl?.clear();
+        nCtrl.clear();
+        setState(() {});
+      } else {
+        _showErrorSnackBar(res['message'] ?? 'แก้ไขไม่สำเร็จ');
+      }
+    } catch (e) {
+      _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+    } finally {
+      if (mounted) setState(() => _savingRoomIds.remove(roomId));
+    }
+  }
+
+  // อัปเดตเฉพาะค่าน้ำ
+  Future<void> _updateRowWater(String roomId) async {
+    final existing = _existingByRoom[roomId];
+    if (existing == null) return;
+    final nCtrl = _noteCtrl[roomId]!;
+
+    final prevW = (existing['water_previous_reading'] ?? 0.0).toDouble();
+    String? waterRateId;
+    for (final rate in _meteredRates) {
+      final r = Map<String, dynamic>.from(rate);
+      final rid = (r['rate_id'] ?? '').toString();
+      if (rid.isEmpty) continue;
+      if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
+    }
+    if (waterRateId == null) {
+      _showErrorSnackBar('กรุณาตั้งค่าเรตค่าน้ำใน Utility Settings ก่อน');
+      return;
+    }
+    final cvW = _dynCurCtrls[roomId]?[waterRateId!];
+    final curW = double.tryParse((cvW?.text ?? '').trim());
+    if (curW == null) {
+      _showErrorSnackBar('กรุณากรอกค่าน้ำให้ถูกต้อง');
+      return;
+    }
+    if (curW < prevW) {
+      _showErrorSnackBar('ค่าน้ำปัจจุบันต้องไม่ต่ำกว่าค่าก่อนหน้า');
+      return;
+    }
+
+    final readingId = (existing['reading_id'] ?? '').toString();
+    if (readingId.isEmpty) return;
+
+    setState(() => _savingRoomIds.add(roomId));
+    try {
+      final payload = {
+        'water_previous_reading': prevW,
+        'water_current_reading': curW,
+        'reading_date': DateTime.now().toIso8601String().split('T')[0],
+        'reading_notes': nCtrl.text.trim().isEmpty ? null : nCtrl.text.trim(),
+      };
+      final res = await MeterReadingService.updateMeterReading(readingId, payload);
+      if (res['success'] == true) {
+        _showSuccessSnackBar('บันทึกค่าน้ำสำเร็จ');
+        final data = Map<String, dynamic>.from(res['data'] ?? {});
+        _existingByRoom[roomId] = data;
+        _dynCurCtrls[roomId]?[waterRateId!]?.clear();
+        nCtrl.clear();
+        setState(() {});
+      } else {
+        _showErrorSnackBar(res['message'] ?? 'แก้ไขไม่สำเร็จ');
+      }
+    } catch (e) {
+      _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+    } finally {
+      if (mounted) setState(() => _savingRoomIds.remove(roomId));
+    }
+  }
+
+  // อัปเดตเฉพาะค่าไฟ
+  Future<void> _updateRowElectric(String roomId) async {
+    final existing = _existingByRoom[roomId];
+    if (existing == null) return;
+    final nCtrl = _noteCtrl[roomId]!;
+
+    final prevE = (existing['electric_previous_reading'] ?? 0.0).toDouble();
+    String? electricRateId;
+    for (final rate in _meteredRates) {
+      final r = Map<String, dynamic>.from(rate);
+      final rid = (r['rate_id'] ?? '').toString();
+      if (rid.isEmpty) continue;
+      if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
+    }
+    if (electricRateId == null) {
+      _showErrorSnackBar('กรุณาตั้งค่าเรตค่าไฟใน Utility Settings ก่อน');
+      return;
+    }
+    final cvE = _dynCurCtrls[roomId]?[electricRateId!];
+    final curE = double.tryParse((cvE?.text ?? '').trim());
+    if (curE == null) {
+      _showErrorSnackBar('กรุณากรอกค่าไฟให้ถูกต้อง');
+      return;
+    }
+    if (curE < prevE) {
+      _showErrorSnackBar('ค่าไฟปัจจุบันต้องไม่ต่ำกว่าค่าก่อนหน้า');
+      return;
+    }
+
+    final readingId = (existing['reading_id'] ?? '').toString();
+    if (readingId.isEmpty) return;
+
+    setState(() => _savingRoomIds.add(roomId));
+    try {
+      final payload = {
+        'electric_previous_reading': prevE,
+        'electric_current_reading': curE,
+        'reading_date': DateTime.now().toIso8601String().split('T')[0],
+        'reading_notes': nCtrl.text.trim().isEmpty ? null : nCtrl.text.trim(),
+      };
+      final res = await MeterReadingService.updateMeterReading(readingId, payload);
+      if (res['success'] == true) {
+        _showSuccessSnackBar('บันทึกค่าไฟสำเร็จ');
+        final data = Map<String, dynamic>.from(res['data'] ?? {});
+        _existingByRoom[roomId] = data;
+        _dynCurCtrls[roomId]?[electricRateId!]?.clear();
         nCtrl.clear();
         setState(() {});
       } else {
