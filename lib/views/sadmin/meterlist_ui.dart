@@ -2592,8 +2592,6 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         'water_previous_reading': prevW,
         'electric_previous_reading': prevE,
         'water_current_reading': curW,
-        // ค่าไฟให้เท่ากับก่อนหน้า เพื่อผ่าน validation และแก้ไขภายหลังได้
-        'electric_current_reading': prevE,
         'reading_date': DateTime.now().toIso8601String().split('T')[0],
         'reading_notes': nCtrl.text.trim().isEmpty ? null : nCtrl.text.trim(),
       };
@@ -2670,8 +2668,6 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         'reading_year': _selectedYear,
         'water_previous_reading': prevW,
         'electric_previous_reading': prevE,
-        // ค่าน้ำให้เท่ากับก่อนหน้า เพื่อผ่าน validation และแก้ไขภายหลังได้
-        'water_current_reading': prevW,
         'electric_current_reading': curE,
         'reading_date': DateTime.now().toIso8601String().split('T')[0],
         'reading_notes': nCtrl.text.trim().isEmpty ? null : nCtrl.text.trim(),
