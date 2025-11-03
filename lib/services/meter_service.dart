@@ -420,40 +420,56 @@ class MeterReadingService {
           'confirmed_at': DateTime.now().toIso8601String(),
         };
       } else {
-        // Normal Reading - มีเดือน/ปี, คำนวณ usage
+        // Normal Reading - มีเดือน/ปี, รองรับการกรอกแยกน้ำ/ไฟ
         int targetMonth = readingData['reading_month'];
         int targetYear = readingData['reading_year'];
 
-        // ใช้ค่าก่อนหน้าจากรายการก่อนหน้า (เดือนก่อนหน้า/รายการล่าสุดก่อนเดือนนี้)
-        // เพื่อให้ความต่อเนื่อง: ค่าปัจจุบันของเดือนก่อนหน้า = ค่าก่อนหน้าของเดือนนี้
+        // Previous จากเดือนก่อนหน้า ถ้าไม่มีให้ fallback จาก payload
         final prev = await _getPrevReading(
             readingData['room_id'], targetMonth, targetYear);
-        final waterPrevious = prev != null
+
+        double waterPrevious = prev != null
             ? (prev['water_current_reading'] ?? 0.0).toDouble()
-            : (readingData['water_previous_reading'] ?? 0.0);
-        final electricPrevious = prev != null
+            : ((readingData['water_previous_reading'] ?? 0.0) as num)
+                .toDouble();
+        double electricPrevious = prev != null
             ? (prev['electric_current_reading'] ?? 0.0).toDouble()
-            : (readingData['electric_previous_reading'] ?? 0.0);
-        final waterCurrent = readingData['water_current_reading'] ?? 0.0;
-        final electricCurrent = readingData['electric_current_reading'] ?? 0.0;
+            : ((readingData['electric_previous_reading'] ?? 0.0) as num)
+                .toDouble();
 
-        final waterUsage = waterCurrent - waterPrevious;
-        final electricUsage = electricCurrent - electricPrevious;
+        final bool hasWater =
+            readingData['water_current_reading'] != null;
+        final bool hasElectric =
+            readingData['electric_current_reading'] != null;
 
-        // Validation
-        if (waterUsage <= 0) {
+        // ถ้าไม่ได้กรอก utility นั้น ให้ตั้ง current = previous (usage = 0)
+        double waterCurrent = hasWater
+            ? ((readingData['water_current_reading'] ?? 0.0) as num).toDouble()
+            : waterPrevious;
+        double electricCurrent = hasElectric
+            ? ((readingData['electric_current_reading'] ?? 0.0) as num)
+                .toDouble()
+            : electricPrevious;
+
+        // Validation แยกน้ำ/ไฟเฉพาะที่มีการกรอก
+        if (hasWater && !validateMeterReading(
+            previousReading: waterPrevious, currentReading: waterCurrent)) {
           return {
             'success': false,
             'message': 'ค่ามิเตอร์น้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า'
           };
         }
 
-        if (electricUsage <= 0) {
+        if (hasElectric && !validateMeterReading(
+            previousReading: electricPrevious, currentReading: electricCurrent)) {
           return {
             'success': false,
             'message': 'ค่ามิเตอร์ไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า'
           };
         }
+
+        final double waterUsage = waterCurrent - waterPrevious;
+        final double electricUsage = electricCurrent - electricPrevious;
 
         insertData = {
           'reading_number': readingNumber,
@@ -561,38 +577,15 @@ class MeterReadingService {
           'reading_notes': readingData['reading_notes'],
         };
       } else {
-        // Normal Reading - คำนวณใหม่
-        final waterPrevious = readingData['water_previous_reading'] ??
-            existing['water_previous_reading'] ??
-            0.0;
-        final waterCurrent = readingData['water_current_reading'] ??
-            existing['water_current_reading'] ??
-            0.0;
-        final electricPrevious = readingData['electric_previous_reading'] ??
-            existing['electric_previous_reading'] ??
-            0.0;
-        final electricCurrent = readingData['electric_current_reading'] ??
-            existing['electric_current_reading'] ??
-            0.0;
+        // Normal Reading - รองรับการแก้ไขแยกน้ำ/ไฟ
+        final bool changeWater =
+            readingData.containsKey('water_current_reading') ||
+                readingData.containsKey('water_previous_reading');
+        final bool changeElectric =
+            readingData.containsKey('electric_current_reading') ||
+                readingData.containsKey('electric_previous_reading');
 
-        final waterUsage = waterCurrent - waterPrevious;
-        final electricUsage = electricCurrent - electricPrevious;
-
-        if (waterUsage <= 0) {
-          return {
-            'success': false,
-            'message': 'ค่ามิเตอร์น้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า'
-          };
-        }
-
-        if (electricUsage <= 0) {
-          return {
-            'success': false,
-            'message': 'ค่ามิเตอร์ไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า'
-          };
-        }
-
-        // แก้ไขย้อนหลัง: ลบข้อมูลเดือนถัดไปอัตโนมัติถ้าสามารถลบได้ (ไม่ใช่ billed)
+        // แก้ไขย้อนหลัง: ลบข้อมูลเดือนถัดไปอัตโนมัติถ้ามีและไม่ใช่ billed
         final int? month = existing['reading_month'];
         final int? year = existing['reading_year'];
         final String roomId = existing['room_id'];
@@ -617,15 +610,58 @@ class MeterReadingService {
         }
 
         updateData = {
-          'water_previous_reading': waterPrevious,
-          'water_current_reading': waterCurrent,
-          'water_usage': waterUsage,
-          'electric_previous_reading': electricPrevious,
-          'electric_current_reading': electricCurrent,
-          'electric_usage': electricUsage,
           'reading_date': readingData['reading_date'],
           'reading_notes': readingData['reading_notes'],
         };
+
+        if (changeWater) {
+          final double waterPrevious = ((readingData['water_previous_reading'] ??
+                      existing['water_previous_reading'] ??
+                      0.0) as num)
+                  .toDouble();
+          final double waterCurrent = ((readingData['water_current_reading'] ??
+                      existing['water_current_reading'] ??
+                      0.0) as num)
+                  .toDouble();
+          if (!validateMeterReading(
+              previousReading: waterPrevious, currentReading: waterCurrent)) {
+            return {
+              'success': false,
+              'message': 'ค่ามิเตอร์น้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า'
+            };
+          }
+          updateData.addAll({
+            'water_previous_reading': waterPrevious,
+            'water_current_reading': waterCurrent,
+            'water_usage': waterCurrent - waterPrevious,
+          });
+        }
+
+        if (changeElectric) {
+          final double electricPrevious =
+              ((readingData['electric_previous_reading'] ??
+                          existing['electric_previous_reading'] ??
+                          0.0) as num)
+                  .toDouble();
+          final double electricCurrent =
+              ((readingData['electric_current_reading'] ??
+                          existing['electric_current_reading'] ??
+                          0.0) as num)
+                  .toDouble();
+          if (!validateMeterReading(
+              previousReading: electricPrevious,
+              currentReading: electricCurrent)) {
+            return {
+              'success': false,
+              'message': 'ค่ามิเตอร์ไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า'
+            };
+          }
+          updateData.addAll({
+            'electric_previous_reading': electricPrevious,
+            'electric_current_reading': electricCurrent,
+            'electric_usage': electricCurrent - electricPrevious,
+          });
+        }
       }
 
       updateData.removeWhere((key, value) => value == null);
