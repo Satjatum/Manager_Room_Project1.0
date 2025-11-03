@@ -140,8 +140,13 @@ class MeterReadingService {
     try {
       var query = _supabase.from('meter_readings').select('''
         *,
-        rooms!inner(room_id, room_number, branch_id, 
-          branches!inner(branch_name, branch_code)),
+        rooms!inner(
+          room_id,
+          room_number,
+          branch_id,
+          branches!inner(branch_name, branch_code),
+          room_categories!inner(roomcate_id, roomcate_name)
+        ),
         tenants!inner(tenant_id, tenant_fullname, tenant_phone),
         rental_contracts!inner(contract_id, contract_num)
       ''');
@@ -193,6 +198,7 @@ class MeterReadingService {
           'tenant_phone': reading['tenants']?['tenant_phone'] ?? '-',
           'room_number': reading['rooms']?['room_number'] ?? '-',
           'branch_name': reading['rooms']?['branches']?['branch_name'] ?? '-',
+          'room_category_name': reading['rooms']?['room_categories']?['roomcate_name'] ?? '-',
           'contract_num': reading['rental_contracts']?['contract_num'] ?? '-',
         };
       }).toList();
