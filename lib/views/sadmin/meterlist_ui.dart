@@ -1247,6 +1247,9 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
           existing != null &&
           !_savingRoomIds.contains(roomId);
 
+      final isNew = existing == null;
+      final canCreate = _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
+
       return DataRow(cells: [
         DataCell(Text(roomNo)),
         DataCell(Text(tenant, overflow: TextOverflow.ellipsis)),
@@ -1257,32 +1260,41 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         DataCell(Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            OutlinedButton.icon(
-              onPressed: canEdit ? () => _showEditDialog(roomId) : null,
-              icon: const Icon(Icons.edit, size: 18),
-              label: const Text('แก้ไข'),
-            ),
+            if (isNew) ...[
+              ElevatedButton.icon(
+                onPressed: canCreate ? () => _showCreateDialog(room) : null,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('กรอกข้อมูล'),
+              ),
+            ] else ...[
+              OutlinedButton.icon(
+                onPressed: canEdit ? () => _showEditDialog(roomId) : null,
+                icon: const Icon(Icons.edit, size: 18),
+                label: const Text('แก้ไข'),
+              ),
+            ],
             const SizedBox(width: 8),
-            TextButton.icon(
-              onPressed: canDelete
-                  ? () {
-                      final rid = (existing?['reading_id'] ?? '').toString();
-                      final isBilled =
-                          ((existing?['reading_status'] ?? '') == 'billed');
-                      if (isBilled) {
-                        _confirmDeleteBilled(
-                          rid,
-                          (_invoiceIdByRoom[roomId] ?? ''),
-                          roomId,
-                        );
-                      } else {
-                        _confirmDelete(rid, roomId);
+            if (!isNew)
+              TextButton.icon(
+                onPressed: canDelete
+                    ? () {
+                        final rid = (existing?['reading_id'] ?? '').toString();
+                        final isBilled =
+                            ((existing?['reading_status'] ?? '') == 'billed');
+                        if (isBilled) {
+                          _confirmDeleteBilled(
+                            rid,
+                            (_invoiceIdByRoom[roomId] ?? ''),
+                            roomId,
+                          );
+                        } else {
+                          _confirmDelete(rid, roomId);
+                        }
                       }
-                    }
-                  : null,
-              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
-              label: const Text('ลบ', style: TextStyle(color: Colors.red)),
-            ),
+                    : null,
+                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                label: const Text('ลบ', style: TextStyle(color: Colors.red)),
+              ),
           ],
         )),
       ]);
@@ -1353,6 +1365,9 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
           existing != null &&
           !_savingRoomIds.contains(roomId);
 
+      final isNew = existing == null;
+      final canCreate = _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
+
       return DataRow(cells: [
         DataCell(Text(roomNo)),
         DataCell(Text(tenant, overflow: TextOverflow.ellipsis)),
@@ -1363,32 +1378,41 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         DataCell(Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            OutlinedButton.icon(
-              onPressed: canEdit ? () => _showEditDialog(roomId) : null,
-              icon: const Icon(Icons.edit, size: 18),
-              label: const Text('แก้ไข'),
-            ),
+            if (isNew) ...[
+              ElevatedButton.icon(
+                onPressed: canCreate ? () => _showCreateDialog(room) : null,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('กรอกข้อมูล'),
+              ),
+            ] else ...[
+              OutlinedButton.icon(
+                onPressed: canEdit ? () => _showEditDialog(roomId) : null,
+                icon: const Icon(Icons.edit, size: 18),
+                label: const Text('แก้ไข'),
+              ),
+            ],
             const SizedBox(width: 8),
-            TextButton.icon(
-              onPressed: canDelete
-                  ? () {
-                      final rid = (existing?['reading_id'] ?? '').toString();
-                      final isBilled =
-                          ((existing?['reading_status'] ?? '') == 'billed');
-                      if (isBilled) {
-                        _confirmDeleteBilled(
-                          rid,
-                          (_invoiceIdByRoom[roomId] ?? ''),
-                          roomId,
-                        );
-                      } else {
-                        _confirmDelete(rid, roomId);
+            if (!isNew)
+              TextButton.icon(
+                onPressed: canDelete
+                    ? () {
+                        final rid = (existing?['reading_id'] ?? '').toString();
+                        final isBilled =
+                            ((existing?['reading_status'] ?? '') == 'billed');
+                        if (isBilled) {
+                          _confirmDeleteBilled(
+                            rid,
+                            (_invoiceIdByRoom[roomId] ?? ''),
+                            roomId,
+                          );
+                        } else {
+                          _confirmDelete(rid, roomId);
+                        }
                       }
-                    }
-                  : null,
-              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
-              label: const Text('ลบ', style: TextStyle(color: Colors.red)),
-            ),
+                    : null,
+                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                label: const Text('ลบ', style: TextStyle(color: Colors.red)),
+              ),
           ],
         )),
       ]);
@@ -1447,12 +1471,24 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade300),
+          ),
           title: const Text('แก้ไขค่ามิเตอร์เดือนนี้'),
           content: SizedBox(
             width: 420,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 Row(
                   children: [
                     const Icon(Icons.water_drop, color: Colors.blue),
@@ -1509,7 +1545,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                     isDense: true,
                   ),
                 ),
-              ],
+                ],
+              ),
             ),
           ),
           actions: [
@@ -1520,6 +1557,132 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             ElevatedButton(
               onPressed: () async {
                 await _updateRow(roomId);
+                if (mounted) Navigator.pop(context);
+              },
+              child: const Text('บันทึก'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showCreateDialog(Map<String, dynamic> room) async {
+    final roomId = (room['room_id'] ?? '').toString();
+
+    // Resolve rate IDs
+    String? waterRateId;
+    String? electricRateId;
+    for (final rate in _meteredRates) {
+      final r = Map<String, dynamic>.from(rate);
+      final rid = (r['rate_id'] ?? '').toString();
+      if (rid.isEmpty) continue;
+      if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
+      if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
+    }
+
+    final curMap = _dynCurCtrls[roomId];
+    final nCtrl = _noteCtrl[roomId] ??= TextEditingController();
+    // Clear current values for fresh input
+    if (waterRateId != null && curMap != null) {
+      curMap[waterRateId!]?.text = '';
+    }
+    if (electricRateId != null && curMap != null) {
+      curMap[electricRateId!]?.text = '';
+    }
+    nCtrl.text = '';
+
+    final prevW = (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
+    final prevE = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: Colors.grey.shade300),
+          ),
+          title: const Text('กรอกข้อมูลค่ามิเตอร์เดือนนี้'),
+          content: SizedBox(
+            width: 420,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.water_drop, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      const Text('ค่าน้ำ'),
+                      const Spacer(),
+                      Text('ก่อนหน้า: ${prevW.toStringAsFixed(0)}'),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: waterRateId != null && curMap != null
+                        ? curMap[waterRateId!]
+                        : null,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'ปัจจุบัน (น้ำ)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(Icons.electric_bolt, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      const Text('ค่าไฟ'),
+                      const Spacer(),
+                      Text('ก่อนหน้า: ${prevE.toStringAsFixed(0)}'),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: electricRateId != null && curMap != null
+                        ? curMap[electricRateId!]
+                        : null,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'ปัจจุบัน (ไฟ)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: nCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'หมายเหตุ (ถ้ามี)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ยกเลิก'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                await _saveRow(room);
                 if (mounted) Navigator.pop(context);
               },
               child: const Text('บันทึก'),
