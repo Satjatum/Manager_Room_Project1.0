@@ -441,17 +441,17 @@ class MeterReadingService {
         final electricUsage = electricCurrent - electricPrevious;
 
         // Validation
-        if (waterUsage < 0) {
+        if (waterUsage <= 0) {
           return {
             'success': false,
-            'message': 'ค่ามิเตอร์น้ำปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า'
+            'message': 'ค่ามิเตอร์น้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า'
           };
         }
 
-        if (electricUsage < 0) {
+        if (electricUsage <= 0) {
           return {
             'success': false,
-            'message': 'ค่ามิเตอร์ไฟปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า'
+            'message': 'ค่ามิเตอร์ไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า'
           };
         }
 
@@ -578,17 +578,17 @@ class MeterReadingService {
         final waterUsage = waterCurrent - waterPrevious;
         final electricUsage = electricCurrent - electricPrevious;
 
-        if (waterUsage < 0) {
+        if (waterUsage <= 0) {
           return {
             'success': false,
-            'message': 'ค่ามิเตอร์น้ำปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า'
+            'message': 'ค่ามิเตอร์น้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า'
           };
         }
 
-        if (electricUsage < 0) {
+        if (electricUsage <= 0) {
           return {
             'success': false,
-            'message': 'ค่ามิเตอร์ไฟปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า'
+            'message': 'ค่ามิเตอร์ไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า'
           };
         }
 
@@ -969,7 +969,7 @@ class MeterReadingService {
     required double previousReading,
     required double currentReading,
   }) {
-    return currentReading >= previousReading;
+    return currentReading > previousReading;
   }
 
   /// คำนวณการใช้งาน

@@ -796,8 +796,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     final curE = double.tryParse((cvECtrlDyn?.text ?? '').trim());
     final usageW = curW == null ? null : (curW - displayPrevW);
     final usageE = curE == null ? null : (curE - displayPrevE);
-    final validW = curW != null && curW >= displayPrevW;
-    final validE = curE != null && curE >= displayPrevE;
+    final validW = curW != null && curW > displayPrevW;
+    final validE = curE != null && curE > displayPrevE;
     final canSaveNew = _isCurrentPeriod &&
         !_savingRoomIds.contains(roomId) &&
         existing == null &&
@@ -1061,8 +1061,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                                 : 0.0);
                     final curVal = double.tryParse(cvCtrl.text.trim());
                     final usage = curVal == null ? null : (curVal - prevVal);
-                    final err = (curVal != null && curVal < prevVal)
-                        ? 'ต้องไม่ต่ำกว่าก่อนหน้า'
+                    final err = (curVal != null && curVal <= prevVal)
+                        ? 'ต้องมากกว่าค่าก่อนหน้า'
                         : null;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -1907,6 +1907,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     nCtrl.text = '';
 
     final prevW = (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
+    final needPrevWater = _needsPrevWaterInput.contains(roomId);
 
     await showDialog(
       context: context,
@@ -1930,16 +1931,37 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.water_drop, color: Colors.blue),
-                      const SizedBox(width: 8),
-                      const Text('ค่าน้ำ'),
-                      const Spacer(),
-                      Text('ก่อนหน้า: ${prevW.toStringAsFixed(0)}'),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
+                  if (!needPrevWater) ...[
+                    Row(
+                      children: [
+                        const Icon(Icons.water_drop, color: Colors.blue),
+                        const SizedBox(width: 8),
+                        const Text('ค่าน้ำ'),
+                        const Spacer(),
+                        Text('ก่อนหน้า: ${prevW.toStringAsFixed(0)}'),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                  ] else ...[
+                    Row(
+                      children: const [
+                        Icon(Icons.water_drop, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text('ค่าน้ำ'),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _prevWaterCtrl[roomId],
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'ก่อนหน้า (น้ำ)',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   TextField(
                     controller: waterRateId != null && curMap != null
                         ? curMap[waterRateId!]
@@ -2003,6 +2025,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     nCtrl.text = '';
 
     final prevE = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
+    final needPrevElec = _needsPrevElecInput.contains(roomId);
 
     await showDialog(
       context: context,
@@ -2026,16 +2049,37 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.electric_bolt, color: Colors.orange),
-                      const SizedBox(width: 8),
-                      const Text('ค่าไฟ'),
-                      const Spacer(),
-                      Text('ก่อนหน้า: ${prevE.toStringAsFixed(0)}'),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
+                  if (!needPrevElec) ...[
+                    Row(
+                      children: [
+                        const Icon(Icons.electric_bolt, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        const Text('ค่าไฟ'),
+                        const Spacer(),
+                        Text('ก่อนหน้า: ${prevE.toStringAsFixed(0)}'),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                  ] else ...[
+                    Row(
+                      children: const [
+                        Icon(Icons.electric_bolt, color: Colors.orange),
+                        SizedBox(width: 8),
+                        Text('ค่าไฟ'),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _prevElecCtrl[roomId],
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'ก่อนหน้า (ไฟ)',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   TextField(
                     controller: electricRateId != null && curMap != null
                         ? curMap[electricRateId!]
@@ -2442,12 +2486,12 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       _showErrorSnackBar('กรุณากรอกตัวเลขให้ถูกต้อง');
       return;
     }
-    if (curW < prevW) {
-      _showErrorSnackBar('ค่าน้ำปัจจุบันต้องไม่ต่ำกว่าค่าก่อนหน้า');
+    if (curW <= prevW) {
+      _showErrorSnackBar('ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       return;
     }
-    if (curE < prevE) {
-      _showErrorSnackBar('ค่าไฟปัจจุบันต้องไม่ต่ำกว่าค่าก่อนหน้า');
+    if (curE <= prevE) {
+      _showErrorSnackBar('ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       return;
     }
 
@@ -2520,15 +2564,19 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       return;
     }
     final curMap = _dynCurCtrls[roomId];
-    final prevW = (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
+    final needPrev = roomId != null && _needsPrevWaterInput.contains(roomId);
+    double prevW = (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
+    if (needPrev) {
+      prevW = double.tryParse((_prevWaterCtrl[roomId]?.text ?? '').trim()) ?? prevW;
+    }
     final prevE = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
     final curW = double.tryParse((curMap?[waterRateId!]?.text ?? '').trim());
     if (curW == null) {
       _showErrorSnackBar('กรุณากรอกค่าน้ำให้ถูกต้อง');
       return;
     }
-    if (curW < prevW) {
-      _showErrorSnackBar('ค่าน้ำปัจจุบันต้องไม่ต่ำกว่าค่าก่อนหน้า');
+    if (curW <= prevW) {
+      _showErrorSnackBar('ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       return;
     }
 
@@ -2557,6 +2605,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         _existingByRoom[roomId] = data;
         // ล้างช่องกรอกน้ำ
         curMap?[waterRateId!]?.clear();
+        if (needPrev) _prevWaterCtrl[roomId]?.clear();
         nCtrl.clear();
         setState(() {});
       } else {
@@ -2594,15 +2643,19 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       return;
     }
     final curMap = _dynCurCtrls[roomId];
+    final needPrev = roomId != null && _needsPrevElecInput.contains(roomId);
     final prevW = (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
-    final prevE = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
+    double prevE = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
+    if (needPrev) {
+      prevE = double.tryParse((_prevElecCtrl[roomId]?.text ?? '').trim()) ?? prevE;
+    }
     final curE = double.tryParse((curMap?[electricRateId!]?.text ?? '').trim());
     if (curE == null) {
       _showErrorSnackBar('กรุณากรอกค่าไฟให้ถูกต้อง');
       return;
     }
-    if (curE < prevE) {
-      _showErrorSnackBar('ค่าไฟปัจจุบันต้องไม่ต่ำกว่าค่าก่อนหน้า');
+    if (curE <= prevE) {
+      _showErrorSnackBar('ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       return;
     }
 
@@ -2631,6 +2684,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         _existingByRoom[roomId] = data;
         // ล้างช่องกรอกไฟ
         curMap?[electricRateId!]?.clear();
+        if (needPrev) _prevElecCtrl[roomId]?.clear();
         nCtrl.clear();
         setState(() {});
       } else {
@@ -2675,12 +2729,12 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       _showErrorSnackBar('กรุณากรอกตัวเลขให้ถูกต้อง');
       return;
     }
-    if (curW < prevW) {
-      _showErrorSnackBar('ค่าน้ำปัจจุบันต้องไม่ต่ำกว่าค่าก่อนหน้า');
+    if (curW <= prevW) {
+      _showErrorSnackBar('ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       return;
     }
-    if (curE < prevE) {
-      _showErrorSnackBar('ค่าไฟปัจจุบันต้องไม่ต่ำกว่าค่าก่อนหน้า');
+    if (curE <= prevE) {
+      _showErrorSnackBar('ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       return;
     }
 
@@ -2748,8 +2802,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       _showErrorSnackBar('กรุณากรอกค่าน้ำให้ถูกต้อง');
       return;
     }
-    if (curW < prevW) {
-      _showErrorSnackBar('ค่าน้ำปัจจุบันต้องไม่ต่ำกว่าค่าก่อนหน้า');
+    if (curW <= prevW) {
+      _showErrorSnackBar('ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       return;
     }
 
@@ -2806,8 +2860,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       _showErrorSnackBar('กรุณากรอกค่าไฟให้ถูกต้อง');
       return;
     }
-    if (curE < prevE) {
-      _showErrorSnackBar('ค่าไฟปัจจุบันต้องไม่ต่ำกว่าค่าก่อนหน้า');
+    if (curE <= prevE) {
+      _showErrorSnackBar('ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       return;
     }
 
