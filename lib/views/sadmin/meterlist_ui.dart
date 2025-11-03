@@ -1262,7 +1262,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
           children: [
             if (isNew) ...[
               ElevatedButton.icon(
-                onPressed: canCreate ? () => _showCreateDialogWater(room) : null,
+                onPressed: canCreate ? () => _showCreateDialog(room) : null,
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('กรอกข้อมูล'),
               ),
@@ -1380,7 +1380,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
           children: [
             if (isNew) ...[
               ElevatedButton.icon(
-                onPressed: canCreate ? () => _showCreateDialogElectric(room) : null,
+                onPressed: canCreate ? () => _showCreateDialog(room) : null,
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('กรอกข้อมูล'),
               ),
