@@ -601,7 +601,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         'meter_reading_id': _readingId,
         'invoice_month': _invoiceMonth,
         'invoice_year': _invoiceYear,
-        'issue_date': DateTime.now()
+        'invoice_date': DateTime.now()
             .toIso8601String()
             .split('T')[0], // ส่งไปเพื่อให้ service รู้
         'due_date': _dueDate.toIso8601String().split('T')[0],
