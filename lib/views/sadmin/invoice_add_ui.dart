@@ -483,13 +483,13 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     _utilitiesAmount = _waterCost + _electricCost;
   }
 
-  double _calculateSubtotal() {
+  double _calculateBaseTotal() {
     return _rentalAmount + _utilitiesAmount + _otherCharges;
   }
 
   // ⭐ ฟังก์ชันใหม่: คำนวดยอดรวมพร้อมใช้ payment settings
   double _calculateGrandTotal() {
-    final subtotal = _calculateSubtotal();
+    final baseTotal = _calculateBaseTotal();
     // ปิดการหักส่วนลดยกอัตโนมัติระหว่างสร้างบิล
     _discountAmount = 0.0;
     _discountAmountController.text = '0.00';
@@ -498,7 +498,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     _lateFeeAmount = 0.0;
     _lateFeeAmountController.text = '0.00';
 
-    return subtotal - _discountAmount + _lateFeeAmount;
+    return baseTotal - _discountAmount + _lateFeeAmount;
   }
 
   void _nextStep() {
@@ -1700,7 +1700,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         _paymentSettings!['enable_discount'] == true;
 
     // แสดงผลแบบไม่ใช้ส่วนลดระหว่างสร้างบิล แม้เปิดใช้งานใน Payment Settings
-    final subtotal = _calculateSubtotal();
+    final baseTotal = _calculateBaseTotal();
     final discountPercent = _paymentSettings?['early_payment_discount'] ?? 0;
     final earlyDays = _paymentSettings?['early_payment_days'] ?? 0;
 
@@ -1784,7 +1784,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'ยอดรวม ${subtotal.toStringAsFixed(2)} × $discountPercent% จะถูกนำไปพิจารณาตอนชำระเงินเท่านั้น',
+                    'ยอดรวม ${baseTotal.toStringAsFixed(2)} × $discountPercent% จะถูกนำไปพิจารณาตอนชำระเงินเท่านั้น',
                     style: TextStyle(fontSize: 11, color: Colors.grey[700]),
                   ),
                 ),
@@ -1835,7 +1835,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
   }
 
   Widget _buildSummaryStep() {
-    final subtotal = _calculateSubtotal();
+    final subtotal = _calculateBaseTotal();
     final grandTotal = _calculateGrandTotal();
 
     return SingleChildScrollView(
