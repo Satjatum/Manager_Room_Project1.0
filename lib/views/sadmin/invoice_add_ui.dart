@@ -494,20 +494,9 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     _discountAmount = 0.0;
     _discountAmountController.text = '0.00';
 
-    // ⭐ ถ้ามี payment settings ให้คำนวดค่าปรับและส่วนลดอัตโนมัติ
-    if (_paymentSettings != null) {
-      // คำนวดค่าปรับ (ถ้าเปิดใช้งาน)
-      if (_paymentSettings!['enable_late_fee'] == true) {
-        _lateFeeAmount = PaymentSettingsService.calculateLateFeeManual(
-          settings: _paymentSettings!,
-          dueDate: _dueDate,
-          subtotal: subtotal,
-          paymentDate: DateTime.now(),
-        );
-        _lateFeeAmountController.text = _lateFeeAmount.toStringAsFixed(2);
-        debugPrint('💸 คำนวดค่าปรับแล้ว: $_lateFeeAmount');
-      }
-    }
+    // ปิดการคิดค่าปรับล่าช้าอัตโนมัติระหว่างสร้างบิล
+    _lateFeeAmount = 0.0;
+    _lateFeeAmountController.text = '0.00';
 
     return subtotal - _discountAmount + _lateFeeAmount;
   }
@@ -1787,7 +1776,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
             padding: const EdgeInsets.all(12),
             decoration: const BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(6),
+              // borderRadius: BorderRadius.circular(6),
             ),
             child: Row(
               children: [
@@ -1814,212 +1803,32 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         _paymentSettings!['is_active'] == true &&
         _paymentSettings!['enable_late_fee'] == true;
 
-    if (!hasPaymentSettings || !isLateFeeEnabled) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.grey[50],
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[300]!),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.warning_amber_outlined,
-                color: Colors.grey[400], size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'ค่าปรับล่าช้า',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'ไม่มีค่าปรับ',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              '0.00 บาท',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[500],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // คำนวดค่าปรับจาก Payment Settings
-    final subtotal = _calculateSubtotal();
-    final lateFeeType = _paymentSettings!['late_fee_type'] ?? 'fixed';
-    final lateFeeAmount = _paymentSettings!['late_fee_amount'] ?? 0;
-    final startDay = _paymentSettings!['late_fee_start_day'] ?? 1;
-
-    final calculatedLateFee = PaymentSettingsService.calculateLateFeeManual(
-      settings: _paymentSettings!,
-      dueDate: _dueDate,
-      subtotal: subtotal,
-      paymentDate: DateTime.now(),
-    );
-
-    // อัปเดตค่าปรับ
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_lateFeeAmount != calculatedLateFee) {
-        setState(() {
-          _lateFeeAmount = calculatedLateFee;
-        });
-      }
-    });
-
-    // เช็คว่าถึงวันที่ต้องคิดค่าปรับหรือยัง
-    final daysLate = DateTime.now().difference(_dueDate).inDays;
-    final shouldCharge = daysLate >= startDay;
-
-    if (!shouldCharge) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.blue[50],
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.blue[300]!),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.info_outline, color: Colors.blue[700], size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'ค่าปรับล่าช้า',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.blue[900],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'ยังไม่ถึงวันคิดค่าปรับ (เริ่ม $startDay วันหลังครบกำหนด)',
-                    style: TextStyle(fontSize: 12, color: Colors.blue[700]),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              '0.00 บาท',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue[700],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // แสดงค่าปรับที่คำนวดได้
-    String lateFeeTypeText = '';
-    String calculationText = '';
-
-    switch (lateFeeType) {
-      case 'fixed':
-        lateFeeTypeText = '${lateFeeAmount.toStringAsFixed(0)} บาท คงที่';
-        calculationText =
-            'คิดค่าปรับคงที่ ${calculatedLateFee.toStringAsFixed(2)} บาท';
-        break;
-      case 'percentage':
-        lateFeeTypeText = '$lateFeeAmount% ของยอดรวม';
-        calculationText =
-            'ยอดรวม ${subtotal.toStringAsFixed(2)} × $lateFeeAmount% = ${calculatedLateFee.toStringAsFixed(2)} บาท';
-        break;
-      case 'daily':
-        final chargeDays = daysLate - startDay + 1;
-        lateFeeTypeText = '${lateFeeAmount.toStringAsFixed(0)} บาท/วัน';
-        calculationText =
-            'ล่าช้า $daysLate วัน × ${lateFeeAmount.toStringAsFixed(0)} = ${calculatedLateFee.toStringAsFixed(2)} บาท';
-        break;
-    }
-
+    // แสดงผลแบบไม่ใช้ค่าปรับระหว่างสร้างบิล แม้เปิดใช้งานใน Payment Settings
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.red[50],
+        color: Colors.blueGrey[50],
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.red[300]!, width: 2),
+        border: Border.all(color: Colors.blueGrey[200]!),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(Icons.warning_amber, color: Colors.red[700], size: 24),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ค่าปรับล่าช้า',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.red[900],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      lateFeeTypeText,
-                      style: TextStyle(fontSize: 12, color: Colors.red[700]),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '+${calculatedLateFee.toStringAsFixed(2)} บาท',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red[700],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.calculate, size: 16, color: Colors.red[600]),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    calculationText,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-                ),
+          Icon(Icons.info_outline, color: Colors.blueGrey[700], size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('ค่าปรับล่าช้า',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                SizedBox(height: 4),
+                Text('จะถูกพิจารณาเฉพาะตอนชำระเงิน (เปิดปิดได้ที่หน้า Payment Settings)',
+                    style: TextStyle(fontSize: 12, color: Colors.black54)),
               ],
             ),
           ),
+          const Text('0.00 บาท',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
     );

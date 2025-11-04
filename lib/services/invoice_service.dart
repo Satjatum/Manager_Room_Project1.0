@@ -242,15 +242,12 @@ class InvoiceService {
         final qty = ((rate['quantity'] ?? 1) as num).toInt();
         fixedRatesTotal += unit * (qty <= 0 ? 1 : qty);
       }
-      double otherExpenses = (invoiceData["other_expenses"] ?? 0.0).toDouble();
-      if (otherExpenses <= 0 && fixedRatesTotal > 0) {
-        // Fallback: ถ้าไม่ได้ส่ง other_expenses มา แต่มี fixed_rates ให้ใช้ยอดรวมของ fixed_rates
-        otherExpenses = fixedRatesTotal;
-      }
+      // เปลี่ยนแปลงหลัก: รวม fixed rates ไปไว้ในค่าสาธารณูปโภค และตั้งค่า other_charges = 0
+      double otherExpenses = 0.0;
       final discount = (invoiceData["discount_amount"] ?? 0.0).toDouble();
 
-      // ✅ ค่า utilities รวม = น้ำ + ไฟ
-      final utilitiesTotal = waterCost + electricCost;
+      // ✅ ค่า utilities รวม = น้ำ + ไฟ + ค่าบริการคงที่ (fixed rates)
+      final utilitiesTotal = waterCost + electricCost + fixedRatesTotal;
       final subTotal = roomRent + utilitiesTotal + otherExpenses;
       final grandTotal = subTotal - discount;
 
