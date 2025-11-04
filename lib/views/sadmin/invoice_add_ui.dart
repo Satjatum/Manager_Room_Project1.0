@@ -1820,9 +1820,11 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
                 Text('ค่าปรับล่าช้า',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    style:
+                        TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 SizedBox(height: 4),
-                Text('จะถูกพิจารณาเฉพาะตอนชำระเงิน (เปิดปิดได้ที่หน้า Payment Settings)',
+                Text(
+                    'จะถูกพิจารณาเฉพาะตอนชำระเงิน (เปิดปิดได้ที่หน้า Payment Settings)',
                     style: TextStyle(fontSize: 12, color: Colors.black54)),
               ],
             ),
@@ -1835,7 +1837,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
   }
 
   Widget _buildSummaryStep() {
-    final subtotal = _calculateBaseTotal();
     final grandTotal = _calculateGrandTotal();
 
     return SingleChildScrollView(

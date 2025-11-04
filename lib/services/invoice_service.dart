@@ -290,9 +290,30 @@ class InvoiceService {
         "created_by": currentUser.userId,
       };
 
-      // ✅ สร้าง invoice หลักก่อน
-      final result =
-          await _supabase.from('invoices').insert(insertData).select().single();
+      // ✅ สร้าง invoice หลักก่อน (เลือกคอลัมน์ที่ต้องการอย่างชัดเจน เพื่อหลีกเลี่ยงคอลัมน์ที่ไม่มี เช่น 'subtotal')
+      final result = await _supabase
+          .from('invoices')
+          .insert(insertData)
+          .select('''
+            invoice_id,
+            invoice_number,
+            room_id,
+            tenant_id,
+            contract_id,
+            invoice_month,
+            invoice_year,
+            rental_amount,
+            utilities_amount,
+            other_charges,
+            discount_amount,
+            late_fee_amount,
+            total_amount,
+            paid_amount,
+            invoice_status,
+            due_date,
+            issue_date
+          ''')
+          .single();
 
       final invoiceId = result['invoice_id'];
 
@@ -446,7 +467,25 @@ class InvoiceService {
           .from('invoices')
           .update(updateData)
           .eq('invoice_id', invoiceId)
-          .select()
+          .select('''
+            invoice_id,
+            invoice_number,
+            room_id,
+            tenant_id,
+            contract_id,
+            invoice_month,
+            invoice_year,
+            rental_amount,
+            utilities_amount,
+            other_charges,
+            discount_amount,
+            late_fee_amount,
+            total_amount,
+            paid_amount,
+            invoice_status,
+            due_date,
+            issue_date
+          ''')
           .single();
 
       return {
