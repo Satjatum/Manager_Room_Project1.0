@@ -37,6 +37,31 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
     );
   }
 
+  String _thaiMonth(int month) {
+    const months = [
+      '',
+      'มกราคม',
+      'กุมภาพันธ์',
+      'มีนาคม',
+      'เมษายน',
+      'พฤษภาคม',
+      'มิถุนายน',
+      'กรกฎาคม',
+      'สิงหาคม',
+      'กันยายน',
+      'ตุลาคม',
+      'พฤศจิกายน',
+      'ธันวาคม',
+    ];
+    if (month < 1 || month > 12) return '';
+    return months[month];
+  }
+
+  String _thaiMonthYear(int month, int year) {
+    final buddhistYear = year + 543;
+    return '${_thaiMonth(month)} พ.ศ. $buddhistYear';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,23 +73,46 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
             // Header
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Column(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'บิลของฉัน',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                  OutlinedButton(
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    style: OutlinedButton.styleFrom(
+                      shape: const CircleBorder(),
+                      padding: const EdgeInsets.all(10),
+                      side: BorderSide(color: Colors.grey[300]!),
+                      foregroundColor: Colors.black87,
+                      backgroundColor: Colors.white,
                     ),
+                    child: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'ตรวจสอบและชำระบิลของคุณ',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'บิลของฉัน',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'ตรวจสอบและชำระบิลของคุณ',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -141,7 +189,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'เดือน $month/$year',
+                                            _thaiMonthYear(month, year),
                                             style: const TextStyle(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w600,
@@ -255,18 +303,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
             onChanged: (v) => setState(() => _status = v ?? _status),
           ),
         ),
-        const SizedBox(width: 12),
-
-        OutlinedButton(
-          onPressed: () => setState(() {}),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppTheme.primary,
-            side: BorderSide(color: AppTheme.primary, width: 1.2),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-          child: const Text('กรอง'),
-        ),
+        // No filter button; auto-apply on change
       ],
     );
   }
