@@ -86,9 +86,9 @@ class TenantBillDetailUi extends StatelessWidget {
           final utilLines =
               (data['utilities'] as List?)?.cast<Map<String, dynamic>>() ??
                   const [];
-          final otherLines =
-              (data['other_charges'] as List?)?.cast<Map<String, dynamic>>() ??
-                  const [];
+          final otherLines = (data['other_charge_lines'] as List?)
+                  ?.cast<Map<String, dynamic>>() ??
+              const [];
           final payments =
               (data['payments'] as List?)?.cast<Map<String, dynamic>>() ??
                   const [];

@@ -125,7 +125,8 @@ class InvoiceService {
           'branch_phone': result['rooms']?['branches']?['branch_phone'] ?? '-',
           'contract_num': result['rental_contracts']?['contract_num'] ?? '-',
           'utilities': utilities,
-          'other_charges': otherCharges,
+          // ใช้คีย์ใหม่สำหรับ "รายการค่าใช้จ่ายอื่น" เพื่อไม่ให้ชนกับฟิลด์ตัวเลข other_charges
+          'other_charge_lines': otherCharges,
           'payments': payments,
         };
       }
@@ -227,11 +228,26 @@ class InvoiceService {
       final invoiceNumber = await _generateInvoiceNumber();
 
       // คำนวดยอดรวม
-      final roomRent = invoiceData["room_rent"] ?? 0.0;
-      final waterCost = invoiceData["water_cost"] ?? 0.0;
-      final electricCost = invoiceData["electric_cost"] ?? 0.0;
-      final otherExpenses = invoiceData["other_expenses"] ?? 0.0;
-      final discount = invoiceData["discount_amount"] ?? 0.0;
+      final roomRent = (invoiceData["room_rent"] ?? 0.0).toDouble();
+      final waterCost = (invoiceData["water_cost"] ?? 0.0).toDouble();
+      final electricCost = (invoiceData["electric_cost"] ?? 0.0).toDouble();
+      final fixedRates =
+          (invoiceData["fixed_rates"] as List?)?.cast<Map<String, dynamic>>() ??
+              const [];
+      double fixedRatesTotal = 0.0;
+      for (final rate in fixedRates) {
+        final fixed = (rate['fixed_amount'] ?? 0.0).toDouble();
+        final add = (rate['additional_charge'] ?? 0.0).toDouble();
+        final unit = fixed + add;
+        final qty = ((rate['quantity'] ?? 1) as num).toInt();
+        fixedRatesTotal += unit * (qty <= 0 ? 1 : qty);
+      }
+      double otherExpenses = (invoiceData["other_expenses"] ?? 0.0).toDouble();
+      if (otherExpenses <= 0 && fixedRatesTotal > 0) {
+        // Fallback: ถ้าไม่ได้ส่ง other_expenses มา แต่มี fixed_rates ให้ใช้ยอดรวมของ fixed_rates
+        otherExpenses = fixedRatesTotal;
+      }
+      final discount = (invoiceData["discount_amount"] ?? 0.0).toDouble();
 
       // ✅ ค่า utilities รวม = น้ำ + ไฟ
       final utilitiesTotal = waterCost + electricCost;
@@ -246,7 +262,8 @@ class InvoiceService {
         "tenant_id": invoiceData["tenant_id"],
         "invoice_month": invoiceData["invoice_month"],
         "invoice_year": invoiceData["invoice_year"],
-        "issue_date": invoiceData["invoice_date"] ??
+        // รองรับทั้งคีย์ issue_date และ invoice_date
+        "issue_date": (invoiceData["issue_date"] ?? invoiceData["invoice_date"]) ??
             DateTime.now().toIso8601String().split('T')[0],
         "due_date": invoiceData["due_date"],
 
@@ -329,8 +346,6 @@ class InvoiceService {
         });
       }
       // ✅ สร้างรายการค่าบริการคงที่ (fixed rates)
-      final fixedRates =
-          invoiceData["fixed_rates"] as List<Map<String, dynamic>>? ?? [];
       for (var rate in fixedRates) {
         final fixed = (rate['fixed_amount'] ?? 0.0).toDouble();
         final add = (rate['additional_charge'] ?? 0.0).toDouble();
