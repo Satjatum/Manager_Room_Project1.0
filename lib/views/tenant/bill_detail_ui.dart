@@ -93,41 +93,51 @@ class TenantBillDetailUi extends StatelessWidget {
               (data['payments'] as List?)?.cast<Map<String, dynamic>>() ??
                   const [];
 
-          final roomcate =
-              (data['roomcate'] ?? data['room_category'] ?? data['room_type'] ?? data['room_cate'])?.toString();
-
           return SafeArea(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
               children: [
                 // Header row with back button
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    OutlinedButton(
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new,
+                          color: Colors.black87),
                       onPressed: () {
-                        if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        }
                       },
-                      style: OutlinedButton.styleFrom(
-                        shape: const CircleBorder(),
-                        padding: const EdgeInsets.all(10),
-                        side: BorderSide(color: Colors.grey[300]!),
-                        foregroundColor: Colors.black87,
-                        backgroundColor: Colors.white,
-                      ),
-                      child: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+                      tooltip: 'ย้อนกลับ',
                     ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'รายละเอียดบิล',
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'รายละเอียดบิลค่าเช่า',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'ตรวจสอบรายละเอียดบิลค่าเช่าของคุณ',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
+
+                const SizedBox(height: 16),
 
                 const SizedBox(height: 16),
 
@@ -156,29 +166,23 @@ class TenantBillDetailUi extends StatelessWidget {
                             const SizedBox(height: 6),
                             Text(
                               'เดือน/ปี: ${_thaiMonth(data['invoice_month'] ?? 0)} พ.ศ. ${(data['invoice_year'] ?? 0) + 543}',
-                              style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                              style: TextStyle(
+                                  color: Colors.grey[700], fontSize: 13),
                             ),
                             if (data['issue_date'] != null) ...[
                               const SizedBox(height: 4),
-                              Text('ออกบิล: ${_thaiFullDateFromDynamic(data['issue_date'])}',
-                                  style: TextStyle(color: Colors.grey[700], fontSize: 13)),
+                              Text(
+                                  'ออกบิล: ${_thaiFullDateFromDynamic(data['issue_date'])}',
+                                  style: TextStyle(
+                                      color: Colors.grey[700], fontSize: 13)),
                             ],
                             if (data['due_date'] != null) ...[
                               const SizedBox(height: 2),
-                              Text('ครบกำหนด: ${_thaiFullDateFromDynamic(data['due_date'])}',
-                                  style: TextStyle(color: Colors.grey[700], fontSize: 13)),
+                              Text(
+                                  'ครบกำหนด: ${_thaiFullDateFromDynamic(data['due_date'])}',
+                                  style: TextStyle(
+                                      color: Colors.grey[700], fontSize: 13)),
                             ],
-                            const SizedBox(height: 10),
-                            Wrap(
-                              runSpacing: 6,
-                              spacing: 12,
-                              children: [
-                                Text('ห้อง: ${data['room_number'] ?? '-'}'),
-                                if ((roomcate ?? '').isNotEmpty)
-                                  Text('ประเภทห้อง: $roomcate'),
-                                Text('ผู้เช่า: ${data['tenant_name'] ?? '-'}'),
-                              ],
-                            ),
                           ],
                         ),
                       ),
@@ -202,7 +206,8 @@ class TenantBillDetailUi extends StatelessWidget {
                     children: [
                       const _SectionHeader('ค่าใช้จ่าย'),
                       _kv('ค่าเช่า', rental),
-                      _kv('ค่าสาธารณูปโภค (รวม)', utilities),
+                      _kv('ค่าสาธารณูปโภค', utilities),
+                      _kv('ค่าใช้จ่ายอื่น', others),
                       if (utilLines.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Container(
@@ -234,25 +239,7 @@ class TenantBillDetailUi extends StatelessWidget {
                             }).toList(),
                           ),
                         ),
-                      ],
-                      _kv('ค่าใช้จ่ายอื่น (รวม)', others),
-                      if (otherLines.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.grey[300]!),
-                          ),
-                          child: Column(
-                            children: otherLines.map((o) {
-                              final name = (o['charge_name'] ?? '').toString();
-                              final amount = _asDouble(o['charge_amount']);
-                              return _line(name, amount);
-                            }).toList(),
-                          ),
-                        ),
-                      ],
+                      ]
                     ],
                   ),
                 ),
@@ -272,7 +259,6 @@ class TenantBillDetailUi extends StatelessWidget {
                       _kv('ส่วนลด', -discount),
                       _kv('ค่าปรับล่าช้า', lateFee),
                       const Divider(height: 24),
-                      _kv('ยอดก่อนชำระ', subtotal),
                       _kv('ยอดรวม', total, emphasize: true),
                       _kv('ชำระแล้ว', paid),
                       _kv('คงเหลือ', remain, emphasize: true),
@@ -303,11 +289,14 @@ class TenantBillDetailUi extends StatelessWidget {
                         Column(
                           children: payments.map((p) {
                             final amount = _asDouble(p['payment_amount']);
-                            final dateStr = _thaiFullDateFromDynamic(p['payment_date']);
-                            final pstatus = (p['payment_status'] ?? '').toString();
+                            final dateStr =
+                                _thaiFullDateFromDynamic(p['payment_date']);
+                            final pstatus =
+                                (p['payment_status'] ?? '').toString();
                             return ListTile(
                               dense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 8),
                               title: Text(amount.toStringAsFixed(2)),
                               subtitle: Text(dateStr),
                               trailing: Text(pstatus),
@@ -345,7 +334,8 @@ class TenantBillDetailUi extends StatelessWidget {
                         child: OutlinedButton(
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('ดาวน์โหลดสลิป: ยังไม่รองรับ')),
+                              const SnackBar(
+                                  content: Text('ดาวน์โหลดสลิป: ยังไม่รองรับ')),
                             );
                           },
                           child: const Text('ดาวน์โหลดสลิป'),

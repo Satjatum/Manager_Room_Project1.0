@@ -15,6 +15,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
   String _status = 'all';
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
+  bool _loading = false;
 
   double _asDouble(dynamic v) {
     if (v == null) return 0;
@@ -24,22 +25,34 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
   }
 
   Future<List<Map<String, dynamic>>> _loadBills() async {
-    final user = await AuthMiddleware.getCurrentUser();
-    if (user == null || user.tenantId == null) return [];
+    setState(() => _loading = true);
+    try {
+      final user = await AuthMiddleware.getCurrentUser();
+      if (user == null || user.tenantId == null) return [];
 
-    return InvoiceService.getAllInvoices(
-      tenantId: user.tenantId,
-      invoiceMonth: _selectedMonth,
-      invoiceYear: _selectedYear,
-      status: _status,
-      orderBy: 'invoice_year',
-      ascending: false,
-    );
+      final bills = await InvoiceService.getAllInvoices(
+        tenantId: user.tenantId,
+        invoiceMonth: _selectedMonth,
+        invoiceYear: _selectedYear,
+        status: _status,
+        orderBy: 'invoice_year',
+        ascending: false,
+      );
+      return bills;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('โหลดข้อมูลไม่สำเร็จ: $e')),
+        );
+      }
+      return [];
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
-  String _thaiMonth(int month) {
-    const months = [
-      '',
+  String _getMonthName(int month) {
+    const monthNames = [
       'มกราคม',
       'กุมภาพันธ์',
       'มีนาคม',
@@ -51,15 +64,20 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
       'กันยายน',
       'ตุลาคม',
       'พฤศจิกายน',
-      'ธันวาคม',
+      'ธันวาคม'
     ];
-    if (month < 1 || month > 12) return '';
-    return months[month];
+    return monthNames[(month.clamp(1, 12)) - 1];
   }
 
   String _thaiMonthYear(int month, int year) {
     final buddhistYear = year + 543;
-    return '${_thaiMonth(month)} พ.ศ. $buddhistYear';
+    return '${_getMonthName(month)}  $buddhistYear';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBills();
   }
 
   @override
@@ -67,49 +85,42 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              // Header Section
+              Row(
                 children: [
-                  OutlinedButton(
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        color: Colors.black87),
                     onPressed: () {
                       if (Navigator.of(context).canPop()) {
                         Navigator.of(context).pop();
                       }
                     },
-                    style: OutlinedButton.styleFrom(
-                      shape: const CircleBorder(),
-                      padding: const EdgeInsets.all(10),
-                      side: BorderSide(color: Colors.grey[300]!),
-                      foregroundColor: Colors.black87,
-                      backgroundColor: Colors.white,
-                    ),
-                    child: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+                    tooltip: 'ย้อนกลับ',
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'บิลของฉัน',
+                      children: const [
+                        Text(
+                          'รายการบิลค่าเช่า',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Text(
-                          'ตรวจสอบและชำระบิลของคุณ',
+                          'ตรวจสอบและจัดการบิลค่าเช่าของคุณ',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color: Colors.black54,
                           ),
                         ),
                       ],
@@ -117,218 +128,225 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                   ),
                 ],
               ),
-            ),
 
-            // Filters
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: _buildFilters(),
-            ),
+              const SizedBox(height: 16),
 
-            const SizedBox(height: 8),
-
-            // List
-            Expanded(
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: _loadBills(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: AppTheme.primary,
-                        strokeWidth: 3,
-                      ),
-                    );
-                  }
-                  final items = snapshot.data ?? [];
-                  if (items.isEmpty) {
-                    return _buildEmptyState();
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-                    itemCount: items.length,
-                    itemBuilder: (context, index) {
-                      final bill = items[index];
-                      final month = bill['invoice_month'] ?? _selectedMonth;
-                      final year = bill['invoice_year'] ?? _selectedYear;
-                      final total = _asDouble(bill['total_amount']);
-                      final status = (bill['invoice_status'] ?? '').toString();
-                      final number = (bill['invoice_number'] ?? '').toString();
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => TenantBillDetailUi(
-                                    invoiceId: bill['invoice_id'],
+              // Filter Section
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      // เดือน
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.calendar_today_outlined,
+                                  size: 18, color: Colors.grey[700]),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<int>(
+                                    value: _selectedMonth,
+                                    isExpanded: true,
+                                    icon: const Icon(Icons.keyboard_arrow_down,
+                                        size: 20),
+                                    style: const TextStyle(
+                                        fontSize: 14, color: Colors.black87),
+                                    items: List.generate(12, (i) => i + 1)
+                                        .map((m) => DropdownMenuItem(
+                                            value: m,
+                                            child: Text(_getMonthName(m))))
+                                        .toList(),
+                                    onChanged: (val) async {
+                                      setState(() => _selectedMonth =
+                                          val ?? _selectedMonth);
+                                      await _loadBills();
+                                    },
                                   ),
                                 ),
-                              );
-                            },
-                            child: Ink(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey[300]!),
                               ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    // Left: title & subtitle
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            _thaiMonthYear(month, year),
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.black87,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            'เลขบิล: $number',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-
-                                    const SizedBox(width: 12),
-
-                                    // Right: amount & status
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          total.toStringAsFixed(2),
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.black87,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        _StatusChip(status: status),
-                                      ],
-                                    ),
-                                  ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // ปี (พ.ศ.)
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.date_range,
+                                  size: 20, color: Colors.grey[700]),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<int>(
+                                    value: _selectedYear,
+                                    isExpanded: true,
+                                    icon: const Icon(Icons.keyboard_arrow_down,
+                                        size: 20),
+                                    style: const TextStyle(
+                                        fontSize: 14, color: Colors.black87),
+                                    items: List.generate(
+                                            6, (i) => DateTime.now().year - i)
+                                        .map((y) => DropdownMenuItem(
+                                            value: y,
+                                            child: Text('${y + 543}')))
+                                        .toList(),
+                                    onChanged: (val) async {
+                                      setState(() =>
+                                          _selectedYear = val ?? _selectedYear);
+                                      await _loadBills();
+                                    },
+                                  ),
                                 ),
                               ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Status Dropdown
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.date_range,
+                            size: 20, color: Colors.grey[700]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _status,
+                              isExpanded: true,
+                              icon: const Icon(Icons.keyboard_arrow_down,
+                                  size: 20),
+                              style: const TextStyle(
+                                  fontSize: 14, color: Colors.black87),
+                              items: const [
+                                DropdownMenuItem(
+                                    value: 'all', child: Text('ทั้งหมด')),
+                                DropdownMenuItem(
+                                    value: 'pending', child: Text('ค้างชำระ')),
+                                DropdownMenuItem(
+                                    value: 'partial',
+                                    child: Text('ชำระบางส่วน')),
+                                DropdownMenuItem(
+                                    value: 'paid', child: Text('ชำระแล้ว')),
+                                DropdownMenuItem(
+                                    value: 'overdue', child: Text('เกินกำหนด')),
+                                DropdownMenuItem(
+                                    value: 'cancelled', child: Text('ยกเลิก')),
+                              ],
+                              onChanged: (val) async {
+                                setState(() => _status = val ?? _status);
+                                await _loadBills();
+                              },
                             ),
                           ),
                         ),
-                      );
-                    },
-                  );
-                },
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+
+              const SizedBox(height: 16),
+
+              // Content Section
+              Expanded(
+                child: _loading
+                    ? const Center(
+                        child:
+                            CircularProgressIndicator(color: AppTheme.primary))
+                    : FutureBuilder<List<Map<String, dynamic>>>(
+                        future: _loadBills(),
+                        builder: (context, snapshot) {
+                          final items = snapshot.data ?? [];
+                          if (items.isEmpty) {
+                            return _buildEmpty();
+                          }
+
+                          return RefreshIndicator(
+                            onRefresh: _loadBills,
+                            color: AppTheme.primary,
+                            child: ListView.builder(
+                              itemCount: items.length,
+                              itemBuilder: (context, index) =>
+                                  _buildBillCard(items[index]),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildFilters() {
-    InputBorder _border(Color color) => OutlineInputBorder(
-          borderSide: BorderSide(color: color, width: 1),
-          borderRadius: BorderRadius.circular(8),
-        );
-
-    final baseDecoration = InputDecoration(
-      isDense: true,
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      enabledBorder: _border(Colors.grey[300]!),
-      focusedBorder: _border(AppTheme.primary),
-    );
-
-    return Row(
-      children: [
-        // Month
-        Expanded(
-          child: DropdownButtonFormField<int>(
-            value: _selectedMonth,
-            decoration: baseDecoration.copyWith(labelText: 'เดือน'),
-            items: List.generate(12, (i) => i + 1)
-                .map((m) => DropdownMenuItem(value: m, child: Text('$m')))
-                .toList(),
-            onChanged: (v) => setState(() => _selectedMonth = v ?? _selectedMonth),
-          ),
-        ),
-        const SizedBox(width: 12),
-
-        // Year (current +/- 1)
-        Expanded(
-          child: DropdownButtonFormField<int>(
-            value: _selectedYear,
-            decoration: baseDecoration.copyWith(labelText: 'ปี'),
-            items: _yearOptions()
-                .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
-                .toList(),
-            onChanged: (v) => setState(() => _selectedYear = v ?? _selectedYear),
-          ),
-        ),
-        const SizedBox(width: 12),
-
-        // Status
-        Expanded(
-          child: DropdownButtonFormField<String>(
-            value: _status,
-            decoration: baseDecoration.copyWith(labelText: 'สถานะ'),
-            items: const [
-              DropdownMenuItem(value: 'all', child: Text('ทั้งหมด')),
-              DropdownMenuItem(value: 'pending', child: Text('ค้างชำระ')),
-              DropdownMenuItem(value: 'partial', child: Text('ชำระบางส่วน')),
-              DropdownMenuItem(value: 'paid', child: Text('ชำระแล้ว')),
-              DropdownMenuItem(value: 'overdue', child: Text('เกินกำหนด')),
-              DropdownMenuItem(value: 'cancelled', child: Text('ยกเลิก')),
-            ],
-            onChanged: (v) => setState(() => _status = v ?? _status),
-          ),
-        ),
-        // No filter button; auto-apply on change
-      ],
-    );
-  }
-
-  Widget _buildEmptyState() {
+  Widget _buildEmpty() {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
+      child: Container(
+        margin: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.receipt_long_outlined, size: 80, color: Colors.grey[300]),
-            const SizedBox(height: 24),
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 64,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
             Text(
               'ไม่พบรายการบิล',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
+                color: Colors.grey[600],
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'ลองเปลี่ยนตัวกรอง หรือเลือกเดือน/ปีอื่น',
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              'ไม่มีบิลสำหรับ ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[500],
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -337,9 +355,115 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
     );
   }
 
-  List<int> _yearOptions() {
-    final now = DateTime.now().year;
-    return [now - 1, now, now + 1];
+  Widget _buildBillCard(Map<String, dynamic> bill) {
+    final month = bill['invoice_month'] ?? _selectedMonth;
+    final year = bill['invoice_year'] ?? _selectedYear;
+    final total = _asDouble(bill['total_amount']);
+    final status = (bill['invoice_status'] ?? '').toString();
+    final number = (bill['invoice_number'] ?? '').toString();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => TenantBillDetailUi(
+                  invoiceId: bill['invoice_id'],
+                ),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Left Icon
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.receipt_long,
+                    color: AppTheme.primary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+
+                // Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _thaiMonthYear(month, year),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'เลขที่บิล: $number',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Text(
+                            '฿${total.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const Spacer(),
+                          _StatusChip(status: status),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Arrow Icon
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: Colors.grey[400],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -382,16 +506,22 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: _color().withOpacity(0.1),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: _color().withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _color().withOpacity(0.3),
+          width: 1,
+        ),
       ),
       child: Text(
         _label(),
         style: TextStyle(
-            color: _color(), fontSize: 11, fontWeight: FontWeight.w600),
+          color: _color(),
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

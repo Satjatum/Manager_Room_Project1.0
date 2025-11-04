@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:manager_room_project/services/invoice_service.dart';
 import 'package:manager_room_project/services/payment_service.dart';
 import 'package:manager_room_project/services/image_service.dart';
+import 'package:manager_room_project/views/widgets/colors.dart';
 // Use app theme via Theme.of(context).colorScheme instead of fixed colors
 
 class TenantPayBillUi extends StatefulWidget {
@@ -25,7 +26,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
 
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
-  DateTime _paymentDateTime = DateTime.now();
+  DateTime? _selectedDate;
+  TimeOfDay? _selectedTime;
 
   XFile? _slipFile;
   bool _submitting = false;
@@ -113,6 +115,12 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       );
       return;
     }
+    if (_selectedDate == null || _selectedTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กรุณาเลือกวันที่และเวลาในการชำระ')),
+      );
+      return;
+    }
     if (_slipFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('กรุณาอัปโหลดสลิปการโอนเงิน')),
@@ -122,6 +130,15 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
 
     setState(() => _submitting = true);
     try {
+      // compose payment datetime from user selection
+      final paymentDateTime = DateTime(
+        _selectedDate!.year,
+        _selectedDate!.month,
+        _selectedDate!.day,
+        _selectedTime!.hour,
+        _selectedTime!.minute,
+      );
+
       Map<String, dynamic> uploadResult;
       if (kIsWeb) {
         final bytes = await _slipFile!.readAsBytes();
@@ -152,7 +169,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         tenantId: _invoice!['tenant_id'],
         qrId: _selectedQrId,
         paidAmount: amount,
-        paymentDateTime: _paymentDateTime,
+        paymentDateTime: paymentDateTime,
         slipImageUrl: uploadResult['url'],
         tenantNotes:
             _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
@@ -185,356 +202,415 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('ชำระบิล/อัปโหลดสลิป'),
-      ),
-      body: _loading
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(
-                      valueColor:
-                          AlwaysStoppedAnimation<Color>(scheme.primary)),
-                  const SizedBox(height: 12),
-                  const Text('กำลังโหลด...'),
-                ],
-              ),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSummaryCard(),
-                  const SizedBox(height: 12),
-                  _buildQrList(),
-                  const SizedBox(height: 12),
-                  _buildAmountCard(),
-                  const SizedBox(height: 12),
-                  _buildSlipUploadCard(),
-                  const SizedBox(height: 12),
-                  _buildNoteCard(),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton.icon(
-                      onPressed: _submitting ? null : _submit,
-                      icon: _submitting
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Icon(Icons.upload),
-                      label: const Text('ส่งสลิปเพื่อรอตรวจสอบ'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: scheme.primary,
-                        foregroundColor: scheme.onPrimary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-    );
-  }
-
-  Widget _buildSummaryCard() {
-    final total = _asDouble(_invoice?['total_amount']);
-    final paid = _asDouble(_invoice?['paid_amount']);
-    final remain = (total - paid);
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('สรุปยอด',
-                style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            _row('ยอดรวม', total),
-            _row('ชำระแล้ว', paid),
-            _row('คงเหลือ', remain, emphasize: true),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQrList() {
-    final scheme = Theme.of(context).colorScheme;
-    if (_branchQrs.isEmpty) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(Icons.info_outline, color: scheme.tertiary),
-              const SizedBox(width: 8),
-              const Expanded(child: Text('ยังไม่มีบัญชี/QR สำหรับสาขานี้')),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4.0),
-              child: Text('เลือกบัญชี/QR สำหรับโอน',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-            ),
-            const SizedBox(height: 8),
-            ..._branchQrs.map((q) {
-              final id = q['qr_id'].toString();
-              final bank = (q['bank_name'] ?? '').toString();
-              final accountName = (q['account_name'] ?? '').toString();
-              final accountNumber = (q['account_number'] ?? '').toString();
-              final image = (q['qr_code_image'] ?? '').toString();
-              final isPrimary = (q['is_primary'] ?? false) == true;
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                      color: _selectedQrId == id
-                          ? scheme.primary
-                          : Theme.of(context).dividerColor),
-                  borderRadius: BorderRadius.circular(12),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: _loading
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(scheme.primary)),
+                    const SizedBox(height: 12),
+                    const Text('กำลังโหลด...'),
+                  ],
                 ),
-                child: RadioListTile<String>(
-                  value: id,
-                  groupValue: _selectedQrId,
-                  onChanged: (v) => setState(() => _selectedQrId = v),
-                  title: Text('$bank • $accountNumber'),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(accountName),
-                      if (isPrimary)
-                        Text('บัญชีหลัก',
-                            style: TextStyle(
-                                color: scheme.secondary, fontSize: 12)),
-                      const SizedBox(height: 8),
-                      if (image.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            image,
-                            height: 160,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAmountCard() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('จำนวนเงินที่ชำระ',
-                style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _amountCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.payments),
-                border: OutlineInputBorder(),
-                hintText: 'เช่น 5000.00',
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Icon(Icons.event, size: 18),
-                const SizedBox(width: 6),
-                Text(
-                  '${_paymentDateTime.day.toString().padLeft(2, '0')}/${_paymentDateTime.month.toString().padLeft(2, '0')}/${_paymentDateTime.year}  '
-                  '${_paymentDateTime.hour.toString().padLeft(2, '0')}:${_paymentDateTime.minute.toString().padLeft(2, '0')}',
-                ),
-                const Spacer(),
-                TextButton.icon(
-                  onPressed: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _paymentDateTime,
-                      firstDate:
-                          DateTime.now().subtract(const Duration(days: 7)),
-                      lastDate: DateTime.now().add(const Duration(days: 7)),
-                    );
-                    if (date == null) return;
-                    final time = await showTimePicker(
-                      context: context,
-                      initialTime: TimeOfDay.fromDateTime(_paymentDateTime),
-                    );
-                    if (time == null) return;
-                    setState(() {
-                      _paymentDateTime = DateTime(
-                        date.year,
-                        date.month,
-                        date.day,
-                        time.hour,
-                        time.minute,
-                      );
-                    });
-                  },
-                  icon: const Icon(Icons.edit_calendar),
-                  label: const Text('แก้ไขวันเวลา'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSlipUploadCard() {
-    final scheme = Theme.of(context).colorScheme;
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('อัปโหลดสลิป',
-                style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            if (_slipFile == null)
-              OutlinedButton.icon(
-                onPressed: _pickSlip,
-                icon: const Icon(Icons.upload_file),
-                label: const Text('เลือกไฟล์สลิป'),
               )
-            else
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            : Column(
                 children: [
-                  if (kIsWeb)
-                    FutureBuilder(
-                      future: _slipFile!.readAsBytes(),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData) {
-                          return ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.memory(
-                              snapshot.data!,
-                              height: 220,
-                              fit: BoxFit.contain,
-                            ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                    )
-                  else
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.file(
-                        File(_slipFile!.path),
-                        height: 220,
-                        fit: BoxFit.contain,
+                  _buildHeader(),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSection(
+                            title: 'เลือกบัญชี/QR สำหรับโอน',
+                            icon: Icons.qr_code_2_outlined,
+                            child: _buildQrListContent(),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildSection(
+                            title: 'รายละเอียดการชำระ',
+                            icon: Icons.payments_outlined,
+                            child: _buildAmountAndDateTimeContent(),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildSection(
+                            title: 'อัปโหลดสลิป (บังคับ)',
+                            icon: Icons.upload_file_outlined,
+                            child: _buildSlipUploadContent(),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildSection(
+                            title: 'หมายเหตุผู้เช่า (ถ้ามี)',
+                            icon: Icons.sticky_note_2_outlined,
+                            child: _buildNoteContent(),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildSubmitButton(scheme),
+                        ],
                       ),
                     ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: _pickSlip,
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('เปลี่ยนรูป'),
-                      ),
-                      const SizedBox(width: 8),
-                      TextButton.icon(
-                        onPressed: () => setState(() => _slipFile = null),
-                        icon: const Icon(Icons.delete_outline),
-                        label: const Text('ลบ'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: scheme.error,
-                        ),
-                      ),
-                    ],
-                  )
+                  ),
                 ],
               ),
-          ],
-        ),
       ),
     );
   }
 
-  Widget _buildNoteCard() {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('หมายเหตุผู้เช่า (ถ้ามี)',
-                style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _noteCtrl,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'เช่น โอนผ่านบัญชี xxx เวลา xx:xx น.',
-              ),
-            ),
-          ],
-        ),
+  Widget _buildHeader() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey[300]!, width: 1)),
       ),
-    );
-  }
-
-  Widget _row(String k, double v, {bool emphasize = false}) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.all(16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(k),
-          Text(
-            v.toStringAsFixed(2),
-            style: TextStyle(
-              fontWeight: emphasize ? FontWeight.w700 : FontWeight.w500,
-              fontSize: emphasize ? 16 : 14,
-              color: emphasize ? scheme.error : null,
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          ),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'ชำระบิล/อัปโหลดสลิป',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSection({
+    required String title,
+    required IconData icon,
+    required Widget child,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: AppTheme.primary, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: Colors.grey[300]),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: child,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Content builders for sections (no outer container)
+  Widget _buildQrListContent() {
+    final scheme = Theme.of(context).colorScheme;
+    if (_branchQrs.isEmpty) {
+      return Row(
+        children: [
+          Icon(Icons.info_outline, color: scheme.tertiary),
+          const SizedBox(width: 8),
+          const Expanded(child: Text('ยังไม่มีบัญชี/QR สำหรับสาขานี้')),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 4),
+        ..._branchQrs.map((q) {
+          final id = q['qr_id'].toString();
+          final bank = (q['bank_name'] ?? '').toString();
+          final accountName = (q['account_name'] ?? '').toString();
+          final accountNumber = (q['account_number'] ?? '').toString();
+          final image = (q['qr_code_image'] ?? '').toString();
+          final isPrimary = (q['is_primary'] ?? false) == true;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              border: Border.all(
+                  color:
+                      _selectedQrId == id ? scheme.primary : Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: RadioListTile<String>(
+              value: id,
+              groupValue: _selectedQrId,
+              onChanged: (v) => setState(() => _selectedQrId = v),
+              title: Text('$bank • $accountNumber'),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(accountName),
+                  if (isPrimary)
+                    Text('บัญชีหลัก',
+                        style:
+                            TextStyle(color: scheme.secondary, fontSize: 12)),
+                  const SizedBox(height: 8),
+                  if (image.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        image,
+                        height: 160,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildAmountAndDateTimeContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('จำนวนเงินที่ชำระ',
+            style: TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _amountCtrl,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.payments),
+            border: OutlineInputBorder(),
+            hintText: 'เช่น 5000.00',
+            filled: true,
+            fillColor: Colors.white, // TextField สีขาว
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text('วันที่ชำระ', style: TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                final now = DateTime.now();
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _selectedDate ?? now,
+                  firstDate: DateTime(now.year - 1),
+                  lastDate: DateTime(now.year + 1),
+                );
+                if (picked != null) setState(() => _selectedDate = picked);
+              },
+              icon: const Icon(Icons.calendar_today),
+              label: Text(
+                _selectedDate == null
+                    ? 'เลือกวันที่'
+                    : '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}',
+              ),
+              style: OutlinedButton.styleFrom(
+                backgroundColor: Colors.white, // Button สีขาว
+                side: BorderSide(color: Colors.grey[300]!), // ขอบเทา
+                foregroundColor: Colors.black87,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                final picked = await showTimePicker(
+                  context: context,
+                  initialTime: _selectedTime ?? TimeOfDay.now(),
+                );
+                if (picked != null) setState(() => _selectedTime = picked);
+              },
+              icon: const Icon(Icons.schedule),
+              label: Text(
+                _selectedTime == null
+                    ? 'เลือกเวลา'
+                    : '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}',
+              ),
+              style: OutlinedButton.styleFrom(
+                backgroundColor: Colors.white, // Button สีขาว
+                side: BorderSide(color: Colors.grey[300]!), // ขอบเทา
+                foregroundColor: Colors.black87,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+        ]),
+      ],
+    );
+  }
+
+  Widget _buildSlipUploadContent() {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 4),
+        if (_slipFile == null)
+          SizedBox(
+            width: double.infinity, // ปุ่มเลือกสลิปเต็มความกว้าง
+            child: OutlinedButton.icon(
+              onPressed: _pickSlip,
+              icon: const Icon(Icons.upload_file),
+              label: const Text('เลือกไฟล์สลิป'),
+              style: OutlinedButton.styleFrom(
+                backgroundColor: Colors.white, // Button สีขาว
+                side: BorderSide(color: Colors.grey[300]!), // ขอบเทา
+                foregroundColor: Colors.black87,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+            ),
+          )
+        else
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (kIsWeb)
+                FutureBuilder(
+                  future: _slipFile!.readAsBytes(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.memory(
+                          snapshot.data!,
+                          height: 220,
+                          fit: BoxFit.contain,
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                )
+              else
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(
+                    File(_slipFile!.path),
+                    height: 220,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _pickSlip,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('เปลี่ยนรูป'),
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      side: BorderSide(color: Colors.grey[300]!),
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 12),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => setState(() => _slipFile = null),
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text('ลบ'),
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      side: BorderSide(color: Colors.grey[300]!),
+                      foregroundColor: scheme.error,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 12),
+                    ),
+                  ),
+                ],
+              )
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildNoteContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 4),
+        TextField(
+          controller: _noteCtrl,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            hintText: 'เช่น โอนผ่านบัญชี xxx เวลา xx:xx น.',
+            filled: true,
+            fillColor: Colors.white, // TextField สีขาว
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubmitButton(ColorScheme scheme) {
+    final isValid = (_slipFile != null) &&
+        (_selectedDate != null) &&
+        (_selectedTime != null) &&
+        ((double.tryParse(_amountCtrl.text) ?? 0) > 0);
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: OutlinedButton.icon(
+        onPressed: (_submitting || !isValid) ? null : _submit,
+        icon: _submitting
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.black54),
+                ),
+              )
+            : const Icon(Icons.upload),
+        label: const Text('ส่งสลิปเพื่อรอตรวจสอบ'),
+        style: OutlinedButton.styleFrom(
+          backgroundColor: Colors.white, // Button สีขาว
+          side: BorderSide(color: Colors.grey[300]!), // ขอบเทา
+          foregroundColor: Colors.black87,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       ),
     );
   }

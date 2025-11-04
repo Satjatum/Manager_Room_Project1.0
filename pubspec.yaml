@@ -20,6 +20,9 @@ dependencies:
   # Supabase
   supabase_flutter: ^2.9.1
 
+  # Flutter Dotenv
+  flutter_dotenv: ^6.0.0
+
   # Flutter Secure Storage
   flutter_secure_storage: ^9.2.4
 
@@ -55,3 +58,4 @@ flutter:
   assets:
     - assets/fonts/THSarabunNew/THSarabunNew.ttf
     - assets/fonts/THSarabunNew/THSarabunNew Bold.ttf
+    - .env.local

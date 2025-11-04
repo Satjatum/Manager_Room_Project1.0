@@ -356,273 +356,267 @@ class _IssuelistUiState extends State<IssuelistUi>
         false;
 
     return Scaffold(
-        backgroundColor: Colors.white,
-        body: Column(
-          children: [
-            // Header Section (branchlist style)
-            SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    // Title
-                    Row(
-                      children: [
-                        if (!isTenant)
-                          IconButton(
-                            icon: const Icon(Icons.arrow_back_ios_new,
-                                color: Colors.black87),
-                            onPressed: () {
-                              if (Navigator.of(context).canPop()) {
-                                Navigator.of(context).pop();
-                              }
-                            },
-                            tooltip: 'ย้อนกลับ',
-                          ),
-                        if (!isTenant) const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Issue Management',
-                                style: TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                'จัดการรายการปัญหาและการติดตามสถานะ',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Search bar (branchlist style)
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: 'ค้นหาเลขที่แจ้ง, หัวข้อ, หมายเลขห้อง...',
-                          hintStyle: TextStyle(color: Colors.grey[500]),
-                          prefixIcon:
-                              Icon(Icons.search, color: Colors.grey[600]),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() => _searchQuery = '');
-                                    _applyFilters();
-                                  },
-                                )
-                              : null,
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
-                        ),
-                        onChanged: (value) {
-                          setState(() => _searchQuery = value);
-                          _applyFilters();
+      backgroundColor: Colors.white,
+      body: Column(
+        children: [
+          // Header Section (branchlist style)
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  // Title
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new,
+                            color: Colors.black87),
+                        onPressed: () {
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          }
                         },
+                        tooltip: 'ย้อนกลับ',
                       ),
-                    ),
-
-                    // Branch filter (for superadmin/admin)
-                    if (canFilterByBranch &&
-                        _branches.isNotEmpty &&
-                        widget.branchId == null) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            isExpanded: true,
-                            value: _selectedBranchId ?? 'all',
-                            icon: const Icon(Icons.keyboard_arrow_down),
-                            items: [
-                              const DropdownMenuItem<String>(
-                                  value: 'all', child: Text('ทุกสาขา')),
-                              ..._branches.map((branch) {
-                                return DropdownMenuItem<String>(
-                                  value: branch['branch_id'],
-                                  child: Text(branch['branch_name'] ?? ''),
-                                );
-                              }).toList(),
-                            ],
-                            onChanged: (String? value) async {
-                              setState(() {
-                                _selectedBranchId =
-                                    value == 'all' ? null : value;
-                              });
-                              await _loadIssues();
-                              await _loadStatistics();
-                            },
-                          ),
+                      if (!isTenant) const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Issue Management',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'จัดการรายการปัญหาและการติดตามสถานะ',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
-                    const SizedBox(height: 12),
+                  ),
 
-                    // Statistics tracking bar (hidden for tenant)
-                    if (!isTenant) _buildTrackingBar(),
+                  const SizedBox(height: 16),
 
-                    const SizedBox(height: 12),
-
-                    // Tab bar (neutral style)
-                    Theme(
-                      data: Theme.of(context).copyWith(
-                        splashColor: Colors.transparent,
-                        highlightColor: Colors.transparent,
+                  // Search bar (branchlist style)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'ค้นหาเลขที่แจ้ง, หัวข้อ, หมายเลขห้อง...',
+                        hintStyle: TextStyle(color: Colors.grey[500]),
+                        prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() => _searchQuery = '');
+                                  _applyFilters();
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
                       ),
-                      child: TabBar(
-                        controller: _tabController,
-                        isScrollable: true,
-                        onTap: (index) => _applyFilters(),
-                        labelColor: AppTheme.primary,
-                        unselectedLabelColor: Colors.black54,
-                        indicatorColor: AppTheme.primary,
-                        indicatorWeight: 3,
-                        tabs: [
-                          Tab(
-                              text:
-                                  "ทั้งหมด (${_getIssueCountByStatus('all')})"),
-                          Tab(
-                              text:
-                                  "รอดำเนินการ (${_getIssueCountByStatus('pending')})"),
-                          Tab(
-                              text:
-                                  "กำลังดำเนินการ (${_getIssueCountByStatus('in_progress')})"),
-                          Tab(
-                              text:
-                                  "เสร็จสิ้น (${_getIssueCountByStatus('resolved')})"),
-                          Tab(
-                              text:
-                                  "ยกเลิก (${_getIssueCountByStatus('cancelled')})"),
-                        ],
+                      onChanged: (value) {
+                        setState(() => _searchQuery = value);
+                        _applyFilters();
+                      },
+                    ),
+                  ),
+
+                  // Branch filter (for superadmin/admin)
+                  if (canFilterByBranch &&
+                      _branches.isNotEmpty &&
+                      widget.branchId == null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 4),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: _selectedBranchId ?? 'all',
+                          icon: const Icon(Icons.keyboard_arrow_down),
+                          items: [
+                            const DropdownMenuItem<String>(
+                                value: 'all', child: Text('ทุกสาขา')),
+                            ..._branches.map((branch) {
+                              return DropdownMenuItem<String>(
+                                value: branch['branch_id'],
+                                child: Text(branch['branch_name'] ?? ''),
+                              );
+                            }).toList(),
+                          ],
+                          onChanged: (String? value) async {
+                            setState(() {
+                              _selectedBranchId = value == 'all' ? null : value;
+                            });
+                            await _loadIssues();
+                            await _loadStatistics();
+                          },
+                        ),
                       ),
                     ),
                   ],
-                ),
+                  const SizedBox(height: 12),
+
+                  // Statistics tracking bar (hidden for tenant)
+                  if (!isTenant) _buildTrackingBar(),
+
+                  const SizedBox(height: 12),
+
+                  // Tab bar (neutral style)
+                  Theme(
+                    data: Theme.of(context).copyWith(
+                      splashColor: Colors.transparent,
+                      highlightColor: Colors.transparent,
+                    ),
+                    child: TabBar(
+                      controller: _tabController,
+                      isScrollable: true,
+                      onTap: (index) => _applyFilters(),
+                      labelColor: AppTheme.primary,
+                      unselectedLabelColor: Colors.black54,
+                      indicatorColor: AppTheme.primary,
+                      indicatorWeight: 3,
+                      tabs: [
+                        Tab(text: "ทั้งหมด (${_getIssueCountByStatus('all')})"),
+                        Tab(
+                            text:
+                                "รอดำเนินการ (${_getIssueCountByStatus('pending')})"),
+                        Tab(
+                            text:
+                                "กำลังดำเนินการ (${_getIssueCountByStatus('in_progress')})"),
+                        Tab(
+                            text:
+                                "เสร็จสิ้น (${_getIssueCountByStatus('resolved')})"),
+                        Tab(
+                            text:
+                                "ยกเลิก (${_getIssueCountByStatus('cancelled')})"),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
+          ),
 
-            // Issues list
-            Expanded(
-              child: _isLoading
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(color: AppTheme.primary),
-                          const SizedBox(height: 16),
-                          Text(
-                            'กำลังโหลดข้อมูล...',
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                    )
-                  : _filteredIssues.isEmpty
-                      ? _buildEmptyState()
-                      : RefreshIndicator(
-                          onRefresh: _loadData,
-                          color: AppTheme.primary,
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final width = constraints.maxWidth;
-                              int cols = 1;
-                              if (width >= 1200) {
-                                cols = 4;
-                              } else if (width >= 992) {
-                                cols = 3;
-                              } else if (width >= 768) {
-                                cols = 2;
-                              }
+          // Issues list
+          Expanded(
+            child: _isLoading
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(color: AppTheme.primary),
+                        const SizedBox(height: 16),
+                        Text(
+                          'กำลังโหลดข้อมูล...',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  )
+                : _filteredIssues.isEmpty
+                    ? _buildEmptyState()
+                    : RefreshIndicator(
+                        onRefresh: _loadData,
+                        color: AppTheme.primary,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final width = constraints.maxWidth;
+                            int cols = 1;
+                            if (width >= 1200) {
+                              cols = 4;
+                            } else if (width >= 992) {
+                              cols = 3;
+                            } else if (width >= 768) {
+                              cols = 2;
+                            }
 
-                              if (cols == 1) {
-                                return ListView.builder(
-                                  padding:
-                                      const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                                  itemCount: _filteredIssues.length,
-                                  itemBuilder: (context, index) {
-                                    final issue = _filteredIssues[index];
-                                    return _buildIssueCard(issue);
-                                  },
-                                );
-                              }
-
-                              double aspect;
-                              if (cols >= 4) {
-                                aspect = 0.95;
-                              } else if (cols == 3) {
-                                aspect = 1.05;
-                              } else {
-                                aspect = 1.1;
-                              }
-
-                              return GridView.builder(
+                            if (cols == 1) {
+                              return ListView.builder(
                                 padding:
                                     const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: cols,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: aspect,
-                                ),
                                 itemCount: _filteredIssues.length,
                                 itemBuilder: (context, index) {
                                   final issue = _filteredIssues[index];
                                   return _buildIssueCard(issue);
                                 },
                               );
-                            },
-                          ),
+                            }
+
+                            double aspect;
+                            if (cols >= 4) {
+                              aspect = 0.95;
+                            } else if (cols == 3) {
+                              aspect = 1.05;
+                            } else {
+                              aspect = 1.1;
+                            }
+
+                            return GridView.builder(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: cols,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: aspect,
+                              ),
+                              itemCount: _filteredIssues.length,
+                              itemBuilder: (context, index) {
+                                final issue = _filteredIssues[index];
+                                return _buildIssueCard(issue);
+                              },
+                            );
+                          },
                         ),
-            ),
-          ],
-        ),
-        floatingActionButton: isTenant
-            ? FloatingActionButton(
-                onPressed: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CreateIssueScreen(),
-                    ),
-                  );
-                  if (result == true) {
-                    _loadData();
-                  }
-                },
-                backgroundColor: AppTheme.primary,
-                child: const Icon(Icons.add, color: Colors.white),
-                tooltip: 'แจ้งปัญหาใหม่',
-              )
-            : null,
-        bottomNavigationBar: null,
+                      ),
+          ),
+        ],
+      ),
+      floatingActionButton: isTenant
+          ? FloatingActionButton(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CreateIssueScreen(),
+                  ),
+                );
+                if (result == true) {
+                  _loadData();
+                }
+              },
+              backgroundColor: AppTheme.primary,
+              child: const Icon(Icons.add, color: Colors.white),
+              tooltip: 'แจ้งปัญหาใหม่',
+            )
+          : null,
+      bottomNavigationBar: null,
     );
   }
 
@@ -946,7 +940,8 @@ class _IssuelistUiState extends State<IssuelistUi>
               // Status & Priority (inner white box with grey border)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
@@ -955,13 +950,13 @@ class _IssuelistUiState extends State<IssuelistUi>
                 child: Row(
                   children: [
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: _getStatusColor(status).withOpacity(0.08),
                         borderRadius: BorderRadius.circular(6),
-                        border:
-                            Border.all(color: _getStatusColor(status), width: 1),
+                        border: Border.all(
+                            color: _getStatusColor(status), width: 1),
                       ),
                       child: Text(
                         _getStatusText(status),
@@ -974,15 +969,14 @@ class _IssuelistUiState extends State<IssuelistUi>
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: _getPriorityColor(priority).withOpacity(0.08),
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(color: _getPriorityColor(priority)),
                       ),
-                      child:
-                          Row(mainAxisSize: MainAxisSize.min, children: [
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
                         Icon(Icons.flag,
                             size: 12, color: _getPriorityColor(priority)),
                         const SizedBox(width: 4),
