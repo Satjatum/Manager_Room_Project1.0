@@ -1962,10 +1962,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                     }),
                   ],
 
-                  const Divider(height: 24),
-                  _buildSummaryRow(
-                      'รวมย่อย', '${subtotal.toStringAsFixed(2)} บาท',
-                      isBold: true),
+                  // เอา subtotal ออก ใช้แสดงยอดรวมอย่างเดียว
                   if (_discountAmount > 0)
                     _buildSummaryRow(
                         'ส่วนลด', '-${_discountAmount.toStringAsFixed(2)} บาท',

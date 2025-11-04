@@ -242,12 +242,12 @@ class InvoiceService {
         final qty = ((rate['quantity'] ?? 1) as num).toInt();
         fixedRatesTotal += unit * (qty <= 0 ? 1 : qty);
       }
-      // เปลี่ยนแปลงหลัก: รวม fixed rates ไปไว้ในค่าสาธารณูปโภค และตั้งค่า other_charges = 0
-      double otherExpenses = 0.0;
+      // ค่าบริการคงที่ (fixed rates) ให้นับเป็นค่าใช้จ่ายอื่น ๆ ตามเดิม
+      double otherExpenses = fixedRatesTotal;
       final discount = (invoiceData["discount_amount"] ?? 0.0).toDouble();
 
-      // ✅ ค่า utilities รวม = น้ำ + ไฟ + ค่าบริการคงที่ (fixed rates)
-      final utilitiesTotal = waterCost + electricCost + fixedRatesTotal;
+      // ✅ ค่า utilities รวม = น้ำ + ไฟ (ไม่รวมค่าคงที่)
+      final utilitiesTotal = waterCost + electricCost;
       final subTotal = roomRent + utilitiesTotal + otherExpenses;
       final grandTotal = subTotal - discount;
 
@@ -342,7 +342,7 @@ class InvoiceService {
           'reading_id': invoiceData["meter_reading_id"],
         });
       }
-      // ✅ สร้างรายการค่าบริการคงที่ (fixed rates)
+      // ✅ สร้างรายการค่าใช้จ่ายอื่น ๆ จาก fixed rates (เก็บที่ invoice_other_charges)
       for (var rate in fixedRates) {
         final fixed = (rate['fixed_amount'] ?? 0.0).toDouble();
         final add = (rate['additional_charge'] ?? 0.0).toDouble();
@@ -350,17 +350,11 @@ class InvoiceService {
         final qty = ((rate['quantity'] ?? 1) as num).toInt();
         final lineTotal = unit * (qty <= 0 ? 1 : qty);
 
-        await _supabase.from('invoice_utilities').insert({
+        await _supabase.from('invoice_other_charges').insert({
           'invoice_id': invoiceId,
-          'rate_id': rate['rate_id'],
-          'utility_name': rate['rate_name'],
-          // บันทึกราคา/หน่วยและจำนวนเป็น usage_amount เพื่อให้เห็นจำนวน
-          'unit_price': unit,
-          'usage_amount': qty,
-          // เก็บรายละเอียดราคาต่อหน่วย (ฐาน + เพิ่มเติม) ไว้ด้วย
-          'fixed_amount': fixed,
-          'additional_charge': add,
-          'total_amount': lineTotal,
+          'charge_name': rate['rate_name'],
+          'charge_amount': lineTotal,
+          'charge_desc': '${unit.toStringAsFixed(2)} x $qty',
         });
       }
 
