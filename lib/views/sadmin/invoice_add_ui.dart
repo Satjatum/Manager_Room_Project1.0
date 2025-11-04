@@ -507,23 +507,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         _lateFeeAmountController.text = _lateFeeAmount.toStringAsFixed(2);
         debugPrint('💸 คำนวดค่าปรับแล้ว: $_lateFeeAmount');
       }
-
-      // คำนวดส่วนลด (ถ้าเปิดใช้งาน)
-      if (_paymentSettings!['enable_discount'] == true) {
-        final discount = PaymentSettingsService.calculateEarlyDiscountManual(
-          settings: _paymentSettings!,
-          dueDate: _dueDate,
-          subtotal: subtotal,
-          paymentDate: DateTime.now(),
-        );
-
-        // ใช้ส่วนลดที่คำนวดได้ ถ้าไม่มีการกรอกส่วนลดเอง
-        if (_discountAmountController.text.isEmpty) {
-          _discountAmount = discount;
-          _discountAmountController.text = _discountAmount.toStringAsFixed(2);
-          debugPrint('🎉 คำนวดส่วนลดแล้ว: $_discountAmount');
-        }
-      }
     }
 
     return subtotal - _discountAmount + _lateFeeAmount;
@@ -1727,6 +1710,11 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         _paymentSettings!['is_active'] == true &&
         _paymentSettings!['enable_discount'] == true;
 
+    // แสดงผลแบบไม่ใช้ส่วนลดระหว่างสร้างบิล แม้เปิดใช้งานใน Payment Settings
+    final subtotal = _calculateSubtotal();
+    final discountPercent = _paymentSettings?['early_payment_discount'] ?? 0;
+    final earlyDays = _paymentSettings?['early_payment_days'] ?? 0;
+
     if (!hasPaymentSettings || !isDiscountEnabled) {
       return Container(
         padding: const EdgeInsets.all(16),
@@ -1739,58 +1727,16 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           children: [
             Icon(Icons.discount_outlined, color: Colors.grey[400], size: 24),
             const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'ส่วนลด',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'ไม่มีส่วนลด',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                  ),
-                ],
-              ),
+            const Expanded(
+              child: Text('ส่วนลด: ไม่มีส่วนลด',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
             ),
-            Text(
-              '0.00 บาท',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[500],
-              ),
-            ),
+            const Text('0.00 บาท',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
       );
     }
-
-    // คำนวดส่วนลดจาก Payment Settings
-    final subtotal = _calculateSubtotal();
-    final discountPercent = _paymentSettings!['early_payment_discount'] ?? 0;
-    final earlyDays = _paymentSettings!['early_payment_days'] ?? 0;
-    final discountAmount = PaymentSettingsService.calculateEarlyDiscountManual(
-      settings: _paymentSettings!,
-      dueDate: _dueDate,
-      subtotal: subtotal,
-      paymentDate: DateTime.now(),
-    );
-
-    // อัปเดตค่าส่วนลด
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_discountAmount != discountAmount) {
-        setState(() {
-          _discountAmount = discountAmount;
-        });
-      }
-    });
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1810,7 +1756,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ส่วนลด ($discountPercent%)',
+                      'ส่วนลดก่อนกำหนด ($discountPercent%)',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1819,18 +1765,19 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'ชำระก่อนกำหนด $earlyDays วัน',
+                      'นโยบาย: ชำระก่อนครบกำหนด $earlyDays วัน'
+                      ' (ปิดการใช้ส่วนลดในขั้นตอนสร้างบิล)',
                       style: TextStyle(fontSize: 12, color: Colors.green[700]),
                     ),
                   ],
                 ),
               ),
-              Text(
-                '-${discountAmount.toStringAsFixed(2)} บาท',
+              const Text(
+                '-0.00 บาท',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.green[700],
+                  color: Colors.green,
                 ),
               ),
             ],
@@ -1838,21 +1785,18 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(6),
             ),
             child: Row(
               children: [
-                Icon(Icons.calculate, size: 16, color: Colors.green[600]),
+                Icon(Icons.info_outline, size: 16, color: Colors.green[600]),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'ยอดรวม ${subtotal.toStringAsFixed(2)} × $discountPercent% = ลด ${discountAmount.toStringAsFixed(2)} บาท',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[700],
-                    ),
+                    'ยอดรวม ${subtotal.toStringAsFixed(2)} × $discountPercent% จะถูกนำไปพิจารณาตอนชำระเงินเท่านั้น',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[700]),
                   ),
                 ),
               ],
