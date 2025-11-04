@@ -668,8 +668,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
             TextButton.icon(
               onPressed: _previousStep,
               icon: const Icon(Icons.arrow_back, color: Colors.black87),
-              label:
-                  const Text('ย้อนกลับ', style: TextStyle(color: Colors.black87)),
+              label: const Text('ย้อนกลับ',
+                  style: TextStyle(color: Colors.black87)),
             ),
         ],
       ),
@@ -1651,29 +1651,29 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'ค่าใช้จ่ายเพิ่มเติม',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
+          // const Text(
+          //   'ค่าใช้จ่ายเพิ่มเติม',
+          //   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          // ),
+          // const SizedBox(height: 16),
 
           // แสดงค่าเช่า
-          _buildAmountCard(
-            title: 'ค่าห้อง',
-            amount: _rentalAmount,
-            color: Colors.green,
-            icon: Icons.home,
-          ),
+          // _buildAmountCard(
+          //   title: 'ค่าห้อง',
+          //   amount: _rentalAmount,
+          //   color: Colors.green,
+          //   icon: Icons.home,
+          // ),
 
-          const SizedBox(height: 12),
+          // const SizedBox(height: 12),
 
           // ค่าบริการ
-          _buildAmountCard(
-            title: 'ค่าบริการน้ำ-ไฟ',
-            amount: _utilitiesAmount,
-            color: Colors.blue,
-            icon: Icons.water_drop,
-          ),
+          // _buildAmountCard(
+          //   title: 'ค่าบริการน้ำ-ไฟ',
+          //   amount: _utilitiesAmount,
+          //   color: Colors.blue,
+          //   icon: Icons.water_drop,
+          // ),
 
           const SizedBox(height: 12),
 

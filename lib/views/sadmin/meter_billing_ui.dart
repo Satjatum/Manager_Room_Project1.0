@@ -114,7 +114,7 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'ออกบิลค่ามิเตอร์',
+                          'ออกบิล',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -139,66 +139,51 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
               child: Column(
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey[300]!),
-                        boxShadow: const [
-                          BoxShadow(
-                              color: Color(0x0A000000),
-                              blurRadius: 6,
-                              spreadRadius: -2),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              value: _selectedMonth,
-                              decoration: const InputDecoration(
-                                labelText: 'เดือน',
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                              items: List.generate(12, (i) => i + 1)
-                                  .map((m) => DropdownMenuItem(
-                                      value: m,
-                                      child: Text(_getMonthName(m))))
-                                  .toList(),
-                              onChanged: (v) async {
-                                setState(
-                                    () => _selectedMonth = v ?? _selectedMonth);
-                                await _loadData();
-                              },
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            value: _selectedMonth,
+                            decoration: const InputDecoration(
+                              labelText: 'เดือน',
+                              border: OutlineInputBorder(),
+                              isDense: true,
                             ),
+                            items: List.generate(12, (i) => i + 1)
+                                .map((m) => DropdownMenuItem(
+                                    value: m, child: Text(_getMonthName(m))))
+                                .toList(),
+                            onChanged: (v) async {
+                              setState(
+                                  () => _selectedMonth = v ?? _selectedMonth);
+                              await _loadData();
+                            },
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              value: _selectedYear,
-                              decoration: const InputDecoration(
-                                labelText: 'ปี (พ.ศ.)',
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                              items: List.generate(
-                                      6, (i) => DateTime.now().year - i)
-                                  .map((y) => DropdownMenuItem(
-                                      value: y, child: Text('${y + 543}')))
-                                  .toList(),
-                              onChanged: (v) async {
-                                setState(
-                                    () => _selectedYear = v ?? _selectedYear);
-                                await _loadData();
-                              },
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: DropdownButtonFormField<int>(
+                            value: _selectedYear,
+                            decoration: const InputDecoration(
+                              labelText: 'ปี (พ.ศ.)',
+                              border: OutlineInputBorder(),
+                              isDense: true,
                             ),
+                            items:
+                                List.generate(6, (i) => DateTime.now().year - i)
+                                    .map((y) => DropdownMenuItem(
+                                        value: y, child: Text('${y + 543}')))
+                                    .toList(),
+                            onChanged: (v) async {
+                              setState(
+                                  () => _selectedYear = v ?? _selectedYear);
+                              await _loadData();
+                            },
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -252,8 +237,6 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
     final roomNo = (r['room_number'] ?? '-').toString();
     final tenant = (r['tenant_name'] ?? '-').toString();
     final roomCate = (r['room_category_name'] ?? '-').toString();
-    final water = ((r['water_usage'] ?? 0.0) as num).toDouble();
-    final elec = ((r['electric_usage'] ?? 0.0) as num).toDouble();
 
     return Container(
       decoration: BoxDecoration(
@@ -285,12 +268,15 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'ห้อง $roomNo • $tenant',
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 15),
+                    '$tenant',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 16),
                   ),
                   const SizedBox(height: 4),
+                  Text(
+                    'เลขที่: $roomNo',
+                    style: TextStyle(color: Colors.grey[700], fontSize: 13.5),
+                  ),
+                  const SizedBox(height: 2),
                   Text(
                     'ประเภทห้อง: $roomCate',
                     style: TextStyle(color: Colors.grey[700], fontSize: 13.5),

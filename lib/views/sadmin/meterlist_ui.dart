@@ -347,7 +347,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'บันทึกค่ามิเตอร์แบบลิสต์ทุกห้อง',
+                          'ลงค่ามิเตอร์รายเดือน',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -719,8 +719,12 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                 labelColor: Colors.black87,
                 indicatorColor: AppTheme.primary,
                 tabs: const [
-                  Tab(icon: Icon(Icons.water_drop, color: Colors.blue), text: 'ค่าน้ำ'),
-                  Tab(icon: Icon(Icons.electric_bolt, color: Colors.orange), text: 'ค่าไฟ'),
+                  Tab(
+                      icon: Icon(Icons.water_drop, color: Colors.blue),
+                      text: 'ค่าน้ำ'),
+                  Tab(
+                      icon: Icon(Icons.electric_bolt, color: Colors.orange),
+                      text: 'ค่าไฟ'),
                 ],
               ),
             ),
@@ -735,12 +739,14 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                   // Water tab
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: _buildHorizontalTable(_buildWaterDataTable(filtered)),
+                    child:
+                        _buildHorizontalTable(_buildWaterDataTable(filtered)),
                   ),
                   // Electric tab
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: _buildHorizontalTable(_buildElectricDataTable(filtered)),
+                    child: _buildHorizontalTable(
+                        _buildElectricDataTable(filtered)),
                   ),
                 ],
               ),
@@ -943,10 +949,12 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                                 if (waterRateId != null) {
                                   final curMap = _dynCurCtrls[roomId];
                                   final prevMap = _dynPrevCtrls[roomId];
-                                  final curCtrl =
-                                      curMap != null ? curMap[waterRateId!] : null;
-                                  final prevCtrl =
-                                      prevMap != null ? prevMap[waterRateId!] : null;
+                                  final curCtrl = curMap != null
+                                      ? curMap[waterRateId!]
+                                      : null;
+                                  final prevCtrl = prevMap != null
+                                      ? prevMap[waterRateId!]
+                                      : null;
                                   curCtrl?.text =
                                       (existing['water_current_reading'] ?? '')
                                           .toString();
@@ -1255,11 +1263,13 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
           !_savingRoomIds.contains(roomId);
 
       final isNew = existing == null;
-      final canCreate = _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
+      final canCreate =
+          _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
 
       return DataRow(cells: [
-        DataCell(Text(roomNo)),
         DataCell(Text(tenant, overflow: TextOverflow.ellipsis)),
+        DataCell(Text(roomNo)),
+        DataCell(Text(room['room_category_name']?.toString() ?? '-')),
         DataCell(Text(prev.toStringAsFixed(0))),
         DataCell(Text(current != null ? current.toStringAsFixed(0) : '-')),
         DataCell(Text(usage != null ? usage.toStringAsFixed(2) : '-')),
@@ -1299,7 +1309,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                         }
                       }
                     : null,
-                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                icon: const Icon(Icons.delete_outline,
+                    color: Colors.red, size: 18),
                 label: const Text('ลบ', style: TextStyle(color: Colors.red)),
               ),
           ],
@@ -1309,17 +1320,17 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
 
     return DataTable(
       columns: const [
-        DataColumn(label: Text('ห้อง')),
         DataColumn(label: Text('ผู้เช่า')),
+        DataColumn(label: Text('เลขที่')),
+        DataColumn(label: Text('ประเภท')),
         DataColumn(label: Text('ก่อนหน้า')),
         DataColumn(label: Text('ปัจจุบัน')),
         DataColumn(label: Text('ใช้งาน')),
         DataColumn(label: Text('สถานะ')),
-        DataColumn(label: Text('การกระทำ')),
+        DataColumn(label: Text('')),
       ],
       rows: rows,
-      headingRowColor:
-          MaterialStateProperty.all(Colors.blue.withOpacity(0.06)),
+      headingRowColor: MaterialStateProperty.all(Colors.blue.withOpacity(0.06)),
       dataRowColor: MaterialStateProperty.all(Colors.white),
       border: TableBorder.symmetric(
         inside: BorderSide(color: Colors.grey[300]!),
@@ -1373,11 +1384,13 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
           !_savingRoomIds.contains(roomId);
 
       final isNew = existing == null;
-      final canCreate = _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
+      final canCreate =
+          _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
 
       return DataRow(cells: [
-        DataCell(Text(roomNo)),
         DataCell(Text(tenant, overflow: TextOverflow.ellipsis)),
+        DataCell(Text(roomNo)),
+        DataCell(Text(room['room_category_name']?.toString() ?? '-')),
         DataCell(Text(prev.toStringAsFixed(0))),
         DataCell(Text(current != null ? current.toStringAsFixed(0) : '-')),
         DataCell(Text(usage != null ? usage.toStringAsFixed(2) : '-')),
@@ -1393,7 +1406,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               ),
             ] else ...[
               OutlinedButton.icon(
-                onPressed: canEdit ? () => _showEditDialogElectric(roomId) : null,
+                onPressed:
+                    canEdit ? () => _showEditDialogElectric(roomId) : null,
                 icon: const Icon(Icons.edit, size: 18),
                 label: const Text('แก้ไข'),
               ),
@@ -1417,7 +1431,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                         }
                       }
                     : null,
-                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 18),
+                icon: const Icon(Icons.delete_outline,
+                    color: Colors.red, size: 18),
                 label: const Text('ลบ', style: TextStyle(color: Colors.red)),
               ),
           ],
@@ -1427,13 +1442,14 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
 
     return DataTable(
       columns: const [
-        DataColumn(label: Text('ห้อง')),
         DataColumn(label: Text('ผู้เช่า')),
+        DataColumn(label: Text('เลขที่')),
+        DataColumn(label: Text('ประเภท')),
         DataColumn(label: Text('ก่อนหน้า')),
         DataColumn(label: Text('ปัจจุบัน')),
         DataColumn(label: Text('ใช้งาน')),
         DataColumn(label: Text('สถานะ')),
-        DataColumn(label: Text('การกระทำ')),
+        DataColumn(label: Text('')),
       ],
       rows: rows,
       headingRowColor:
@@ -1496,62 +1512,62 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                Row(
-                  children: [
-                    const Icon(Icons.water_drop, color: Colors.blue),
-                    const SizedBox(width: 8),
-                    const Text('ค่าน้ำ'),
-                    const Spacer(),
-                    Text('ก่อนหน้า: '
-                        '${(existing['water_previous_reading'] ?? 0).toString()}'),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: waterRateId != null && curMap != null
-                      ? curMap[waterRateId!]
-                      : null,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'ปัจจุบัน (น้ำ)',
-                    border: OutlineInputBorder(),
-                    isDense: true,
+                  Row(
+                    children: [
+                      const Icon(Icons.water_drop, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      const Text('ค่าน้ำ'),
+                      const Spacer(),
+                      Text('ก่อนหน้า: '
+                          '${(existing['water_previous_reading'] ?? 0).toString()}'),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const Icon(Icons.electric_bolt, color: Colors.orange),
-                    const SizedBox(width: 8),
-                    const Text('ค่าไฟ'),
-                    const Spacer(),
-                    Text('ก่อนหน้า: '
-                        '${(existing['electric_previous_reading'] ?? 0).toString()}'),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: electricRateId != null && curMap != null
-                      ? curMap[electricRateId!]
-                      : null,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'ปัจจุบัน (ไฟ)',
-                    border: OutlineInputBorder(),
-                    isDense: true,
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: waterRateId != null && curMap != null
+                        ? curMap[waterRateId!]
+                        : null,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'ปัจจุบัน (น้ำ)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: nCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'หมายเหตุ (ถ้ามี)',
-                    border: OutlineInputBorder(),
-                    isDense: true,
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(Icons.electric_bolt, color: Colors.orange),
+                      const SizedBox(width: 8),
+                      const Text('ค่าไฟ'),
+                      const Spacer(),
+                      Text('ก่อนหน้า: '
+                          '${(existing['electric_previous_reading'] ?? 0).toString()}'),
+                    ],
                   ),
-                ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: electricRateId != null && curMap != null
+                        ? curMap[electricRateId!]
+                        : null,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'ปัจจุบัน (ไฟ)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: nCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'หมายเหตุ (ถ้ามี)',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1798,9 +1814,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     final prevE = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
     final needPrevWater = _needsPrevWaterInput.contains(roomId) || prevW == 0.0;
     final needPrevElec = _needsPrevElecInput.contains(roomId) || prevE == 0.0;
-    final pvWCtrl = (waterRateId != null && prevMap != null)
-        ? prevMap[waterRateId!]
-        : null;
+    final pvWCtrl =
+        (waterRateId != null && prevMap != null) ? prevMap[waterRateId!] : null;
     final pvECtrl = (electricRateId != null && prevMap != null)
         ? prevMap[electricRateId!]
         : null;
@@ -1999,7 +2014,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                     const SizedBox(height: 6),
                     TextField(
                       controller: _prevWaterCtrl[roomId],
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
                         labelText: 'ก่อนหน้า (น้ำ)',
                         border: OutlineInputBorder(),
@@ -2117,7 +2133,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                     const SizedBox(height: 6),
                     TextField(
                       controller: _prevElecCtrl[roomId],
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
                         labelText: 'ก่อนหน้า (ไฟ)',
                         border: OutlineInputBorder(),
@@ -2516,10 +2533,14 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     }
     final _prevMapForSave = _dynPrevCtrls[roomId];
     final _curMapForSave = _dynCurCtrls[roomId];
-    final pvWCtrl = _prevMapForSave != null ? _prevMapForSave[waterRateId!] : null;
-    final pvECtrl = _prevMapForSave != null ? _prevMapForSave[electricRateId!] : null;
-    final cvWCtrl = _curMapForSave != null ? _curMapForSave[waterRateId!] : null;
-    final cvECtrl = _curMapForSave != null ? _curMapForSave[electricRateId!] : null;
+    final pvWCtrl =
+        _prevMapForSave != null ? _prevMapForSave[waterRateId!] : null;
+    final pvECtrl =
+        _prevMapForSave != null ? _prevMapForSave[electricRateId!] : null;
+    final cvWCtrl =
+        _curMapForSave != null ? _curMapForSave[waterRateId!] : null;
+    final cvECtrl =
+        _curMapForSave != null ? _curMapForSave[electricRateId!] : null;
 
     double prevW = double.tryParse((pvWCtrl?.text ?? '').trim()) ??
         (_prevWaterByRoom[roomId] ?? 0.0);
@@ -2606,14 +2627,16 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
     }
     if (waterRateId == null || electricRateId == null) {
-      _showErrorSnackBar('กรุณาตั้งค่าเรตค่าน้ำและค่าไฟใน Utility Settings ก่อน');
+      _showErrorSnackBar(
+          'กรุณาตั้งค่าเรตค่าน้ำและค่าไฟใน Utility Settings ก่อน');
       return;
     }
     final curMap = _dynCurCtrls[roomId];
     final needPrev = roomId != null && _needsPrevWaterInput.contains(roomId);
     double prevW = (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
     if (needPrev) {
-      prevW = double.tryParse((_prevWaterCtrl[roomId]?.text ?? '').trim()) ?? prevW;
+      prevW =
+          double.tryParse((_prevWaterCtrl[roomId]?.text ?? '').trim()) ?? prevW;
     }
     final prevE = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
     final curW = double.tryParse((curMap?[waterRateId!]?.text ?? '').trim());
@@ -2683,7 +2706,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
     }
     if (waterRateId == null || electricRateId == null) {
-      _showErrorSnackBar('กรุณาตั้งค่าเรตค่าน้ำและค่าไฟใน Utility Settings ก่อน');
+      _showErrorSnackBar(
+          'กรุณาตั้งค่าเรตค่าน้ำและค่าไฟใน Utility Settings ก่อน');
       return;
     }
     final curMap = _dynCurCtrls[roomId];
@@ -2691,7 +2715,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     final prevW = (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
     double prevE = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
     if (needPrev) {
-      prevE = double.tryParse((_prevElecCtrl[roomId]?.text ?? '').trim()) ?? prevE;
+      prevE =
+          double.tryParse((_prevElecCtrl[roomId]?.text ?? '').trim()) ?? prevE;
     }
     final curE = double.tryParse((curMap?[electricRateId!]?.text ?? '').trim());
     if (curE == null) {
@@ -2762,8 +2787,10 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       return;
     }
     final _curMapForUpdate = _dynCurCtrls[roomId];
-    final cvWCtrl = _curMapForUpdate != null ? _curMapForUpdate[waterRateId!] : null;
-    final cvECtrl = _curMapForUpdate != null ? _curMapForUpdate[electricRateId!] : null;
+    final cvWCtrl =
+        _curMapForUpdate != null ? _curMapForUpdate[waterRateId!] : null;
+    final cvECtrl =
+        _curMapForUpdate != null ? _curMapForUpdate[electricRateId!] : null;
     final curW = double.tryParse((cvWCtrl?.text ?? '').trim());
     final curE = double.tryParse((cvECtrl?.text ?? '').trim());
 
@@ -2860,7 +2887,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         'reading_date': DateTime.now().toIso8601String().split('T')[0],
         'reading_notes': nCtrl.text.trim().isEmpty ? null : nCtrl.text.trim(),
       };
-      final res = await MeterReadingService.updateMeterReading(readingId, payload);
+      final res =
+          await MeterReadingService.updateMeterReading(readingId, payload);
       if (res['success'] == true) {
         _showSuccessSnackBar('บันทึกค่าน้ำสำเร็จ');
         final data = Map<String, dynamic>.from(res['data'] ?? {});
@@ -2918,7 +2946,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         'reading_date': DateTime.now().toIso8601String().split('T')[0],
         'reading_notes': nCtrl.text.trim().isEmpty ? null : nCtrl.text.trim(),
       };
-      final res = await MeterReadingService.updateMeterReading(readingId, payload);
+      final res =
+          await MeterReadingService.updateMeterReading(readingId, payload);
       if (res['success'] == true) {
         _showSuccessSnackBar('บันทึกค่าไฟสำเร็จ');
         final data = Map<String, dynamic>.from(res['data'] ?? {});
