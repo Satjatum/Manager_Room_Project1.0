@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:manager_room_project/middleware/auth_middleware.dart';
 import 'package:manager_room_project/services/invoice_service.dart';
 import 'package:manager_room_project/views/tenant/bill_detail_ui.dart';
+import 'package:manager_room_project/views/widgets/colors.dart';
 
 class TenantBillsListPage extends StatefulWidget {
   const TenantBillsListPage({super.key});
@@ -36,142 +37,302 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
     );
   }
 
+  String _thaiMonth(int month) {
+    const months = [
+      '',
+      'มกราคม',
+      'กุมภาพันธ์',
+      'มีนาคม',
+      'เมษายน',
+      'พฤษภาคม',
+      'มิถุนายน',
+      'กรกฎาคม',
+      'สิงหาคม',
+      'กันยายน',
+      'ตุลาคม',
+      'พฤศจิกายน',
+      'ธันวาคม',
+    ];
+    if (month < 1 || month > 12) return '';
+    return months[month];
+  }
+
+  String _thaiMonthYear(int month, int year) {
+    final buddhistYear = year + 543;
+    return '${_thaiMonth(month)} พ.ศ. $buddhistYear';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('บิลของฉัน'),
-      ),
-      body: Column(
-        children: [
-          _buildFilters(),
-          const Divider(height: 1),
-          Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: _loadBills(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final items = snapshot.data ?? [];
-                if (items.isEmpty) {
-                  return const Center(child: Text('ไม่พบรายการบิล'));
-                }
-                return ListView.separated(
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final bill = items[index];
-                    final month = bill['invoice_month'] ?? _selectedMonth;
-                    final year = bill['invoice_year'] ?? _selectedYear;
-                    final total = _asDouble(bill['total_amount']);
-                    final status = (bill['invoice_status'] ?? '').toString();
-                    final number = (bill['invoice_number'] ?? '').toString();
-
-                    return ListTile(
-                      title: Text('เดือน $month/$year'),
-                      subtitle: Text('เลขบิล: $number'),
-                      trailing: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            total.toStringAsFixed(2),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                            ),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  OutlinedButton(
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    style: OutlinedButton.styleFrom(
+                      shape: const CircleBorder(),
+                      padding: const EdgeInsets.all(10),
+                      side: BorderSide(color: Colors.grey[300]!),
+                      foregroundColor: Colors.black87,
+                      backgroundColor: Colors.white,
+                    ),
+                    child: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'บิลของฉัน',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
                           ),
-                          const SizedBox(height: 4),
-                          _StatusChip(status: status),
-                        ],
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => TenantBillDetailUi(
-                              invoiceId: bill['invoice_id'],
-                            ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'ตรวจสอบและชำระบิลของคุณ',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
                           ),
-                        );
-                      },
-                    );
-                  },
-                );
-              },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+
+            // Filters
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _buildFilters(),
+            ),
+
+            const SizedBox(height: 8),
+
+            // List
+            Expanded(
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: _loadBills(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(
+                        color: AppTheme.primary,
+                        strokeWidth: 3,
+                      ),
+                    );
+                  }
+                  final items = snapshot.data ?? [];
+                  if (items.isEmpty) {
+                    return _buildEmptyState();
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final bill = items[index];
+                      final month = bill['invoice_month'] ?? _selectedMonth;
+                      final year = bill['invoice_year'] ?? _selectedYear;
+                      final total = _asDouble(bill['total_amount']);
+                      final status = (bill['invoice_status'] ?? '').toString();
+                      final number = (bill['invoice_number'] ?? '').toString();
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => TenantBillDetailUi(
+                                    invoiceId: bill['invoice_id'],
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Ink(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey[300]!),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    // Left: title & subtitle
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _thaiMonthYear(month, year),
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'เลขบิล: $number',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+
+                                    const SizedBox(width: 12),
+
+                                    // Right: amount & status
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          total.toStringAsFixed(2),
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        _StatusChip(status: status),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildFilters() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-      child: Row(
-        children: [
-          // Month
-          Expanded(
-            child: DropdownButtonFormField<int>(
-              value: _selectedMonth,
-              decoration: const InputDecoration(
-                labelText: 'เดือน',
-                border: OutlineInputBorder(),
-                isDense: true,
+    InputBorder _border(Color color) => OutlineInputBorder(
+          borderSide: BorderSide(color: color, width: 1),
+          borderRadius: BorderRadius.circular(8),
+        );
+
+    final baseDecoration = InputDecoration(
+      isDense: true,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      enabledBorder: _border(Colors.grey[300]!),
+      focusedBorder: _border(AppTheme.primary),
+    );
+
+    return Row(
+      children: [
+        // Month
+        Expanded(
+          child: DropdownButtonFormField<int>(
+            value: _selectedMonth,
+            decoration: baseDecoration.copyWith(labelText: 'เดือน'),
+            items: List.generate(12, (i) => i + 1)
+                .map((m) => DropdownMenuItem(value: m, child: Text('$m')))
+                .toList(),
+            onChanged: (v) => setState(() => _selectedMonth = v ?? _selectedMonth),
+          ),
+        ),
+        const SizedBox(width: 12),
+
+        // Year (current +/- 1)
+        Expanded(
+          child: DropdownButtonFormField<int>(
+            value: _selectedYear,
+            decoration: baseDecoration.copyWith(labelText: 'ปี'),
+            items: _yearOptions()
+                .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
+                .toList(),
+            onChanged: (v) => setState(() => _selectedYear = v ?? _selectedYear),
+          ),
+        ),
+        const SizedBox(width: 12),
+
+        // Status
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            value: _status,
+            decoration: baseDecoration.copyWith(labelText: 'สถานะ'),
+            items: const [
+              DropdownMenuItem(value: 'all', child: Text('ทั้งหมด')),
+              DropdownMenuItem(value: 'pending', child: Text('ค้างชำระ')),
+              DropdownMenuItem(value: 'partial', child: Text('ชำระบางส่วน')),
+              DropdownMenuItem(value: 'paid', child: Text('ชำระแล้ว')),
+              DropdownMenuItem(value: 'overdue', child: Text('เกินกำหนด')),
+              DropdownMenuItem(value: 'cancelled', child: Text('ยกเลิก')),
+            ],
+            onChanged: (v) => setState(() => _status = v ?? _status),
+          ),
+        ),
+        // No filter button; auto-apply on change
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.receipt_long_outlined, size: 80, color: Colors.grey[300]),
+            const SizedBox(height: 24),
+            Text(
+              'ไม่พบรายการบิล',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
               ),
-              items: List.generate(12, (i) => i + 1)
-                  .map((m) => DropdownMenuItem(value: m, child: Text('$m')))
-                  .toList(),
-              onChanged: (v) =>
-                  setState(() => _selectedMonth = v ?? _selectedMonth),
-              onSaved: (_) => setState(() {}),
             ),
-          ),
-          const SizedBox(width: 8),
-          // Year (current +/- 1)
-          Expanded(
-            child: DropdownButtonFormField<int>(
-              value: _selectedYear,
-              decoration: const InputDecoration(
-                labelText: 'ปี',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: _yearOptions()
-                  .map((y) => DropdownMenuItem(value: y, child: Text('$y')))
-                  .toList(),
-              onChanged: (v) =>
-                  setState(() => _selectedYear = v ?? _selectedYear),
+            const SizedBox(height: 8),
+            Text(
+              'ลองเปลี่ยนตัวกรอง หรือเลือกเดือน/ปีอื่น',
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(width: 8),
-          // Status
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              value: _status,
-              decoration: const InputDecoration(
-                labelText: 'สถานะ',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: const [
-                DropdownMenuItem(value: 'all', child: Text('ทั้งหมด')),
-                DropdownMenuItem(value: 'pending', child: Text('ค้างชำระ')),
-                DropdownMenuItem(value: 'partial', child: Text('ชำระบางส่วน')),
-                DropdownMenuItem(value: 'paid', child: Text('ชำระแล้ว')),
-                DropdownMenuItem(value: 'overdue', child: Text('เกินกำหนด')),
-                DropdownMenuItem(value: 'cancelled', child: Text('ยกเลิก')),
-              ],
-              onChanged: (v) => setState(() => _status = v ?? _status),
-            ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: () => setState(() {}),
-            child: const Text('กรอง'),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
