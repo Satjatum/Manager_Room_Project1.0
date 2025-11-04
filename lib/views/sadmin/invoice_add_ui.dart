@@ -483,47 +483,22 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     _utilitiesAmount = _waterCost + _electricCost;
   }
 
-  double _calculateSubtotal() {
+  double _calculateBaseTotal() {
     return _rentalAmount + _utilitiesAmount + _otherCharges;
   }
 
   // ⭐ ฟังก์ชันใหม่: คำนวดยอดรวมพร้อมใช้ payment settings
   double _calculateGrandTotal() {
-    final subtotal = _calculateSubtotal();
+    final baseTotal = _calculateBaseTotal();
+    // ปิดการหักส่วนลดยกอัตโนมัติระหว่างสร้างบิล
+    _discountAmount = 0.0;
+    _discountAmountController.text = '0.00';
 
-    // ⭐ ถ้ามี payment settings ให้คำนวดค่าปรับและส่วนลดอัตโนมัติ
-    if (_paymentSettings != null) {
-      // คำนวดค่าปรับ (ถ้าเปิดใช้งาน)
-      if (_paymentSettings!['enable_late_fee'] == true) {
-        _lateFeeAmount = PaymentSettingsService.calculateLateFeeManual(
-          settings: _paymentSettings!,
-          dueDate: _dueDate,
-          subtotal: subtotal,
-          paymentDate: DateTime.now(),
-        );
-        _lateFeeAmountController.text = _lateFeeAmount.toStringAsFixed(2);
-        debugPrint('💸 คำนวดค่าปรับแล้ว: $_lateFeeAmount');
-      }
+    // ปิดการคิดค่าปรับล่าช้าอัตโนมัติระหว่างสร้างบิล
+    _lateFeeAmount = 0.0;
+    _lateFeeAmountController.text = '0.00';
 
-      // คำนวดส่วนลด (ถ้าเปิดใช้งาน)
-      if (_paymentSettings!['enable_discount'] == true) {
-        final discount = PaymentSettingsService.calculateEarlyDiscountManual(
-          settings: _paymentSettings!,
-          dueDate: _dueDate,
-          subtotal: subtotal,
-          paymentDate: DateTime.now(),
-        );
-
-        // ใช้ส่วนลดที่คำนวดได้ ถ้าไม่มีการกรอกส่วนลดเอง
-        if (_discountAmountController.text.isEmpty) {
-          _discountAmount = discount;
-          _discountAmountController.text = _discountAmount.toStringAsFixed(2);
-          debugPrint('🎉 คำนวดส่วนลดแล้ว: $_discountAmount');
-        }
-      }
-    }
-
-    return subtotal - _discountAmount + _lateFeeAmount;
+    return baseTotal - _discountAmount + _lateFeeAmount;
   }
 
   void _nextStep() {
@@ -601,7 +576,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         'meter_reading_id': _readingId,
         'invoice_month': _invoiceMonth,
         'invoice_year': _invoiceYear,
-        'issue_date': DateTime.now()
+        'invoice_date': DateTime.now()
             .toIso8601String()
             .split('T')[0], // ส่งไปเพื่อให้ service รู้
         'due_date': _dueDate.toIso8601String().split('T')[0],
@@ -624,7 +599,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         'other_expenses': _otherCharges,
 
         // ✅ ส่วนลด
-        'discount_amount': _discountAmount,
+        'discount_amount': 0.0,
 
         // ✅ รายการค่าบริการคงที่
         'fixed_rates': _selectedFixedRates,
@@ -1724,6 +1699,11 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         _paymentSettings!['is_active'] == true &&
         _paymentSettings!['enable_discount'] == true;
 
+    // แสดงผลแบบไม่ใช้ส่วนลดระหว่างสร้างบิล แม้เปิดใช้งานใน Payment Settings
+    final baseTotal = _calculateBaseTotal();
+    final discountPercent = _paymentSettings?['early_payment_discount'] ?? 0;
+    final earlyDays = _paymentSettings?['early_payment_days'] ?? 0;
+
     if (!hasPaymentSettings || !isDiscountEnabled) {
       return Container(
         padding: const EdgeInsets.all(16),
@@ -1736,58 +1716,16 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           children: [
             Icon(Icons.discount_outlined, color: Colors.grey[400], size: 24),
             const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'ส่วนลด',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'ไม่มีส่วนลด',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                  ),
-                ],
-              ),
+            const Expanded(
+              child: Text('ส่วนลด: ไม่มีส่วนลด',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
             ),
-            Text(
-              '0.00 บาท',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[500],
-              ),
-            ),
+            const Text('0.00 บาท',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
       );
     }
-
-    // คำนวดส่วนลดจาก Payment Settings
-    final subtotal = _calculateSubtotal();
-    final discountPercent = _paymentSettings!['early_payment_discount'] ?? 0;
-    final earlyDays = _paymentSettings!['early_payment_days'] ?? 0;
-    final discountAmount = PaymentSettingsService.calculateEarlyDiscountManual(
-      settings: _paymentSettings!,
-      dueDate: _dueDate,
-      subtotal: subtotal,
-      paymentDate: DateTime.now(),
-    );
-
-    // อัปเดตค่าส่วนลด
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_discountAmount != discountAmount) {
-        setState(() {
-          _discountAmount = discountAmount;
-        });
-      }
-    });
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1807,7 +1745,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ส่วนลด ($discountPercent%)',
+                      'ส่วนลดก่อนกำหนด ($discountPercent%)',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1816,18 +1754,19 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'ชำระก่อนกำหนด $earlyDays วัน',
+                      'นโยบาย: ชำระก่อนครบกำหนด $earlyDays วัน'
+                      ' (ปิดการใช้ส่วนลดในขั้นตอนสร้างบิล)',
                       style: TextStyle(fontSize: 12, color: Colors.green[700]),
                     ),
                   ],
                 ),
               ),
-              Text(
-                '-${discountAmount.toStringAsFixed(2)} บาท',
+              const Text(
+                '-0.00 บาท',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.green[700],
+                  color: Colors.green,
                 ),
               ),
             ],
@@ -1835,21 +1774,18 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(6),
+              // borderRadius: BorderRadius.circular(6),
             ),
             child: Row(
               children: [
-                Icon(Icons.calculate, size: 16, color: Colors.green[600]),
+                Icon(Icons.info_outline, size: 16, color: Colors.green[600]),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'ยอดรวม ${subtotal.toStringAsFixed(2)} × $discountPercent% = ลด ${discountAmount.toStringAsFixed(2)} บาท',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[700],
-                    ),
+                    'ยอดรวม ${baseTotal.toStringAsFixed(2)} × $discountPercent% จะถูกนำไปพิจารณาตอนชำระเงินเท่านั้น',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[700]),
                   ),
                 ),
               ],
@@ -1867,219 +1803,39 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         _paymentSettings!['is_active'] == true &&
         _paymentSettings!['enable_late_fee'] == true;
 
-    if (!hasPaymentSettings || !isLateFeeEnabled) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.grey[50],
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[300]!),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.warning_amber_outlined,
-                color: Colors.grey[400], size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'ค่าปรับล่าช้า',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'ไม่มีค่าปรับ',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              '0.00 บาท',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[500],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // คำนวดค่าปรับจาก Payment Settings
-    final subtotal = _calculateSubtotal();
-    final lateFeeType = _paymentSettings!['late_fee_type'] ?? 'fixed';
-    final lateFeeAmount = _paymentSettings!['late_fee_amount'] ?? 0;
-    final startDay = _paymentSettings!['late_fee_start_day'] ?? 1;
-
-    final calculatedLateFee = PaymentSettingsService.calculateLateFeeManual(
-      settings: _paymentSettings!,
-      dueDate: _dueDate,
-      subtotal: subtotal,
-      paymentDate: DateTime.now(),
-    );
-
-    // อัปเดตค่าปรับ
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_lateFeeAmount != calculatedLateFee) {
-        setState(() {
-          _lateFeeAmount = calculatedLateFee;
-        });
-      }
-    });
-
-    // เช็คว่าถึงวันที่ต้องคิดค่าปรับหรือยัง
-    final daysLate = DateTime.now().difference(_dueDate).inDays;
-    final shouldCharge = daysLate >= startDay;
-
-    if (!shouldCharge) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.blue[50],
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.blue[300]!),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.info_outline, color: Colors.blue[700], size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'ค่าปรับล่าช้า',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.blue[900],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'ยังไม่ถึงวันคิดค่าปรับ (เริ่ม $startDay วันหลังครบกำหนด)',
-                    style: TextStyle(fontSize: 12, color: Colors.blue[700]),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              '0.00 บาท',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue[700],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // แสดงค่าปรับที่คำนวดได้
-    String lateFeeTypeText = '';
-    String calculationText = '';
-
-    switch (lateFeeType) {
-      case 'fixed':
-        lateFeeTypeText = '${lateFeeAmount.toStringAsFixed(0)} บาท คงที่';
-        calculationText =
-            'คิดค่าปรับคงที่ ${calculatedLateFee.toStringAsFixed(2)} บาท';
-        break;
-      case 'percentage':
-        lateFeeTypeText = '$lateFeeAmount% ของยอดรวม';
-        calculationText =
-            'ยอดรวม ${subtotal.toStringAsFixed(2)} × $lateFeeAmount% = ${calculatedLateFee.toStringAsFixed(2)} บาท';
-        break;
-      case 'daily':
-        final chargeDays = daysLate - startDay + 1;
-        lateFeeTypeText = '${lateFeeAmount.toStringAsFixed(0)} บาท/วัน';
-        calculationText =
-            'ล่าช้า $daysLate วัน × ${lateFeeAmount.toStringAsFixed(0)} = ${calculatedLateFee.toStringAsFixed(2)} บาท';
-        break;
-    }
-
+    // แสดงผลแบบไม่ใช้ค่าปรับระหว่างสร้างบิล แม้เปิดใช้งานใน Payment Settings
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.red[50],
+        color: Colors.blueGrey[50],
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.red[300]!, width: 2),
+        border: Border.all(color: Colors.blueGrey[200]!),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(Icons.warning_amber, color: Colors.red[700], size: 24),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ค่าปรับล่าช้า',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.red[900],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      lateFeeTypeText,
-                      style: TextStyle(fontSize: 12, color: Colors.red[700]),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '+${calculatedLateFee.toStringAsFixed(2)} บาท',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red[700],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.calculate, size: 16, color: Colors.red[600]),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    calculationText,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-                ),
+          Icon(Icons.info_outline, color: Colors.blueGrey[700], size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('ค่าปรับล่าช้า',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                SizedBox(height: 4),
+                Text('จะถูกพิจารณาเฉพาะตอนชำระเงิน (เปิดปิดได้ที่หน้า Payment Settings)',
+                    style: TextStyle(fontSize: 12, color: Colors.black54)),
               ],
             ),
           ),
+          const Text('0.00 บาท',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
   Widget _buildSummaryStep() {
-    final subtotal = _calculateSubtotal();
+    final subtotal = _calculateBaseTotal();
     final grandTotal = _calculateGrandTotal();
 
     return SingleChildScrollView(
@@ -2206,10 +1962,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                     }),
                   ],
 
-                  const Divider(height: 24),
-                  _buildSummaryRow(
-                      'รวมย่อย', '${subtotal.toStringAsFixed(2)} บาท',
-                      isBold: true),
+                  // เอา subtotal ออก ใช้แสดงยอดรวมอย่างเดียว
                   if (_discountAmount > 0)
                     _buildSummaryRow(
                         'ส่วนลด', '-${_discountAmount.toStringAsFixed(2)} บาท',

@@ -125,7 +125,8 @@ class InvoiceService {
           'branch_phone': result['rooms']?['branches']?['branch_phone'] ?? '-',
           'contract_num': result['rental_contracts']?['contract_num'] ?? '-',
           'utilities': utilities,
-          'other_charges': otherCharges,
+          // ใช้คีย์ใหม่สำหรับ "รายการค่าใช้จ่ายอื่น" เพื่อไม่ให้ชนกับฟิลด์ตัวเลข other_charges
+          'other_charge_lines': otherCharges,
           'payments': payments,
         };
       }
@@ -226,17 +227,29 @@ class InvoiceService {
       // สร้างเลขที่บิล
       final invoiceNumber = await _generateInvoiceNumber();
 
-      // คำนวดยอดรวม
-      final roomRent = invoiceData["room_rent"] ?? 0.0;
-      final waterCost = invoiceData["water_cost"] ?? 0.0;
-      final electricCost = invoiceData["electric_cost"] ?? 0.0;
-      final otherExpenses = invoiceData["other_expenses"] ?? 0.0;
-      final discount = invoiceData["discount_amount"] ?? 0.0;
+      // คำนวดยอดรวม (คำนวณในโค้ด ไม่อ้างอิงคอลัมน์ที่ตารางไม่มี)
+      final roomRent = (invoiceData["room_rent"] ?? 0.0).toDouble();
+      final waterCost = (invoiceData["water_cost"] ?? 0.0).toDouble();
+      final electricCost = (invoiceData["electric_cost"] ?? 0.0).toDouble();
+      final fixedRates =
+          (invoiceData["fixed_rates"] as List?)?.cast<Map<String, dynamic>>() ??
+              const [];
+      double fixedRatesTotal = 0.0;
+      for (final rate in fixedRates) {
+        final fixed = (rate['fixed_amount'] ?? 0.0).toDouble();
+        final add = (rate['additional_charge'] ?? 0.0).toDouble();
+        final unit = fixed + add;
+        final qty = ((rate['quantity'] ?? 1) as num).toInt();
+        fixedRatesTotal += unit * (qty <= 0 ? 1 : qty);
+      }
+      // ค่าบริการคงที่ (fixed rates) ให้นับเป็นค่าใช้จ่ายอื่น ๆ ตามเดิม
+      double otherExpenses = fixedRatesTotal;
+      final discount = (invoiceData["discount_amount"] ?? 0.0).toDouble();
 
-      // ✅ ค่า utilities รวม = น้ำ + ไฟ
+      // ✅ ค่า utilities รวม = น้ำ + ไฟ (ไม่รวมค่าคงที่)
       final utilitiesTotal = waterCost + electricCost;
-      final subTotal = roomRent + utilitiesTotal + otherExpenses;
-      final grandTotal = subTotal - discount;
+      final baseTotal = roomRent + utilitiesTotal + otherExpenses;
+      final computedTotal = baseTotal - discount;
 
       // เตรียมข้อมูลสำหรับบันทึก invoice หลัก
       final insertData = {
@@ -246,7 +259,8 @@ class InvoiceService {
         "tenant_id": invoiceData["tenant_id"],
         "invoice_month": invoiceData["invoice_month"],
         "invoice_year": invoiceData["invoice_year"],
-        "issue_date": invoiceData["invoice_date"] ??
+        // รองรับทั้งคีย์ issue_date และ invoice_date
+        "issue_date": (invoiceData["issue_date"] ?? invoiceData["invoice_date"]) ??
             DateTime.now().toIso8601String().split('T')[0],
         "due_date": invoiceData["due_date"],
 
@@ -263,8 +277,7 @@ class InvoiceService {
         "discount_amount": discount,
 
         // ✅ ยอดรวม
-        "subtotal": subTotal,
-        "total_amount": grandTotal,
+        "total_amount": computedTotal,
 
         // ✅ หมายเหตุ
         "invoice_notes": invoiceData["notes"],
@@ -328,9 +341,7 @@ class InvoiceService {
           'reading_id': invoiceData["meter_reading_id"],
         });
       }
-      // ✅ สร้างรายการค่าบริการคงที่ (fixed rates)
-      final fixedRates =
-          invoiceData["fixed_rates"] as List<Map<String, dynamic>>? ?? [];
+      // ✅ สร้างรายการค่าใช้จ่ายอื่น ๆ จาก fixed rates (เก็บที่ invoice_other_charges)
       for (var rate in fixedRates) {
         final fixed = (rate['fixed_amount'] ?? 0.0).toDouble();
         final add = (rate['additional_charge'] ?? 0.0).toDouble();
@@ -338,17 +349,11 @@ class InvoiceService {
         final qty = ((rate['quantity'] ?? 1) as num).toInt();
         final lineTotal = unit * (qty <= 0 ? 1 : qty);
 
-        await _supabase.from('invoice_utilities').insert({
+        await _supabase.from('invoice_other_charges').insert({
           'invoice_id': invoiceId,
-          'rate_id': rate['rate_id'],
-          'utility_name': rate['rate_name'],
-          // บันทึกราคา/หน่วยและจำนวนเป็น usage_amount เพื่อให้เห็นจำนวน
-          'unit_price': unit,
-          'usage_amount': qty,
-          // เก็บรายละเอียดราคาต่อหน่วย (ฐาน + เพิ่มเติม) ไว้ด้วย
-          'fixed_amount': fixed,
-          'additional_charge': add,
-          'total_amount': lineTotal,
+          'charge_name': rate['rate_name'],
+          'charge_amount': lineTotal,
+          'charge_desc': '${unit.toStringAsFixed(2)} x $qty',
         });
       }
 
@@ -418,8 +423,8 @@ class InvoiceService {
       final lateFeeAmount =
           invoiceData['late_fee_amount'] ?? existing['late_fee_amount'];
 
-      final subtotal = rentalAmount + utilitiesAmount + otherCharges;
-      final totalAmount = subtotal - discountAmount + lateFeeAmount;
+      final baseTotalCalc = rentalAmount + utilitiesAmount + otherCharges;
+      final totalAmount = baseTotalCalc - discountAmount + lateFeeAmount;
 
       Map<String, dynamic> updateData = {
         'rental_amount': rentalAmount,
@@ -430,7 +435,6 @@ class InvoiceService {
         'discount_reason': invoiceData['discount_reason'],
         'late_fee_amount': lateFeeAmount,
         'late_fee_days': invoiceData['late_fee_days'],
-        'subtotal': subtotal,
         'total_amount': totalAmount,
         'due_date': invoiceData['due_date'],
         'invoice_notes': invoiceData['invoice_notes'],
@@ -1131,21 +1135,20 @@ class InvoiceService {
         'charge_desc': chargeDesc,
       });
 
-      // อัปเดตยอดรวมในบิล
+      // อัปเดตยอดรวมในบิล (คำนวณฐานรวมในโค้ด ไม่เก็บคีย์พิเศษในตาราง)
       final invoice = await getInvoiceById(invoiceId);
       if (invoice != null) {
         final newOtherCharges =
             (invoice['other_charges'] ?? 0.0) + chargeAmount;
-        final newSubtotal = invoice['rental_amount'] +
-            invoice['utilities_amount'] +
+        final newBaseTotalCalc = (invoice['rental_amount'] ?? 0.0) +
+            (invoice['utilities_amount'] ?? 0.0) +
             newOtherCharges;
-        final newTotal = newSubtotal -
+        final newTotal = newBaseTotalCalc -
             (invoice['discount_amount'] ?? 0.0) +
             (invoice['late_fee_amount'] ?? 0.0);
 
         await _supabase.from('invoices').update({
           'other_charges': newOtherCharges,
-          'subtotal': newSubtotal,
           'total_amount': newTotal,
         }).eq('invoice_id', invoiceId);
       }
@@ -1183,21 +1186,20 @@ class InvoiceService {
       // ลบค่าใช้จ่าย
       await _supabase.from('invoice_other_charges').delete().eq('id', chargeId);
 
-      // อัปเดตยอดรวมในบิล
+      // อัปเดตยอดรวมในบิล (คำนวณฐานรวมในโค้ด ไม่เก็บคีย์พิเศษในตาราง)
       final invoice = await getInvoiceById(invoiceId);
       if (invoice != null) {
         final newOtherCharges =
             (invoice['other_charges'] ?? 0.0) - chargeAmount;
-        final newSubtotal = invoice['rental_amount'] +
-            invoice['utilities_amount'] +
+        final newBaseTotalCalc = (invoice['rental_amount'] ?? 0.0) +
+            (invoice['utilities_amount'] ?? 0.0) +
             newOtherCharges;
-        final newTotal = newSubtotal -
+        final newTotal = newBaseTotalCalc -
             (invoice['discount_amount'] ?? 0.0) +
             (invoice['late_fee_amount'] ?? 0.0);
 
         await _supabase.from('invoices').update({
           'other_charges': newOtherCharges,
-          'subtotal': newSubtotal,
           'total_amount': newTotal,
         }).eq('invoice_id', invoiceId);
       }
@@ -1239,9 +1241,11 @@ class InvoiceService {
         };
       }
 
-      final subtotal = invoice['subtotal'] ?? 0.0;
+      final baseTotalCalc = (invoice['rental_amount'] ?? 0.0) +
+          (invoice['utilities_amount'] ?? 0.0) +
+          (invoice['other_charges'] ?? 0.0);
       final newTotal =
-          subtotal - discountAmount + (invoice['late_fee_amount'] ?? 0.0);
+          baseTotalCalc - discountAmount + (invoice['late_fee_amount'] ?? 0.0);
 
       if (newTotal < 0) {
         return {
