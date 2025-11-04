@@ -259,6 +259,7 @@ class TenantBillDetailUi extends StatelessWidget {
                       _kv('ส่วนลด', -discount),
                       _kv('ค่าปรับล่าช้า', lateFee),
                       const Divider(height: 24),
+                      _kv('ยอดรวมก่อนชำระ', subtotal),
                       _kv('ยอดรวม', total, emphasize: true),
                       _kv('ชำระแล้ว', paid),
                       _kv('คงเหลือ', remain, emphasize: true),

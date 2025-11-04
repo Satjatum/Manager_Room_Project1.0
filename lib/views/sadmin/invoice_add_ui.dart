@@ -490,6 +490,9 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
   // ⭐ ฟังก์ชันใหม่: คำนวดยอดรวมพร้อมใช้ payment settings
   double _calculateGrandTotal() {
     final subtotal = _calculateSubtotal();
+    // ปิดการหักส่วนลดยกอัตโนมัติระหว่างสร้างบิล
+    _discountAmount = 0.0;
+    _discountAmountController.text = '0.00';
 
     // ⭐ ถ้ามี payment settings ให้คำนวดค่าปรับและส่วนลดอัตโนมัติ
     if (_paymentSettings != null) {
@@ -624,7 +627,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         'other_expenses': _otherCharges,
 
         // ✅ ส่วนลด
-        'discount_amount': _discountAmount,
+        'discount_amount': 0.0,
 
         // ✅ รายการค่าบริการคงที่
         'fixed_rates': _selectedFixedRates,
