@@ -272,27 +272,6 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          'ตั้งค่าการบริการ',
-          style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black87),
-        ),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: Colors.grey.shade300,
-          ),
-        ),
-      ),
       body: SafeArea(
         child: isLoading
             ? const Center(
@@ -301,105 +280,136 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                   strokeWidth: 3,
                 ),
               )
-            : Column(
-                children: [
-                  // Branch Selector
-                  if (widget.branchId == null && branches.isNotEmpty)
-                    Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border(
-                          bottom: BorderSide(color: Colors.grey.shade300),
+            : Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    // Header Section (white header like sample)
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new,
+                              color: Colors.black87),
+                          onPressed: () {
+                            if (Navigator.of(context).canPop()) {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          tooltip: 'ย้อนกลับ',
                         ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: DropdownButtonFormField<String>(
-                            value: selectedBranchId,
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'เลือกสาขา',
-                              border: InputBorder.none,
-                              prefixIcon: Icon(
-                                Icons.apartment_rounded,
-                                color: Color(0xff10B981),
-                                size: 22,
-                              ),
-                            ),
-                            items: branches.map((branch) {
-                              return DropdownMenuItem<String>(
-                                value: branch['branch_id'],
-                                child: Text(
-                                  branch['branch_name'],
-                                  style: const TextStyle(fontSize: 14),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                selectedBranchId = value;
-                              });
-                              _loadData();
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-
-                  // Main Content
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Late Fee Section
-                          _buildLateFeeCard(),
-
-                          const SizedBox(height: 16),
-
-                          // Discount Section
-                          _buildDiscountCard(),
-
-                          const SizedBox(height: 32),
-
-                          // Save Button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: _saveSettings,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xff10B981),
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              child: const Text(
-                                'บันทึก',
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                'ตั้งค่าการชำระเงิน',
                                 style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'กำหนดนโยบายค่าปรับล่าช้าและส่วนลดตามสาขา',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Status Row (Active/Inactive)
+                    _buildStatusRow(),
+                    const SizedBox(height: 12),
+
+                    // Branch Selector (if not fixed by route)
+                    if (widget.branchId == null && branches.isNotEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: DropdownButtonFormField<String>(
+                          value: selectedBranchId,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'เลือกสาขา',
+                            border: InputBorder.none,
+                            prefixIcon: Icon(
+                              Icons.apartment_rounded,
+                              color: Color(0xff10B981),
+                              size: 22,
+                            ),
+                          ),
+                          items: branches.map((branch) {
+                            return DropdownMenuItem<String>(
+                              value: branch['branch_id'],
+                              child: Text(
+                                branch['branch_name'],
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedBranchId = value;
+                            });
+                            _loadData();
+                          },
+                        ),
+                      ),
+
+                    const SizedBox(height: 16),
+
+                    // Content
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLateFeeCard(),
+                            const SizedBox(height: 16),
+                            _buildDiscountCard(),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                              child: ElevatedButton(
+                                onPressed: _saveSettings,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xff10B981),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'บันทึก',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
       ),
     );
@@ -506,6 +516,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                             ? Icons.percent
                             : Icons.attach_money_rounded,
                         isNumeric: true,
+                        onChanged: (_) => setState(() {}),
                       ),
                     ),
                   ),
@@ -518,6 +529,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                         hint: '1',
                         icon: Icons.event,
                         isNumeric: true,
+                        onChanged: (_) => setState(() {}),
                       ),
                     ),
                   ),
@@ -534,9 +546,12 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                   hint: 'ไม่กำหนด',
                   icon: Icons.money_off,
                   isNumeric: true,
+                  onChanged: (_) => setState(() {}),
                 ),
               ),
             ],
+              const SizedBox(height: 16),
+              _buildLateFeeExampleBox(),
           ],
         ),
       ),
@@ -597,6 +612,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                         hint: '0.00',
                         icon: Icons.percent,
                         isNumeric: true,
+                        onChanged: (_) => setState(() {}),
                       ),
                     ),
                   ),
@@ -609,11 +625,15 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                         hint: '0',
                         icon: Icons.event_available,
                         isNumeric: true,
+                        onChanged: (_) => setState(() {}),
                       ),
                     ),
                   ),
                 ],
               ),
+
+              const SizedBox(height: 16),
+              _buildDiscountExampleBox(),
             ],
           ],
         ),
@@ -644,6 +664,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
     required String hint,
     required IconData icon,
     bool isNumeric = false,
+    ValueChanged<String>? onChanged,
   }) {
     return TextFormField(
       controller: controller,
@@ -653,6 +674,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
       inputFormatters: isNumeric
           ? [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))]
           : [],
+      onChanged: onChanged,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
@@ -673,6 +695,132 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
         fillColor: Colors.white,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      ),
+    );
+  }
+
+  Widget _buildStatusRow() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.settings_suggest_outlined, color: Colors.black54),
+          const SizedBox(width: 10),
+          const Text(
+            'สถานะการตั้งค่า',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: isActive ? Colors.green.shade50 : Colors.grey.shade100,
+              border: Border.all(
+                  color: isActive ? Colors.green.shade200 : Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              isActive ? 'ใช้งานอยู่' : 'ไม่ใช้งาน',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isActive ? Colors.green.shade700 : Colors.grey.shade700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Switch(
+            value: isActive,
+            onChanged: (val) async {
+              if (selectedBranchId == null) return;
+              setState(() => isActive = val);
+              try {
+                await PaymentSettingsService.togglePaymentSettingsStatus(
+                    selectedBranchId!, val);
+                _showSuccessSnackBar(
+                    val ? 'เปิดใช้งานการตั้งค่าแล้ว' : 'ปิดใช้งานการตั้งค่าแล้ว');
+              } catch (e) {
+                setState(() => isActive = !val);
+                _showError('เปลี่ยนสถานะไม่สำเร็จ: $e');
+              }
+            },
+            activeColor: const Color(0xff10B981),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLateFeeExampleBox() {
+    final examples = PaymentSettingsService.generateExample(
+      enableLateFee: enableLateFee,
+      lateFeeType: lateFeeType,
+      lateFeeAmount: double.tryParse(lateFeeAmountController.text),
+      lateFeeStartDay: int.tryParse(lateFeeStartDayController.text),
+      enableDiscount: false,
+    );
+    final text = examples['late_fee'];
+    if (text == null || text.isEmpty) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 18, color: Colors.grey.shade700),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDiscountExampleBox() {
+    final examples = PaymentSettingsService.generateExample(
+      enableLateFee: false,
+      enableDiscount: enableDiscount,
+      earlyPaymentDiscount:
+          double.tryParse(earlyPaymentDiscountController.text),
+      earlyPaymentDays: int.tryParse(earlyPaymentDaysController.text),
+    );
+    final text = examples['discount'];
+    if (text == null || text.isEmpty) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 18, color: Colors.grey.shade700),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+            ),
+          ),
+        ],
       ),
     );
   }
