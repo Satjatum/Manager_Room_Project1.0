@@ -23,6 +23,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
   Map<String, dynamic>? _invoice;
   List<Map<String, dynamic>> _branchQrs = [];
   String? _selectedQrId;
+  // ประเภทการจ่ายที่เลือกในหน้าเทนแนนท์: bank | promptpay
+  String _payType = 'bank';
 
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
@@ -70,10 +72,32 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         qrs = await PaymentService.getBranchQRCodes(branchId);
       }
 
+      // กำหนดค่าเริ่มต้นการเลือกประเภท/บัญชี:
+      // - ถ้ามีบัญชีธนาคาร ให้เริ่มที่ bank ก่อน ไม่งั้นใช้ promptpay
+      // - เลือกบัญชีหลัก (is_primary) ของประเภทนั้นก่อน ถ้าไม่มีให้เลือกอันแรกของประเภทนั้น
+      String initialType = 'bank';
+      final bankList = qrs.where((e) => (e['promptpay_id'] == null || e['promptpay_id'].toString().isEmpty)).toList();
+      final ppList = qrs.where((e) => (e['promptpay_id'] != null && e['promptpay_id'].toString().isNotEmpty)).toList();
+      if (bankList.isEmpty && ppList.isNotEmpty) initialType = 'promptpay';
+
+      String? initialQrId;
+      if (initialType == 'bank') {
+        initialQrId = (bankList.firstWhere(
+                (e) => (e['is_primary'] ?? false) == true,
+                orElse: () => bankList.isNotEmpty ? bankList.first : {})
+            ['qr_id']) as String?;
+      } else {
+        initialQrId = (ppList.firstWhere(
+                (e) => (e['is_primary'] ?? false) == true,
+                orElse: () => ppList.isNotEmpty ? ppList.first : {})
+            ['qr_id']) as String?;
+      }
+
       setState(() {
         _invoice = inv;
         _branchQrs = qrs;
-        _selectedQrId = qrs.isNotEmpty ? qrs.first['qr_id'] : null;
+        _payType = initialType;
+        _selectedQrId = initialQrId;
         _loading = false;
       });
     } catch (e) {
@@ -347,38 +371,103 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       );
     }
 
+    // แยกตามประเภท: ธนาคาร vs พร้อมเพย์
+    final bankList = _branchQrs
+        .where((e) => (e['promptpay_id'] == null || e['promptpay_id'].toString().isEmpty))
+        .toList();
+    final ppList = _branchQrs
+        .where((e) => (e['promptpay_id'] != null && e['promptpay_id'].toString().isNotEmpty))
+        .toList();
+
+    // อัปเดตการเลือกเริ่มต้นเมื่อสลับประเภท หาก _selectedQrId ไม่อยู่ในประเภทปัจจุบัน
+    List<Map<String, dynamic>> currentList = _payType == 'bank' ? bankList : ppList;
+    if (currentList.isNotEmpty &&
+        (currentList.every((e) => e['qr_id'].toString() != (_selectedQrId ?? '')))) {
+      final initId = (currentList.firstWhere(
+              (e) => (e['is_primary'] ?? false) == true,
+              orElse: () => currentList.first))['qr_id']
+          .toString();
+      _selectedQrId = initId;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 4),
-        ..._branchQrs.map((q) {
+        // ปุ่มเลือกประเภทการชำระ
+        Row(
+          children: [
+            ChoiceChip(
+              label: const Text('โอนผ่านธนาคาร'),
+              selected: _payType == 'bank',
+              onSelected: (s) {
+                if (!s) return;
+                setState(() => _payType = 'bank');
+              },
+            ),
+            const SizedBox(width: 8),
+            ChoiceChip(
+              label: const Text('PromptPay'),
+              selected: _payType == 'promptpay',
+              onSelected: (s) {
+                if (!s) return;
+                setState(() => _payType = 'promptpay');
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        if (_payType == 'bank' && bankList.isEmpty)
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: scheme.tertiary),
+              const SizedBox(width: 8),
+              const Expanded(child: Text('ยังไม่มีบัญชีธนาคารให้เลือก')),
+            ],
+          ),
+        if (_payType == 'promptpay' && ppList.isEmpty)
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: scheme.tertiary),
+              const SizedBox(width: 8),
+              const Expanded(child: Text('ยังไม่มี PromptPay ให้เลือก')),
+            ],
+          ),
+
+        ...currentList.map((q) {
           final id = q['qr_id'].toString();
-          final bank = (q['bank_name'] ?? '').toString();
-          final accountName = (q['account_name'] ?? '').toString();
-          final accountNumber = (q['account_number'] ?? '').toString();
           final image = (q['qr_code_image'] ?? '').toString();
           final isPrimary = (q['is_primary'] ?? false) == true;
+          final isPromptPay =
+              (q['promptpay_id'] != null && q['promptpay_id'].toString().isNotEmpty);
+
+          // แสดงหัวเรื่องแตกต่างกันตามประเภท
+          final title = isPromptPay
+              ? 'PromptPay • ${q['promptpay_id'] ?? ''}'
+              : '${q['bank_name'] ?? ''} • ${q['account_number'] ?? ''}';
+          final sub1 = isPromptPay
+              ? 'ประเภท: ${q['promptpay_type'] ?? '-'}'
+              : (q['account_name'] ?? '');
+
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
               border: Border.all(
-                  color:
-                      _selectedQrId == id ? scheme.primary : Colors.grey[300]!),
+                  color: _selectedQrId == id ? scheme.primary : Colors.grey[300]!),
               borderRadius: BorderRadius.circular(12),
             ),
             child: RadioListTile<String>(
               value: id,
               groupValue: _selectedQrId,
               onChanged: (v) => setState(() => _selectedQrId = v),
-              title: Text('$bank • $accountNumber'),
+              title: Text(title),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(accountName),
+                  if (sub1.toString().isNotEmpty) Text(sub1.toString()),
                   if (isPrimary)
                     Text('บัญชีหลัก',
-                        style:
-                            TextStyle(color: scheme.secondary, fontSize: 12)),
+                        style: TextStyle(color: scheme.secondary, fontSize: 12)),
                   const SizedBox(height: 8),
                   if (image.isNotEmpty)
                     ClipRRect(
