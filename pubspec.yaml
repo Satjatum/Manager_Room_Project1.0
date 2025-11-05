@@ -51,6 +51,9 @@ dependencies:
   pdf: ^3.10.8
   printing: ^5.13.4
 
+  # QR code render (สำหรับแสดง QR พร้อมเพย์แบบมีจำนวนเงิน)
+  qr_flutter: ^4.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

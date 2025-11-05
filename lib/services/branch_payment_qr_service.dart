@@ -54,11 +54,39 @@ class BranchPaymentQrService {
   static Future<Map<String, dynamic>> setPrimary(
       {required String qrId, required String branchId}) async {
     try {
-      // Unset all primaries in this branch
-      await _supabase
+      // Load the record to determine its type (bank vs promptpay)
+      final current = await _supabase
+          .from('branch_payment_qr')
+          .select('qr_id, branch_id, promptpay_id')
+          .eq('qr_id', qrId)
+          .maybeSingle();
+
+      if (current == null) {
+        return {
+          'success': false,
+          'message': 'ไม่พบบัญชี/QR ที่ต้องการตั้งเป็นหลัก',
+        };
+      }
+
+      final bool isPromptPay =
+          (current['promptpay_id'] != null &&
+              current['promptpay_id'].toString().isNotEmpty);
+
+      // Unset primaries ONLY within the same payment type
+      var unsetQuery = _supabase
           .from('branch_payment_qr')
           .update({'is_primary': false})
           .eq('branch_id', branchId);
+
+      if (isPromptPay) {
+        // กลุ่ม PromptPay: promptpay_id ต้องไม่เป็น NULL (มีค่า)
+        unsetQuery = unsetQuery.not('promptpay_id', 'is', null);
+      } else {
+        // กลุ่มธนาคาร: promptpay_id ต้องเป็น NULL
+        // หมายเหตุ: ใน Supabase Dart ต้องใช้ isFilter() แทน is_()
+        unsetQuery = unsetQuery.isFilter('promptpay_id', null);
+      }
+      await unsetQuery;
 
       // Set selected as primary
       await _supabase
