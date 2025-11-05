@@ -53,6 +53,8 @@ class PaymentSettingsService {
     int? lateFeeStartDay,
     double? lateFeeMaxAmount,
     required bool enableDiscount,
+    String? earlyPaymentType,
+    double? earlyPaymentAmount,
     double? earlyPaymentDiscount,
     int? earlyPaymentDays,
     String? settingDesc,
@@ -84,16 +86,24 @@ class PaymentSettingsService {
 
       // Validation สำหรับส่วนลด
       if (enableDiscount) {
-        if (earlyPaymentDiscount == null || earlyPaymentDiscount <= 0) {
-          throw Exception('กรุณากรอกเปอร์เซ็นต์ส่วนลดที่มากกว่า 0');
+        final dtype = (earlyPaymentType ?? 'percentage');
+        if (!['fixed', 'percentage'].contains(dtype)) {
+          throw Exception('ประเภทส่วนลดไม่ถูกต้อง');
         }
-
-        if (earlyPaymentDiscount > 100) {
-          throw Exception('เปอร์เซ็นต์ส่วนลดต้องไม่เกิน 100%');
-        }
-
         if (earlyPaymentDays == null || earlyPaymentDays <= 0) {
           throw Exception('กรุณากรอกจำนวนวันก่อนกำหนดที่มากกว่า 0');
+        }
+        if (dtype == 'percentage') {
+          if (earlyPaymentDiscount == null || earlyPaymentDiscount <= 0) {
+            throw Exception('กรุณากรอกเปอร์เซ็นต์ส่วนลดที่มากกว่า 0');
+          }
+          if (earlyPaymentDiscount > 100) {
+            throw Exception('เปอร์เซ็นต์ส่วนลดต้องไม่เกิน 100%');
+          }
+        } else if (dtype == 'fixed') {
+          if (earlyPaymentAmount == null || earlyPaymentAmount <= 0) {
+            throw Exception('กรุณากรอกจำนวนเงินส่วนลดที่มากกว่า 0');
+          }
         }
       }
 
@@ -105,7 +115,9 @@ class PaymentSettingsService {
         'late_fee_start_day': enableLateFee ? lateFeeStartDay : 1,
         'late_fee_max_amount': enableLateFee ? lateFeeMaxAmount : null,
         'enable_discount': enableDiscount,
-        'early_payment_discount': enableDiscount ? earlyPaymentDiscount : 0,
+        'early_payment_type': enableDiscount ? (earlyPaymentType ?? 'percentage') : null,
+        'early_payment_amount': enableDiscount ? (earlyPaymentAmount ?? 0) : 0,
+        'early_payment_discount': enableDiscount ? (earlyPaymentDiscount ?? 0) : 0,
         'early_payment_days': enableDiscount ? earlyPaymentDays : 0,
         'setting_desc': settingDesc?.trim(),
         'is_active': isActive,
@@ -275,9 +287,17 @@ class PaymentSettingsService {
       return 0;
     }
 
-    final discountPercent =
-        (settings['early_payment_discount'] ?? 0).toDouble();
-    return subtotal * (discountPercent / 100);
+    final discountType = (settings['early_payment_type'] ?? 'percentage');
+    if (discountType == 'fixed') {
+      final amount = (settings['early_payment_amount'] ?? 0).toDouble();
+      if (amount <= 0) return 0;
+      return amount > subtotal ? subtotal : amount;
+    } else {
+      final discountPercent =
+          (settings['early_payment_discount'] ?? 0).toDouble();
+      if (discountPercent <= 0) return 0;
+      return subtotal * (discountPercent / 100);
+    }
   }
 
   // ============================================
@@ -306,6 +326,8 @@ class PaymentSettingsService {
     double? lateFeeAmount,
     int? lateFeeStartDay,
     required bool enableDiscount,
+    String? earlyPaymentType,
+    double? earlyPaymentAmount,
     double? earlyPaymentDiscount,
     int? earlyPaymentDays,
   }) {
@@ -343,17 +365,24 @@ class PaymentSettingsService {
     }
 
     // ตัวอย่างส่วนลด
-    if (enableDiscount &&
-        earlyPaymentDiscount != null &&
-        earlyPaymentDays != null) {
+    if (enableDiscount && earlyPaymentDays != null) {
       final sampleRental = 5000.0;
-      final discount = sampleRental * (earlyPaymentDiscount / 100);
-      final finalAmount = sampleRental - discount;
-
-      examples['discount'] =
-          'หากค่าเช่า ${sampleRental.toStringAsFixed(0)} บาท และชำระก่อนกำหนด $earlyPaymentDays วัน\n'
-          'จะได้ส่วนลด $earlyPaymentDiscount% = ${discount.toStringAsFixed(0)} บาท\n'
-          'ชำระเพียง ${finalAmount.toStringAsFixed(0)} บาท';
+      final dtype = earlyPaymentType ?? 'percentage';
+      if (dtype == 'fixed' && earlyPaymentAmount != null) {
+        final discount = earlyPaymentAmount;
+        final finalAmount = (sampleRental - discount).clamp(0, sampleRental);
+        examples['discount'] =
+            'หากค่าเช่า ${sampleRental.toStringAsFixed(0)} บาท และชำระก่อนกำหนด $earlyPaymentDays วัน\n'
+            'จะได้ส่วนลดแบบจำนวนเงิน ${discount.toStringAsFixed(0)} บาท\n'
+            'ชำระเพียง ${finalAmount.toStringAsFixed(0)} บาท';
+      } else if (earlyPaymentDiscount != null) {
+        final discount = sampleRental * (earlyPaymentDiscount / 100);
+        final finalAmount = sampleRental - discount;
+        examples['discount'] =
+            'หากค่าเช่า ${sampleRental.toStringAsFixed(0)} บาท และชำระก่อนกำหนด $earlyPaymentDays วัน\n'
+            'จะได้ส่วนลด $earlyPaymentDiscount% = ${discount.toStringAsFixed(0)} บาท\n'
+            'ชำระเพียง ${finalAmount.toStringAsFixed(0)} บาท';
+      }
     }
 
     return examples;
