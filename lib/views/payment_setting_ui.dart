@@ -325,9 +325,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Status Row (Active/Inactive)
-                    _buildStatusRow(),
-                    const SizedBox(height: 12),
+                    // Status row removed per request
 
                     // Branch Selector (if not fixed by route)
                     if (widget.branchId == null && branches.isNotEmpty)
@@ -699,63 +697,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
     );
   }
 
-  Widget _buildStatusRow() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.settings_suggest_outlined, color: Colors.black54),
-          const SizedBox(width: 10),
-          const Text(
-            'สถานะการตั้งค่า',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-          ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: isActive ? Colors.green.shade50 : Colors.grey.shade100,
-              border: Border.all(
-                  color: isActive ? Colors.green.shade200 : Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              isActive ? 'ใช้งานอยู่' : 'ไม่ใช้งาน',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: isActive ? Colors.green.shade700 : Colors.grey.shade700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Switch(
-            value: isActive,
-            onChanged: (val) async {
-              if (selectedBranchId == null) return;
-              setState(() => isActive = val);
-              try {
-                await PaymentSettingsService.togglePaymentSettingsStatus(
-                    selectedBranchId!, val);
-                _showSuccessSnackBar(
-                    val ? 'เปิดใช้งานการตั้งค่าแล้ว' : 'ปิดใช้งานการตั้งค่าแล้ว');
-              } catch (e) {
-                setState(() => isActive = !val);
-                _showError('เปลี่ยนสถานะไม่สำเร็จ: $e');
-              }
-            },
-            activeColor: const Color(0xff10B981),
-          ),
-        ],
-      ),
-    );
-  }
+  // Status row removed per request
 
   Widget _buildLateFeeExampleBox() {
     final examples = PaymentSettingsService.generateExample(
