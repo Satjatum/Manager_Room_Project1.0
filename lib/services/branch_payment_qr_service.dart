@@ -79,11 +79,12 @@ class BranchPaymentQrService {
           .eq('branch_id', branchId);
 
       if (isPromptPay) {
-        // PromptPay group: promptpay_id IS NOT NULL
+        // กลุ่ม PromptPay: promptpay_id ต้องไม่เป็น NULL (มีค่า)
         unsetQuery = unsetQuery.not('promptpay_id', 'is', null);
       } else {
-        // Bank group: promptpay_id IS NULL
-        unsetQuery = unsetQuery.is_('promptpay_id', null);
+        // กลุ่มธนาคาร: promptpay_id ต้องเป็น NULL
+        // หมายเหตุ: ใน Supabase Dart ต้องใช้ isFilter() แทน is_()
+        unsetQuery = unsetQuery.isFilter('promptpay_id', null);
       }
       await unsetQuery;
 
