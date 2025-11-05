@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:manager_room_project/services/invoice_service.dart';
 import 'package:manager_room_project/services/payment_service.dart';
 import 'package:manager_room_project/services/image_service.dart';
+import 'package:manager_room_project/utils/promptpay_qr.dart'; // สร้างสตริง QR พร้อมเพย์แบบมีจำนวนเงิน
+import 'package:qr_flutter/qr_flutter.dart'; // แสดงภาพ QR จากสตริง
 import 'package:manager_room_project/views/widgets/colors.dart';
 // Use app theme via Theme.of(context).colorScheme instead of fixed colors
 
@@ -44,6 +46,10 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
   @override
   void initState() {
     super.initState();
+    // อัปเดต QR ให้สัมพันธ์กับจำนวนเงินที่กรอกแบบเรียลไทม์
+    _amountCtrl.addListener(() {
+      if (mounted) setState(() {});
+    });
     _init();
   }
 
@@ -469,7 +475,45 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                     Text('บัญชีหลัก',
                         style: TextStyle(color: scheme.secondary, fontSize: 12)),
                   const SizedBox(height: 8),
-                  if (image.isNotEmpty)
+                  // ถ้าเป็น PromptPay และรายการนี้ถูกเลือก แสดง QR แบบฝังจำนวนเงินอัตโนมัติ
+                  if (isPromptPay && _selectedQrId == id) ...[
+                    Builder(builder: (context) {
+                      final amt = double.tryParse(_amountCtrl.text) ?? 0;
+                      final payload = PromptPayQR.buildPayload(
+                        type: (q['promptpay_type'] ?? 'mobile').toString(),
+                        id: (q['promptpay_id'] ?? '').toString(),
+                        amount: amt > 0 ? amt : 0,
+                        merchantName: 'Payment',
+                      );
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            QrImageView(
+                              data: payload,
+                              version: QrVersions.auto,
+                              size: 180,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              amt > 0
+                                  ? 'สแกนเพื่อโอน ${amt.toStringAsFixed(2)} บาท'
+                                  : 'สแกนเพื่อโอน (ยังไม่ระบุจำนวนเงิน)'
+                              ,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      );
+                    })
+                  ]
+                  else if (image.isNotEmpty)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Image.network(
