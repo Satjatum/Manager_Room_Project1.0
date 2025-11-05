@@ -3,6 +3,11 @@
 // หมายเหตุ: โค้ดนี้สร้าง "สตริง" ของ QR เท่านั้น การแสดงผลรูปภาพใช้แพ็กเกจ qr_flutter ใน UI
 
 class PromptPayQR {
+  // แปลงเป็น ASCII A-Z0-9 และอักขระทั่วไป, ตัดตัวที่ไม่ใช่ ASCII ออก เพื่อความเข้ากันได้ของแอปธนาคาร
+  static String _asciiUpper(String s) {
+    final ascii = s.replaceAll(RegExp(r'[^\x20-\x7E]'), '');
+    return ascii.toUpperCase();
+  }
   // แปลงหมายเลขตามประเภทให้เป็นรูปแบบที่ระบบพร้อมเพย์ต้องการ
   // - mobile: แปลง 0xxxxxxxxx -> 66xxxxxxxxx และเอาเฉพาะตัวเลข
   // - citizen_id / tax_id / ewallet: เอาเฉพาะตัวเลขตามที่ได้รับมา
@@ -51,6 +56,7 @@ class PromptPayQR {
     required String id,
     required double amount,
     String merchantName = 'Merchant',
+    String merchantCity = 'BANGKOK',
   }) {
     final acct = normalizeId(type, id);
 
@@ -73,13 +79,16 @@ class PromptPayQR {
     final f54 = amount > 0 ? _emv('54', amount.toStringAsFixed(2)) : '';
     // 58 Country Code: TH
     final f58 = _emv('58', 'TH');
-    // 59 Merchant Name (ใส่ชื่อย่อๆ)
-    final name = (merchantName.isEmpty ? 'Merchant' : merchantName);
+    // 59 Merchant Name (ASCII, ยาวไม่เกิน ~25 ตัวอักษร)
+    final name = _asciiUpper(merchantName.isEmpty ? 'Merchant' : merchantName);
     final short = name.length > 25 ? name.substring(0, 25) : name;
     final f59 = _emv('59', short);
+    // 60 Merchant City (แนะนำให้ใส่สำหรับบางแอปธนาคาร)
+    final city = _asciiUpper(merchantCity.isEmpty ? 'BANGKOK' : merchantCity);
+    final f60 = _emv('60', city);
 
     // ต่อข้อมูลทั้งหมด และปิดท้ายด้วย 63 ความยาว 04 เพื่อเตรียมคำนวณ CRC
-    final partial = f00 + f01 + f29 + f52 + f53 + f54 + f58 + f59 + '6304';
+    final partial = f00 + f01 + f29 + f52 + f53 + f54 + f58 + f59 + f60 + '6304';
     final crc = _crc16(partial);
     return partial + crc;
   }
