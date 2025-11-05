@@ -1767,8 +1767,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
               child: Text('ส่วนลด: ไม่มีส่วนลด',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
             ),
-            const Text('0.00 บาท',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
       );
@@ -1809,14 +1807,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                       style: TextStyle(fontSize: 12, color: Colors.green[700]),
                     ),
                   ],
-                ),
-              ),
-              const Text(
-                '-0.00 บาท',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
                 ),
               ),
             ],
@@ -1873,8 +1863,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
               child: Text('ค่าปรับล่าช้า: ปิดการใช้งาน',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
             ),
-            const Text('0.00 บาท',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
       );
@@ -1944,8 +1932,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                 ),
               ),
-              const Text('0.00 บาท',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 12),
