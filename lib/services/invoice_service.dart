@@ -276,7 +276,8 @@ class InvoiceService {
         // ✅ ส่วนลด
         "discount_amount": discount,
 
-        // ✅ ยอดรวม
+        // ✅ ยอดรวมย่อย (subtotal) และยอดรวมสุทธิ
+        "subtotal": baseTotal,
         "total_amount": computedTotal,
 
         // ✅ หมายเหตุ
@@ -307,6 +308,7 @@ class InvoiceService {
             other_charges,
             discount_amount,
             late_fee_amount,
+            subtotal,
             total_amount,
             paid_amount,
             invoice_status,
@@ -456,6 +458,7 @@ class InvoiceService {
         'discount_reason': invoiceData['discount_reason'],
         'late_fee_amount': lateFeeAmount,
         'late_fee_days': invoiceData['late_fee_days'],
+        'subtotal': baseTotalCalc,
         'total_amount': totalAmount,
         'due_date': invoiceData['due_date'],
         'invoice_notes': invoiceData['invoice_notes'],
@@ -480,6 +483,7 @@ class InvoiceService {
             other_charges,
             discount_amount,
             late_fee_amount,
+            subtotal,
             total_amount,
             paid_amount,
             invoice_status,
@@ -1188,6 +1192,7 @@ class InvoiceService {
 
         await _supabase.from('invoices').update({
           'other_charges': newOtherCharges,
+          'subtotal': newBaseTotalCalc,
           'total_amount': newTotal,
         }).eq('invoice_id', invoiceId);
       }
@@ -1239,6 +1244,7 @@ class InvoiceService {
 
         await _supabase.from('invoices').update({
           'other_charges': newOtherCharges,
+          'subtotal': newBaseTotalCalc,
           'total_amount': newTotal,
         }).eq('invoice_id', invoiceId);
       }
@@ -1297,6 +1303,7 @@ class InvoiceService {
         'discount_type': discountType,
         'discount_amount': discountAmount,
         'discount_reason': discountReason,
+        'subtotal': baseTotalCalc,
         'total_amount': newTotal,
       }).eq('invoice_id', invoiceId);
 
