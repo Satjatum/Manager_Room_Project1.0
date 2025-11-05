@@ -2,6 +2,9 @@
 **/Flutter/ephemeral/
 **/Pods/
 
+
 # Xcode-related
 **/dgph
 **/xcuserdata/
+
+.env.local

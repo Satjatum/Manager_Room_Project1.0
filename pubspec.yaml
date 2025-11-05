@@ -38,12 +38,15 @@ dependencies:
   # Shared Preferences
   shared_preferences: ^2.2.2
 
+  # Flutter Stripe
+  flutter_stripe: ^12.1.0
+
   # file picker
   file_picker: ^10.3.3
-  
+
   # URL launcher (open/download slip in browser)
   url_launcher: ^6.3.0
-  
+
   # PDF generation and Printing
   pdf: ^3.10.8
   printing: ^5.13.4
