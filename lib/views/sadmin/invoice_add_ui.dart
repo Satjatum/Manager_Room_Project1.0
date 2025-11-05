@@ -1701,8 +1701,24 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
 
     // แสดงผลแบบไม่ใช้ส่วนลดระหว่างสร้างบิล แม้เปิดใช้งานใน Payment Settings
     final baseTotal = _calculateBaseTotal();
+    final discountType = _paymentSettings?['early_payment_type'] ?? 'percentage';
     final discountPercent = _paymentSettings?['early_payment_discount'] ?? 0;
+    final discountAmountFixed =
+        (_paymentSettings?['early_payment_amount'] ?? 0).toDouble();
     final earlyDays = _paymentSettings?['early_payment_days'] ?? 0;
+
+    // ตัวอย่างคำนวณ (แสดงเป็นข้อมูลเท่านั้น ไม่ถูกนำไปใช้ตอนสร้างบิล)
+    double exampleDiscount = 0;
+    if (hasPaymentSettings && isDiscountEnabled) {
+      try {
+        exampleDiscount = PaymentSettingsService.calculateEarlyDiscountManual(
+          settings: _paymentSettings!,
+          dueDate: _dueDate,
+          subtotal: baseTotal,
+          paymentDate: DateTime.now(),
+        );
+      } catch (_) {}
+    }
 
     if (!hasPaymentSettings || !isDiscountEnabled) {
       return Container(
@@ -1745,7 +1761,9 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ส่วนลดก่อนกำหนด ($discountPercent%)',
+                      discountType == 'fixed'
+                          ? 'ส่วนลดก่อนกำหนด (จำนวนเงิน)'
+                          : 'ส่วนลดก่อนกำหนด ($discountPercent%)',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1754,8 +1772,9 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'นโยบาย: ชำระก่อนครบกำหนด $earlyDays วัน'
-                      ' (ปิดการใช้ส่วนลดในขั้นตอนสร้างบิล)',
+                      discountType == 'fixed'
+                          ? 'นโยบาย: ชำระก่อนครบกำหนด $earlyDays วัน ได้ส่วนลด ${discountAmountFixed.toStringAsFixed(2)} บาท (ปิดการใช้ส่วนลดในขั้นตอนสร้างบิล)'
+                          : 'นโยบาย: ชำระก่อนครบกำหนด $earlyDays วัน ได้ส่วนลด $discountPercent% (ปิดการใช้ส่วนลดในขั้นตอนสร้างบิล)',
                       style: TextStyle(fontSize: 12, color: Colors.green[700]),
                     ),
                   ],
@@ -1784,7 +1803,9 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'ยอดรวม ${baseTotal.toStringAsFixed(2)} × $discountPercent% จะถูกนำไปพิจารณาตอนชำระเงินเท่านั้น',
+                    discountType == 'fixed'
+                        ? 'ส่วนลดจำนวนเงิน ${discountAmountFixed.toStringAsFixed(2)} บาท จะถูกพิจารณาตอนชำระเงินเท่านั้น\nตัวอย่าง ณ วันนี้: -${exampleDiscount.toStringAsFixed(2)} บาท'
+                        : 'ยอดรวม ${baseTotal.toStringAsFixed(2)} × $discountPercent% จะถูกพิจารณาตอนชำระเงินเท่านั้น\nตัวอย่าง ณ วันนี้: -${exampleDiscount.toStringAsFixed(2)} บาท',
                     style: TextStyle(fontSize: 11, color: Colors.grey[700]),
                   ),
                 ),
