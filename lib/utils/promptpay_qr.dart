@@ -14,11 +14,19 @@ class PromptPayQR {
   static String normalizeId(String type, String id) {
     final digits = id.replaceAll(RegExp(r'[^0-9]'), '');
     if (type == 'mobile') {
-      if (digits.startsWith('0')) {
-        return '66${digits.substring(1)}';
+      // รองรับรูปแบบ: 0XXXXXXXXX, 66XXXXXXXXX, XXXXXXXXX
+      String d = digits;
+      if (d.startsWith('66')) {
+        d = d.substring(2);
+      } else if (d.startsWith('0')) {
+        d = d.substring(1);
       }
-      // ถ้าผู้ใช้ป้อน 66xxxx มาแล้ว ก็ใช้เลย
-      return digits;
+      // ใช้เลข 9 หลักท้ายสุด (กรณีเผลอใส่เกิน)
+      if (d.length > 9) {
+        d = d.substring(d.length - 9);
+      }
+      // เติมประเทศ 66
+      return '66$d';
     }
     return digits;
   }
@@ -62,8 +70,10 @@ class PromptPayQR {
 
     // 00 Payload Format Indicator = "01"
     final f00 = _emv('00', '01');
-    // 01 Point of Initiation Method: '12' = dynamic (มีจำนวนเงิน), '11' = static (ไม่มีจำนวนเงิน)
-    final f01 = _emv('01', amount > 0 ? '12' : '11');
+    // 01 Point of Initiation Method:
+    // บางแอป (เช่น K PLUS) รองรับได้ดีขึ้นเมื่อใช้ '11' (static) แม้จะใส่จำนวนเงินใน Tag 54
+    // จึงกำหนดเป็น '11' เสมอเพื่อความเข้ากันได้สูงสุด
+    final f01 = _emv('01', '11');
 
     // 29 Merchant Account Information (PromptPay)
     //   00 AID: A000000677010111
