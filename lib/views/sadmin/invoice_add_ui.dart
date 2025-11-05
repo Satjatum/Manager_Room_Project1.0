@@ -630,48 +630,79 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(
-          _isFromMeterReading ? 'สร้างใบแจ้งหนี้จากมิเตอร์' : 'สร้างใบแจ้งหนี้',
-          style: const TextStyle(color: Colors.black),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 1,
-        actions: [
-          if (_currentStep > 0)
-            TextButton.icon(
-              onPressed: _previousStep,
-              icon: const Icon(Icons.arrow_back, color: Colors.black87),
-              label: const Text('ย้อนกลับ',
-                  style: TextStyle(color: Colors.black87)),
-            ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppTheme.primary))
-          : Column(
-              children: [
-                _buildProgressIndicator(),
-                Expanded(
-                  child: Form(
-                    key: _formKey,
-                    child: PageView(
-                      controller: _pageController,
-                      physics: const NeverScrollableScrollPhysics(),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppTheme.primary))
+              : Column(
+                  children: [
+                    // Header Section
+                    Row(
                       children: [
-                        _buildBasicInfoStep(),
-                        _buildUtilitiesStep(),
-                        _buildChargesDiscountsStep(),
-                        _buildSummaryStep(),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new,
+                              color: Colors.black87),
+                          onPressed: () {
+                            if (Navigator.of(context).canPop()) {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          tooltip: 'ย้อนกลับ',
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _isFromMeterReading
+                                    ? 'รายการบิลจากมิเตอร์'
+                                    : 'รายการบิลค่าเช่า',
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _isFromMeterReading
+                                    ? 'ตรวจสอบและจัดการใบแจ้งหนี้จากข้อมูลมิเตอร์'
+                                    : 'ตรวจสอบและจัดการบิลค่าเช่าของคุณ',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    _buildProgressIndicator(),
+                    Expanded(
+                      child: Form(
+                        key: _formKey,
+                        child: PageView(
+                          controller: _pageController,
+                          physics: const NeverScrollableScrollPhysics(),
+                          children: [
+                            _buildBasicInfoStep(),
+                            _buildUtilitiesStep(),
+                            _buildChargesDiscountsStep(),
+                            _buildSummaryStep(),
+                          ],
+                        ),
+                      ),
+                    ),
+                    _buildBottomActions(),
+                  ],
                 ),
-                _buildBottomActions(),
-              ],
-            ),
+        ),
+      ),
     );
   }
 
@@ -1701,27 +1732,41 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
 
     // แสดงผลแบบไม่ใช้ส่วนลดระหว่างสร้างบิล แม้เปิดใช้งานใน Payment Settings
     final baseTotal = _calculateBaseTotal();
+    final discountType = _paymentSettings?['early_payment_type'] ?? 'percentage';
     final discountPercent = _paymentSettings?['early_payment_discount'] ?? 0;
+    final discountAmountFixed =
+        (_paymentSettings?['early_payment_amount'] ?? 0).toDouble();
     final earlyDays = _paymentSettings?['early_payment_days'] ?? 0;
+
+    // ตัวอย่างคำนวณ (แสดงเป็นข้อมูลเท่านั้น ไม่ถูกนำไปใช้ตอนสร้างบิล)
+    double exampleDiscount = 0;
+    if (hasPaymentSettings && isDiscountEnabled) {
+      try {
+        exampleDiscount = PaymentSettingsService.calculateEarlyDiscountManual(
+          settings: _paymentSettings!,
+          dueDate: _dueDate,
+          subtotal: baseTotal,
+          paymentDate: DateTime.now(),
+        );
+      } catch (_) {}
+    }
 
     if (!hasPaymentSettings || !isDiscountEnabled) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.grey[50],
+          color: Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.grey[300]!),
         ),
         child: Row(
           children: [
-            Icon(Icons.discount_outlined, color: Colors.grey[400], size: 24),
+            Icon(Icons.discount_outlined, color: Colors.grey[600], size: 24),
             const SizedBox(width: 12),
             const Expanded(
               child: Text('ส่วนลด: ไม่มีส่วนลด',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
             ),
-            const Text('0.00 บาท',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
       );
@@ -1730,9 +1775,9 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.green[50],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.green[300]!, width: 2),
+        border: Border.all(color: Colors.grey[300]!),
       ),
       child: Column(
         children: [
@@ -1745,7 +1790,9 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ส่วนลดก่อนกำหนด ($discountPercent%)',
+                      discountType == 'fixed'
+                          ? 'ส่วนลดก่อนกำหนด (จำนวนเงิน)'
+                          : 'ส่วนลดก่อนกำหนด ($discountPercent%)',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1754,19 +1801,12 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'นโยบาย: ชำระก่อนครบกำหนด $earlyDays วัน'
-                      ' (ปิดการใช้ส่วนลดในขั้นตอนสร้างบิล)',
+                      discountType == 'fixed'
+                          ? 'นโยบาย: ชำระก่อนครบกำหนด $earlyDays วัน ได้ส่วนลด ${discountAmountFixed.toStringAsFixed(2)} บาท (ปิดการใช้ส่วนลดในขั้นตอนสร้างบิล)'
+                          : 'นโยบาย: ชำระก่อนครบกำหนด $earlyDays วัน ได้ส่วนลด $discountPercent% (ปิดการใช้ส่วนลดในขั้นตอนสร้างบิล)',
                       style: TextStyle(fontSize: 12, color: Colors.green[700]),
                     ),
                   ],
-                ),
-              ),
-              const Text(
-                '-0.00 บาท',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
                 ),
               ),
             ],
@@ -1774,9 +1814,10 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: Colors.white,
-              // borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.grey[200]!),
             ),
             child: Row(
               children: [
@@ -1784,7 +1825,9 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'ยอดรวม ${baseTotal.toStringAsFixed(2)} × $discountPercent% จะถูกนำไปพิจารณาตอนชำระเงินเท่านั้น',
+                    discountType == 'fixed'
+                        ? 'ส่วนลดจำนวนเงิน ${discountAmountFixed.toStringAsFixed(2)} บาท จะถูกพิจารณาตอนชำระเงินเท่านั้น\nตัวอย่าง ณ วันนี้: -${exampleDiscount.toStringAsFixed(2)} บาท'
+                        : 'ยอดรวม ${baseTotal.toStringAsFixed(2)} × $discountPercent% จะถูกพิจารณาตอนชำระเงินเท่านั้น\nตัวอย่าง ณ วันนี้: -${exampleDiscount.toStringAsFixed(2)} บาท',
                     style: TextStyle(fontSize: 11, color: Colors.grey[700]),
                   ),
                 ),
@@ -1802,35 +1845,145 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     final isLateFeeEnabled = hasPaymentSettings &&
         _paymentSettings!['is_active'] == true &&
         _paymentSettings!['enable_late_fee'] == true;
+    final baseTotal = _calculateBaseTotal();
 
-    // แสดงผลแบบไม่ใช้ค่าปรับระหว่างสร้างบิล แม้เปิดใช้งานใน Payment Settings
+    if (!hasPaymentSettings || !isLateFeeEnabled) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey[300]!),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.blueGrey[700], size: 24),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text('ค่าปรับล่าช้า: ปิดการใช้งาน',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final lateFeeType = _paymentSettings?['late_fee_type'] ?? 'fixed';
+    final lateFeeAmount = (_paymentSettings?['late_fee_amount'] ?? 0).toDouble();
+    final lateFeeStartDay = _paymentSettings?['late_fee_start_day'] ?? 1;
+    final lateFeeMaxAmount = _paymentSettings?['late_fee_max_amount'] != null
+        ? (_paymentSettings?['late_fee_max_amount'] as num).toDouble()
+        : null;
+
+    // สรุปนโยบาย
+    String policyLine;
+    switch (lateFeeType) {
+      case 'percentage':
+        policyLine =
+            'นโยบาย: เกิน $lateFeeStartDay วัน เพิ่มค่าปรับ $lateFeeAmount% ของยอดรวม'
+            '${lateFeeMaxAmount != null ? ' (สูงสุด ${lateFeeMaxAmount.toStringAsFixed(2)} บาท)' : ''}';
+        break;
+      case 'daily':
+        policyLine =
+            'นโยบาย: เกิน $lateFeeStartDay วัน คิด ${lateFeeAmount.toStringAsFixed(2)} บาท/วัน'
+            '${lateFeeMaxAmount != null ? ' (สูงสุด ${lateFeeMaxAmount.toStringAsFixed(2)} บาท)' : ''}';
+        break;
+      default:
+        policyLine =
+            'นโยบาย: เกิน $lateFeeStartDay วัน คิดค่าปรับคงที่ ${lateFeeAmount.toStringAsFixed(2)} บาท'
+            '${lateFeeMaxAmount != null ? ' (สูงสุด ${lateFeeMaxAmount.toStringAsFixed(2)} บาท)' : ''}';
+    }
+
+    // ตัวอย่างคำนวณ (เพื่อแสดงข้อมูลเท่านั้น ไม่คิดตอนสร้างบิล)
+    // ใช้วันที่ตัวอย่าง: ชำระช้า lateFeeStartDay + 2 วัน
+    final sampleDaysLate = (lateFeeStartDay is int ? lateFeeStartDay : 1) + 2;
+    double exampleLateFee;
+    switch (lateFeeType) {
+      case 'percentage':
+        exampleLateFee = baseTotal * (lateFeeAmount / 100);
+        break;
+      case 'daily':
+        final chargeDays = sampleDaysLate - lateFeeStartDay + 1;
+        exampleLateFee = lateFeeAmount * (chargeDays <= 0 ? 0 : chargeDays);
+        break;
+      default:
+        exampleLateFee = lateFeeAmount;
+    }
+    if (lateFeeMaxAmount != null && exampleLateFee > lateFeeMaxAmount) {
+      exampleLateFee = lateFeeMaxAmount;
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blueGrey[50],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blueGrey[200]!),
+        border: Border.all(color: Colors.grey[300]!),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Icon(Icons.info_outline, color: Colors.blueGrey[700], size: 24),
-          const SizedBox(width: 12),
-          Expanded(
+          Row(
+            children: [
+              Icon(Icons.rule, color: Colors.blueGrey[700], size: 24),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'ค่าปรับล่าช้า',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text('ค่าปรับล่าช้า',
-                    style:
-                        TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                SizedBox(height: 4),
-                Text(
-                    'จะถูกพิจารณาเฉพาะตอนชำระเงิน (เปิดปิดได้ที่หน้า Payment Settings)',
-                    style: TextStyle(fontSize: 12, color: Colors.black54)),
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 16, color: Colors.blueGrey[600]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '$policyLine\n(จะถูกพิจารณาเฉพาะตอนชำระเงิน)',
+                        style:
+                            TextStyle(fontSize: 12, color: Colors.blueGrey[700]),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.calculate,
+                        size: 16, color: Colors.blueGrey[600]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        lateFeeType == 'percentage'
+                            ? 'ตัวอย่าง: ยอดรวมปัจจุบัน ${baseTotal.toStringAsFixed(2)} × ${lateFeeAmount.toStringAsFixed(2)}% = ${exampleLateFee.toStringAsFixed(2)} บาท'
+                            : lateFeeType == 'daily'
+                                ? 'ตัวอย่าง: ชำระช้า ${sampleDaysLate} วัน → ค่าปรับประมาณ ${exampleLateFee.toStringAsFixed(2)} บาท'
+                                : 'ตัวอย่าง: ค่าปรับคงที่ ${exampleLateFee.toStringAsFixed(2)} บาท',
+                        style:
+                            TextStyle(fontSize: 12, color: Colors.blueGrey[700]),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
-          const Text('0.00 บาท',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -1962,6 +2115,19 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                       );
                     }),
                   ],
+
+                  // รายละเอียดนโยบายส่วนลดและค่าปรับ (ข้อมูลจาก Payment Settings)
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'รายละเอียดส่วนลดและค่าปรับ',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildDiscountDisplay(),
+                  const SizedBox(height: 12),
+                  _buildLateFeeDisplay(),
 
                   // เอา subtotal ออก ใช้แสดงยอดรวมอย่างเดียว
                   if (_discountAmount > 0)

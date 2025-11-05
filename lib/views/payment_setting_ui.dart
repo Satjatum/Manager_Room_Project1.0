@@ -31,9 +31,12 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
 
   // Discount Settings
   bool enableDiscount = false;
+  String discountType = 'percentage';
   final TextEditingController earlyPaymentDiscountController =
       TextEditingController();
   final TextEditingController earlyPaymentDaysController =
+      TextEditingController();
+  final TextEditingController earlyPaymentAmountController =
       TextEditingController();
 
   final TextEditingController settingDescController = TextEditingController();
@@ -118,10 +121,13 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                 settings['late_fee_max_amount']?.toString() ?? '';
 
             enableDiscount = settings['enable_discount'] ?? false;
+            discountType = settings['early_payment_type'] ?? 'percentage';
             earlyPaymentDiscountController.text =
                 settings['early_payment_discount']?.toString() ?? '0.00';
             earlyPaymentDaysController.text =
                 settings['early_payment_days']?.toString() ?? '0';
+            earlyPaymentAmountController.text =
+                settings['early_payment_amount']?.toString() ?? '0.00';
 
             settingDescController.text = settings['setting_desc'] ?? '';
             isActive = settings['is_active'] ?? true;
@@ -168,20 +174,36 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
     }
 
     if (enableDiscount) {
-      if (earlyPaymentDiscountController.text.isEmpty) {
-        _showError('กรุณากรอกเปอร์เซ็นต์ส่วนลด');
-        return;
-      }
       if (earlyPaymentDaysController.text.isEmpty) {
         _showError('กรุณากรอกจำนวนวันก่อนกำหนดชำระ');
         return;
       }
-
-      final discount =
-          double.tryParse(earlyPaymentDiscountController.text) ?? 0;
-      if (discount <= 0 || discount > 100) {
-        _showError('เปอร์เซ็นต์ส่วนลดต้องอยู่ระหว่าง 0-100');
+      final days = int.tryParse(earlyPaymentDaysController.text) ?? 0;
+      if (days <= 0) {
+        _showError('จำนวนวันต้องมากกว่า 0');
         return;
+      }
+      if (discountType == 'percentage') {
+        if (earlyPaymentDiscountController.text.isEmpty) {
+          _showError('กรุณากรอกเปอร์เซ็นต์ส่วนลด');
+          return;
+        }
+        final discount =
+            double.tryParse(earlyPaymentDiscountController.text) ?? 0;
+        if (discount <= 0 || discount > 100) {
+          _showError('เปอร์เซ็นต์ส่วนลดต้องอยู่ระหว่าง 0-100');
+          return;
+        }
+      } else {
+        if (earlyPaymentAmountController.text.isEmpty) {
+          _showError('กรุณากรอกจำนวนเงินส่วนลด');
+          return;
+        }
+        final amt = double.tryParse(earlyPaymentAmountController.text) ?? 0;
+        if (amt <= 0) {
+          _showError('จำนวนเงินส่วนลดต้องมากกว่า 0');
+          return;
+        }
       }
     }
 
@@ -209,6 +231,10 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                 ? double.tryParse(lateFeeMaxAmountController.text)
                 : null,
         enableDiscount: enableDiscount,
+        earlyPaymentType: enableDiscount ? discountType : null,
+        earlyPaymentAmount: enableDiscount
+            ? double.tryParse(earlyPaymentAmountController.text) ?? 0
+            : null,
         earlyPaymentDiscount: enableDiscount
             ? double.tryParse(earlyPaymentDiscountController.text) ?? 0
             : null,
@@ -271,21 +297,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text(
-          'ตั้งค่าการบริการ',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: const Color(0xff10B981),
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: isLoading
             ? const Center(
@@ -294,111 +306,134 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                   strokeWidth: 3,
                 ),
               )
-            : Column(
-                children: [
-                  // Branch Selector
-                  Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Color(0xff10B981),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                      child: widget.branchId != null
-                          ? const SizedBox()
-                          : branches.isEmpty
-                              ? const SizedBox()
-                              : Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: DropdownButtonFormField<String>(
-                                value: selectedBranchId,
-                                isExpanded: true,
-                                decoration: const InputDecoration(
-                                  labelText: 'เลือกสาขา',
-                                  border: InputBorder.none,
-                                  prefixIcon: Icon(
-                                    Icons.apartment_rounded,
-                                    color: Color(0xff10B981),
-                                    size: 22,
-                                  ),
-                                ),
-                                items: branches.map((branch) {
-                                  return DropdownMenuItem<String>(
-                                    value: branch['branch_id'],
-                                    child: Text(
-                                      branch['branch_name'],
-                                      style: const TextStyle(fontSize: 14),
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedBranchId = value;
-                                  });
-                                  _loadData();
-                                },
-                              ),
-                            ),
-                    ),
-                  ),
-
-                  // Main Content
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Late Fee Section
-                          _buildLateFeeCard(),
-
-                          const SizedBox(height: 16),
-
-                          // Discount Section
-                          _buildDiscountCard(),
-
-                          const SizedBox(height: 32),
-
-                          // Save Button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: _saveSettings,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xff10B981),
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              child: const Text(
-                                'บันทึก',
+            : Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    // Header Section (white header like sample)
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new,
+                              color: Colors.black87),
+                          onPressed: () {
+                            if (Navigator.of(context).canPop()) {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          tooltip: 'ย้อนกลับ',
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                'ตั้งค่าการชำระเงิน',
                                 style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
                                 ),
                               ),
+                              SizedBox(height: 4),
+                              Text(
+                                'กำหนดนโยบายค่าปรับล่าช้าและส่วนลดตามสาขา',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Status row removed per request
+
+                    // Branch Selector (if not fixed by route)
+                    if (widget.branchId == null && branches.isNotEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: DropdownButtonFormField<String>(
+                          value: selectedBranchId,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'เลือกสาขา',
+                            border: InputBorder.none,
+                            prefixIcon: Icon(
+                              Icons.apartment_rounded,
+                              color: Color(0xff10B981),
+                              size: 22,
                             ),
                           ),
-                        ],
+                          items: branches.map((branch) {
+                            return DropdownMenuItem<String>(
+                              value: branch['branch_id'],
+                              child: Text(
+                                branch['branch_name'],
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedBranchId = value;
+                            });
+                            _loadData();
+                          },
+                        ),
+                      ),
+
+                    const SizedBox(height: 16),
+
+                    // Content
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLateFeeCard(),
+                            const SizedBox(height: 16),
+                            _buildDiscountCard(),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                              child: ElevatedButton(
+                                onPressed: _saveSettings,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xff10B981),
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'บันทึก',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
       ),
     );
@@ -408,14 +443,8 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -425,18 +454,8 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
             // Header
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.warning_amber_rounded,
-                    color: Colors.red.shade700,
-                    size: 24,
-                  ),
-                ),
+                Icon(Icons.warning_amber_rounded,
+                    color: Colors.red.shade700, size: 22),
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Text(
@@ -461,7 +480,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
 
             if (enableLateFee) ...[
               const SizedBox(height: 16),
-              const Divider(height: 1),
+              Divider(height: 1, color: Colors.grey.shade300),
               const SizedBox(height: 16),
 
               // Late Fee Type
@@ -471,20 +490,20 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                   value: lateFeeType,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       borderSide:
                           const BorderSide(color: Color(0xff10B981), width: 2),
                     ),
                     filled: true,
-                    fillColor: Colors.grey.shade50,
+                    fillColor: Colors.white,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 14),
                   ),
@@ -521,6 +540,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                             ? Icons.percent
                             : Icons.attach_money_rounded,
                         isNumeric: true,
+                        onChanged: (_) => setState(() {}),
                       ),
                     ),
                   ),
@@ -533,6 +553,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                         hint: '1',
                         icon: Icons.event,
                         isNumeric: true,
+                        onChanged: (_) => setState(() {}),
                       ),
                     ),
                   ),
@@ -549,9 +570,12 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                   hint: 'ไม่กำหนด',
                   icon: Icons.money_off,
                   isNumeric: true,
+                  onChanged: (_) => setState(() {}),
                 ),
               ),
             ],
+              const SizedBox(height: 16),
+              _buildLateFeeExampleBox(),
           ],
         ),
       ),
@@ -562,14 +586,8 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -579,18 +597,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
             // Header
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.discount,
-                    color: Colors.green.shade700,
-                    size: 24,
-                  ),
-                ),
+                Icon(Icons.discount, color: Colors.green.shade700, size: 22),
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Text(
@@ -615,20 +622,62 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
 
             if (enableDiscount) ...[
               const SizedBox(height: 16),
-              const Divider(height: 1),
+              Divider(height: 1, color: Colors.grey.shade300),
               const SizedBox(height: 16),
 
-              // Discount Percentage and Days
+              // Discount Type
+              _buildFormField(
+                label: 'ประเภทส่วนลด',
+                child: DropdownButtonFormField<String>(
+                  value: discountType,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(color: Color(0xff10B981), width: 2),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 14),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'percentage', child: Text('เปอร์เซ็นต์')),
+                    DropdownMenuItem(value: 'fixed', child: Text('จำนวนเงิน')),
+                  ],
+                  onChanged: (v) {
+                    if (v == null) return;
+                    setState(() {
+                      discountType = v;
+                    });
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Discount Amount/Percent and Days
               Row(
                 children: [
                   Expanded(
                     child: _buildFormField(
-                      label: 'เปอร์เซ็นต์ส่วนลด',
+                      label: discountType == 'fixed' ? 'จำนวนเงินส่วนลด' : 'เปอร์เซ็นต์ส่วนลด',
                       child: _buildTextField(
-                        controller: earlyPaymentDiscountController,
+                        controller: discountType == 'fixed'
+                            ? earlyPaymentAmountController
+                            : earlyPaymentDiscountController,
                         hint: '0.00',
-                        icon: Icons.percent,
+                        icon: discountType == 'fixed' ? Icons.attach_money : Icons.percent,
                         isNumeric: true,
+                        onChanged: (_) => setState(() {}),
                       ),
                     ),
                   ),
@@ -641,11 +690,15 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                         hint: '0',
                         icon: Icons.event_available,
                         isNumeric: true,
+                        onChanged: (_) => setState(() {}),
                       ),
                     ),
                   ),
                 ],
               ),
+
+              const SizedBox(height: 16),
+              _buildDiscountExampleBox(),
             ],
           ],
         ),
@@ -676,6 +729,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
     required String hint,
     required IconData icon,
     bool isNumeric = false,
+    ValueChanged<String>? onChanged,
   }) {
     return TextFormField(
       controller: controller,
@@ -685,26 +739,100 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
       inputFormatters: isNumeric
           ? [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*'))]
           : [],
+      onChanged: onChanged,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-        prefixIcon: Icon(icon, color: const Color(0xff10B981), size: 20),
+        prefixIcon: Icon(icon, color: Colors.grey.shade700, size: 20),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: Color(0xff10B981), width: 2),
         ),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: Colors.white,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      ),
+    );
+  }
+
+  // Status row removed per request
+
+  Widget _buildLateFeeExampleBox() {
+    final examples = PaymentSettingsService.generateExample(
+      enableLateFee: enableLateFee,
+      lateFeeType: lateFeeType,
+      lateFeeAmount: double.tryParse(lateFeeAmountController.text),
+      lateFeeStartDay: int.tryParse(lateFeeStartDayController.text),
+      enableDiscount: false,
+    );
+    final text = examples['late_fee'];
+    if (text == null || text.isEmpty) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 18, color: Colors.grey.shade700),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDiscountExampleBox() {
+    final examples = PaymentSettingsService.generateExample(
+      enableLateFee: false,
+      enableDiscount: enableDiscount,
+      earlyPaymentType: discountType,
+      earlyPaymentAmount:
+          double.tryParse(earlyPaymentAmountController.text),
+      earlyPaymentDiscount:
+          double.tryParse(earlyPaymentDiscountController.text),
+      earlyPaymentDays: int.tryParse(earlyPaymentDaysController.text),
+    );
+    final text = examples['discount'];
+    if (text == null || text.isEmpty) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 18, color: Colors.grey.shade700),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -716,6 +844,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
     lateFeeMaxAmountController.dispose();
     earlyPaymentDiscountController.dispose();
     earlyPaymentDaysController.dispose();
+    earlyPaymentAmountController.dispose();
     settingDescController.dispose();
     super.dispose();
   }
