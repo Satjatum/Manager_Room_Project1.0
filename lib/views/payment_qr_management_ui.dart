@@ -280,38 +280,62 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                           children: [
                                             Row(
                                               children: [
-                                                if (q['qr_code_image'] !=
-                                                        null &&
-                                                    q['qr_code_image']
-                                                        .toString()
-                                                        .isNotEmpty)
-                                                  ClipRRect(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            12),
-                                                    child: Image.network(
-                                                      q['qr_code_image'],
-                                                      width: 64,
-                                                      height: 64,
-                                                      fit: BoxFit.cover,
-                                                    ),
+                                                if (isPromptPay)
+                                                  (
+                                                    (q['qr_code_image'] != null &&
+                                                            q['qr_code_image']
+                                                                .toString()
+                                                                .isNotEmpty)
+                                                        ? ClipRRect(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(12),
+                                                            child: Image.network(
+                                                              q['qr_code_image'],
+                                                              width: 64,
+                                                              height: 64,
+                                                              fit: BoxFit.cover,
+                                                            ),
+                                                          )
+                                                        : Container(
+                                                            width: 64,
+                                                            height: 64,
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: const Color(
+                                                                      0xFF1ABC9C)
+                                                                  .withOpacity(
+                                                                      0.1),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          12),
+                                                            ),
+                                                            child: const Icon(
+                                                              Icons
+                                                                  .qr_code_rounded,
+                                                              size: 32,
+                                                              color: Color(
+                                                                  0xFF1ABC9C),
+                                                            ),
+                                                          )
                                                   )
                                                 else
                                                   Container(
                                                     width: 64,
                                                     height: 64,
                                                     decoration: BoxDecoration(
-                                                      color: const Color(
-                                                              0xFF1ABC9C)
-                                                          .withOpacity(0.1),
+                                                      color: Colors.blue
+                                                          .withOpacity(0.08),
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                               12),
                                                     ),
                                                     child: const Icon(
-                                                      Icons.qr_code_rounded,
-                                                      size: 32,
-                                                      color: Color(0xFF1ABC9C),
+                                                      Icons
+                                                          .account_balance_rounded,
+                                                      size: 30,
+                                                      color: Colors.blue,
                                                     ),
                                                   ),
                                                 const SizedBox(width: 12),
@@ -324,7 +348,7 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                                       Text(
                                                         isPromptPay
                                                             ? 'PromptPay'
-                                                            : (q['bank_name'] ?? '-'),
+                                                            : (q['account_number'] ?? '-'),
                                                         style: const TextStyle(
                                                           fontWeight:
                                                               FontWeight.w700,
@@ -332,38 +356,37 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                                         ),
                                                       ),
                                                       const SizedBox(height: 4),
-                                                      if (!isPromptPay)
+                                                      if (!isPromptPay) ...[
                                                         Text(
-                                                          q['account_name'] ?? '',
+                                                          '${q['bank_name'] ?? '-'} • ${q['account_name'] ?? ''}',
                                                           style: TextStyle(
                                                             fontSize: 13,
-                                                            color: Colors
-                                                                .grey.shade700,
+                                                            color:
+                                                                Colors.grey.shade700,
                                                           ),
-                                                        )
-                                                      else
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
+                                                      ] else ...[
                                                         Text(
                                                           'ประเภท: ' +
-                                                              (q['promptpay_type'] ??
-                                                                      '-')
+                                                              (q['promptpay_type'] ?? '-')
                                                                   .toString(),
                                                           style: TextStyle(
                                                             fontSize: 13,
-                                                            color: Colors
-                                                                .grey.shade700,
+                                                            color:
+                                                                Colors.grey.shade700,
                                                           ),
                                                         ),
-                                                      const SizedBox(height: 2),
-                                                      Text(
-                                                        isPromptPay
-                                                            ? (q['promptpay_id'] ?? '')
-                                                            : (q['account_number'] ?? ''),
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          color: Colors
-                                                              .grey.shade600,
+                                                        const SizedBox(height: 2),
+                                                        Text(
+                                                          (q['promptpay_id'] ?? ''),
+                                                          style: TextStyle(
+                                                            fontSize: 12,
+                                                            color:
+                                                                Colors.grey.shade600,
+                                                          ),
                                                         ),
-                                                      ),
+                                                      ],
                                                     ],
                                                   ),
                                                 ),
@@ -880,9 +903,11 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
         imageUrl = upload['url'];
       }
 
-      // Ensure QR image present for NOT NULL constraint on new create
-      if ((widget.record == null) && (imageUrl == null || imageUrl.isEmpty)) {
-        throw 'กรุณาอัปโหลดรูป QR';
+      // บังคับอัปโหลดรูปเฉพาะกรณี PromptPay เท่านั้น (เพื่อการสแกน)
+      if (_paymentType == 'promptpay' &&
+          (widget.record == null) &&
+          (imageUrl == null || imageUrl.isEmpty)) {
+        throw 'กรุณาอัปโหลดรูป QR สำหรับ PromptPay';
       }
 
       Map<String, dynamic> payload;
@@ -894,7 +919,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
           'account_number': _accNumCtrl.text.trim(),
           'promptpay_type': null,
           'promptpay_id': null,
-          'qr_code_image': imageUrl,
+          'qr_code_image': imageUrl ?? '', // ธนาคารไม่บังคับรูป
           'is_active': _isActive,
           'is_primary': _isPrimary,
           'display_order': int.tryParse(_orderCtrl.text.trim()),

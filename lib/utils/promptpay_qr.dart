@@ -65,6 +65,8 @@ class PromptPayQR {
     final mai = _emv('00', 'A000000677010111') + _emv('01', acct);
     final f29 = _emv('29', mai);
 
+    // 52 Merchant Category Code: 0000 (ทั่วไป)
+    final f52 = _emv('52', '0000');
     // 53 Transaction Currency: THB = 764
     final f53 = _emv('53', '764');
     // 54 Transaction Amount (ถ้ามากกว่า 0 ให้ใส่)
@@ -72,10 +74,12 @@ class PromptPayQR {
     // 58 Country Code: TH
     final f58 = _emv('58', 'TH');
     // 59 Merchant Name (ใส่ชื่อย่อๆ)
-    final f59 = _emv('59', merchantName);
+    final name = (merchantName.isEmpty ? 'Merchant' : merchantName);
+    final short = name.length > 25 ? name.substring(0, 25) : name;
+    final f59 = _emv('59', short);
 
     // ต่อข้อมูลทั้งหมด และปิดท้ายด้วย 63 ความยาว 04 เพื่อเตรียมคำนวณ CRC
-    final partial = f00 + f01 + f29 + f53 + f54 + f58 + f59 + '6304';
+    final partial = f00 + f01 + f29 + f52 + f53 + f54 + f58 + f59 + '6304';
     final crc = _crc16(partial);
     return partial + crc;
   }

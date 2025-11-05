@@ -268,11 +268,12 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                             child: _buildAmountAndDateTimeContent(),
                           ),
                           const SizedBox(height: 12),
-                          _buildSection(
-                            title: 'อัปโหลดสลิป (บังคับ)',
-                            icon: Icons.upload_file_outlined,
-                            child: _buildSlipUploadContent(),
-                          ),
+                          if (_payType == 'bank')
+                            _buildSection(
+                              title: 'อัปโหลดสลิป (บังคับ)',
+                              icon: Icons.upload_file_outlined,
+                              child: _buildSlipUploadContent(),
+                            ),
                           const SizedBox(height: 12),
                           _buildSection(
                             title: 'หมายเหตุผู้เช่า (ถ้ามี)',
@@ -549,61 +550,64 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
             fillColor: Colors.white, // TextField สีขาว
           ),
         ),
-        const SizedBox(height: 16),
-        const Text('วันที่ชำระ', style: TextStyle(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
-        Row(children: [
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () async {
-                final now = DateTime.now();
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: _selectedDate ?? now,
-                  firstDate: DateTime(now.year - 1),
-                  lastDate: DateTime(now.year + 1),
-                );
-                if (picked != null) setState(() => _selectedDate = picked);
-              },
-              icon: const Icon(Icons.calendar_today),
-              label: Text(
-                _selectedDate == null
-                    ? 'เลือกวันที่'
-                    : '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}',
-              ),
-              style: OutlinedButton.styleFrom(
-                backgroundColor: Colors.white, // Button สีขาว
-                side: BorderSide(color: Colors.grey[300]!), // ขอบเทา
-                foregroundColor: Colors.black87,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () async {
-                final picked = await showTimePicker(
-                  context: context,
-                  initialTime: _selectedTime ?? TimeOfDay.now(),
-                );
-                if (picked != null) setState(() => _selectedTime = picked);
-              },
-              icon: const Icon(Icons.schedule),
-              label: Text(
-                _selectedTime == null
-                    ? 'เลือกเวลา'
-                    : '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}',
-              ),
-              style: OutlinedButton.styleFrom(
-                backgroundColor: Colors.white, // Button สีขาว
-                side: BorderSide(color: Colors.grey[300]!), // ขอบเทา
-                foregroundColor: Colors.black87,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+        if (_payType == 'bank') ...[
+          const SizedBox(height: 16),
+          const Text('วันที่ชำระ',
+              style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final now = DateTime.now();
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDate ?? now,
+                    firstDate: DateTime(now.year - 1),
+                    lastDate: DateTime(now.year + 1),
+                  );
+                  if (picked != null) setState(() => _selectedDate = picked);
+                },
+                icon: const Icon(Icons.calendar_today),
+                label: Text(
+                  _selectedDate == null
+                      ? 'เลือกวันที่'
+                      : '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}',
+                ),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white, // Button สีขาว
+                  side: BorderSide(color: Colors.grey[300]!), // ขอบเทา
+                  foregroundColor: Colors.black87,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
               ),
             ),
-          ),
-        ]),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final picked = await showTimePicker(
+                    context: context,
+                    initialTime: _selectedTime ?? TimeOfDay.now(),
+                  );
+                  if (picked != null) setState(() => _selectedTime = picked);
+                },
+                icon: const Icon(Icons.schedule),
+                label: Text(
+                  _selectedTime == null
+                      ? 'เลือกเวลา'
+                      : '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}',
+                ),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white, // Button สีขาว
+                  side: BorderSide(color: Colors.grey[300]!), // ขอบเทา
+                  foregroundColor: Colors.black87,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ]),
+        ],
       ],
     );
   }
@@ -715,16 +719,31 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
   }
 
   Widget _buildSubmitButton(ColorScheme scheme) {
-    final isValid = (_slipFile != null) &&
-        (_selectedDate != null) &&
-        (_selectedTime != null) &&
-        ((double.tryParse(_amountCtrl.text) ?? 0) > 0);
+    final amountOk = (double.tryParse(_amountCtrl.text) ?? 0) > 0;
+    final isBankFlow = _payType == 'bank';
+    final isValid = isBankFlow
+        ? ((_slipFile != null) && (_selectedDate != null) && (_selectedTime != null) && amountOk)
+        : amountOk; // PromptPay ต้องการเฉพาะจำนวนเงิน
     return SizedBox(
       width: double.infinity,
       height: 52,
       child: OutlinedButton.icon(
-        onPressed: (_submitting || !isValid) ? null : _submit,
-        icon: _submitting
+        onPressed: (_submitting || !isValid)
+            ? null
+            : () async {
+                if (isBankFlow) {
+                  await _submit();
+                } else {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('ชำระผ่าน PromptPay แล้ว ไม่ต้องอัปโหลดสลิป'),
+                    ),
+                  );
+                  Navigator.pop(context, true);
+                }
+              },
+        icon: _submitting && isBankFlow
             ? const SizedBox(
                 width: 18,
                 height: 18,
@@ -733,8 +752,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.black54),
                 ),
               )
-            : const Icon(Icons.upload),
-        label: const Text('ส่งสลิปเพื่อรอตรวจสอบ'),
+            : Icon(isBankFlow ? Icons.upload : Icons.check_circle_outline),
+        label: Text(isBankFlow ? 'ส่งสลิปเพื่อรอตรวจสอบ' : 'เสร็จสิ้น'),
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.white, // Button สีขาว
           side: BorderSide(color: Colors.grey[300]!), // ขอบเทา
