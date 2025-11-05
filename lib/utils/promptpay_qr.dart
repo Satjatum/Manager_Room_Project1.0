@@ -56,8 +56,8 @@ class PromptPayQR {
 
     // 00 Payload Format Indicator = "01"
     final f00 = _emv('00', '01');
-    // 01 Point of Initiation Method: "12" = dynamic
-    final f01 = _emv('01', '12');
+    // 01 Point of Initiation Method: '12' = dynamic (มีจำนวนเงิน), '11' = static (ไม่มีจำนวนเงิน)
+    final f01 = _emv('01', amount > 0 ? '12' : '11');
 
     // 29 Merchant Account Information (PromptPay)
     //   00 AID: A000000677010111
