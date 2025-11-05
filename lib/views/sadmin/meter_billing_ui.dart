@@ -26,6 +26,9 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
 
   bool _loading = false;
   List<Map<String, dynamic>> _readings = [];
+  String _roomFilter = '';
+  String? _selectedCategory;
+  List<String> _categories = [];
 
   @override
   void initState() {
@@ -53,6 +56,15 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
       _readings.sort((a, b) => (a['room_number'] ?? '')
           .toString()
           .compareTo((b['room_number'] ?? '').toString()));
+
+      // Build categories from readings
+      final cats = _readings
+          .map((r) => (r['room_category_name'] ?? '').toString())
+          .where((s) => s.trim().isNotEmpty && s.trim() != '-')
+          .toSet()
+          .toList()
+        ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      _categories = ['ทั้งหมด', ...cats];
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -61,6 +73,18 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  List<Map<String, dynamic>> _getFilteredReadings() {
+    final roomKey = _roomFilter.trim().toLowerCase();
+    final category = _selectedCategory;
+    return _readings.where((r) {
+      final rn = (r['room_number'] ?? '').toString().toLowerCase();
+      final rc = (r['room_category_name'] ?? '').toString();
+      final roomMatch = roomKey.isEmpty || rn.contains(roomKey);
+      final catMatch = category == null || category == 'ทั้งหมด' || rc == category;
+      return roomMatch && catMatch;
+    }).toList();
   }
 
   String _getMonthName(int month) {
@@ -146,10 +170,20 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                         Expanded(
                           child: DropdownButtonFormField<int>(
                             value: _selectedMonth,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: 'เดือน',
-                              border: OutlineInputBorder(),
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.grey[300]!),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.grey[300]!),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.grey[500]!),
+                              ),
                               isDense: true,
+                              filled: true,
+                              fillColor: Colors.white,
                             ),
                             items: List.generate(12, (i) => i + 1)
                                 .map((m) => DropdownMenuItem(
@@ -166,10 +200,20 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                         Expanded(
                           child: DropdownButtonFormField<int>(
                             value: _selectedYear,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: 'ปี (พ.ศ.)',
-                              border: OutlineInputBorder(),
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.grey[300]!),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.grey[300]!),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.grey[500]!),
+                              ),
                               isDense: true,
+                              filled: true,
+                              fillColor: Colors.white,
                             ),
                             items:
                                 List.generate(6, (i) => DateTime.now().year - i)
@@ -186,13 +230,72 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                       ],
                     ),
                   ),
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: TextFormField(
+                            decoration: InputDecoration(
+                              labelText: 'ค้นหาเลขห้อง',
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.grey[300]!),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.grey[300]!),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.grey[500]!),
+                              ),
+                              isDense: true,
+                              filled: true,
+                              fillColor: Colors.white,
+                              prefixIcon: const Icon(Icons.search),
+                            ),
+                            onChanged: (v) => setState(() => _roomFilter = v),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: DropdownButtonFormField<String>(
+                            value: _selectedCategory ?? (_categories.isNotEmpty ? 'ทั้งหมด' : null),
+                            decoration: InputDecoration(
+                              labelText: 'หมวดหมู่ห้อง',
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.grey[300]!),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.grey[300]!),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.grey[500]!),
+                              ),
+                              isDense: true,
+                              filled: true,
+                              fillColor: Colors.white,
+                            ),
+                            items: _categories
+                                .map((c) => DropdownMenuItem<String>(
+                                      value: c,
+                                      child: Text(c),
+                                    ))
+                                .toList(),
+                            onChanged: (v) => setState(() => _selectedCategory = v),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Expanded(
                     child: _loading
                         ? const Center(
                             child: CircularProgressIndicator(
                                 color: AppTheme.primary))
-                        : _readings.isEmpty
+                        : _getFilteredReadings().isEmpty
                             ? _buildEmpty()
                             : RefreshIndicator(
                                 onRefresh: _loadData,
@@ -200,11 +303,11 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                                 child: ListView.separated(
                                   padding:
                                       const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                                  itemCount: _readings.length,
+                                  itemCount: _getFilteredReadings().length,
                                   separatorBuilder: (_, __) =>
                                       const SizedBox(height: 8),
-                                  itemBuilder: (context, index) =>
-                                      _buildReadingTile(_readings[index]),
+                                  itemBuilder: (context, index) => _buildReadingTile(
+                                      _getFilteredReadings()[index]),
                                 ),
                               ),
                   ),
