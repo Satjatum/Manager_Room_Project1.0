@@ -271,19 +271,26 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           'ตั้งค่าการบริการ',
-          style: TextStyle(fontWeight: FontWeight.w600),
+          style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black87),
         ),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: const Color(0xff10B981),
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            height: 1,
+            color: Colors.grey.shade300,
+          ),
         ),
       ),
       body: SafeArea(
@@ -297,62 +304,56 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
             : Column(
                 children: [
                   // Branch Selector
-                  Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Color(0xff10B981),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                      child: widget.branchId != null
-                          ? const SizedBox()
-                          : branches.isEmpty
-                              ? const SizedBox()
-                              : Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: DropdownButtonFormField<String>(
-                                value: selectedBranchId,
-                                isExpanded: true,
-                                decoration: const InputDecoration(
-                                  labelText: 'เลือกสาขา',
-                                  border: InputBorder.none,
-                                  prefixIcon: Icon(
-                                    Icons.apartment_rounded,
-                                    color: Color(0xff10B981),
-                                    size: 22,
-                                  ),
-                                ),
-                                items: branches.map((branch) {
-                                  return DropdownMenuItem<String>(
-                                    value: branch['branch_id'],
-                                    child: Text(
-                                      branch['branch_name'],
-                                      style: const TextStyle(fontSize: 14),
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedBranchId = value;
-                                  });
-                                  _loadData();
-                                },
+                  if (widget.branchId == null && branches.isNotEmpty)
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border(
+                          bottom: BorderSide(color: Colors.grey.shade300),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: DropdownButtonFormField<String>(
+                            value: selectedBranchId,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'เลือกสาขา',
+                              border: InputBorder.none,
+                              prefixIcon: Icon(
+                                Icons.apartment_rounded,
+                                color: Color(0xff10B981),
+                                size: 22,
                               ),
                             ),
+                            items: branches.map((branch) {
+                              return DropdownMenuItem<String>(
+                                value: branch['branch_id'],
+                                child: Text(
+                                  branch['branch_name'],
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                selectedBranchId = value;
+                              });
+                              _loadData();
+                            },
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
 
                   // Main Content
                   Expanded(
@@ -408,14 +409,8 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -425,18 +420,8 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
             // Header
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.warning_amber_rounded,
-                    color: Colors.red.shade700,
-                    size: 24,
-                  ),
-                ),
+                Icon(Icons.warning_amber_rounded,
+                    color: Colors.red.shade700, size: 22),
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Text(
@@ -461,7 +446,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
 
             if (enableLateFee) ...[
               const SizedBox(height: 16),
-              const Divider(height: 1),
+              Divider(height: 1, color: Colors.grey.shade300),
               const SizedBox(height: 16),
 
               // Late Fee Type
@@ -471,20 +456,20 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                   value: lateFeeType,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                       borderSide:
                           const BorderSide(color: Color(0xff10B981), width: 2),
                     ),
                     filled: true,
-                    fillColor: Colors.grey.shade50,
+                    fillColor: Colors.white,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 14),
                   ),
@@ -562,14 +547,8 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -579,18 +558,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
             // Header
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.discount,
-                    color: Colors.green.shade700,
-                    size: 24,
-                  ),
-                ),
+                Icon(Icons.discount, color: Colors.green.shade700, size: 22),
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Text(
@@ -615,7 +583,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
 
             if (enableDiscount) ...[
               const SizedBox(height: 16),
-              const Divider(height: 1),
+              Divider(height: 1, color: Colors.grey.shade300),
               const SizedBox(height: 16),
 
               // Discount Percentage and Days
@@ -688,21 +656,21 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-        prefixIcon: Icon(icon, color: const Color(0xff10B981), size: 20),
+        prefixIcon: Icon(icon, color: Colors.grey.shade700, size: 20),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(color: Color(0xff10B981), width: 2),
         ),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: Colors.white,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       ),
