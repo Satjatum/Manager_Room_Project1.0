@@ -12,6 +12,9 @@ import 'package:manager_room_project/utils/promptpay_qr.dart'; // สร้า�
 import 'package:qr_flutter/qr_flutter.dart'; // แสดงภาพ QR จากสตริง
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/views/tenant/bill_list_ui.dart';
+import 'package:manager_room_project/services/auth_service.dart';
+import 'package:manager_room_project/models/user_models.dart';
+import 'package:manager_room_project/services/branch_service.dart';
 // Use app theme via Theme.of(context).colorScheme instead of fixed colors
 
 class TenantPayBillUi extends StatefulWidget {
@@ -29,6 +32,9 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
   String? _selectedQrId;
   // ประเภทการจ่ายที่เลือกในหน้าเทนแนนท์: bank | promptpay
   String _payType = 'bank';
+
+  UserModel? _currentUser;
+  bool _ppTestEnabled = false; // โหมดทดสอบ PromptPay จากการตั้งค่า (local)
 
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
@@ -58,6 +64,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
   Future<void> _init() async {
     setState(() => _loading = true);
     try {
+      _currentUser = await AuthService.getCurrentUser();
+
       final inv = await InvoiceService.getInvoiceById(widget.invoiceId);
       if (inv == null) {
         if (mounted) {
@@ -78,6 +86,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       List<Map<String, dynamic>> qrs = [];
       if (branchId != null && branchId.toString().isNotEmpty) {
         qrs = await PaymentService.getBranchQRCodes(branchId);
+        // Read global PromptPay test flag from branch JSON (applies to all roles)
+        _ppTestEnabled = await BranchService.getPromptPayTestMode(branchId);
       }
 
       // กำหนดค่าเริ่มต้นการเลือกประเภท/บัญชี:
@@ -101,6 +111,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         _payType = initialType;
         _selectedQrId = initialQrId;
         _loading = false;
+        // keep _ppTestEnabled, _currentUser loaded
       });
     } catch (e) {
       setState(() => _loading = false);
@@ -708,6 +719,10 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         builder: (_) => _PromptPayQrPage(
           payload: payload,
           amount: amt,
+          invoiceId: widget.invoiceId,
+          qrId: q['qr_id']?.toString(),
+          // When enabled, show for all roles (superadmin, admin, tenant)
+          showTestButton: _ppTestEnabled,
         ),
       ),
     );
@@ -762,25 +777,83 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
 class _PromptPayQrPage extends StatelessWidget {
   final String payload;
   final double amount;
-  const _PromptPayQrPage({required this.payload, required this.amount});
+  final String invoiceId;
+  final String? qrId;
+  final bool showTestButton;
+  const _PromptPayQrPage({
+    required this.payload,
+    required this.amount,
+    required this.invoiceId,
+    this.qrId,
+    this.showTestButton = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: Colors.black87,
-        title: const Text('ชำระเงินด้วย PromptPay'),
-        centerTitle: true,
-      ),
-      body: Center(
+      body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Header Section (white theme) + confirm dialog on back
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                    onPressed: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('ออกจากหน้าชำระเงิน?'),
+                          content: const Text('คุณต้องการยกเลิกและกลับไปหน้าก่อนหน้าใช่หรือไม่'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(false),
+                              child: const Text('ยกเลิก'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(true),
+                              child: const Text('ตกลง'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm == true && Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    tooltip: 'ย้อนกลับ',
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'รายการบิลค่าเช่า',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'ตรวจสอบและจัดการบิลค่าเช่าของคุณ',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -808,30 +881,53 @@ class _PromptPayQrPage extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    // กลับไปหน้า List ของบิล และรีเฟรช
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                          builder: (_) => const TenantBillsListPage()),
-                      (route) => false,
-                    );
-                  },
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: const Text('ชำระเงินเสร็จแล้ว (กลับไปหน้าบิล)'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10B981),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+              if (showTestButton) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      // สร้างการชำระเงินจำลองและตัดบิลทันที
+                      final res = await PaymentService.createPromptPayTestPayment(
+                        invoiceId: invoiceId,
+                        paidAmount: amount,
+                        qrId: qrId,
+                      );
+                      if (context.mounted) {
+                        if (res['success'] == true) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(res['message'] ?? 'สำเร็จ')),
+                          );
+                          // กลับไปหน้ารายการบิลอย่างปลอดภัย: ปิดหน้า QR แล้วปิดหน้าโอน เพื่อกลับไป List
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop(); // close QR page
+                          }
+                          // ใช้ Future.microtask เพื่อให้ pop แรกเสร็จก่อนค่อย pop ต่อ
+                          Future.microtask(() {
+                            final nav = Navigator.of(context);
+                            if (nav.canPop()) nav.pop(true);
+                          });
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(res['message'] ?? 'ไม่สำเร็จ')),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.science),
+                    label: const Text('ทดสอบโอนสำเร็จ'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.black87,
+                      side: BorderSide(color: Colors.grey[300]!),
+                      backgroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 12),
+              ],
             ],
           ),
         ),

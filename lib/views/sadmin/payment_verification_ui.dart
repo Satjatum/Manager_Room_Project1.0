@@ -96,8 +96,14 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
           status: status,
           branchId: _currentBranchFilter(),
         );
+        // เงื่อนไขตามนโยบาย:
+        // - ธนาคาร: ต้องมีสลิปรออนุมัติ (แสดงในแท็บรอดำเนินการ)
+        // - PromptPay: ถ้าชำระครบจำนวนจะอนุมัติอัตโนมัติและไม่ต้องตรวจสอบสลิป → ไม่ต้องแสดงใน Pending
+        final filtered = (status == 'pending')
+            ? res.where((e) => (e['payment_method'] ?? 'transfer') == 'transfer').toList()
+            : res;
         setState(() {
-          _slips = res;
+          _slips = filtered;
           _invoices = [];
           _loading = false;
         });
@@ -603,6 +609,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     final status = (s['slip_status'] ?? 'pending').toString();
     final createdAt = (s['created_at'] ?? '').toString();
     final canAction = status == 'pending';
+    final isPromptPay = (s['payment_method'] ?? 'transfer') == 'promptpay' ||
+        (s['is_promptpay'] == true);
 
     return LayoutBuilder(builder: (context, constraints) {
       final double width = constraints.maxWidth;
@@ -659,6 +667,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                       ),
                       const SizedBox(width: 8),
                       _statusChip(status),
+                      const SizedBox(width: 6),
+                      _methodChip(isPromptPay ? 'promptpay' : 'transfer'),
                     ],
                   ),
 
@@ -766,7 +776,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                   // Actions
                   Row(
                     children: [
-                      if (canAction) ...[
+                      if (canAction && !isPromptPay) ...[
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: () => _rejectSlip(s),
@@ -953,6 +963,24 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
         c = Colors.orange;
         t = 'รอตรวจสอบ';
     }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: c.withOpacity(0.1),
+        border: Border.all(color: c.withOpacity(0.4)),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        t,
+        style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  Widget _methodChip(String method) {
+    final isPP = method == 'promptpay';
+    final c = isPP ? Colors.indigo : Colors.teal;
+    final t = isPP ? 'PromptPay' : 'โอนธนาคาร';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(

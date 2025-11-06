@@ -42,6 +42,72 @@ class BranchService {
     }
   }
 
+  // ============== Global/Test Flags on Branch JSON (branch_desc) ==============
+  /// อ่านสถานะโหมดทดสอบ PromptPay จากสาขา (เก็บใน branches.branch_desc -> { pp_test_mode: bool })
+  static Future<bool> getPromptPayTestMode(String branchId) async {
+    try {
+      final row = await _supabase
+          .from('branches')
+          .select('branch_desc')
+          .eq('branch_id', branchId)
+          .maybeSingle();
+      if (row == null) return false;
+      final desc = row['branch_desc'];
+      if (desc is Map && desc['pp_test_mode'] == true) return true;
+      if (desc is Map<String, dynamic> && desc['pp_test_mode'] == true) return true;
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// ตั้งค่าสถานะโหมดทดสอบ PromptPay โดยให้สิทธิ์เฉพาะ Admin เท่านั้น
+  /// มีผลทั้งแอป (อ่านได้ทุกบทบาท) ผ่าน branch_desc.pp_test_mode
+  static Future<Map<String, dynamic>> setPromptPayTestMode({
+    required String branchId,
+    required bool enabled,
+  }) async {
+    try {
+      final currentUser = await AuthService.getCurrentUser();
+      if (currentUser == null) {
+        return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
+      }
+      // อนุญาตให้ admin และ superadmin สามารถสลับโหมดได้
+      if (currentUser.userRole != UserRole.admin &&
+          currentUser.userRole != UserRole.superAdmin) {
+        return {'success': false, 'message': 'อนุญาตเฉพาะผู้ดูแล (Admin)'};
+      }
+
+      // อ่าน desc เดิมแล้ว merge ค่าลงไป
+      final current = await _supabase
+          .from('branches')
+          .select('branch_desc')
+          .eq('branch_id', branchId)
+          .maybeSingle();
+      Map<String, dynamic> desc = {};
+      if (current != null && current['branch_desc'] is Map<String, dynamic>) {
+        desc = Map<String, dynamic>.from(current['branch_desc']);
+      }
+      desc['pp_test_mode'] = enabled;
+
+      final res = await _supabase
+          .from('branches')
+          .update({'branch_desc': desc, 'updated_at': DateTime.now().toIso8601String()})
+          .eq('branch_id', branchId)
+          .select()
+          .single();
+      return {
+        'success': true,
+        'message': enabled ? 'เปิดโหมดทดสอบ PromptPay แล้ว' : 'ปิดโหมดทดสอบ PromptPay แล้ว',
+        'data': res,
+      };
+    } on PostgrestException catch (e) {
+      return {'success': false, 'message': 'เกิดข้อผิดพลาด: ${e.message}'};
+    } catch (e) {
+      return {'success': false, 'message': 'ไม่สามารถอัปเดตโหมดทดสอบได้: $e'};
+    }
+  }
+
   // Get branches by user - updated for new schema
   static Future<List<Map<String, dynamic>>> getBranchesByUser() async {
     try {

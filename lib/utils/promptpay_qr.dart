@@ -14,19 +14,26 @@ class PromptPayQR {
   static String normalizeId(String type, String id) {
     final digits = id.replaceAll(RegExp(r'[^0-9]'), '');
     if (type == 'mobile') {
-      // รองรับรูปแบบ: 0XXXXXXXXX, 66XXXXXXXXX, XXXXXXXXX
+      // รองรับรูปแบบ: 0XXXXXXXXX, 66XXXXXXXXX, 0066XXXXXXXXX, หรือ XXXXXXXXX (ลืมพิมพ์ 0)
       String d = digits;
-      if (d.startsWith('66')) {
+      if (d.startsWith('0066')) {
+        d = d.substring(4);
+      } else if (d.startsWith('66')) {
         d = d.substring(2);
       } else if (d.startsWith('0')) {
         d = d.substring(1);
       }
-      // ใช้เลข 9 หลักท้ายสุด (กรณีเผลอใส่เกิน)
+      // กรณีผู้ใช้ใส่มา 9 หลัก (เช่น 946815612) ให้ถือว่าเป็นเบอร์ไม่รวม 0 ข้างหน้าอยู่แล้ว
+      // ถ้าเกิน 9 ให้ตัดให้เหลือ 9 หลักท้ายสุด
       if (d.length > 9) {
         d = d.substring(d.length - 9);
       }
-      // เติมประเทศ 66
-      return '66$d';
+      if (d.length < 9) {
+        // ถ้ายังสั้นเกินไปให้เติมซ้ายด้วยศูนย์ (เพื่อความทนทาน)
+        d = d.padLeft(9, '0');
+      }
+      // ตามสเปคพร้อมเพย์สำหรับเบอร์มือถือ ต้องใช้รูปแบบ 0066 + 9 หลัก (ไม่รวม 0 นำหน้า)
+      return '0066$d';
     }
     return digits;
   }
