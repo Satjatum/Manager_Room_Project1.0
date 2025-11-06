@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart'; // สำหรับคัดลอกเลขบัญชี
 
 import 'package:manager_room_project/services/invoice_service.dart';
 import 'package:manager_room_project/services/payment_service.dart';
@@ -89,15 +90,9 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
 
       String? initialQrId;
       if (initialType == 'bank') {
-        initialQrId = (bankList.firstWhere(
-                (e) => (e['is_primary'] ?? false) == true,
-                orElse: () => bankList.isNotEmpty ? bankList.first : {})
-            ['qr_id']) as String?;
+        initialQrId = bankList.isNotEmpty ? bankList.first['qr_id'] as String? : null;
       } else {
-        initialQrId = (ppList.firstWhere(
-                (e) => (e['is_primary'] ?? false) == true,
-                orElse: () => ppList.isNotEmpty ? ppList.first : {})
-            ['qr_id']) as String?;
+        initialQrId = ppList.isNotEmpty ? ppList.first['qr_id'] as String? : null;
       }
 
       setState(() {
@@ -391,11 +386,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     List<Map<String, dynamic>> currentList = _payType == 'bank' ? bankList : ppList;
     if (currentList.isNotEmpty &&
         (currentList.every((e) => e['qr_id'].toString() != (_selectedQrId ?? '')))) {
-      final initId = (currentList.firstWhere(
-              (e) => (e['is_primary'] ?? false) == true,
-              orElse: () => currentList.first))['qr_id']
-          .toString();
-      _selectedQrId = initId;
+      _selectedQrId = currentList.first['qr_id'].toString();
     }
 
     return Column(
@@ -444,17 +435,15 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
 
         ...currentList.map((q) {
           final id = q['qr_id'].toString();
-          final image = (q['qr_code_image'] ?? '').toString();
-          final isPrimary = (q['is_primary'] ?? false) == true;
           final isPromptPay =
               (q['promptpay_id'] != null && q['promptpay_id'].toString().isNotEmpty);
 
           // แสดงหัวเรื่องแตกต่างกันตามประเภท
           final title = isPromptPay
-              ? 'PromptPay • ${q['promptpay_id'] ?? ''}'
+              ? 'PromptPay' // ไม่แสดงเลขและประเภท
               : '${q['bank_name'] ?? ''} • ${q['account_number'] ?? ''}';
           final sub1 = isPromptPay
-              ? 'ประเภท: ${q['promptpay_type'] ?? '-'}'
+              ? '' // ไม่แสดงประเภท PromptPay
               : (q['account_name'] ?? '');
 
           return Container(
@@ -472,21 +461,32 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (sub1.toString().isNotEmpty) Text(sub1.toString()),
-                  if (isPrimary)
-                    Text('บัญชีหลัก',
-                        style: TextStyle(color: scheme.secondary, fontSize: 12)),
-                  const SizedBox(height: 8),
-                  // ไม่แสดง QR ในรายการแล้ว — จะแสดงตอนกดปุ่ม "ชำระเงิน"
-                  if (!isPromptPay && image.isNotEmpty)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        image,
-                        height: 160,
-                        fit: BoxFit.contain,
-                      ),
+                  if (sub1.toString().isNotEmpty)
+                    Row(
+                      children: [
+                        Expanded(child: Text(sub1.toString())),
+                        if (!isPromptPay)
+                          TextButton.icon(
+                            onPressed: () async {
+                              final acc = (q['account_number'] ?? '').toString();
+                              if (acc.isNotEmpty) {
+                                await Clipboard.setData(ClipboardData(text: acc));
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('คัดลอกเลขบัญชีแล้ว')),
+                                  );
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.copy, size: 16),
+                            label: const Text('คัดลอกเลขบัญชี'),
+                            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
+                          ),
+                      ],
                     ),
+                  // no primary flag display
+                  const SizedBox(height: 8),
+                  // ไม่แสดงรูปใดๆ ในรายการ เพื่อให้คัดลอกเลขบัญชีได้สะดวก
                 ],
               ),
             ),
