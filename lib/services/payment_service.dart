@@ -22,6 +22,76 @@ class PaymentService {
     }
   }
 
+  // Simulate PromptPay success (test mode): create payment directly and update invoice
+  static Future<Map<String, dynamic>> createPromptPayTestPayment({
+    required String invoiceId,
+    required double paidAmount,
+    String? qrId,
+    String? notes,
+  }) async {
+    try {
+      if (paidAmount <= 0) {
+        return {'success': false, 'message': 'จำนวนเงินต้องมากกว่า 0'};
+      }
+
+      final currentUser = await AuthService.getCurrentUser();
+      if (currentUser == null) {
+        return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
+      }
+
+      // Load invoice to get tenant_id
+      final invoice = await InvoiceService.getInvoiceById(invoiceId);
+      if (invoice == null) {
+        return {'success': false, 'message': 'ไม่พบบิล'};
+      }
+      final tenantId = (invoice['tenant_id'] ?? invoice['tenants']?['tenant_id'])?.toString();
+      if (tenantId == null || tenantId.isEmpty) {
+        return {'success': false, 'message': 'ไม่พบข้อมูลผู้เช่าในบิล'};
+      }
+
+      final paymentNumber = await _generatePaymentNumber();
+      final now = DateTime.now();
+
+      final payment = await _supabase
+          .from('payments')
+          .insert({
+            'payment_number': paymentNumber,
+            'invoice_id': invoiceId,
+            'tenant_id': tenantId,
+            'payment_date': now.toIso8601String(),
+            'payment_amount': paidAmount,
+            'payment_method': 'promptpay_test',
+            'reference_number': 'TEST-${now.millisecondsSinceEpoch}',
+            'payment_slip_image': '', // เผื่อคอลัมน์เป็น NOT NULL
+            'payment_status': 'verified',
+            'verified_by': currentUser.userId,
+            'verified_date': now.toIso8601String(),
+            'payment_notes': notes,
+            'created_by': currentUser.userId,
+            'qr_id': qrId,
+          })
+          .select()
+          .single();
+
+      // Update invoice paid amount/status
+      final invUpdate =
+          await InvoiceService.updateInvoicePaymentStatus(invoiceId, paidAmount);
+      if (invUpdate['success'] != true) {
+        // continue but include message in response
+      }
+
+      return {
+        'success': true,
+        'message': 'ทดสอบโอนสำเร็จและบันทึกการชำระเงินแล้ว',
+        'payment': payment,
+      };
+    } on PostgrestException catch (e) {
+      return {'success': false, 'message': 'เกิดข้อผิดพลาด: ${e.message}'};
+    } catch (e) {
+      return {'success': false, 'message': 'ไม่สามารถบันทึกการชำระ (ทดสอบ) ได้: $e'};
+    }
+  }
+
   // Submit payment slip for verification (no invoice status change here)
   static Future<Map<String, dynamic>> submitPaymentSlip({
     required String invoiceId,

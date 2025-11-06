@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/payment_rate_service.dart';
 import '../services/branch_service.dart';
 import '../services/auth_service.dart';
@@ -41,6 +42,8 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
 
   final TextEditingController settingDescController = TextEditingController();
   bool isActive = true;
+  // PromptPay Test Mode (local toggle via SharedPreferences)
+  bool enablePromptPayTestMode = false;
 
   @override
   void initState() {
@@ -89,6 +92,10 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
         }
         return;
       }
+
+      // Load local PromptPay test mode toggle
+      final prefs = await SharedPreferences.getInstance();
+      enablePromptPayTestMode = prefs.getBool('pp_test_mode_enabled') ?? false;
 
       if (branchesData.isEmpty) {
         if (mounted) {
@@ -405,6 +412,9 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                             _buildLateFeeCard(),
                             const SizedBox(height: 16),
                             _buildDiscountCard(),
+                            const SizedBox(height: 16),
+                            if (currentUser != null && (currentUser!.userRole == UserRole.superAdmin || currentUser!.userRole == UserRole.admin))
+                              _buildPromptPayTestModeCard(),
                             const SizedBox(height: 24),
                             SizedBox(
                               width: double.infinity,
@@ -435,6 +445,54 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                   ],
                 ),
               ),
+      ),
+    );
+  }
+
+  Widget _buildPromptPayTestModeCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.science_rounded, color: Colors.blue.shade700, size: 22),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'โหมดทดสอบ PromptPay',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                Switch(
+                  value: enablePromptPayTestMode,
+                  onChanged: (v) async {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('pp_test_mode_enabled', v);
+                    setState(() => enablePromptPayTestMode = v);
+                    _showSuccessSnackBar(v ? 'เปิดโหมดทดสอบ PromptPay แล้ว' : 'ปิดโหมดทดสอบ PromptPay แล้ว');
+                  },
+                  activeColor: const Color(0xff10B981),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'สำหรับผู้ดูแลเท่านั้น • จะมีปุ่ม "ทดสอบโอนสำเร็จ" บนหน้าชำระด้วย PromptPay เพื่อจำลองการชำระเงินและตัดบิลทันที',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+            ),
+          ],
+        ),
       ),
     );
   }

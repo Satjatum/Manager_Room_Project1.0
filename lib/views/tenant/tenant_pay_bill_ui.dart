@@ -12,6 +12,9 @@ import 'package:manager_room_project/utils/promptpay_qr.dart'; // สร้า�
 import 'package:qr_flutter/qr_flutter.dart'; // แสดงภาพ QR จากสตริง
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/views/tenant/bill_list_ui.dart';
+import 'package:manager_room_project/services/auth_service.dart';
+import 'package:manager_room_project/models/user_models.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 // Use app theme via Theme.of(context).colorScheme instead of fixed colors
 
 class TenantPayBillUi extends StatefulWidget {
@@ -29,6 +32,9 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
   String? _selectedQrId;
   // ประเภทการจ่ายที่เลือกในหน้าเทนแนนท์: bank | promptpay
   String _payType = 'bank';
+
+  UserModel? _currentUser;
+  bool _ppTestEnabled = false; // โหมดทดสอบ PromptPay จากการตั้งค่า (local)
 
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
@@ -58,6 +64,10 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
   Future<void> _init() async {
     setState(() => _loading = true);
     try {
+      _currentUser = await AuthService.getCurrentUser();
+      final prefs = await SharedPreferences.getInstance();
+      _ppTestEnabled = prefs.getBool('pp_test_mode_enabled') ?? false;
+
       final inv = await InvoiceService.getInvoiceById(widget.invoiceId);
       if (inv == null) {
         if (mounted) {
@@ -101,6 +111,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         _payType = initialType;
         _selectedQrId = initialQrId;
         _loading = false;
+        // keep _ppTestEnabled, _currentUser loaded
       });
     } catch (e) {
       setState(() => _loading = false);
@@ -708,6 +719,12 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         builder: (_) => _PromptPayQrPage(
           payload: payload,
           amount: amt,
+          invoiceId: widget.invoiceId,
+          qrId: q['qr_id']?.toString(),
+          showTestButton: _ppTestEnabled &&
+              (_currentUser != null &&
+                  (_currentUser!.userRole == UserRole.superAdmin ||
+                      _currentUser!.userRole == UserRole.admin)),
         ),
       ),
     );
@@ -762,7 +779,16 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
 class _PromptPayQrPage extends StatelessWidget {
   final String payload;
   final double amount;
-  const _PromptPayQrPage({required this.payload, required this.amount});
+  final String invoiceId;
+  final String? qrId;
+  final bool showTestButton;
+  const _PromptPayQrPage({
+    required this.payload,
+    required this.amount,
+    required this.invoiceId,
+    this.qrId,
+    this.showTestButton = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -808,6 +834,49 @@ class _PromptPayQrPage extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
+              if (showTestButton) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      // สร้างการชำระเงินจำลองและตัดบิลทันที
+                      final res = await PaymentService.createPromptPayTestPayment(
+                        invoiceId: invoiceId,
+                        paidAmount: amount,
+                        qrId: qrId,
+                      );
+                      if (context.mounted) {
+                        if (res['success'] == true) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(res['message'] ?? 'สำเร็จ')),
+                          );
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                                builder: (_) => const TenantBillsListPage()),
+                            (route) => false,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(res['message'] ?? 'ไม่สำเร็จ')),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.science),
+                    label: const Text('ทดสอบโอนสำเร็จ (ผู้ดูแล)'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.black87,
+                      side: BorderSide(color: Colors.grey[300]!),
+                      backgroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
