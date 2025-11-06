@@ -10,7 +10,6 @@ class BranchPaymentQrService {
           .select('*')
           .eq('branch_id', branchId)
           .order('is_primary', ascending: false)
-          .order('display_order', ascending: true)
           .order('created_at', ascending: true);
       return List<Map<String, dynamic>>.from(res);
     } catch (e) {

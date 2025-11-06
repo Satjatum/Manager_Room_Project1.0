@@ -1,15 +1,11 @@
-import 'dart:io';
-import 'dart:typed_data';
-
-import 'package:flutter/foundation.dart' show kIsWeb;
+// Removed image upload dependencies for simplification per requirements
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../models/user_models.dart';
 import '../services/auth_service.dart';
 import '../services/branch_service.dart';
 import '../services/branch_payment_qr_service.dart';
-import '../services/image_service.dart';
+// image upload removed: QR images no longer required for bank or PromptPay
 
 class PaymentQrManagementUi extends StatefulWidget {
   final String? branchId;
@@ -804,12 +800,11 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
   final _orderCtrl = TextEditingController();
   bool _isActive = true;
   bool _isPrimary = false;
-  XFile? _image;
   bool _saving = false;
 
   // Payment type: bank | promptpay
   String _paymentType = 'bank';
-  String? _ppType; // mobile | citizen_id | tax_id | ewallet
+  String? _ppType; // mobile | citizen_id
   final _ppIdCtrl = TextEditingController();
 
   @override
@@ -820,7 +815,6 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
       _bankCtrl.text = (r['bank_name'] ?? '').toString();
       _accNameCtrl.text = (r['account_name'] ?? '').toString();
       _accNumCtrl.text = (r['account_number'] ?? '').toString();
-      _orderCtrl.text = (r['display_order'] ?? '').toString();
       _isActive = (r['is_active'] ?? true) == true;
       _isPrimary = (r['is_primary'] ?? false) == true;
 
@@ -843,16 +837,8 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
     _bankCtrl.dispose();
     _accNameCtrl.dispose();
     _accNumCtrl.dispose();
-    _orderCtrl.dispose();
     _ppIdCtrl.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final img =
-        await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
-    if (img != null) setState(() => _image = img);
   }
 
   Future<void> _save() async {
@@ -874,42 +860,6 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
     }
     setState(() => _saving = true);
     try {
-      String? imageUrl = widget.record?['qr_code_image'];
-      if (_image != null) {
-        Map<String, dynamic> upload;
-        if (kIsWeb) {
-          final bytes = await _image!.readAsBytes();
-          upload = await ImageService.uploadImageFromBytes(
-            bytes,
-            _image!.name,
-            'branch-payment-qr',
-            folder: widget.branchId,
-            prefix: 'qr',
-            context: 'branch_${widget.branchId}',
-          );
-        } else {
-          upload = await ImageService.uploadImage(
-            File(_image!.path),
-            'branch-payment-qr',
-            folder: widget.branchId,
-            prefix: 'qr',
-            context: 'branch_${widget.branchId}',
-          );
-        }
-
-        if (upload['success'] != true) {
-          throw upload['message'] ?? 'อัปโหลดรูป QR ไม่สำเร็จ';
-        }
-        imageUrl = upload['url'];
-      }
-
-      // บังคับอัปโหลดรูปเฉพาะกรณี PromptPay เท่านั้น (เพื่อการสแกน)
-      if (_paymentType == 'promptpay' &&
-          (widget.record == null) &&
-          (imageUrl == null || imageUrl.isEmpty)) {
-        throw 'กรุณาอัปโหลดรูป QR สำหรับ PromptPay';
-      }
-
       Map<String, dynamic> payload;
       if (_paymentType == 'bank') {
         payload = {
@@ -919,10 +869,9 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
           'account_number': _accNumCtrl.text.trim(),
           'promptpay_type': null,
           'promptpay_id': null,
-          'qr_code_image': imageUrl ?? '', // ธนาคารไม่บังคับรูป
+          'qr_code_image': null, // ธนาคารไม่ต้องใช้รูปอีกต่อไป
           'is_active': _isActive,
           'is_primary': _isPrimary,
-          'display_order': int.tryParse(_orderCtrl.text.trim()),
         };
       } else {
         // PromptPay: fill required NOT NULL bank fields with placeholders
@@ -934,10 +883,9 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
           'account_number': ppId,
           'promptpay_type': _ppType,
           'promptpay_id': ppId,
-          'qr_code_image': imageUrl,
+          'qr_code_image': null, // ไม่บังคับอัปโหลดรูป QR (ใช้ Dynamic QR ที่ฝั่งผู้เช่า)
           'is_active': _isActive,
           'is_primary': _isPrimary,
-          'display_order': int.tryParse(_orderCtrl.text.trim()),
         };
       }
 
@@ -1213,10 +1161,6 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
                                 value: 'mobile', child: Text('เบอร์มือถือ')),
                             DropdownMenuItem(
                                 value: 'citizen_id', child: Text('บัตรประชาชน')),
-                            DropdownMenuItem(
-                                value: 'tax_id', child: Text('เลขภาษี')),
-                            DropdownMenuItem(
-                                value: 'ewallet', child: Text('E-Wallet')),
                           ],
                           onChanged: (v) => setState(() => _ppType = v),
                         ),
@@ -1230,149 +1174,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
                       icon: Icons.qr_code_2_rounded,
                     ),
                   ],
-                  const SizedBox(height: 20),
-                  _buildFormField(
-                    label: 'ลำดับแสดง',
-                    hint: '0',
-                    controller: _orderCtrl,
-                    icon: Icons.sort_rounded,
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade100,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(Icons.image_rounded,
-                            color: Colors.blue.shade700, size: 18),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'รูปภาพ QR Code',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  InkWell(
-                    onTap: _pickImage,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0FDF4),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0xFF86EFAC),
-                          width: 2,
-                          style: BorderStyle.solid,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (_image != null ||
-                              widget.record?['qr_code_image'] != null)
-                            Container(
-                              height: 120,
-                              width: 120,
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey.shade300),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: _image != null
-                                    ? (kIsWeb
-                                        ? FutureBuilder<Uint8List>(
-                                            future: _image!.readAsBytes(),
-                                            builder: (context, snapshot) {
-                                              if (snapshot.hasData) {
-                                                return Image.memory(
-                                                  snapshot.data!,
-                                                  fit: BoxFit.cover,
-                                                );
-                                              }
-                                              return const Center(
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                ),
-                                              );
-                                            },
-                                          )
-                                        : Image.file(
-                                            File(_image!.path),
-                                            fit: BoxFit.cover,
-                                          ))
-                                    : Image.network(
-                                        widget.record!['qr_code_image'],
-                                        fit: BoxFit.cover,
-                                      ),
-                              ),
-                            )
-                          else
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                Icons.file_upload_outlined,
-                                size: 48,
-                                color: const Color(0xFF10B981),
-                              ),
-                            ),
-                          const SizedBox(height: 12),
-                          Text(
-                            _image != null ||
-                                    widget.record?['qr_code_image'] != null
-                                ? 'แตะเพื่อเปลี่ยนรูปภาพ'
-                                : 'เลือกไฟล์รูปภาพ',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF065F46),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'แตะหรือลากไฟล์รูปภาพมาวางที่นี่',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              'รองรับ JPG, PNG, WebP (สูงสุด 5MB)',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: const Color(0xFF065F46),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  // ลบส่วนอัปโหลดรูป QR ตามข้อกำหนดใหม่
                   const SizedBox(height: 20),
                   Container(
                     padding: const EdgeInsets.all(14),
