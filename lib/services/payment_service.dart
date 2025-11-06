@@ -412,6 +412,163 @@ class PaymentService {
     }
   }
 
+  // List verified PromptPay payments (no slips) for "ชำระแล้ว" tab
+  static Future<List<Map<String, dynamic>>> listPromptPayVerifiedPayments({
+    String? branchId,
+    String? search,
+    int limit = 100,
+    int offset = 0,
+  }) async {
+    try {
+      // Optional branch filter via invoices of rooms in branch
+      List<String>? invoiceFilter;
+      if (branchId != null && branchId.isNotEmpty) {
+        final roomRows = await _supabase
+            .from('rooms')
+            .select('room_id')
+            .eq('branch_id', branchId);
+        final roomIds = List<Map<String, dynamic>>.from(roomRows)
+            .map((r) => r['room_id'])
+            .where((v) => v != null)
+            .map((v) => v.toString())
+            .toList();
+        if (roomIds.isEmpty) return [];
+        final invRows = await _supabase
+            .from('invoices')
+            .select('invoice_id')
+            .inFilter('room_id', roomIds);
+        invoiceFilter = List<Map<String, dynamic>>.from(invRows)
+            .map((r) => r['invoice_id'].toString())
+            .toList();
+        if (invoiceFilter.isEmpty) return [];
+      }
+
+      var q = _supabase
+          .from('payments')
+          .select('*')
+          .eq('payment_status', 'verified')
+          .eq('payment_method', 'promptpay');
+      if (invoiceFilter != null) {
+        q = q.inFilter('invoice_id', invoiceFilter);
+      }
+      if (search != null && search.isNotEmpty) {
+        q = q.or(
+            'payment_number.ilike.%$search%,reference_number.ilike.%$search%');
+      }
+      final rows = await q
+          .order('payment_date', ascending: false)
+          .range(offset, offset + limit - 1);
+
+      // Enrich like slips list
+      final payments = List<Map<String, dynamic>>.from(rows);
+      final invIds = payments
+          .map((r) => r['invoice_id'])
+          .where((v) => v != null)
+          .map((v) => v.toString())
+          .toSet()
+          .toList();
+
+      Map<String, Map<String, dynamic>> invById = {};
+      Map<String, Map<String, dynamic>> roomById = {};
+      Map<String, Map<String, dynamic>> brById = {};
+      Map<String, Map<String, dynamic>> tenById = {};
+
+      if (invIds.isNotEmpty) {
+        final invRows2 = await _supabase
+            .from('invoices')
+            .select(
+                'invoice_id, invoice_number, total_amount, paid_amount, room_id, tenant_id, due_date')
+            .inFilter('invoice_id', invIds);
+        invById = {
+          for (final r in List<Map<String, dynamic>>.from(invRows2))
+            r['invoice_id'].toString(): r
+        };
+        final roomIds = invById.values
+            .map((r) => r['room_id'])
+            .where((v) => v != null)
+            .map((v) => v.toString())
+            .toSet()
+            .toList();
+        if (roomIds.isNotEmpty) {
+          final rRows = await _supabase
+              .from('rooms')
+              .select('room_id, room_number, branch_id')
+              .inFilter('room_id', roomIds);
+          roomById = {
+            for (final r in List<Map<String, dynamic>>.from(rRows))
+              r['room_id'].toString(): r
+          };
+          final brIds = roomById.values
+              .map((r) => r['branch_id'])
+              .where((v) => v != null)
+              .map((v) => v.toString())
+              .toSet()
+              .toList();
+          if (brIds.isNotEmpty) {
+            final bRows = await _supabase
+                .from('branches')
+                .select('branch_id, branch_name, branch_code')
+                .inFilter('branch_id', brIds);
+            brById = {
+              for (final r in List<Map<String, dynamic>>.from(bRows))
+                r['branch_id'].toString(): r
+            };
+          }
+        }
+        final tenIds = invById.values
+            .map((r) => r['tenant_id'])
+            .where((v) => v != null)
+            .map((v) => v.toString())
+            .toSet()
+            .toList();
+        if (tenIds.isNotEmpty) {
+          final tRows = await _supabase
+              .from('tenants')
+              .select('tenant_id, tenant_fullname, tenant_phone')
+              .inFilter('tenant_id', tenIds);
+          tenById = {
+            for (final r in List<Map<String, dynamic>>.from(tRows))
+              r['tenant_id'].toString(): r
+          };
+        }
+      }
+
+      final list = payments.map((p) {
+        final inv = invById[p['invoice_id']?.toString()] ?? {};
+        final room = roomById[inv['room_id']?.toString()] ?? {};
+        final br = brById[room['branch_id']?.toString()] ?? {};
+        final ten = tenById[inv['tenant_id']?.toString()] ?? {};
+        return {
+          // pseudo slip row
+          'slip_id': null,
+          'slip_status': 'verified',
+          'slip_image': '',
+          'paid_amount': p['payment_amount'],
+          'payment_date': p['payment_date'],
+          'created_at': p['payment_date'],
+          'invoice_id': p['invoice_id'],
+          'tenant_id': p['tenant_id'],
+          'payment_id': p['payment_id'],
+          'payment_method': 'promptpay',
+          // enrichment
+          'invoice_number': inv['invoice_number'],
+          'invoice_total': inv['total_amount'],
+          'invoice_paid': inv['paid_amount'],
+          'room_number': room['room_number'],
+          'branch_id': room['branch_id'],
+          'branch_name': br['branch_name'],
+          'tenant_name': ten['tenant_fullname'],
+          'tenant_phone': ten['tenant_phone'],
+          'is_promptpay': true,
+        };
+      }).toList();
+
+      return list;
+    } catch (e) {
+      throw Exception('โหลดรายการชำระ PromptPay ไม่สำเร็จ: $e');
+    }
+  }
+
   static Future<Map<String, dynamic>?> getSlipById(String slipId) async {
     try {
       final res = await _supabase.from('payment_slips').select('''
