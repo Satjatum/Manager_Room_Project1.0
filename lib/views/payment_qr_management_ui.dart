@@ -788,7 +788,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
           'account_number': _accNumCtrl.text.trim(),
           'promptpay_type': null,
           'promptpay_id': null,
-          'qr_code_image': null, // ธนาคารไม่ต้องใช้รูปอีกต่อไป
+          'qr_code_image': '', // ธนาคารไม่ต้องใช้รูป แต่คอลัมน์อาจเป็น NOT NULL
           'is_active': _isActive,
         };
       } else {
@@ -801,7 +801,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
           'account_number': ppId,
           'promptpay_type': _ppType,
           'promptpay_id': ppId,
-          'qr_code_image': null, // ไม่บังคับอัปโหลดรูป QR (ใช้ Dynamic QR ที่ฝั่งผู้เช่า)
+          'qr_code_image': '', // ไม่บังคับอัปโหลดรูป QR (ใช้ Dynamic QR ที่ฝั่งผู้เช่า); คอลัมน์อาจเป็น NOT NULL
           'is_active': _isActive,
         };
       }
