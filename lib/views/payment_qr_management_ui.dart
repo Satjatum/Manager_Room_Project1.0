@@ -246,8 +246,6 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                   final q = _qrs[i];
                                   final isActive =
                                       (q['is_active'] ?? true) == true;
-                                  final isPrimary =
-                                      (q['is_primary'] ?? false) == true;
                                   final isPromptPay =
                                       (q['promptpay_id'] != null &&
                                           q['promptpay_id'].toString().isNotEmpty);
@@ -412,23 +410,6 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                                         ],
                                                       ),
                                                     ),
-                                                    if (!isPrimary)
-                                                      PopupMenuItem(
-                                                        value: 'primary',
-                                                        child: Row(
-                                                          children: const [
-                                                            Icon(
-                                                                Icons
-                                                                    .star_rounded,
-                                                                color: Colors
-                                                                    .orange,
-                                                                size: 18),
-                                                            SizedBox(width: 8),
-                                                            Text(
-                                                                'ตั้งเป็นบัญชีหลัก'),
-                                                          ],
-                                                        ),
-                                                      ),
                                                     PopupMenuItem(
                                                       value: 'toggle',
                                                       child: Row(
@@ -471,28 +452,6 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                                   onSelected: (val) async {
                                                     if (val == 'edit') {
                                                       _openEditor(record: q);
-                                                    } else if (val ==
-                                                        'primary') {
-                                                      final res =
-                                                          await BranchPaymentQrService
-                                                              .setPrimary(
-                                                        qrId: q['qr_id']
-                                                            .toString(),
-                                                        branchId:
-                                                            _selectedBranchId!,
-                                                      );
-                                                      if (mounted) {
-                                                        if (res['success'] ==
-                                                            true) {
-                                                          _showSuccessSnackBar(
-                                                              'ตั้งเป็นบัญชีหลักแล้ว');
-                                                        } else {
-                                                          _showErrorSnackBar(res[
-                                                                  'message'] ??
-                                                              'ทำรายการไม่สำเร็จ');
-                                                        }
-                                                        await _loadQrs();
-                                                      }
                                                     } else if (val ==
                                                         'toggle') {
                                                       final res =
@@ -727,45 +686,7 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                                     ],
                                                   ),
                                                 ),
-                                                if (isPrimary)
-                                                  Container(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 10,
-                                                        vertical: 6),
-                                                    decoration: BoxDecoration(
-                                                      color:
-                                                          Colors.orange.shade50,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8),
-                                                      border: Border.all(
-                                                          color: Colors
-                                                              .orange.shade200),
-                                                    ),
-                                                    child: Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Icon(Icons.star_rounded,
-                                                            size: 14,
-                                                            color: Colors.orange
-                                                                .shade700),
-                                                        const SizedBox(
-                                                            width: 4),
-                                                        Text(
-                                                          'บัญชีหลัก',
-                                                          style: TextStyle(
-                                                            fontSize: 11,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color: Colors.orange
-                                                                .shade700,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
+                                                // removed primary badge
                                               ],
                                             ),
                                           ],
@@ -799,7 +720,6 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
   final _accNumCtrl = TextEditingController();
   final _orderCtrl = TextEditingController();
   bool _isActive = true;
-  bool _isPrimary = false;
   bool _saving = false;
 
   // Payment type: bank | promptpay
@@ -816,7 +736,6 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
       _accNameCtrl.text = (r['account_name'] ?? '').toString();
       _accNumCtrl.text = (r['account_number'] ?? '').toString();
       _isActive = (r['is_active'] ?? true) == true;
-      _isPrimary = (r['is_primary'] ?? false) == true;
 
       // Detect type by presence of promptpay_id
       final ppId = (r['promptpay_id'] ?? '').toString();
@@ -871,7 +790,6 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
           'promptpay_id': null,
           'qr_code_image': null, // ธนาคารไม่ต้องใช้รูปอีกต่อไป
           'is_active': _isActive,
-          'is_primary': _isPrimary,
         };
       } else {
         // PromptPay: fill required NOT NULL bank fields with placeholders
@@ -885,7 +803,6 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
           'promptpay_id': ppId,
           'qr_code_image': null, // ไม่บังคับอัปโหลดรูป QR (ใช้ Dynamic QR ที่ฝั่งผู้เช่า)
           'is_active': _isActive,
-          'is_primary': _isPrimary,
         };
       }
 
@@ -1243,74 +1160,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: _isPrimary
-                          ? Colors.orange.shade50
-                          : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _isPrimary
-                            ? Colors.orange.shade200
-                            : Colors.grey.shade300,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: _isPrimary ? Colors.orange : Colors.grey,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            _isPrimary
-                                ? Icons.star_rounded
-                                : Icons.star_outline_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'บัญชีหลัก',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _isPrimary
-                                    ? 'ตั้งเป็นบัญชีหลักของสาขา'
-                                    : 'ไม่ได้ตั้งเป็นบัญชีหลัก',
-                                style: TextStyle(
-                                  color: _isPrimary
-                                      ? Colors.orange.shade700
-                                      : Colors.grey.shade600,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Switch(
-                          value: _isPrimary,
-                          onChanged: (value) {
-                            setState(() => _isPrimary = value);
-                          },
-                          activeColor: Colors.orange,
-                        ),
-                      ],
-                    ),
-                  ),
+                  // ลบส่วนตั้งบัญชีหลัก เนื่องจากไม่มี is_primary แล้ว
                   const SizedBox(height: 28),
                   Row(
                     children: [

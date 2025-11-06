@@ -9,7 +9,6 @@ class BranchPaymentQrService {
           .from('branch_payment_qr')
           .select('*')
           .eq('branch_id', branchId)
-          .order('is_primary', ascending: false)
           .order('created_at', ascending: true);
       return List<Map<String, dynamic>>.from(res);
     } catch (e) {
@@ -50,55 +49,13 @@ class BranchPaymentQrService {
     return update(qrId, {'is_active': active});
   }
 
+  // setPrimary has been deprecated because column is_primary was removed from schema
   static Future<Map<String, dynamic>> setPrimary(
       {required String qrId, required String branchId}) async {
-    try {
-      // Load the record to determine its type (bank vs promptpay)
-      final current = await _supabase
-          .from('branch_payment_qr')
-          .select('qr_id, branch_id, promptpay_id')
-          .eq('qr_id', qrId)
-          .maybeSingle();
-
-      if (current == null) {
-        return {
-          'success': false,
-          'message': 'ไม่พบบัญชี/QR ที่ต้องการตั้งเป็นหลัก',
-        };
-      }
-
-      final bool isPromptPay =
-          (current['promptpay_id'] != null &&
-              current['promptpay_id'].toString().isNotEmpty);
-
-      // Unset primaries ONLY within the same payment type
-      var unsetQuery = _supabase
-          .from('branch_payment_qr')
-          .update({'is_primary': false})
-          .eq('branch_id', branchId);
-
-      if (isPromptPay) {
-        // กลุ่ม PromptPay: promptpay_id ต้องไม่เป็น NULL (มีค่า)
-        unsetQuery = unsetQuery.not('promptpay_id', 'is', null);
-      } else {
-        // กลุ่มธนาคาร: promptpay_id ต้องเป็น NULL
-        // หมายเหตุ: ใน Supabase Dart ต้องใช้ isFilter() แทน is_()
-        unsetQuery = unsetQuery.isFilter('promptpay_id', null);
-      }
-      await unsetQuery;
-
-      // Set selected as primary
-      await _supabase
-          .from('branch_payment_qr')
-          .update({'is_primary': true})
-          .eq('qr_id', qrId);
-
-      return {'success': true};
-    } on PostgrestException catch (e) {
-      return {'success': false, 'message': e.message};
-    } catch (e) {
-      return {'success': false, 'message': e.toString()};
-    }
+    return {
+      'success': false,
+      'message': 'คุณลบคอลัมน์ is_primary ออกแล้ว — ฟังก์ชันตั้งบัญชีหลักถูกยกเลิก',
+    };
   }
 
   static Future<Map<String, dynamic>> delete(String qrId) async {

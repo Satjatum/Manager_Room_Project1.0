@@ -89,15 +89,9 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
 
       String? initialQrId;
       if (initialType == 'bank') {
-        initialQrId = (bankList.firstWhere(
-                (e) => (e['is_primary'] ?? false) == true,
-                orElse: () => bankList.isNotEmpty ? bankList.first : {})
-            ['qr_id']) as String?;
+        initialQrId = bankList.isNotEmpty ? bankList.first['qr_id'] as String? : null;
       } else {
-        initialQrId = (ppList.firstWhere(
-                (e) => (e['is_primary'] ?? false) == true,
-                orElse: () => ppList.isNotEmpty ? ppList.first : {})
-            ['qr_id']) as String?;
+        initialQrId = ppList.isNotEmpty ? ppList.first['qr_id'] as String? : null;
       }
 
       setState(() {
@@ -391,11 +385,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     List<Map<String, dynamic>> currentList = _payType == 'bank' ? bankList : ppList;
     if (currentList.isNotEmpty &&
         (currentList.every((e) => e['qr_id'].toString() != (_selectedQrId ?? '')))) {
-      final initId = (currentList.firstWhere(
-              (e) => (e['is_primary'] ?? false) == true,
-              orElse: () => currentList.first))['qr_id']
-          .toString();
-      _selectedQrId = initId;
+      _selectedQrId = currentList.first['qr_id'].toString();
     }
 
     return Column(
@@ -445,7 +435,6 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         ...currentList.map((q) {
           final id = q['qr_id'].toString();
           final image = (q['qr_code_image'] ?? '').toString();
-          final isPrimary = (q['is_primary'] ?? false) == true;
           final isPromptPay =
               (q['promptpay_id'] != null && q['promptpay_id'].toString().isNotEmpty);
 
@@ -473,9 +462,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (sub1.toString().isNotEmpty) Text(sub1.toString()),
-                  if (isPrimary)
-                    Text('บัญชีหลัก',
-                        style: TextStyle(color: scheme.secondary, fontSize: 12)),
+                  // no primary flag display
                   const SizedBox(height: 8),
                   // ไม่แสดง QR ในรายการแล้ว — จะแสดงตอนกดปุ่ม "ชำระเงิน"
                   if (!isPromptPay && image.isNotEmpty)
