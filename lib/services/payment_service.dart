@@ -71,7 +71,8 @@ class PaymentService {
             'tenant_id': tenantId,
             'payment_date': now.toIso8601String(),
             'payment_amount': paidAmount,
-            'payment_method': 'promptpay_test',
+            // ใช้ค่า "promptpay" ให้สอดคล้องกับ CHECK constraint ในตาราง payments
+            'payment_method': 'promptpay',
             'reference_number': 'TEST-${now.millisecondsSinceEpoch}',
             'payment_slip_image': '', // เผื่อคอลัมน์เป็น NOT NULL
             'payment_status': 'verified',
@@ -79,7 +80,7 @@ class PaymentService {
             'verified_date': now.toIso8601String(),
             'payment_notes': notes,
             'created_by': currentUser.userId,
-            'qr_id': qrId,
+            // ไม่บันทึก qr_id ในตาราง payments เพราะไม่มีคอลัมน์นี้ในสคีมา
           })
           .select()
           .single();
