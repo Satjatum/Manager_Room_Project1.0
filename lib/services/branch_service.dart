@@ -72,8 +72,9 @@ class BranchService {
       if (currentUser == null) {
         return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
       }
-      // เฉพาะ admin เท่านั้นที่สลับโหมดได้ ตามคำขอของผู้ใช้
-      if (currentUser.userRole != UserRole.admin) {
+      // อนุญาตให้ admin และ superadmin สามารถสลับโหมดได้
+      if (currentUser.userRole != UserRole.admin &&
+          currentUser.userRole != UserRole.superAdmin) {
         return {'success': false, 'message': 'อนุญาตเฉพาะผู้ดูแล (Admin)'};
       }
 

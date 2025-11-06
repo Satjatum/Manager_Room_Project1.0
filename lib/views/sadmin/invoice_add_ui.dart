@@ -1732,7 +1732,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
 
     // แสดงผลแบบไม่ใช้ส่วนลดระหว่างสร้างบิล แม้เปิดใช้งานใน Payment Settings
     final baseTotal = _calculateBaseTotal();
-    final discountType = _paymentSettings?['early_payment_type'] ?? 'percentage';
+    final discountType =
+        _paymentSettings?['early_payment_type'] ?? 'percentage';
     final discountPercent = _paymentSettings?['early_payment_discount'] ?? 0;
     final discountAmountFixed =
         (_paymentSettings?['early_payment_amount'] ?? 0).toDouble();
@@ -1869,7 +1870,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     }
 
     final lateFeeType = _paymentSettings?['late_fee_type'] ?? 'fixed';
-    final lateFeeAmount = (_paymentSettings?['late_fee_amount'] ?? 0).toDouble();
+    final lateFeeAmount =
+        (_paymentSettings?['late_fee_amount'] ?? 0).toDouble();
     final lateFeeStartDay = _paymentSettings?['late_fee_start_day'] ?? 1;
     final lateFeeMaxAmount = _paymentSettings?['late_fee_max_amount'] != null
         ? (_paymentSettings?['late_fee_max_amount'] as num).toDouble()
@@ -1955,8 +1957,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                     Expanded(
                       child: Text(
                         '$policyLine\n(จะถูกพิจารณาเฉพาะตอนชำระเงิน)',
-                        style:
-                            TextStyle(fontSize: 12, color: Colors.blueGrey[700]),
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.blueGrey[700]),
                       ),
                     ),
                   ],
@@ -1975,8 +1977,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                             : lateFeeType == 'daily'
                                 ? 'ตัวอย่าง: ชำระช้า ${sampleDaysLate} วัน → ค่าปรับประมาณ ${exampleLateFee.toStringAsFixed(2)} บาท'
                                 : 'ตัวอย่าง: ค่าปรับคงที่ ${exampleLateFee.toStringAsFixed(2)} บาท',
-                        style:
-                            TextStyle(fontSize: 12, color: Colors.blueGrey[700]),
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.blueGrey[700]),
                       ),
                     ),
                   ],

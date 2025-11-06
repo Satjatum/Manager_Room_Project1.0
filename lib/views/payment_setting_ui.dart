@@ -414,8 +414,8 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                             const SizedBox(height: 16),
                             _buildDiscountCard(),
                             const SizedBox(height: 16),
-                            // Toggle visible only for Admin (per requirement)
-                            if (currentUser != null && (currentUser!.userRole == UserRole.admin))
+                            // Toggle visible for Admin & SuperAdmin
+                            if (currentUser != null && (currentUser!.userRole == UserRole.admin || currentUser!.userRole == UserRole.superAdmin))
                               _buildPromptPayTestModeCard(),
                             const SizedBox(height: 24),
                             SizedBox(
