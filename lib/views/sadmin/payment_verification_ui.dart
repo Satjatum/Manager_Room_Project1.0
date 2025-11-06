@@ -96,6 +96,13 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
           status: status,
           branchId: _currentBranchFilter(),
         );
+        // If showing "ชำระแล้ว" (verified), include PromptPay payments that have no slip
+        List<Map<String, dynamic>> ppPaid = [];
+        if (status == 'verified') {
+          ppPaid = await PaymentService.listPromptPayVerifiedPayments(
+            branchId: _currentBranchFilter(),
+          );
+        }
         // เงื่อนไขตามนโยบาย:
         // - ธนาคาร: ต้องมีสลิปรออนุมัติ (แสดงในแท็บรอดำเนินการ)
         // - PromptPay: ถ้าชำระครบจำนวนจะอนุมัติอัตโนมัติและไม่ต้องตรวจสอบสลิป → ไม่ต้องแสดงใน Pending
@@ -103,7 +110,10 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
             ? res.where((e) => (e['payment_method'] ?? 'transfer') == 'transfer').toList()
             : res;
         setState(() {
-          _slips = filtered;
+          _slips = [
+            ...filtered,
+            ...ppPaid,
+          ];
           _invoices = [];
           _loading = false;
         });
@@ -629,6 +639,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
               MaterialPageRoute(
                 builder: (_) => PaymentVerificationDetailPage(
                   slipId: (s['slip_id'] ?? '').toString(),
+                  initialRow: s,
                 ),
               ),
             );
@@ -806,6 +817,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                                 MaterialPageRoute(
                                   builder: (_) => PaymentVerificationDetailPage(
                                     slipId: (s['slip_id'] ?? '').toString(),
+                                    initialRow: s,
                                   ),
                                 ),
                               );
