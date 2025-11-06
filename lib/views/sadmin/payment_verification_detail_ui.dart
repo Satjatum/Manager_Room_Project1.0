@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' as fnd;
 import 'package:manager_room_project/services/payment_service.dart';
+import 'package:manager_room_project/services/receipt_print_service.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PaymentVerificationDetailPage extends StatefulWidget {
   final String slipId;
-  const PaymentVerificationDetailPage({super.key, required this.slipId});
+  final Map<String, dynamic>? initialRow; // รองรับกรณี PromptPay (ไม่มีสลิป)
+  const PaymentVerificationDetailPage({
+    super.key,
+    required this.slipId,
+    this.initialRow,
+  });
 
   @override
   State<PaymentVerificationDetailPage> createState() =>
@@ -17,6 +23,10 @@ class _PaymentVerificationDetailPageState
     extends State<PaymentVerificationDetailPage> {
   bool _loading = true;
   Map<String, dynamic>? _slip;
+  bool get _isPromptPayPseudo =>
+      (widget.slipId.isEmpty || widget.slipId == 'null') &&
+      (widget.initialRow?['is_promptpay'] == true ||
+          (widget.initialRow?['payment_method'] ?? '') == 'promptpay');
 
   @override
   void initState() {
@@ -34,11 +44,22 @@ class _PaymentVerificationDetailPageState
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final res = await PaymentService.getSlipById(widget.slipId);
-      setState(() {
-        _slip = res;
-        _loading = false;
-      });
+      if (_isPromptPayPseudo) {
+        // ใช้ข้อมูลจาก initialRow โดยตรง (pseudo slip)
+        setState(() {
+          _slip = Map<String, dynamic>.from(widget.initialRow ?? {});
+          // บังคับสถานะให้เป็น verified และ method promptpay
+          _slip!['slip_status'] = _slip!['slip_status'] ?? 'verified';
+          _slip!['payment_method'] = 'promptpay';
+          _loading = false;
+        });
+      } else {
+        final res = await PaymentService.getSlipById(widget.slipId);
+        setState(() {
+          _slip = res;
+          _loading = false;
+        });
+      }
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
@@ -50,6 +71,12 @@ class _PaymentVerificationDetailPageState
   }
 
   Future<void> _openSlip() async {
+    if (_isPromptPayPseudo) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('รายการ PromptPay ไม่มีรูปสลิป')),
+      );
+      return;
+    }
     final urlStr = (_slip?['slip_image'] ?? '').toString();
     if (urlStr.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -208,15 +235,22 @@ class _PaymentVerificationDetailPageState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('รายละเอียดสลิปชำระเงิน'),
+        title: Text(_isPromptPayPseudo ? 'รายละเอียดการชำระ (PromptPay)' : 'รายละเอียดสลิปชำระเงิน'),
         backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            onPressed: _openSlip,
-            icon: const Icon(Icons.download),
-            tooltip: 'เปิด/ดาวน์โหลดสลิป',
-          )
+          if (_isPromptPayPseudo)
+            IconButton(
+              onPressed: _printPromptPay,
+              icon: const Icon(Icons.print),
+              tooltip: 'พิมพ์สลิป',
+            )
+          else
+            IconButton(
+              onPressed: _openSlip,
+              icon: const Icon(Icons.download),
+              tooltip: 'เปิด/ดาวน์โหลดสลิป',
+            )
         ],
       ),
       body: _loading
@@ -249,9 +283,16 @@ class _PaymentVerificationDetailPageState
   Widget _buildHeaderCard() {
     final s = _slip!;
     final inv = s['invoices'] ?? {};
-    final room = inv['rooms'] ?? {};
-    final br = room['branches'] ?? {};
-    final tenant = inv['tenants'] ?? {};
+    final room = inv.isNotEmpty ? (inv['rooms'] ?? {}) : {};
+    final br = room.isNotEmpty ? (room['branches'] ?? {}) : {};
+    final tenant = inv.isNotEmpty ? (inv['tenants'] ?? {}) : {};
+
+    // ฟิลด์แบบ flat (กรณี PromptPay pseudo)
+    final invoiceNumber = (s['invoice_number'] ?? inv['invoice_number'] ?? '-').toString();
+    final tenantName = (s['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
+    final tenantPhone = (s['tenant_phone'] ?? tenant['tenant_phone'] ?? '-').toString();
+    final roomNumber = (s['room_number'] ?? room['room_number'] ?? '-').toString();
+    final branchName = (s['branch_name'] ?? br['branch_name'] ?? '-').toString();
 
     return Card(
       child: Padding(
@@ -264,7 +305,7 @@ class _PaymentVerificationDetailPageState
                 const Icon(Icons.receipt_long, size: 18),
                 const SizedBox(width: 6),
                 Text(
-                  (inv['invoice_number'] ?? '-').toString(),
+                  invoiceNumber,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const Spacer(),
@@ -272,10 +313,10 @@ class _PaymentVerificationDetailPageState
               ],
             ),
             const SizedBox(height: 8),
-            Text('ผู้เช่า: ${tenant['tenant_fullname'] ?? '-'}'),
-            Text('เบอร์: ${tenant['tenant_phone'] ?? '-'}'),
-            Text('ห้อง: ${room['room_number'] ?? '-'}'),
-            Text('สาขา: ${br['branch_name'] ?? '-'}'),
+            Text('ผู้เช่า: $tenantName'),
+            Text('เบอร์: $tenantPhone'),
+            Text('ห้อง: $roomNumber'),
+            Text('สาขา: $branchName'),
             const Divider(height: 20),
             Row(
               children: [
@@ -307,6 +348,21 @@ class _PaymentVerificationDetailPageState
   }
 
   Widget _buildSlipImage() {
+    if (_isPromptPayPseudo) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text('สลิปที่อัปโหลด', style: TextStyle(fontWeight: FontWeight.w700)),
+              SizedBox(height: 8),
+              Text('รายการ PromptPay ที่ยืนยันแล้ว ไม่มีรูปสลิป'),
+            ],
+          ),
+        ),
+      );
+    }
     final url = (_slip?['slip_image'] ?? '').toString();
     return Card(
       child: Padding(
@@ -352,7 +408,7 @@ class _PaymentVerificationDetailPageState
 
   Widget _buildActionBar() {
     final status = (_slip?['slip_status'] ?? 'pending').toString();
-    final canAction = status == 'pending';
+    final canAction = !_isPromptPayPseudo && status == 'pending';
     return Row(
       children: [
         Expanded(
@@ -403,5 +459,23 @@ class _PaymentVerificationDetailPageState
         style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.w600),
       ),
     );
+  }
+
+  Future<void> _printPromptPay() async {
+    try {
+      final s = _slip ?? {};
+      final slipRow = {
+        'invoice_id': (s['invoice_id'] ?? '').toString(),
+        if ((s['payment_id'] ?? '').toString().isNotEmpty)
+          'payment_id': s['payment_id'],
+        'paid_amount': s['paid_amount'] ?? 0,
+        'payment_method': 'promptpay',
+      };
+      await ReceiptPrintService.printSlipFromSlipRow(slipRow);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('พิมพ์สลิปไม่สำเร็จ: $e')));
+    }
   }
 }

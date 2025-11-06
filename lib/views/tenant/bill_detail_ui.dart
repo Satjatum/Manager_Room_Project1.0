@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:manager_room_project/services/invoice_service.dart';
-import 'package:manager_room_project/services/receipt_print_service.dart';
 import 'package:manager_room_project/views/tenant/tenant_pay_bill_ui.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 
@@ -333,32 +332,13 @@ class TenantBillDetailUi extends StatelessWidget {
                     if (status == 'paid')
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () async {
-                            try {
-                              // เลือก payment ล่าสุด (getInvoiceById จัดเรียง desc แล้ว)
-                              final Map<String, dynamic>? latestPayment =
-                                  payments.isNotEmpty ? payments.first : null;
-
-                              final slipRow = <String, dynamic>{
-                                'invoice_id': invoiceId,
-                                if ((latestPayment?['payment_id'] ?? '').toString().isNotEmpty)
-                                  'payment_id': latestPayment!['payment_id'],
-                                'paid_amount': latestPayment?['payment_amount'] ?? data['paid_amount'],
-                                'payment_method': (latestPayment?['payment_method'] ?? '').toString().isNotEmpty
-                                    ? latestPayment?['payment_method']
-                                    : (payments.isNotEmpty ? latestPayment?['payment_method'] : 'promptpay'),
-                              };
-
-                              await ReceiptPrintService.printSlipFromSlipRow(slipRow);
-                            } catch (e) {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('พิมพ์สลิปไม่สำเร็จ: $e')),
-                                );
-                              }
-                            }
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('ดาวน์โหลดสลิป: ยังไม่รองรับ')),
+                            );
                           },
-                          child: const Text('พิมพ์สลิป'),
+                          child: const Text('ดาวน์โหลดสลิป'),
                         ),
                       ),
                   ],
