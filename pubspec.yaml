@@ -38,8 +38,6 @@ dependencies:
   # Shared Preferences
   shared_preferences: ^2.2.2
 
-  # Flutter Stripe
-  flutter_stripe: ^12.1.0
 
   # file picker
   file_picker: ^10.3.3
