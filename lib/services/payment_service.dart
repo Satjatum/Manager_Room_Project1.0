@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth_service.dart';
 import 'invoice_service.dart';
+import 'branch_service.dart';
 
 class PaymentService {
   static final SupabaseClient _supabase = Supabase.instance.client;
@@ -39,7 +40,7 @@ class PaymentService {
         return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
       }
 
-      // Load invoice to get tenant_id
+      // Load invoice to get tenant_id and branch_id
       final invoice = await InvoiceService.getInvoiceById(invoiceId);
       if (invoice == null) {
         return {'success': false, 'message': 'ไม่พบบิล'};
@@ -47,6 +48,16 @@ class PaymentService {
       final tenantId = (invoice['tenant_id'] ?? invoice['tenants']?['tenant_id'])?.toString();
       if (tenantId == null || tenantId.isEmpty) {
         return {'success': false, 'message': 'ไม่พบข้อมูลผู้เช่าในบิล'};
+      }
+
+      // Check global test mode flag from branch (affects all roles)
+      final branchId = invoice['rooms']?['branch_id']?.toString();
+      if (branchId == null || branchId.isEmpty) {
+        return {'success': false, 'message': 'ไม่พบข้อมูลสาขาของบิล'};
+      }
+      final testEnabled = await BranchService.getPromptPayTestMode(branchId);
+      if (!testEnabled) {
+        return {'success': false, 'message': 'โหมดทดสอบ PromptPay ถูกปิดอยู่'};
       }
 
       final paymentNumber = await _generatePaymentNumber();

@@ -14,7 +14,7 @@ import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/views/tenant/bill_list_ui.dart';
 import 'package:manager_room_project/services/auth_service.dart';
 import 'package:manager_room_project/models/user_models.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:manager_room_project/services/branch_service.dart';
 // Use app theme via Theme.of(context).colorScheme instead of fixed colors
 
 class TenantPayBillUi extends StatefulWidget {
@@ -65,8 +65,6 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     setState(() => _loading = true);
     try {
       _currentUser = await AuthService.getCurrentUser();
-      final prefs = await SharedPreferences.getInstance();
-      _ppTestEnabled = prefs.getBool('pp_test_mode_enabled') ?? false;
 
       final inv = await InvoiceService.getInvoiceById(widget.invoiceId);
       if (inv == null) {
@@ -88,6 +86,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       List<Map<String, dynamic>> qrs = [];
       if (branchId != null && branchId.toString().isNotEmpty) {
         qrs = await PaymentService.getBranchQRCodes(branchId);
+        // Read global PromptPay test flag from branch JSON (applies to all roles)
+        _ppTestEnabled = await BranchService.getPromptPayTestMode(branchId);
       }
 
       // กำหนดค่าเริ่มต้นการเลือกประเภท/บัญชี:
@@ -721,10 +721,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
           amount: amt,
           invoiceId: widget.invoiceId,
           qrId: q['qr_id']?.toString(),
-          showTestButton: _ppTestEnabled &&
-              (_currentUser != null &&
-                  (_currentUser!.userRole == UserRole.superAdmin ||
-                      _currentUser!.userRole == UserRole.admin)),
+          // When enabled, show for all roles (superadmin, admin, tenant)
+          showTestButton: _ppTestEnabled,
         ),
       ),
     );
@@ -863,7 +861,7 @@ class _PromptPayQrPage extends StatelessWidget {
                       }
                     },
                     icon: const Icon(Icons.science),
-                    label: const Text('ทดสอบโอนสำเร็จ (ผู้ดูแล)'),
+                    label: const Text('ทดสอบโอนสำเร็จ'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.black87,
                       side: BorderSide(color: Colors.grey[300]!),

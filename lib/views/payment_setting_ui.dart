@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/payment_rate_service.dart';
 import '../services/branch_service.dart';
 import '../services/auth_service.dart';
@@ -42,7 +41,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
 
   final TextEditingController settingDescController = TextEditingController();
   bool isActive = true;
-  // PromptPay Test Mode (local toggle via SharedPreferences)
+  // PromptPay Test Mode flag (global via branches.branch_desc)
   bool enablePromptPayTestMode = false;
 
   @override
@@ -93,9 +92,11 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
         return;
       }
 
-      // Load local PromptPay test mode toggle
-      final prefs = await SharedPreferences.getInstance();
-      enablePromptPayTestMode = prefs.getBool('pp_test_mode_enabled') ?? false;
+      // Load PromptPay test mode from branch JSON (global effect)
+      final initBranchId = widget.branchId ?? selectedBranchId;
+      if (initBranchId != null) {
+        enablePromptPayTestMode = await BranchService.getPromptPayTestMode(initBranchId);
+      }
 
       if (branchesData.isEmpty) {
         if (mounted) {
@@ -413,7 +414,8 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                             const SizedBox(height: 16),
                             _buildDiscountCard(),
                             const SizedBox(height: 16),
-                            if (currentUser != null && (currentUser!.userRole == UserRole.superAdmin || currentUser!.userRole == UserRole.admin))
+                            // Toggle visible only for Admin (per requirement)
+                            if (currentUser != null && (currentUser!.userRole == UserRole.admin))
                               _buildPromptPayTestModeCard(),
                             const SizedBox(height: 24),
                             SizedBox(
@@ -477,10 +479,18 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                 Switch(
                   value: enablePromptPayTestMode,
                   onChanged: (v) async {
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setBool('pp_test_mode_enabled', v);
-                    setState(() => enablePromptPayTestMode = v);
-                    _showSuccessSnackBar(v ? 'เปิดโหมดทดสอบ PromptPay แล้ว' : 'ปิดโหมดทดสอบ PromptPay แล้ว');
+                    if (selectedBranchId == null) return;
+                    final res = await BranchService.setPromptPayTestMode(
+                      branchId: selectedBranchId!,
+                      enabled: v,
+                    );
+                    if (!mounted) return;
+                    if (res['success'] == true) {
+                      setState(() => enablePromptPayTestMode = v);
+                      _showSuccessSnackBar(res['message'] ?? 'อัปเดตโหมดทดสอบเรียบร้อย');
+                    } else {
+                      _showError(res['message'] ?? 'ไม่สามารถอัปเดตโหมดทดสอบได้');
+                    }
                   },
                   activeColor: const Color(0xff10B981),
                 ),
