@@ -215,7 +215,8 @@ class PaymentService {
                 branches!inner(branch_name, branch_code)
               ),
               tenants!inner(tenant_id, tenant_fullname, tenant_phone)
-            )
+            ),
+            branch_payment_qr:branch_payment_qr!left(qr_id,promptpay_id,bank_name,account_name,account_number)
           ''');
 
       if (status.isNotEmpty && status != 'all') {
@@ -246,6 +247,8 @@ class PaymentService {
         final room = inv['rooms'] ?? {};
         final br = room['branches'] ?? {};
         final tenant = inv['tenants'] ?? {};
+        final qr = row['branch_payment_qr'] ?? {};
+        final isPromptPay = ((qr['promptpay_id'] ?? '').toString().isNotEmpty);
         return {
           ...row,
           'invoice_number': inv['invoice_number'],
@@ -256,6 +259,9 @@ class PaymentService {
           'branch_name': br['branch_name'],
           'tenant_name': tenant['tenant_fullname'],
           'tenant_phone': tenant['tenant_phone'],
+          // convenience fields
+          'is_promptpay': isPromptPay,
+          'payment_method': isPromptPay ? 'promptpay' : 'transfer',
         };
       }).toList();
 
