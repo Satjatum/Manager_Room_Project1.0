@@ -176,7 +176,7 @@ class PaymentService {
   // ADMIN: Slip Review APIs
   // ======================
 
-  // List payment slips with joins for admin review
+  // List payment slips for admin review (no DB joins to avoid schema-cache relationship issues)
   static Future<List<Map<String, dynamic>>> listPaymentSlips({
     String status = 'pending',
     String? branchId,
@@ -187,44 +187,81 @@ class PaymentService {
     int offset = 0,
   }) async {
     try {
-      // If branchId is provided, prefetch room_ids for that branch to avoid deep 2-level filters
-      List<String>? allowedRoomIds;
+      // If branch filter is present, prefetch invoices of rooms in that branch
+      List<String>? invoiceIdFilter;
+      Map<String, Map<String, dynamic>> invoicesById = {};
+      Map<String, Map<String, dynamic>> roomsById = {};
+      Map<String, Map<String, dynamic>> tenantsById = {};
+      Map<String, Map<String, dynamic>> branchesById = {};
+
       if (branchId != null && branchId.isNotEmpty) {
         final roomRows = await _supabase
             .from('rooms')
-            .select('room_id')
+            .select('room_id,branch_id')
             .eq('branch_id', branchId);
-        final ids = List<Map<String, dynamic>>.from(roomRows)
+        final roomIds = List<Map<String, dynamic>>.from(roomRows)
             .map((r) => r['room_id'])
             .where((id) => id != null)
             .map<String>((id) => id.toString())
-            .where((id) => id.isNotEmpty)
             .toList();
-        if (ids.isEmpty) {
+        if (roomIds.isEmpty) {
           return [];
         }
-        allowedRoomIds = ids;
+
+        final invRows = await _supabase
+            .from('invoices')
+            .select('invoice_id, invoice_number, total_amount, paid_amount, room_id, tenant_id, due_date')
+            .inFilter('room_id', roomIds);
+        final invList = List<Map<String, dynamic>>.from(invRows);
+        invoiceIdFilter = invList.map((r) => r['invoice_id'].toString()).toList();
+        invoicesById = {for (final r in invList) r['invoice_id'].toString(): r};
+
+        // batch fetch rooms, tenants, branches for enrichment
+        final roomMap = {for (final r in roomRows) r['room_id'].toString(): r};
+        roomsById = Map<String, Map<String, dynamic>>.from(roomMap);
+
+        final tenantIds = invList
+            .map((r) => r['tenant_id'])
+            .where((v) => v != null)
+            .map((v) => v.toString())
+            .toSet()
+            .toList();
+        if (tenantIds.isNotEmpty) {
+          final tenRows = await _supabase
+              .from('tenants')
+              .select('tenant_id, tenant_fullname, tenant_phone')
+              .inFilter('tenant_id', tenantIds);
+          tenantsById = {
+            for (final r in List<Map<String, dynamic>>.from(tenRows))
+              r['tenant_id'].toString(): r
+          };
+        }
+
+        final brIds = roomRows
+            .map((r) => r['branch_id'])
+            .where((v) => v != null)
+            .map((v) => v.toString())
+            .toSet()
+            .toList();
+        if (brIds.isNotEmpty) {
+          final brRows = await _supabase
+              .from('branches')
+              .select('branch_id, branch_name, branch_code')
+              .inFilter('branch_id', brIds);
+          branchesById = {
+            for (final r in List<Map<String, dynamic>>.from(brRows))
+              r['branch_id'].toString(): r
+          };
+        }
       }
 
-      var query = _supabase
-          .from('payment_slips')
-          .select('''
-            *,
-            invoices!inner(*,
-              rooms!inner(room_id, room_number, branch_id,
-                branches!inner(branch_name, branch_code)
-              ),
-              tenants!inner(tenant_id, tenant_fullname, tenant_phone)
-            ),
-            branch_payment_qr:branch_payment_qr!left(qr_id,promptpay_id,bank_name,account_name,account_number)
-          ''');
+      var query = _supabase.from('payment_slips').select('*');
 
       if (status.isNotEmpty && status != 'all') {
         query = query.eq('slip_status', status);
       }
-      // Use IN filter on invoices.room_id to avoid unsupported deep two-level filters
-      if (allowedRoomIds != null) {
-        query = query.inFilter('invoices.room_id', allowedRoomIds);
+      if (invoiceIdFilter != null) {
+        query = query.inFilter('invoice_id', invoiceIdFilter);
       }
       if (startDate != null) {
         query = query.gte('payment_date', startDate.toIso8601String());
@@ -233,21 +270,114 @@ class PaymentService {
         query = query.lte('payment_date', endDate.toIso8601String());
       }
       if (search != null && search.isNotEmpty) {
-        // Avoid deep 2-level filters here; filter invoice_number on server,
-        // and apply tenant name/phone filtering client-side after fetch
-        query = query.ilike('invoices.invoice_number', '%$search%');
+        // Filter by slip_number or paid_amount text; invoice_number handled client-side after enrichment
+        query = query.or('slip_number.ilike.%$search%,paid_amount::text.ilike.%$search%');
       }
 
       final res = await query
           .order('created_at', ascending: false)
           .range(offset, offset + limit - 1);
 
-      var list = List<Map<String, dynamic>>.from(res).map((row) {
-        final inv = row['invoices'] ?? {};
-        final room = inv['rooms'] ?? {};
-        final br = room['branches'] ?? {};
-        final tenant = inv['tenants'] ?? {};
-        final qr = row['branch_payment_qr'] ?? {};
+      var slips = List<Map<String, dynamic>>.from(res);
+
+      // If no branch prefetch, batch-fetch all needed invoice/room/tenant/branch/qr data
+      if (invoiceIdFilter == null) {
+        final invIds = slips
+            .map((r) => r['invoice_id'])
+            .where((v) => v != null)
+            .map((v) => v.toString())
+            .toSet()
+            .toList();
+        if (invIds.isNotEmpty) {
+          final invRows = await _supabase
+              .from('invoices')
+              .select('invoice_id, invoice_number, total_amount, paid_amount, room_id, tenant_id, due_date')
+              .inFilter('invoice_id', invIds);
+          invoicesById = {
+            for (final r in List<Map<String, dynamic>>.from(invRows))
+              r['invoice_id'].toString(): r
+          };
+
+          final roomIds = invoicesById.values
+              .map((r) => r['room_id'])
+              .where((v) => v != null)
+              .map((v) => v.toString())
+              .toSet()
+              .toList();
+          if (roomIds.isNotEmpty) {
+            final roomRows2 = await _supabase
+                .from('rooms')
+                .select('room_id, room_number, branch_id')
+                .inFilter('room_id', roomIds);
+            roomsById = {
+              for (final r in List<Map<String, dynamic>>.from(roomRows2))
+                r['room_id'].toString(): r
+            };
+
+            final brIds2 = roomsById.values
+                .map((r) => r['branch_id'])
+                .where((v) => v != null)
+                .map((v) => v.toString())
+                .toSet()
+                .toList();
+            if (brIds2.isNotEmpty) {
+              final brRows2 = await _supabase
+                  .from('branches')
+                  .select('branch_id, branch_name, branch_code')
+                  .inFilter('branch_id', brIds2);
+              branchesById = {
+                for (final r in List<Map<String, dynamic>>.from(brRows2))
+                  r['branch_id'].toString(): r
+              };
+            }
+          }
+
+          final tenantIds2 = invoicesById.values
+              .map((r) => r['tenant_id'])
+              .where((v) => v != null)
+              .map((v) => v.toString())
+              .toSet()
+              .toList();
+          if (tenantIds2.isNotEmpty) {
+            final tenRows2 = await _supabase
+                .from('tenants')
+                .select('tenant_id, tenant_fullname, tenant_phone')
+                .inFilter('tenant_id', tenantIds2);
+            tenantsById = {
+              for (final r in List<Map<String, dynamic>>.from(tenRows2))
+                r['tenant_id'].toString(): r
+            };
+          }
+        }
+      }
+
+      // Classify method via branch_payment_qr for those with qr_id
+      final qrIds = slips
+          .map((r) => r['qr_id'])
+          .where((v) => v != null)
+          .map((v) => v.toString())
+          .toSet()
+          .toList();
+      Map<String, Map<String, dynamic>> qrsById = {};
+      if (qrIds.isNotEmpty) {
+        final qrRows = await _supabase
+            .from('branch_payment_qr')
+            .select('qr_id,promptpay_id,bank_name,account_name,account_number')
+            .inFilter('qr_id', qrIds);
+        qrsById = {
+          for (final r in List<Map<String, dynamic>>.from(qrRows))
+            r['qr_id'].toString(): r
+        };
+      }
+
+      var list = slips.map((row) {
+        final inv = invoicesById[row['invoice_id']?.toString()] ?? {};
+        final room = roomsById[inv['room_id']?.toString()] ?? {};
+        final br = branchesById[room['branch_id']?.toString()] ?? {};
+        final tenant = tenantsById[inv['tenant_id']?.toString()] ?? {};
+        final qr = row['qr_id'] != null
+            ? (qrsById[row['qr_id']?.toString()] ?? {})
+            : {};
         final isPromptPay = ((qr['promptpay_id'] ?? '').toString().isNotEmpty);
         return {
           ...row,
