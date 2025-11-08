@@ -696,10 +696,13 @@ class _RoomEditUIState extends State<RoomEditUI> {
               .eq('room_id', widget.roomId);
 
           if (_selectedAmenities.isNotEmpty) {
+            final String? effectiveBranchId =
+                _selectedBranchId ?? _currentUser?.branchId;
             for (String amenityId in _selectedAmenities) {
               await _supabase.from('room_amenities').insert({
                 'room_id': widget.roomId,
                 'amenity_id': amenityId,
+                'branch_id': effectiveBranchId,
               });
             }
           }

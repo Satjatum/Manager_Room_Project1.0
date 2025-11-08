@@ -589,14 +589,17 @@ class _RoomAddUIState extends State<RoomAddUI> {
         setState(() => _isLoading = false);
 
         if (result['success']) {
-          // บันทึก amenities ถ้ามีการเลือก
+          // บันทึก amenities ถ้ามีการเลือก (ต้องระบุ branch_id ด้วย)
           if (_selectedAmenities.isNotEmpty && result['data'] != null) {
             final roomId = result['data']['room_id'];
+            final String? effectiveBranchId =
+                _selectedBranchId ?? result['data']['branch_id'] ?? _currentUser?.branchId;
             try {
               for (String amenityId in _selectedAmenities) {
                 await _supabase.from('room_amenities').insert({
                   'room_id': roomId,
                   'amenity_id': amenityId,
+                  'branch_id': effectiveBranchId,
                 });
               }
             } catch (e) {
