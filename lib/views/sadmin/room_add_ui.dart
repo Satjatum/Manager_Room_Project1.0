@@ -109,9 +109,11 @@ class _RoomAddUIState extends State<RoomAddUI> {
 
     try {
       final branches = await BranchService.getBranchesByUser();
-      final roomTypes = await RoomService.getRoomTypes();
-      final roomCategories = await RoomService.getRoomCategories();
-      final amenities = await RoomService.getAmenities();
+      // ดึงข้อมูลตามสาขาที่เลือก (ถ้ามี) ไม่เช่นนั้นใช้สาขาของผู้ใช้
+      final String? effectiveBranchId = _selectedBranchId ?? _currentUser?.branchId;
+      final roomTypes = await RoomService.getRoomTypes(branchId: effectiveBranchId);
+      final roomCategories = await RoomService.getRoomCategories(branchId: effectiveBranchId);
+      final amenities = await RoomService.getAmenities(branchId: effectiveBranchId);
 
       if (mounted) {
         setState(() {
