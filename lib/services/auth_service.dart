@@ -6,6 +6,10 @@ class AuthService {
   static final SupabaseClient _supabase = Supabase.instance.client;
   static const String _sessionKey = 'user_session';
   static const String _userIdKey = 'current_user_id';
+  // Device-wide lockout keys (not per-account)
+  static const String _failCountKey = 'login_fail_count';
+  static const String _lockUntilKey = 'login_lock_until';
+  static const String _lockLevelKey = 'login_lock_level'; // 0:15m,1:30m,2:60m (cap)
 
   // Initialize session on app start
   static Future<void> initializeSession() async {
@@ -34,13 +38,31 @@ class AuthService {
     required String password,
   }) async {
     try {
+      // Check device-wide lockout before any request
+      final lockInfo = await getLockStatus();
+      if (lockInfo['locked'] == true) {
+        final remaining = lockInfo['remaining'] as Duration?;
+        final minutes = (remaining?.inMinutes ?? 0).toString();
+        final seconds = (remaining != null)
+            ? (remaining.inSeconds % 60).toString().padLeft(2, '0')
+            : '00';
+        return {
+          'success': false,
+          'message':
+              'คุณล็อคอินผิดครบตามจำนวนแล้ว โปรดลองใหม่ภายหลัง (${minutes}:${seconds})',
+        };
+      }
+
       // Query user by email or username
-      final userQuery = await _supabase
-          .from('users')
-          .select('*')
-          .or('user_email.eq.$emailOrUsername,user_name.eq.$emailOrUsername')
-          .eq('is_active', true)
-          .single();
+      final userQuery = await _findActiveUserByEmailOrUsername(emailOrUsername);
+
+      if (userQuery == null) {
+        await _recordFailedAttempt();
+        return {
+          'success': false,
+          'message': 'ไม่พบผู้ใช้งานนี้ในระบบ',
+        };
+      }
 
       // Verify password using database function
       final passwordCheck = await _supabase.rpc('verify_password', params: {
@@ -49,6 +71,7 @@ class AuthService {
       });
 
       if (!passwordCheck) {
+        await _recordFailedAttempt();
         return {
           'success': false,
           'message': 'รหัสผ่านไม่ถูกต้อง',
@@ -81,21 +104,13 @@ class AuthService {
       // Store session locally
       await _storeUserSession(user.userId, sessionToken);
 
+      // Reset failures on success
+      await _resetFailedAttempts();
+
       return {
         'success': true,
         'user': user,
         'message': 'เข้าสู่ระบบสำเร็จ',
-      };
-    } on PostgrestException catch (e) {
-      if (e.code == 'PGRST116') {
-        return {
-          'success': false,
-          'message': 'ไม่พบผู้ใช้งานนี้ในระบบ',
-        };
-      }
-      return {
-        'success': false,
-        'message': 'เกิดข้อผิดพลาด: ${e.message}',
       };
     } catch (e) {
       return {
@@ -103,6 +118,28 @@ class AuthService {
         'message': 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ: $e',
       };
     }
+  }
+
+  // Safer user lookup to avoid building raw filter strings
+  static Future<Map<String, dynamic>?> _findActiveUserByEmailOrUsername(
+      String value) async {
+    // Try by email
+    final byEmail = await _supabase
+        .from('users')
+        .select('*')
+        .eq('user_email', value)
+        .eq('is_active', true)
+        .maybeSingle();
+    if (byEmail != null) return byEmail;
+
+    // Try by username
+    final byUsername = await _supabase
+        .from('users')
+        .select('*')
+        .eq('user_name', value)
+        .eq('is_active', true)
+        .maybeSingle();
+    return byUsername;
   }
 
   // Get user with additional info
@@ -444,6 +481,75 @@ class AuthService {
         'success': false,
         'message': 'เกิดข้อผิดพลาด: $e',
       };
+    }
+  }
+
+  // ========== Device-wide lockout helpers ==========
+  static Future<Map<String, dynamic>> getLockStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lockUntilIso = prefs.getString(_lockUntilKey);
+    if (lockUntilIso == null) {
+      return {'locked': false, 'remaining': Duration.zero};
+    }
+    final lockUntil = DateTime.tryParse(lockUntilIso);
+    if (lockUntil == null) {
+      await prefs.remove(_lockUntilKey);
+      return {'locked': false, 'remaining': Duration.zero};
+    }
+    final now = DateTime.now();
+    if (now.isBefore(lockUntil)) {
+      return {'locked': true, 'remaining': lockUntil.difference(now)};
+    }
+    // expired
+    await prefs.remove(_lockUntilKey);
+    return {'locked': false, 'remaining': Duration.zero};
+  }
+
+  static Future<bool> isDeviceLocked() async {
+    final status = await getLockStatus();
+    return status['locked'] == true;
+  }
+
+  static Future<void> _recordFailedAttempt() async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = prefs.getInt(_failCountKey) ?? 0;
+    final newCount = current + 1;
+    await prefs.setInt(_failCountKey, newCount);
+    if (newCount >= 3) {
+      // apply lock and escalate level
+      await _applyLockout();
+      await prefs.setInt(_failCountKey, 0);
+    }
+  }
+
+  static Future<void> _resetFailedAttempts() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_failCountKey, 0);
+    // Do NOT reset level; requirement doesn't specify demotion
+  }
+
+  static Future<void> _applyLockout() async {
+    final prefs = await SharedPreferences.getInstance();
+    int level = prefs.getInt(_lockLevelKey) ?? 0; // 0,1,2 capped
+    Duration duration;
+    switch (level) {
+      case 0:
+        duration = const Duration(minutes: 15);
+        break;
+      case 1:
+        duration = const Duration(minutes: 30);
+        break;
+      default:
+        duration = const Duration(hours: 1);
+        break;
+    }
+    final lockUntil = DateTime.now().add(duration).toIso8601String();
+    await prefs.setString(_lockUntilKey, lockUntil);
+    // escalate level (cap at 2)
+    if (level < 2) {
+      await prefs.setInt(_lockLevelKey, level + 1);
+    } else {
+      await prefs.setInt(_lockLevelKey, 2);
     }
   }
 }
