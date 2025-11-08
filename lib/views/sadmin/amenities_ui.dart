@@ -882,45 +882,193 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
                         : LayoutBuilder(
                             builder: (context, constraints) {
                               final width = constraints.maxWidth;
-                              // Mobile: auto-fit columns by max width per tile
                               final bool isMobile = width < 768;
-                              final gridDelegate = isMobile
-                                  ? SliverGridDelegateWithMaxCrossAxisExtent(
-                                      maxCrossAxisExtent: 220,
-                                      crossAxisSpacing: 12,
-                                      mainAxisSpacing: 12,
-                                      childAspectRatio: 1.05,
-                                    )
-                                  : (() {
-                                      int cols = 2;
-                                      if (width >= 2560) {
-                                        cols = 5;
-                                      } else if (width >= 1440) {
-                                        cols = 4;
-                                      } else if (width >= 1024) {
-                                        cols = 3;
-                                      } else if (width < 480) {
-                                        cols = 1;
-                                      }
-                                      return SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: cols,
-                                        crossAxisSpacing: 12,
-                                        mainAxisSpacing: 12,
-                                        childAspectRatio: 1.05,
-                                      );
-                                    })();
+
+                              if (isMobile) {
+                                // Mobile: Wrap-based auto-fit. Each tile expands based on its content
+                                return SingleChildScrollView(
+                                  physics: AlwaysScrollableScrollPhysics(),
+                                  padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
+                                  child: Wrap(
+                                    spacing: 12,
+                                    runSpacing: 12,
+                                    children: List.generate(
+                                      _filteredAmenities.length,
+                                      (index) {
+                                        final amenity =
+                                            _filteredAmenities[index];
+                                        return ConstrainedBox(
+                                          constraints: BoxConstraints(
+                                            minWidth: 160,
+                                            maxWidth: 260,
+                                          ),
+                                          child: InkWell(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            onTap: () => _showAddEditDialog(
+                                                amenity: amenity),
+                                            child: Stack(
+                                              children: [
+                                                Container(
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    borderRadius:
+                                                        BorderRadius
+                                                            .circular(12),
+                                                    border: Border.all(
+                                                      color:
+                                                          Colors.grey[300]!,
+                                                    ),
+                                                  ),
+                                                  padding:
+                                                      EdgeInsets.all(12),
+                                                  child: Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      SizedBox(height: 6),
+                                                      Container(
+                                                        padding:
+                                                            EdgeInsets.all(
+                                                                16),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: Colors
+                                                              .orange
+                                                              .withOpacity(
+                                                                  0.08),
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                                      12),
+                                                          border:
+                                                              Border.all(
+                                                            color: Colors
+                                                                .orange
+                                                                .withOpacity(
+                                                                    0.25),
+                                                          ),
+                                                        ),
+                                                        child: Icon(
+                                                          _getIconData(amenity[
+                                                              'amenities_icon']),
+                                                          color:
+                                                              Colors.orange,
+                                                          size: 40,
+                                                        ),
+                                                      ),
+                                                      SizedBox(height: 12),
+                                                      Text(
+                                                        amenity[
+                                                                'amenities_name'] ??
+                                                            '',
+                                                        style: TextStyle(
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                        ),
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                Positioned(
+                                                  right: 4,
+                                                  top: 4,
+                                                  child:
+                                                      PopupMenuButton<String>(
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius
+                                                              .circular(12),
+                                                    ),
+                                                    onSelected: (value) {
+                                                      if (value == 'edit') {
+                                                        _showAddEditDialog(
+                                                            amenity: amenity);
+                                                      } else if (value ==
+                                                          'delete') {
+                                                        _deleteAmenity(
+                                                            amenity);
+                                                      }
+                                                    },
+                                                    itemBuilder: (context) => [
+                                                      PopupMenuItem(
+                                                        value: 'edit',
+                                                        child: Row(
+                                                          children: [
+                                                            Icon(Icons.edit,
+                                                                color: Colors
+                                                                    .blue),
+                                                            SizedBox(width: 8),
+                                                            Text('แก้ไข'),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      PopupMenuItem(
+                                                        value: 'delete',
+                                                        child: Row(
+                                                          children: [
+                                                            Icon(Icons.delete,
+                                                                color: Colors
+                                                                    .red),
+                                                            SizedBox(width: 8),
+                                                            Text('ลบ'),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                    icon: Icon(
+                                                      Icons.more_vert,
+                                                      color: Colors
+                                                          .grey[700],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              // Larger screens: responsive fixed columns grid
+                              int cols = 2;
+                              if (width >= 2560) {
+                                cols = 5;
+                              } else if (width >= 1440) {
+                                cols = 4;
+                              } else if (width >= 1024) {
+                                cols = 3;
+                              } else if (width < 480) {
+                                cols = 1;
+                              }
 
                               return GridView.builder(
                                 physics: AlwaysScrollableScrollPhysics(),
                                 padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
-                                gridDelegate: gridDelegate,
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: cols,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 1.05,
+                                ),
                                 itemCount: _filteredAmenities.length,
                                 itemBuilder: (context, index) {
                                   final amenity = _filteredAmenities[index];
                                   return InkWell(
                                     borderRadius: BorderRadius.circular(12),
-                                    onTap: () =>
-                                        _showAddEditDialog(amenity: amenity),
+                                    onTap: () => _showAddEditDialog(
+                                        amenity: amenity),
                                     child: Stack(
                                       children: [
                                         Container(
@@ -949,22 +1097,25 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
                                                   ),
                                                 ),
                                                 child: Icon(
-                                                  _getIconData(
-                                                      amenity['amenities_icon']),
+                                                  _getIconData(amenity[
+                                                      'amenities_icon']),
                                                   color: Colors.orange,
                                                   size: 40,
                                                 ),
                                               ),
                                               SizedBox(height: 12),
                                               Text(
-                                                amenity['amenities_name'] ?? '',
+                                                amenity['amenities_name'] ??
+                                                    '',
                                                 style: TextStyle(
                                                   fontSize: 14,
-                                                  fontWeight: FontWeight.w700,
+                                                  fontWeight:
+                                                      FontWeight.w700,
                                                 ),
                                                 textAlign: TextAlign.center,
                                                 maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
+                                                overflow:
+                                                    TextOverflow.ellipsis,
                                               ),
                                             ],
                                           ),
