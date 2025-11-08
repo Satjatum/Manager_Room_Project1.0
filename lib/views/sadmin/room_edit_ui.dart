@@ -539,8 +539,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
         await _supabase
             .from('room_images')
             .delete()
-            .eq('image_id', imageId)
-            .eq('room_id', widget.roomId);
+            .match({'image_id': imageId, 'room_id': widget.roomId});
         if (url != null && url!.isNotEmpty) {
           try {
             await ImageService.deleteImage(url!);
@@ -692,14 +691,12 @@ class _RoomEditUIState extends State<RoomEditUI> {
             try {
               for (int i = 0; i < _allImages.length; i++) {
                 final it = _allImages[i];
-                if (it.imageId != null) {
+                if (it.imageId != null && it.imageId!.isNotEmpty) {
                   // Update existing row metadata
                   await _supabase.from('room_images').update({
                     'is_primary': it.isPrimary,
                     'display_order': i,
-                  })
-                  .eq('image_id', it.imageId)
-                  .eq('room_id', widget.roomId);
+                  }).match({'image_id': it.imageId, 'room_id': widget.roomId});
                 } else {
                   // New image -> upload then insert
                   final ext = it.name.split('.').last.toLowerCase();
