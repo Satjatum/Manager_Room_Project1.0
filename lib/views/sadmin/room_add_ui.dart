@@ -802,40 +802,40 @@ class _RoomAddUIState extends State<RoomAddUI> {
   }
 
   Widget _buildCustomHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[300]!, width: 1)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.all(24),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
-            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
             tooltip: 'ย้อนกลับ',
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              children: const [
                 Text(
-                  widget.branchName != null
-                      ? 'เพิ่มห้องพัก - ${widget.branchName}'
-                      : 'เพิ่มห้องพักใหม่',
-                  style: const TextStyle(
-                    fontSize: 20,
+                  'Room Management',
+                  style: TextStyle(
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 4),
                 Text(
-                  widget.branchName != null
-                      ? 'สร้างห้องพักใหม่สำหรับสาขาที่เลือก'
-                      : 'สร้างห้องพักใหม่และกำหนดสาขา',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  'Manage your rooms and details',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black54,
+                  ),
                 ),
               ],
             ),
