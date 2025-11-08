@@ -460,7 +460,7 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
                         Text(
-                          'Room Type Management',
+                          'ประเภทห้อง',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -469,11 +469,8 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'Manage room types and icons',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.black54,
-                          ),
+                          'สำหรับจัดการประเภทห้องของที่พัก',
+                          style: TextStyle(fontSize: 14, color: Colors.black54),
                         ),
                       ],
                     ),
@@ -481,12 +478,12 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                 ],
               ),
             ),
-            // Search
+            // Search (match amenities style)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.grey[300]!),
                 ),
@@ -506,8 +503,6 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                             },
                           )
                         : null,
-                    filled: true,
-                    fillColor: Colors.white,
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
@@ -532,7 +527,11 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                         physics: AlwaysScrollableScrollPhysics(),
                         children: [
                           SizedBox(height: 120),
-                          Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+                          Center(
+                            child: CircularProgressIndicator(
+                              color: AppTheme.primary,
+                            ),
+                          ),
                         ],
                       )
                     : _filteredRoomTypes.isEmpty
@@ -544,11 +543,20 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.category_outlined, size: 80, color: Colors.grey[400]),
+                                    Icon(
+                                      Icons.category_outlined,
+                                      size: 80,
+                                      color: Colors.grey[400],
+                                    ),
                                     SizedBox(height: 16),
                                     Text(
-                                      _searchQuery.isNotEmpty ? 'ไม่พบประเภทห้องที่ค้นหา' : 'ยังไม่มีประเภทห้อง',
-                                      style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                                      _searchQuery.isNotEmpty
+                                          ? 'ไม่พบประเภทห้องที่ค้นหา'
+                                          : 'ยังไม่มีประเภทห้อง',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.grey[600],
+                                      ),
                                     ),
                                     SizedBox(height: 24),
                                     ElevatedButton.icon(
@@ -558,7 +566,8 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: AppTheme.primary,
                                         foregroundColor: Colors.white,
-                                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 24, vertical: 12),
                                       ),
                                     ),
                                   ],
@@ -572,42 +581,411 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                               final bool isMobile = width < 768;
 
                               if (isMobile) {
+                                // Mobile: Wrap-based auto-fit, like amenities
                                 return SingleChildScrollView(
                                   physics: AlwaysScrollableScrollPhysics(),
                                   padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
                                   child: Wrap(
                                     spacing: 12,
                                     runSpacing: 12,
-                                    children: List.generate(_filteredRoomTypes.length, (index) {
+                                    children: List.generate(
+                                        _filteredRoomTypes.length, (index) {
                                       final t = _filteredRoomTypes[index];
-                                      return ConstrainedBox(
-                                        constraints: BoxConstraints(minWidth: 160, maxWidth: 260),
-                                        child: _typeCard(context, t),
+                                      return Container(
+                                        width: double.infinity,
+                                        child: InkWell(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          onTap: () =>
+                                              _showAddEditDialog(roomType: t),
+                                          child: Stack(
+                                            children: [
+                                              Container(
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                    color: Colors.grey[300]!,
+                                                  ),
+                                                ),
+                                                padding: EdgeInsets.all(12),
+                                                child: Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Align(
+                                                      alignment:
+                                                          Alignment.topRight,
+                                                      child: PopupMenuButton<
+                                                          String>(
+                                                        shape:
+                                                            RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                            12,
+                                                          ),
+                                                        ),
+                                                        onSelected: (value) {
+                                                          if (value == 'edit') {
+                                                            _showAddEditDialog(
+                                                              roomType: t,
+                                                            );
+                                                          } else if (value ==
+                                                              'delete') {
+                                                            _deleteRoomType(t);
+                                                          }
+                                                        },
+                                                        itemBuilder:
+                                                            (context) => [
+                                                          PopupMenuItem(
+                                                            value: 'edit',
+                                                            child: Row(
+                                                              children: [
+                                                                Icon(
+                                                                  Icons.edit,
+                                                                  color: Colors
+                                                                      .blue,
+                                                                ),
+                                                                SizedBox(
+                                                                    width: 8),
+                                                                Text('แก้ไข'),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          PopupMenuItem(
+                                                            value: 'delete',
+                                                            child: Row(
+                                                              children: [
+                                                                Icon(
+                                                                  Icons.delete,
+                                                                  color: Colors
+                                                                      .red,
+                                                                ),
+                                                                SizedBox(
+                                                                    width: 8),
+                                                                Text('ลบ'),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ],
+                                                        icon: Icon(
+                                                          Icons.more_vert,
+                                                          color:
+                                                              Colors.grey[700],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 6),
+                                                    Container(
+                                                      padding:
+                                                          EdgeInsets.all(16),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.orange
+                                                            .withOpacity(0.08),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(
+                                                          12,
+                                                        ),
+                                                        border: Border.all(
+                                                          color: Colors.orange
+                                                              .withOpacity(
+                                                                  0.25),
+                                                        ),
+                                                      ),
+                                                      child: Icon(
+                                                        _getIconData(
+                                                          t['roomtype_icon']
+                                                              ?.toString(),
+                                                        ),
+                                                        color: Colors.orange,
+                                                        size: 40,
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 12),
+                                                    Text(
+                                                      t['roomtype_name'] ??
+                                                          '',
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                       );
                                     }),
                                   ),
                                 );
                               }
 
+                              // Larger screens: responsive fixed columns grid (like amenities)
                               int cols = 2;
-                              if (width >= 2560) cols = 5;
-                              else if (width >= 1440) cols = 4;
-                              else if (width >= 1024) cols = 3;
-                              else if (width < 480) cols = 1;
+                              if (width <= 320) {
+                                cols = 1; // Mobile S
+                              } else if (width <= 375) {
+                                cols = 1; // Mobile M
+                              } else if (width <= 425) {
+                                cols = 2; // Mobile L
+                              } else if (width <= 768) {
+                                cols = 3; // Tablet
+                              } else if (width <= 1024) {
+                                cols = 4; // Laptop
+                              } else if (width <= 1440) {
+                                cols = 5; // Laptop L
+                              } else {
+                                cols = 6; // Larger
+                              }
+
+                              final double aspect = (width <= 425)
+                                  ? 0.85
+                                  : (width <= 768 ? 0.9 : 1.50);
 
                               return GridView.builder(
                                 physics: AlwaysScrollableScrollPhysics(),
-                                padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
-                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                padding: EdgeInsets.fromLTRB(12, 10, 12, 20),
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: cols,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: 1.15,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                  childAspectRatio: aspect,
                                 ),
                                 itemCount: _filteredRoomTypes.length,
                                 itemBuilder: (context, index) {
                                   final t = _filteredRoomTypes[index];
-                                  return _typeCard(context, t);
+
+                                  if (width <= 375) {
+                                    return InkWell(
+                                      borderRadius: BorderRadius.circular(12),
+                                      onTap: () => _showAddEditDialog(roomType: t),
+                                      child: Container(
+                                        width: double.infinity,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: Colors.grey[300]!,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.all(20),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: Colors.orange
+                                                    .withOpacity(0.08),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: Colors.orange
+                                                      .withOpacity(0.25),
+                                                ),
+                                              ),
+                                              child: Icon(
+                                                _getIconData(
+                                                  t['roomtype_icon']
+                                                      ?.toString(),
+                                                ),
+                                                color: Colors.orange,
+                                                size: 32,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                t['roomtype_name'] ?? '',
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight:
+                                                      FontWeight.w700,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            PopupMenuButton<String>(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              onSelected: (value) {
+                                                if (value == 'edit') {
+                                                  _showAddEditDialog(
+                                                    roomType: t,
+                                                  );
+                                                } else if (value == 'delete') {
+                                                  _deleteRoomType(t);
+                                                }
+                                              },
+                                              itemBuilder: (context) => const [
+                                                PopupMenuItem(
+                                                  value: 'edit',
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.edit,
+                                                        color: Colors.blue,
+                                                      ),
+                                                      SizedBox(width: 8),
+                                                      Text('แก้ไข'),
+                                                    ],
+                                                  ),
+                                                ),
+                                                PopupMenuItem(
+                                                  value: 'delete',
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.delete,
+                                                        color: Colors.red,
+                                                      ),
+                                                      SizedBox(width: 8),
+                                                      Text('ลบ'),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                              icon: Icon(
+                                                Icons.more_vert,
+                                                color: Colors.grey[700],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }
+
+                                  return InkWell(
+                                    borderRadius: BorderRadius.circular(12),
+                                    onTap: () =>
+                                        _showAddEditDialog(roomType: t),
+                                    child: Stack(
+                                      children: [
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: Colors.grey[300]!,
+                                            ),
+                                          ),
+                                          padding: EdgeInsets.all(12),
+                                          child: Column(
+                                            children: [
+                                              Align(
+                                                alignment: Alignment.topRight,
+                                                child: PopupMenuButton<String>(
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                  ),
+                                                  onSelected: (value) {
+                                                    if (value == 'edit') {
+                                                      _showAddEditDialog(
+                                                        roomType: t,
+                                                      );
+                                                    } else if (value ==
+                                                        'delete') {
+                                                      _deleteRoomType(t);
+                                                    }
+                                                  },
+                                                  itemBuilder: (context) => [
+                                                    PopupMenuItem(
+                                                      value: 'edit',
+                                                      child: Row(
+                                                        children: [
+                                                          Icon(
+                                                            Icons.edit,
+                                                            color: Colors.blue,
+                                                          ),
+                                                          SizedBox(width: 8),
+                                                          Text('แก้ไข'),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    PopupMenuItem(
+                                                      value: 'delete',
+                                                      child: Row(
+                                                        children: [
+                                                          Icon(
+                                                            Icons.delete,
+                                                            color: Colors.red,
+                                                          ),
+                                                          SizedBox(width: 8),
+                                                          Text('ลบ'),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                  icon: Icon(
+                                                    Icons.more_vert,
+                                                    color: Colors.grey[700],
+                                                  ),
+                                                ),
+                                              ),
+                                              SizedBox(height: 6),
+                                              Container(
+                                                padding: EdgeInsets.all(16),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.orange
+                                                      .withOpacity(
+                                                    0.08,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                    color: Colors.orange
+                                                        .withOpacity(0.25),
+                                                  ),
+                                                ),
+                                                child: Icon(
+                                                  _getIconData(
+                                                    t['roomtype_icon']
+                                                        ?.toString(),
+                                                  ),
+                                                  color: Colors.orange,
+                                                  size: 40,
+                                                ),
+                                              ),
+                                              SizedBox(height: 12),
+                                              Text(
+                                                t['roomtype_name'] ?? '',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
                                 },
                               );
                             },
