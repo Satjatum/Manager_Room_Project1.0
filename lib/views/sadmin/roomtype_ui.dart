@@ -333,113 +333,155 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
             ),
           ),
           Expanded(
-            child: _isLoading
-                ? Center(
-                    child: CircularProgressIndicator(color: AppTheme.primary),
-                  )
-                : _filteredRoomTypes.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.category_outlined,
-                                size: 80, color: Colors.grey[400]),
-                            SizedBox(height: 16),
-                            Text(
-                              _searchQuery.isNotEmpty
-                                  ? 'ไม่พบประเภทห้องที่ค้นหา'
-                                  : 'ยังไม่มีประเภทห้อง',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            SizedBox(height: 24),
-                            ElevatedButton.icon(
-                              onPressed: () => _showAddEditDialog(),
-                              icon: Icon(Icons.add),
-                              label: Text('เพิ่มประเภทห้องแรก'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primary,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 12,
-                                ),
-                              ),
-                            ),
-                          ],
+            child: RefreshIndicator(
+              color: AppTheme.primary,
+              onRefresh: _loadRoomTypes,
+              child: _isLoading
+                  ? ListView(
+                      physics: AlwaysScrollableScrollPhysics(),
+                      children: [
+                        SizedBox(height: 120),
+                        Center(
+                          child: CircularProgressIndicator(
+                              color: AppTheme.primary),
                         ),
-                      )
-                    : ListView.builder(
-                        padding: EdgeInsets.all(16),
-                        itemCount: _filteredRoomTypes.length,
-                        itemBuilder: (context, index) {
-                          final roomType = _filteredRoomTypes[index];
-                          return Card(
-                            margin: EdgeInsets.only(bottom: 12),
-                            elevation: 2,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: ListTile(
-                              contentPadding: EdgeInsets.all(16),
-                              leading: Container(
-                                padding: EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  Icons.category,
-                                  color: Colors.blue,
-                                  size: 28,
-                                ),
-                              ),
-                              title: Text(
-                                roomType['roomtype_name'] ?? '',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              subtitle: roomType['roomtype_desc'] != null &&
-                                      roomType['roomtype_desc']
-                                          .toString()
-                                          .isNotEmpty
-                                  ? Padding(
-                                      padding: EdgeInsets.only(top: 4),
-                                      child: Text(
-                                        roomType['roomtype_desc'],
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey[600],
-                                        ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    )
-                                  : null,
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
+                      ],
+                    )
+                  : _filteredRoomTypes.isEmpty
+                      ? ListView(
+                          physics: AlwaysScrollableScrollPhysics(),
+                          children: [
+                            SizedBox(height: 120),
+                            Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  IconButton(
-                                    icon: Icon(Icons.edit, color: Colors.blue),
-                                    onPressed: () =>
-                                        _showAddEditDialog(roomType: roomType),
-                                    tooltip: 'แก้ไข',
+                                  Icon(Icons.category_outlined,
+                                      size: 80, color: Colors.grey[400]),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    _searchQuery.isNotEmpty
+                                        ? 'ไม่พบประเภทห้องที่ค้นหา'
+                                        : 'ยังไม่มีประเภทห้อง',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.grey[600],
+                                    ),
                                   ),
-                                  IconButton(
-                                    icon: Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () => _deleteRoomType(roomType),
-                                    tooltip: 'ลบ',
+                                  SizedBox(height: 24),
+                                  Center(
+                                    child: ElevatedButton.icon(
+                                      onPressed: () => _showAddEditDialog(),
+                                      icon: Icon(Icons.add), 
+                                      label: Text('เพิ่มประเภทห้องแรก'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppTheme.primary,
+                                        foregroundColor: Colors.white,
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 24,
+                                          vertical: 12,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                          );
-                        },
-                      ),
+                          ],
+                        )
+                      : ListView.builder(
+                          padding: EdgeInsets.all(16),
+                          itemCount: _filteredRoomTypes.length,
+                          itemBuilder: (context, index) {
+                            final roomType = _filteredRoomTypes[index];
+                            return Container(
+                              margin: EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey[300]!),
+                              ),
+                              child: ListTile(
+                                contentPadding: EdgeInsets.all(16),
+                                leading: Container(
+                                  padding: EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.blue.withOpacity(0.2),
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Icons.category,
+                                    color: Colors.blue,
+                                    size: 28,
+                                  ),
+                                ),
+                                title: Text(
+                                  roomType['roomtype_name'] ?? '',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                subtitle:
+                                    roomType['roomtype_desc'] != null &&
+                                            roomType['roomtype_desc']
+                                                .toString()
+                                                .isNotEmpty
+                                        ? Padding(
+                                            padding: EdgeInsets.only(top: 4),
+                                            child: Text(
+                                              roomType['roomtype_desc'],
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.grey[600],
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          )
+                                        : null,
+                                trailing: PopupMenuButton<String>(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  onSelected: (value) {
+                                    if (value == 'edit') {
+                                      _showAddEditDialog(roomType: roomType);
+                                    } else if (value == 'delete') {
+                                      _deleteRoomType(roomType);
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
+                                    PopupMenuItem(
+                                      value: 'edit',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.edit, color: Colors.blue),
+                                          SizedBox(width: 8),
+                                          Text('แก้ไข'),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.delete, color: Colors.red),
+                                          SizedBox(width: 8),
+                                          Text('ลบ'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+            ),
           ),
         ],
       ),
