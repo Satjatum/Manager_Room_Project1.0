@@ -600,7 +600,7 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
+            // Header (match amenities style)
             Container(
               padding: EdgeInsets.fromLTRB(24, 20, 24, 20),
               decoration: BoxDecoration(
@@ -629,7 +629,7 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
                         Text(
-                          'Room Category Management',
+                          'หมวดหมู่ห้อง',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -638,7 +638,7 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'Manage room categories and icons',
+                          'สำหรับจัดการหมวดหมู่ห้องของที่พัก',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.black54,
@@ -650,12 +650,12 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                 ],
               ),
             ),
-            // Search
+            // Search (match amenities)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.grey[300]!),
                 ),
@@ -677,8 +677,6 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                             },
                           )
                         : null,
-                    filled: true,
-                    fillColor: Colors.white,
                     border: InputBorder.none,
                     contentPadding:
                         EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -752,26 +750,200 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                             builder: (context, constraints) {
                               final width = constraints.maxWidth;
 
+                              final bool isMobile = width < 768;
+
+                              if (isMobile) {
+                                // Mobile: Wrap-based auto-fit like amenities
+                                return SingleChildScrollView(
+                                  physics: AlwaysScrollableScrollPhysics(),
+                                  padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
+                                  child: Wrap(
+                                    spacing: 12,
+                                    runSpacing: 12,
+                                    children: List.generate(
+                                        _filteredCategories.length, (index) {
+                                      final category = _filteredCategories[index];
+                                      return Container(
+                                        width: double.infinity,
+                                        child: InkWell(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          onTap: () => _showAddEditDialog(
+                                              category: category),
+                                          child: Stack(
+                                            children: [
+                                              Container(
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                    color: Colors.grey[300]!,
+                                                  ),
+                                                ),
+                                                padding: EdgeInsets.all(12),
+                                                child: Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Align(
+                                                      alignment:
+                                                          Alignment.topRight,
+                                                      child: PopupMenuButton<
+                                                          String>(
+                                                        shape:
+                                                            RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(
+                                                            12,
+                                                          ),
+                                                        ),
+                                                        onSelected: (value) {
+                                                          if (value == 'edit') {
+                                                            _showAddEditDialog(
+                                                              category:
+                                                                  category,
+                                                            );
+                                                          } else if (value ==
+                                                              'delete') {
+                                                            _deleteCategory(
+                                                                category);
+                                                          }
+                                                        },
+                                                        itemBuilder:
+                                                            (context) => const [
+                                                          PopupMenuItem(
+                                                            value: 'edit',
+                                                            child: Row(
+                                                              children: [
+                                                                Icon(
+                                                                  Icons.edit,
+                                                                  color: Colors
+                                                                      .blue,
+                                                                ),
+                                                                SizedBox(
+                                                                    width: 8),
+                                                                Text('แก้ไข'),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          PopupMenuItem(
+                                                            value: 'delete',
+                                                            child: Row(
+                                                              children: [
+                                                                Icon(
+                                                                  Icons.delete,
+                                                                  color: Colors
+                                                                      .red,
+                                                                ),
+                                                                SizedBox(
+                                                                    width: 8),
+                                                                Text('ลบ'),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ],
+                                                        icon: Icon(
+                                                          Icons.more_vert,
+                                                          color:
+                                                              Colors.grey[700],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 6),
+                                                    Container(
+                                                      padding:
+                                                          EdgeInsets.all(16),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.orange
+                                                            .withOpacity(0.08),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(12),
+                                                        border: Border.all(
+                                                          color: Colors.orange
+                                                              .withOpacity(
+                                                                  0.25),
+                                                        ),
+                                                      ),
+                                                      child: Icon(
+                                                        _getIconData(
+                                                            category[
+                                                                'roomcate_icon']),
+                                                        color: Colors.orange,
+                                                        size: 40,
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 12),
+                                                    Text(
+                                                      category['roomcate_name'] ??
+                                                          '',
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                      textAlign: TextAlign.center,
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }),
+                                  ),
+                                );
+                              }
+
+                              // Larger screens: match amenities grid breakpoints
+                              int cols = 2;
+                              if (width <= 320) {
+                                cols = 1; // Mobile S
+                              } else if (width <= 375) {
+                                cols = 1; // Mobile M
+                              } else if (width <= 425) {
+                                cols = 2; // Mobile L
+                              } else if (width <= 768) {
+                                cols = 3; // Tablet
+                              } else if (width <= 1024) {
+                                cols = 4; // Laptop
+                              } else if (width <= 1440) {
+                                cols = 5; // Laptop L
+                              } else {
+                                cols = 6; // Larger
+                              }
+
+                              final double aspect = (width <= 425)
+                                  ? 0.85
+                                  : (width <= 768 ? 0.9 : 1.50);
+
                               return GridView.builder(
                                 physics: AlwaysScrollableScrollPhysics(),
-                                padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
+                                padding: EdgeInsets.fromLTRB(12, 10, 12, 20),
                                 gridDelegate:
-                                    SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: isMobile ? 160 : 200,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: 0.85,
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: cols,
+                                  crossAxisSpacing: 10,
+                                  mainAxisSpacing: 10,
+                                  childAspectRatio: aspect,
                                 ),
                                 itemCount: _filteredCategories.length,
                                 itemBuilder: (context, index) {
                                   final category = _filteredCategories[index];
 
-                                  if (isMobile) {
+                                  if (width <= 375) {
                                     return InkWell(
                                       borderRadius: BorderRadius.circular(12),
                                       onTap: () => _showAddEditDialog(
                                           category: category),
                                       child: Container(
+                                        width: double.infinity,
                                         decoration: BoxDecoration(
                                           color: Colors.white,
                                           borderRadius:
@@ -780,59 +952,91 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                                             color: Colors.grey[300]!,
                                           ),
                                         ),
-                                        padding: EdgeInsets.all(12),
-                                        child: Column(
+                                        padding: const EdgeInsets.all(20),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
                                           children: [
-                                            Align(
-                                              alignment: Alignment.topRight,
-                                              child: PopupMenuButton<String>(
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: Colors.orange
+                                                    .withOpacity(0.08),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: Colors.orange
+                                                      .withOpacity(0.25),
                                                 ),
-                                                onSelected: (value) {
-                                                  if (value == 'edit') {
-                                                    _showAddEditDialog(
-                                                      category: category,
-                                                    );
-                                                  } else if (value ==
-                                                      'delete') {
-                                                    _deleteCategory(category);
-                                                  }
-                                                },
-                                                itemBuilder: (context) =>
-                                                    const [
-                                                  PopupMenuItem(
-                                                    value: 'edit',
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(
-                                                          Icons.edit,
-                                                          color: Colors.blue,
-                                                        ),
-                                                        SizedBox(width: 8),
-                                                        Text('แก้ไข'),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                  PopupMenuItem(
-                                                    value: 'delete',
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(
-                                                          Icons.delete,
-                                                          color: Colors.red,
-                                                        ),
-                                                        SizedBox(width: 8),
-                                                        Text('ลบ'),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                                icon: Icon(
-                                                  Icons.more_vert,
-                                                  color: Colors.grey[700],
+                                              ),
+                                              child: Icon(
+                                                _getIconData(
+                                                  category['roomcate_icon'],
                                                 ),
+                                                color: Colors.orange,
+                                                size: 32,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                category['roomcate_name'] ??
+                                                    '',
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            PopupMenuButton<String>(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              onSelected: (value) {
+                                                if (value == 'edit') {
+                                                  _showAddEditDialog(
+                                                    category: category,
+                                                  );
+                                                } else if (value == 'delete') {
+                                                  _deleteCategory(category);
+                                                }
+                                              },
+                                              itemBuilder: (context) => const [
+                                                PopupMenuItem(
+                                                  value: 'edit',
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.edit,
+                                                        color: Colors.blue,
+                                                      ),
+                                                      SizedBox(width: 8),
+                                                      Text('แก้ไข'),
+                                                    ],
+                                                  ),
+                                                ),
+                                                PopupMenuItem(
+                                                  value: 'delete',
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(
+                                                        Icons.delete,
+                                                        color: Colors.red,
+                                                      ),
+                                                      SizedBox(width: 8),
+                                                      Text('ลบ'),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                              icon: Icon(
+                                                Icons.more_vert,
+                                                color: Colors.grey[700],
                                               ),
                                             ),
                                           ],
@@ -915,14 +1119,12 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                                               Container(
                                                 padding: EdgeInsets.all(16),
                                                 decoration: BoxDecoration(
-                                                  color:
-                                                      Colors.blue.withOpacity(
-                                                    0.08,
-                                                  ),
+                                                  color: Colors.orange
+                                                      .withOpacity(0.08),
                                                   borderRadius:
                                                       BorderRadius.circular(12),
                                                   border: Border.all(
-                                                    color: Colors.blue
+                                                    color: Colors.orange
                                                         .withOpacity(0.25),
                                                   ),
                                                 ),
@@ -930,13 +1132,14 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                                                   _getIconData(
                                                     category['roomcate_icon'],
                                                   ),
-                                                  color: Colors.blue,
+                                                  color: Colors.orange,
                                                   size: 40,
                                                 ),
                                               ),
                                               SizedBox(height: 12),
                                               Text(
-                                                category['roomcate_name'] ?? '',
+                                                category['roomcate_name'] ??
+                                                    '',
                                                 style: TextStyle(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.w700,
