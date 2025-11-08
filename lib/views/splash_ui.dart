@@ -190,7 +190,8 @@ class _SplashUiState extends State<SplashUi> with TickerProviderStateMixin {
 
       if (mounted) {
         await _updateProgress(0.0, 'เกิดข้อผิดพลาด กำลังรีเซ็ต...');
-        await AuthService.clearUserSession();
+        // Sign out to ensure server-side session cleanup as well
+        await AuthService.signOut();
         await Future.delayed(const Duration(seconds: 1));
         _navigateToLogin();
       }
