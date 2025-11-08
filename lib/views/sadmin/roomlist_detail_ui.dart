@@ -273,7 +273,7 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
   Widget _buildImageGallery() {
     if (_images.isEmpty) {
       return Container(
-        height: 250,
+        height: 300,
         color: Colors.grey[300],
         child: Center(
           child: Column(
@@ -298,120 +298,171 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
       );
     }
 
-    return Stack(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
+        // Main pager
+        SizedBox(
           height: 250,
-          child: PageView.builder(
-            itemCount: _images.length,
-            onPageChanged: (index) {
-              setState(() {
-                _currentImageIndex = index;
-              });
-            },
-            itemBuilder: (context, index) {
-              final image = _images[index];
-              return GestureDetector(
-                onTap: () {
-                  // แสดงรูปแบบเต็มจอ
-                  _showFullScreenImage(index);
+          child: Stack(
+            children: [
+              PageView.builder(
+                itemCount: _images.length,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentImageIndex = index;
+                  });
                 },
-                child: Image.network(
-                  image['image_url'],
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Center(
-                      child: CircularProgressIndicator(
-                        color: AppTheme.primary,
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                            : null,
-                      ),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey[300],
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.broken_image,
-                                size: 64, color: Colors.grey),
-                            SizedBox(height: 8),
-                            Text(
-                              'ไม่สามารถโหลดรูปภาพ',
-                              style: TextStyle(color: Colors.grey[600]),
+                itemBuilder: (context, index) {
+                  final image = _images[index];
+                  return GestureDetector(
+                    onTap: () => _showFullScreenImage(index),
+                    child: Image.network(
+                      image['image_url'],
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Center(
+                          child: CircularProgressIndicator(
+                            color: AppTheme.primary,
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey[300],
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.broken_image,
+                                    size: 64, color: Colors.grey),
+                                SizedBox(height: 8),
+                                Text(
+                                  'ไม่สามารถโหลดรูปภาพ',
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+              // Image indicator
+              if (_images.length > 1)
+                Positioned(
+                  bottom: 16,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${_currentImageIndex + 1} / ${_images.length}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    );
-                  },
-                ),
-              );
-            },
-          ),
-        ),
-        // Image indicator
-        if (_images.length > 1)
-          Positioned(
-            bottom: 16,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${_currentImageIndex + 1} / ${_images.length}',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        // Primary badge
-        if (_images.isNotEmpty &&
-            _images[_currentImageIndex]['is_primary'] == true)
-          Positioned(
-            top: 16,
-            right: 16,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.blue,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 4,
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.star, size: 14, color: Colors.white),
-                  SizedBox(width: 4),
-                  Text(
-                    'รูปหลัก',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
-              ),
+                ),
+              // Primary badge
+              if (_images.isNotEmpty &&
+                  _images[_currentImageIndex]['is_primary'] == true)
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.star, size: 14, color: Colors.white),
+                        SizedBox(width: 4),
+                        Text(
+                          'รูปหลัก',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        // Thumbnails strip
+        if (_images.length > 1)
+          Container(
+            height: 70,
+            padding: const EdgeInsets.only(top: 8),
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemBuilder: (context, i) {
+                final img = _images[i];
+                final isActive = i == _currentImageIndex;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _currentImageIndex = i;
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    width: 80,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: isActive ? AppTheme.primary : Colors.grey[300]!,
+                        width: isActive ? 2 : 1,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(
+                        img['image_url'],
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => Container(
+                          color: Colors.grey[200],
+                          child: Icon(Icons.broken_image,
+                              size: 20, color: Colors.grey[500]),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemCount: _images.length,
             ),
           ),
       ],

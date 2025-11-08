@@ -11,6 +11,24 @@ import '../../middleware/auth_middleware.dart';
 import '../widgets/colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+class _ImageItem {
+  final String? imageId;
+  final String? imageUrl;
+  final File? file;
+  final Uint8List? bytes;
+  final String name;
+  bool isPrimary;
+
+  _ImageItem({
+    this.imageId,
+    this.imageUrl,
+    this.file,
+    this.bytes,
+    required this.name,
+    this.isPrimary = false,
+  });
+}
+
 class RoomEditUI extends StatefulWidget {
   final String roomId;
 
@@ -36,11 +54,9 @@ class _RoomEditUIState extends State<RoomEditUI> {
   String? _selectedRoomTypeId;
   String? _selectedRoomCategoryId;
   String _selectedRoomStatus = 'available';
-  String? _currentImageUrl;
   bool _isActive = true;
   bool _isLoading = false;
   bool _isLoadingData = true;
-  bool _imageChanged = false;
 
   List<Map<String, dynamic>> _branches = [];
   List<Map<String, dynamic>> _roomTypes = [];
@@ -48,10 +64,9 @@ class _RoomEditUIState extends State<RoomEditUI> {
   List<Map<String, dynamic>> _amenities = [];
   List<String> _selectedAmenities = [];
   List<Map<String, dynamic>> _existingImages = [];
-
-  File? _selectedImage;
-  Uint8List? _selectedImageBytes;
-  String? _selectedImageName;
+  // Unified image list for edit: existing + new (max 5)
+  final List<_ImageItem> _allImages = [];
+  static const int _maxImages = 5;
 
   UserModel? _currentUser;
   Map<String, dynamic>? _roomData;
@@ -120,14 +135,16 @@ class _RoomEditUIState extends State<RoomEditUI> {
           _selectedAmenities =
               amenities.map((a) => a['amenities_id'] as String).toList();
           _existingImages = images;
-
-          if (images.isNotEmpty) {
-            final primaryImage = images.firstWhere(
-              (img) => img['is_primary'] == true,
-              orElse: () => images.first,
-            );
-            _currentImageUrl = primaryImage['image_url'];
-          }
+          _existingImages.sort((a, b) => (a['display_order'] ?? 0)
+              .compareTo(b['display_order'] ?? 0));
+          _allImages
+            ..clear()
+            ..addAll(_existingImages.map((img) => _ImageItem(
+                  imageId: img['image_id']?.toString(),
+                  imageUrl: img['image_url']?.toString(),
+                  name: (img['image_url'] ?? '').toString().split('/').last,
+                  isPrimary: img['is_primary'] == true,
+                )));
         });
       }
     } catch (e) {}
@@ -183,6 +200,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
 
   Future<void> _pickImagesForWeb() async {
     final ImagePicker picker = ImagePicker();
+    if (_allImages.length >= _maxImages) return;
     final XFile? image = await picker.pickImage(
       source: ImageSource.gallery,
       maxWidth: 1920,
@@ -196,10 +214,11 @@ class _RoomEditUIState extends State<RoomEditUI> {
 
       if (await _validateImageBytesForWeb(bytes, name)) {
         setState(() {
-          _selectedImageBytes = bytes;
-          _selectedImageName = name;
-          _selectedImage = null; // เพิ่ม
-          _imageChanged = true; // เพิ่ม
+          _allImages.add(_ImageItem(
+            bytes: bytes,
+            name: name,
+            isPrimary: _allImages.isEmpty,
+          ));
         });
       }
     }
@@ -306,22 +325,45 @@ class _RoomEditUIState extends State<RoomEditUI> {
     if (source == null) return;
 
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(
-      source: source,
-      maxWidth: 1920,
-      maxHeight: 1080,
-      imageQuality: 85,
-    );
-
-    if (image != null) {
-      final file = File(image.path);
-      if (await _validateImageFile(file)) {
-        setState(() {
-          _selectedImage = file;
-          _selectedImageBytes = null;
-          _selectedImageName = null;
-          _imageChanged = true;
-        });
+    if (source == ImageSource.gallery) {
+      final List<XFile> images = await picker.pickMultiImage(
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (images.isNotEmpty) {
+        for (final img in images) {
+          if (_allImages.length >= _maxImages) break;
+          final f = File(img.path);
+          if (await _validateImageFile(f)) {
+            _allImages.add(_ImageItem(
+              file: f,
+              name: img.name,
+              isPrimary: _allImages.isEmpty,
+            ));
+          }
+        }
+        if (mounted) setState(() {});
+      }
+    } else {
+      final XFile? image = await picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        if (_allImages.length >= _maxImages) return;
+        final file = File(image.path);
+        if (await _validateImageFile(file)) {
+          setState(() {
+            _allImages.add(_ImageItem(
+              file: file,
+              name: image.name,
+              isPrimary: _allImages.isEmpty,
+            ));
+          });
+        }
       }
     }
   }
@@ -450,23 +492,17 @@ class _RoomEditUIState extends State<RoomEditUI> {
     }
   }
 
-  Future<void> _removeImage() async {
+  void _removeNewImageAt(int index) {
+    if (index < 0 || index >= _allImages.length) return;
+    final removedPrimary = _allImages[index].isPrimary;
     setState(() {
-      _selectedImage = null;
-      _selectedImageBytes = null;
-      _selectedImageName = null;
-      _currentImageUrl = null;
-      _imageChanged = true;
+      _allImages.removeAt(index);
+      if (removedPrimary && _allImages.isNotEmpty) {
+        for (final img in _allImages) img.isPrimary = false;
+        _allImages.first.isPrimary = true;
+      }
     });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('ลบรูปภาพแล้ว'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  } // ✅ ปิดที่นี่
+  }
 
   // ✅ ย้ายฟังก์ชันเหล่านี้ออกมา
   Future<void> _deleteExistingImage(String imageId) async {
@@ -491,10 +527,29 @@ class _RoomEditUIState extends State<RoomEditUI> {
 
     if (confirm == true) {
       try {
+        // Find url for storage deletion
+        String? url;
+        try {
+          final row = _existingImages.firstWhere(
+              (img) => (img['image_id']?.toString() ?? '') == imageId,
+              orElse: () => {});
+          if (row is Map && row.isNotEmpty) url = row['image_url']?.toString();
+        } catch (_) {}
+
         await _supabase.from('room_images').delete().eq('image_id', imageId);
+        if (url != null && url!.isNotEmpty) {
+          try {
+            await ImageService.deleteImage(url!);
+          } catch (_) {}
+        }
 
         setState(() {
-          _existingImages.removeWhere((img) => img['image_id'] == imageId);
+          _existingImages.removeWhere((img) => img['image_id']?.toString() == imageId);
+          _allImages.removeWhere((it) => it.imageId == imageId);
+          // Re-ensure a primary exists
+          if (_allImages.where((e) => e.isPrimary).isEmpty && _allImages.isNotEmpty) {
+            _allImages.first.isPrimary = true;
+          }
         });
 
         if (mounted) {
@@ -537,133 +592,15 @@ class _RoomEditUIState extends State<RoomEditUI> {
     setState(() => _isLoading = true);
 
     try {
-      String? imageUrl = _currentImageUrl;
-
-      if (_imageChanged) {
-        if (_selectedImage != null || _selectedImageBytes != null) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => AlertDialog(
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(color: AppTheme.primary),
-                  const SizedBox(height: 16),
-                  const Text('กำลังอัปโหลดรูปภาพ...'),
-                ],
-              ),
-            ),
-          );
-
-          dynamic uploadResult;
-
-          // Build safe ASCII prefix based on category and room number
-          String _safe(String? s) {
-            final v = (s ?? '').trim();
-            var out = v
-                .replaceAll(RegExp(r"[\\/:*?\<>|]"), '')
-                .replaceAll(RegExp(r"\s+"), '');
-            out = out.replaceAll(RegExp(r"[^a-zA-Z0-9_-]"), '');
-            if (out.isEmpty) return 'room';
-            return out;
-          }
-
-          String roomCateLabel = '';
-          try {
-            final matched = _roomCategories.firstWhere(
-              (c) => c['roomcate_id'] == _selectedRoomCategoryId,
-              orElse: () => {},
-            );
-            if (matched is Map && matched.isNotEmpty) {
-              roomCateLabel = matched['roomcate_name'] ?? '';
-            }
-          } catch (_) {}
-          if (roomCateLabel.isEmpty) {
-            roomCateLabel = _selectedRoomCategoryId ?? 'room';
-          }
-
-          final roomNum = _roomNumberController.text;
-          final prefix = _safe(roomCateLabel) + _safe(roomNum);
-
-          // Determine extension
-          String ext = 'jpg';
-          if (kIsWeb && _selectedImageName != null) {
-            final parts = _selectedImageName!.split('.');
-            if (parts.length > 1) ext = parts.last.toLowerCase();
-          } else if (!kIsWeb && _selectedImage != null) {
-            final parts = _selectedImage!.path.split('.');
-            if (parts.length > 1) ext = parts.last.toLowerCase();
-          }
-
-          // Generate sequential custom filename
-          String? customName;
-          try {
-            customName = await ImageService.generateSequentialFileName(
-              bucket: 'room-images',
-              folder: 'rooms',
-              prefix: prefix,
-              extension: ext,
-            );
-          } catch (_) {
-            final d = DateTime.now();
-            final y = d.year.toString();
-            final m = d.month.toString().padLeft(2, '0');
-            final day = d.day.toString().padLeft(2, '0');
-            customName = '${prefix}_${y}${m}${day}_001.$ext';
-          }
-
-          if (kIsWeb && _selectedImageBytes != null) {
-            uploadResult = await ImageService.uploadImageFromBytes(
-              _selectedImageBytes!,
-              _selectedImageName ?? 'room_image.jpg',
-              'room-images',
-              folder: 'rooms',
-              customFileName: customName,
-            );
-          } else if (!kIsWeb && _selectedImage != null) {
-            uploadResult = await ImageService.uploadImage(
-              _selectedImage!,
-              'room-images',
-              folder: 'rooms',
-              customFileName: customName,
-            );
-          }
-
-          if (mounted) Navigator.of(context).pop();
-
-          if (uploadResult != null && uploadResult['success']) {
-            if (_currentImageUrl != null && _currentImageUrl!.isNotEmpty) {
-              final oldPrimaryImage = _existingImages.firstWhere(
-                (img) => img['image_url'] == _currentImageUrl,
-                orElse: () => {},
-              );
-              if (oldPrimaryImage.isNotEmpty) {
-                await _supabase
-                    .from('room_images')
-                    .delete()
-                    .eq('image_id', oldPrimaryImage['image_id']);
-              }
-            }
-            imageUrl = uploadResult['url'];
-          } else {
-            throw Exception(
-                uploadResult?['message'] ?? 'ไม่สามารถอัปโหลดรูปภาพได้');
-          }
+      // Ensure only one primary image in list
+      if (_allImages.isNotEmpty) {
+        final idx = _allImages.indexWhere((e) => e.isPrimary);
+        if (idx == -1) {
+          _allImages.first.isPrimary = true;
         } else {
-          if (_currentImageUrl != null && _currentImageUrl!.isNotEmpty) {
-            final oldPrimaryImage = _existingImages.firstWhere(
-              (img) => img['image_url'] == _currentImageUrl,
-              orElse: () => {},
-            );
-            if (oldPrimaryImage.isNotEmpty) {
-              await _supabase
-                  .from('room_images')
-                  .delete()
-                  .eq('image_id', oldPrimaryImage['image_id']);
-            }
+          for (int i = 0; i < _allImages.length; i++) {
+            _allImages[i].isPrimary = i == idx;
           }
-          imageUrl = null;
         }
       }
 
@@ -707,13 +644,106 @@ class _RoomEditUIState extends State<RoomEditUI> {
             }
           }
 
-          if (imageUrl != null && _imageChanged) {
-            await _supabase.from('room_images').insert({
-              'room_id': widget.roomId,
-              'image_url': imageUrl,
-              'is_primary': true,
-              'display_order': 0,
-            });
+          // Handle images (upload new, update existing ordering/primary)
+          if (_allImages.isNotEmpty) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => AlertDialog(
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    CircularProgressIndicator(color: AppTheme.primary),
+                    SizedBox(height: 16),
+                    Text('กำลังอัปเดตรูปภาพ...'),
+                  ],
+                ),
+              ),
+            );
+
+            String _safe(String? s) {
+              final v = (s ?? '').trim();
+              return v
+                  .replaceAll(RegExp(r"[\\/:*?\<>|]"), '')
+                  .replaceAll(RegExp(r"\s+"), '')
+                  .replaceAll(RegExp(r"[^a-zA-Z0-9_-]"), '');
+            }
+
+            String roomCateLabel = '';
+            try {
+              final matched = _roomCategories.firstWhere(
+                (c) => c['roomcate_id'] == _selectedRoomCategoryId,
+                orElse: () => {},
+              );
+              if (matched is Map && matched.isNotEmpty) {
+                roomCateLabel = matched['roomcate_name'] ?? '';
+              }
+            } catch (_) {}
+            if (roomCateLabel.isEmpty) {
+              roomCateLabel = _selectedRoomCategoryId ?? 'room';
+            }
+            final roomNum = _roomNumberController.text;
+            final prefix = _safe(roomCateLabel) + _safe(roomNum);
+
+            try {
+              for (int i = 0; i < _allImages.length; i++) {
+                final it = _allImages[i];
+                if (it.imageId != null) {
+                  // Update existing row metadata
+                  await _supabase.from('room_images').update({
+                    'is_primary': it.isPrimary,
+                    'display_order': i,
+                  }).eq('image_id', it.imageId);
+                } else {
+                  // New image -> upload then insert
+                  final ext = it.name.split('.').last.toLowerCase();
+                  String customName;
+                  try {
+                    customName = await ImageService.generateSequentialFileName(
+                      bucket: 'room-images',
+                      folder: 'rooms',
+                      prefix: prefix,
+                      extension: ext,
+                    );
+                  } catch (_) {
+                    final d = DateTime.now();
+                    final y = d.year.toString();
+                    final m = d.month.toString().padLeft(2, '0');
+                    final day = d.day.toString().padLeft(2, '0');
+                    customName = '${prefix}_${y}${m}${day}_${(i + 1).toString().padLeft(3, '0')}.$ext';
+                  }
+
+                  Map<String, dynamic>? uploadResult;
+                  if (it.bytes != null) {
+                    uploadResult = await ImageService.uploadImageFromBytes(
+                      it.bytes!,
+                      it.name,
+                      'room-images',
+                      folder: 'rooms',
+                      customFileName: customName,
+                    );
+                  } else if (it.file != null) {
+                    uploadResult = await ImageService.uploadImage(
+                      it.file!,
+                      'room-images',
+                      folder: 'rooms',
+                      customFileName: customName,
+                    );
+                  }
+
+                  if (uploadResult != null && uploadResult['success'] == true) {
+                    await _supabase.from('room_images').insert({
+                      'room_id': widget.roomId,
+                      'image_url': uploadResult['url'],
+                      'is_primary': it.isPrimary,
+                      'display_order': i,
+                    });
+                  }
+                }
+              }
+            } finally {
+              if (mounted) Navigator.of(context).pop();
+            }
           }
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -746,82 +776,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
     }
   }
 
-  // ส่วนที่เหลือของโค้ด...
   // Helper methods
-  Widget _buildImagePreview() {
-    if (kIsWeb && _selectedImageBytes != null) {
-      return Image.memory(
-        _selectedImageBytes!,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-      );
-    } else if (!kIsWeb && _selectedImage != null) {
-      return Image.file(
-        _selectedImage!,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-      );
-    } else if (_currentImageUrl != null) {
-      // เพิ่มส่วนนี้
-      return Image.network(
-        _currentImageUrl!,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        height: double.infinity,
-        errorBuilder: (context, error, stackTrace) => Container(
-          color: Colors.grey.shade200,
-          child: Center(
-            child: Icon(
-              Icons.image_not_supported,
-              size: 48,
-              color: Colors.grey.shade400,
-            ),
-          ),
-        ),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            color: Colors.grey.shade100,
-            child: Center(
-              child: CircularProgressIndicator(
-                color: AppTheme.primary,
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded /
-                        loadingProgress.expectedTotalBytes!
-                    : null,
-              ),
-            ),
-          );
-        },
-      );
-    }
-    return Container(
-      color: Colors.grey.shade200,
-      child: Center(
-        child: Icon(
-          Icons.image_not_supported,
-          size: 48,
-          color: Colors.grey.shade400,
-        ),
-      ),
-    );
-  }
-
-  String _getImageSizeText() {
-    if (_selectedImageBytes != null) {
-      final sizeInMB = _selectedImageBytes!.length / (1024 * 1024);
-      return '${sizeInMB.toStringAsFixed(1)} MB';
-    }
-    return '';
-  }
-
-  bool _hasSelectedImage() {
-    return _selectedImage != null ||
-        _selectedImageBytes != null ||
-        _currentImageUrl != null;
-  }
 
   IconData _getIconData(String? iconName) {
     if (iconName == null) return Icons.star;
@@ -1047,9 +1002,9 @@ class _RoomEditUIState extends State<RoomEditUI> {
     );
   }
 
-  // Image section styled like RoomAddUI
+  // Image section styled like RoomAddUI (multi-image with reorder and primary toggle)
   Widget _buildImageSection() {
-    final hasImage = _hasSelectedImage();
+    final hasImages = _allImages.isNotEmpty;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1075,8 +1030,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
               const SizedBox(width: 8),
               if (kIsWeb)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade100,
                     borderRadius: BorderRadius.circular(8),
@@ -1091,16 +1045,15 @@ class _RoomEditUIState extends State<RoomEditUI> {
                   ),
                 ),
               const Spacer(),
-              if (hasImage)
+              if (hasImages)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.green.shade100,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    _imageChanged ? 'รูปใหม่พร้อมแล้ว' : 'รูปปัจจุบัน',
+                    'รูปพร้อมแล้ว',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.green.shade700,
@@ -1111,75 +1064,90 @@ class _RoomEditUIState extends State<RoomEditUI> {
             ],
           ),
           const SizedBox(height: 16),
-          if (hasImage) ...[
-            Container(
-              height: 200,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: _buildImagePreview(),
+          if (hasImages) ...[
+            SizedBox(
+              height: 240,
+              child: ReorderableListView.builder(
+                itemCount: _allImages.length,
+                onReorder: (oldIndex, newIndex) {
+                  setState(() {
+                    if (newIndex > oldIndex) newIndex -= 1;
+                    final item = _allImages.removeAt(oldIndex);
+                    _allImages.insert(newIndex, item);
+                  });
+                },
+                itemBuilder: (context, index) {
+                  final img = _allImages[index];
+                  Widget thumb;
+                  if (img.imageUrl != null) {
+                    thumb = Image.network(img.imageUrl!, fit: BoxFit.cover);
+                  } else if (img.bytes != null) {
+                    thumb = Image.memory(img.bytes!, fit: BoxFit.cover);
+                  } else if (img.file != null) {
+                    thumb = Image.file(img.file!, fit: BoxFit.cover);
+                  } else {
+                    thumb = Icon(Icons.image, color: Colors.grey[400]);
+                  }
+
+                  return ListTile(
+                    key: ValueKey('img_$index'),
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(width: 72, height: 72, child: thumb),
+                    ),
+                    title: Text(
+                      img.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    subtitle: Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            img.isPrimary ? Icons.star : Icons.star_border,
+                            color: img.isPrimary ? Colors.amber : Colors.grey,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              for (final i in _allImages) i.isPrimary = false;
+                              img.isPrimary = true;
+                            });
+                          },
+                          tooltip: 'ตั้งเป็นรูปหลัก',
+                        ),
+                        const SizedBox(width: 8),
+                        Text('ลำดับ ${index + 1}', style: const TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () {
+                        if (img.imageId != null) {
+                          _deleteExistingImage(img.imageId!);
+                        } else {
+                          _removeNewImageAt(index);
+                        }
+                      },
+                      tooltip: 'ลบ',
+                    ),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 12),
-            if (_selectedImageName != null) ...[
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.insert_drive_file,
-                        size: 16, color: Colors.grey[600]),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _selectedImageName!,
-                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Text(
-                      _getImageSizeText(),
-                      style: TextStyle(fontSize: 10, color: Colors.grey[500]),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: _pickImages,
-                    icon: const Icon(Icons.swap_horiz),
-                    label: const Text('เปลี่ยนรูปภาพ'),
+                    onPressed: _allImages.length < _maxImages ? _pickImages : null,
+                    icon: const Icon(Icons.add_photo_alternate),
+                    label: Text(
+                      _allImages.length < _maxImages ? 'เพิ่มรูปภาพ' : 'ครบ $_maxImages รูปแล้ว',
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.primary,
                       side: BorderSide(color: AppTheme.primary),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: _removeImage,
-                    icon: const Icon(Icons.delete),
-                    label: const Text('ลบรูปภาพ'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.red,
                     ),
                   ),
                 ),
@@ -1207,7 +1175,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      kIsWeb ? 'เลือกไฟล์รูปภาพ' : 'เลือกรูปภาพห้องพัก',
+                      kIsWeb ? 'เลือกไฟล์รูปภาพ' : 'เลือกรูปภาพห้องพัก (สูงสุด $_maxImages รูป)',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.grey.shade700,
@@ -1218,21 +1186,19 @@ class _RoomEditUIState extends State<RoomEditUI> {
                     Text(
                       kIsWeb
                           ? 'แตะเพื่อเลือกไฟล์จากคอมพิวเตอร์'
-                          : 'แตะเพื่อเลือกจากแกลเลอรี่หรือถ่ายรูปใหม่',
-                      style:
-                          TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                          : 'แตะเพื่อเลือกหลายรูปจากแกลเลอรี่หรือถ่ายรูปใหม่',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: Colors.blue.shade50,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        'รองรับ JPG, PNG, WebP (สูงสุด 5MB)',
+                        'รองรับ JPG, PNG, WebP (สูงสุด 5MB ต่อไฟล์)',
                         style: TextStyle(
                           fontSize: 10,
                           color: Colors.blue.shade600,
