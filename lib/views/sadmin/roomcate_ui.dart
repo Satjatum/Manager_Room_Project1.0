@@ -385,51 +385,69 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                                 );
                                 return;
                               }
-
                               setDialogState(() => isSubmitting = true);
 
                               try {
-                                if (isEdit) {
-                                  await RoomService.updateRoomCategory(
-                                    category['roomcate_id'],
-                                    {
-                                      'roomcate_name':
-                                          nameController.text.trim(),
-                                      'roomcate_icon': iconController.text,
-                                    },
-                                  );
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content:
-                                          Text('แก้ไขหมวดหมู่ห้องเรียบร้อย'),
-                                      backgroundColor: Colors.green,
+                                // Show progress overlay similar to amenities_ui
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (context) => Center(
+                                    child: CircularProgressIndicator(
+                                      color: AppTheme.primary,
                                     ),
+                                  ),
+                                );
+
+                                final payload = {
+                                  'roomcate_name': nameController.text.trim(),
+                                  'roomcate_icon': iconController.text,
+                                };
+
+                                Map<String, dynamic> resp;
+                                if (isEdit) {
+                                  resp = await RoomService.updateRoomCategory(
+                                    category['roomcate_id'],
+                                    payload,
                                   );
                                 } else {
-                                  await RoomService.createRoomCategory({
-                                    'roomcate_name': nameController.text.trim(),
-                                    'roomcate_icon': iconController.text,
-                                  });
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content:
-                                          Text('เพิ่มหมวดหมู่ห้องเรียบร้อย'),
-                                      backgroundColor: Colors.green,
-                                    ),
+                                  resp = await RoomService.createRoomCategory(
+                                    payload,
                                   );
                                 }
 
-                                Navigator.of(context).pop();
-                                _loadCategories();
+                                if (mounted) Navigator.of(context).pop(); // close progress
+
+                                if (mounted) {
+                                  if ((resp['success'] == true)) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                            resp['message'] ?? 'ดำเนินการสำเร็จ'),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                    Navigator.of(context).pop(); // close add/edit dialog
+                                    await _loadCategories();
+                                  } else {
+                                    throw Exception(resp['message'] ?? 'ดำเนินการไม่สำเร็จ');
+                                  }
+                                }
                               } catch (e) {
+                                if (mounted && Navigator.of(context).canPop()) {
+                                  Navigator.of(context).pop(); // ensure progress closed
+                                }
                                 setDialogState(() => isSubmitting = false);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content:
-                                        Text('เกิดข้อผิดพลาด: ${e.toString()}'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        e.toString().replaceAll('Exception: ', ''),
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
                               }
                             },
                       style: ElevatedButton.styleFrom(
@@ -526,21 +544,48 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
 
     if (confirmed == true) {
       try {
-        await RoomService.deleteRoomCategory(category['roomcate_id']);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('ลบหมวดหมู่ห้องเรียบร้อย'),
-            backgroundColor: Colors.green,
+        // Progress overlay similar to amenities_ui
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Center(
+            child: CircularProgressIndicator(color: AppTheme.primary),
           ),
         );
-        _loadCategories();
+
+        final result = await RoomService.deleteRoomCategory(
+          category['roomcate_id'],
+        );
+
+        if (mounted) Navigator.of(context).pop(); // close progress
+
+        if (mounted) {
+          if (result['success'] == true) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result['message'] ?? 'ลบสำเร็จ'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            await _loadCategories();
+          } else {
+            throw Exception(result['message'] ?? 'ลบไม่สำเร็จ');
+          }
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(); // ensure progress closed
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                e.toString().replaceAll('Exception: ', ''),
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
