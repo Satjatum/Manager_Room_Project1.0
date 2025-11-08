@@ -189,9 +189,6 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
     final nameController = TextEditingController(
       text: isEdit ? amenity['amenities_name'] : '',
     );
-    final descController = TextEditingController(
-      text: isEdit ? amenity['amenities_desc'] : '',
-    );
     final iconController = TextEditingController(
       text: isEdit ? (amenity['amenities_icon'] ?? 'star') : 'star',
     );
@@ -268,19 +265,6 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
                   ),
                   autofocus: !isEdit,
                 ),
-                SizedBox(height: 16),
-                TextField(
-                  controller: descController,
-                  decoration: InputDecoration(
-                    labelText: 'คำอธิบาย',
-                    hintText: 'รายละเอียดเพิ่มเติม',
-                    prefixIcon: Icon(Icons.description),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  maxLines: 3,
-                ),
               ],
             ),
           ),
@@ -325,7 +309,6 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
 
         final data = {
           'amenities_name': nameController.text.trim(),
-          'amenities_desc': descController.text.trim(),
           'amenities_icon': iconController.text,
         };
 
@@ -371,34 +354,155 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
   }
 
   Future<void> _deleteAmenity(Map<String, dynamic> amenity) async {
+    final String amenityName = (amenity['amenities_name'] ?? '').toString();
+    final String amenityId = (amenity['amenities_id'] ?? '').toString();
+
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.warning, color: Colors.red),
-            SizedBox(width: 8),
-            Text('ยืนยันการลบ'),
-          ],
-        ),
-        content: Text(
-          'คุณต้องการลบสิ่งอำนวยความสะดวก "${amenity['amenities_name']}" ใช่หรือไม่?\n\nหากมีห้องที่ใช้สิ่งอำนวยความสะดวกนี้อยู่ จะไม่สามารถลบได้',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('ยกเลิก'),
+        child: Container(
+          padding: EdgeInsets.all(24),
+          constraints: BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.delete_forever_rounded,
+                  color: Colors.red.shade600,
+                  size: 40,
+                ),
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Delete Amenity?',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              SizedBox(height: 12),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.extension, size: 18, color: Colors.grey[700]),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        amenityName,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.shade100, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_rounded,
+                      color: Colors.red.shade600,
+                      size: 22,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'การดำเนินการนี้ไม่สามารถย้อนกลับได้\nข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
+                        style: TextStyle(
+                          color: Colors.red.shade800,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.delete_outline, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'Delete',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: Text('ลบ'),
-          ),
-        ],
+        ),
       ),
     );
 
@@ -407,23 +511,89 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => Center(
-            child: CircularProgressIndicator(color: AppTheme.primary),
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: CircularProgressIndicator(
+                            color: Colors.red.shade600,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                        Icon(
+                          Icons.delete_sweep_rounded,
+                          color: Colors.red.shade600,
+                          size: 28,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    'Deleting Amenity',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Please wait a moment...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
 
-        final result = await RoomService.deleteAmenity(
-          amenity['amenities_id'],
-        );
-
-        if (mounted) Navigator.pop(context);
+        final result = await RoomService.deleteAmenity(amenityId);
+        if (mounted) Navigator.of(context).pop();
 
         if (mounted) {
           if (result['success']) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(result['message']),
-                backgroundColor: Colors.green,
+                content: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.white),
+                    SizedBox(width: 12),
+                    Expanded(child: Text(result['message'] ?? 'ลบสำเร็จ')),
+                  ],
+                ),
+                backgroundColor: Colors.green.shade600,
+                behavior: SnackBarBehavior.floating,
               ),
             );
             await _loadAmenities();
@@ -432,14 +602,15 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
           }
         }
       } catch (e) {
-        if (mounted && Navigator.canPop(context)) {
-          Navigator.pop(context);
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
         }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(e.toString().replaceAll('Exception: ', '')),
-              backgroundColor: Colors.red,
+              backgroundColor: Colors.red.shade600,
+              behavior: SnackBarBehavior.floating,
             ),
           );
         }
@@ -450,246 +621,234 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('จัดการสิ่งอำนวยความสะดวก'),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _loadAmenities,
-            tooltip: 'รีเฟรช',
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: TextField(
-              controller: _searchController,
-              onChanged: _onSearchChanged,
-              decoration: InputDecoration(
-                hintText: 'ค้นหาสิ่งอำนวยความสะดวก',
-                prefixIcon: Icon(Icons.search),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _onSearchChanged('');
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Branch Management',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Manage your branch locations and details',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  TextField(
+                    controller: _searchController,
+                    onChanged: _onSearchChanged,
+                    decoration: InputDecoration(
+                      hintText: 'ค้นหาสิ่งอำนวยความสะดวก',
+                      prefixIcon: Icon(Icons.search),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                                _onSearchChanged('');
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          Expanded(
-            child: RefreshIndicator(
-              color: AppTheme.primary,
-              onRefresh: _loadAmenities,
-              child: _isLoading
-                  ? ListView(
-                      physics: AlwaysScrollableScrollPhysics(),
-                      children: [
-                        SizedBox(height: 120),
-                        Center(
-                          child: CircularProgressIndicator(
-                              color: AppTheme.primary),
-                        ),
-                      ],
-                    )
-                  : _filteredAmenities.isEmpty
-                      ? ListView(
-                          physics: AlwaysScrollableScrollPhysics(),
-                          children: [
-                            SizedBox(height: 120),
-                            Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.stars_outlined,
-                                      size: 80, color: Colors.grey[400]),
-                                  SizedBox(height: 16),
-                                  Text(
-                                    _searchQuery.isNotEmpty
-                                        ? 'ไม่พบสิ่งอำนวยความสะดวกที่ค้นหา'
-                                        : 'ยังไม่มีสิ่งอำนวยความสะดวก',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.grey[600],
+            Expanded(
+              child: RefreshIndicator(
+                color: AppTheme.primary,
+                onRefresh: _loadAmenities,
+                child: _isLoading
+                    ? ListView(
+                        physics: AlwaysScrollableScrollPhysics(),
+                        children: [
+                          SizedBox(height: 120),
+                          Center(
+                            child: CircularProgressIndicator(
+                                color: AppTheme.primary),
+                          ),
+                        ],
+                      )
+                    : _filteredAmenities.isEmpty
+                        ? ListView(
+                            physics: AlwaysScrollableScrollPhysics(),
+                            children: [
+                              SizedBox(height: 120),
+                              Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.stars_outlined,
+                                        size: 80, color: Colors.grey[400]),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      _searchQuery.isNotEmpty
+                                          ? 'ไม่พบสิ่งอำนวยความสะดวกที่ค้นหา'
+                                          : 'ยังไม่มีสิ่งอำนวยความสะดวก',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.grey[600],
+                                      ),
                                     ),
-                                  ),
-                                  SizedBox(height: 24),
-                                  Center(
-                                    child: ElevatedButton.icon(
-                                      onPressed: () => _showAddEditDialog(),
-                                      icon: Icon(Icons.add),
-                                      label: Text('เพิ่มสิ่งอำนวยความสะดวกแรก'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppTheme.primary,
-                                        foregroundColor: Colors.white,
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 24,
-                                          vertical: 12,
+                                    SizedBox(height: 24),
+                                    Center(
+                                      child: ElevatedButton.icon(
+                                        onPressed: () => _showAddEditDialog(),
+                                        icon: Icon(Icons.add),
+                                        label: Text('เพิ่มสิ่งอำนวยความสะดวกแรก'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppTheme.primary,
+                                          foregroundColor: Colors.white,
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 24,
+                                            vertical: 12,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
+                            ],
+                          )
+                        : GridView.builder(
+                            physics: AlwaysScrollableScrollPhysics(),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                              childAspectRatio: 1.1,
                             ),
-                          ],
-                        )
-                      : GridView.builder(
-                          physics: AlwaysScrollableScrollPhysics(),
-                          padding: EdgeInsets.all(16),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            childAspectRatio: 1.1,
-                          ),
-                          itemCount: _filteredAmenities.length,
-                          itemBuilder: (context, index) {
-                            final amenity = _filteredAmenities[index];
-                            return InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () =>
-                                  _showAddEditDialog(amenity: amenity),
-                              child: Stack(
-                                children: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.grey[300]!,
+                            itemCount: _filteredAmenities.length,
+                            itemBuilder: (context, index) {
+                              final amenity = _filteredAmenities[index];
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () =>
+                                    _showAddEditDialog(amenity: amenity),
+                                child: Stack(
+                                  children: [
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.grey[300]!,
+                                        ),
                                       ),
-                                    ),
-                                    padding: EdgeInsets.all(12),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Container(
-                                          padding: EdgeInsets.all(16),
-                                          decoration: BoxDecoration(
-                                            color: Colors.orange
-                                                .withOpacity(0.1),
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            border: Border.all(
+                                      padding: EdgeInsets.all(12),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Container(
+                                            padding: EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
                                               color: Colors.orange
-                                                  .withOpacity(0.3),
+                                                  .withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: Colors.orange
+                                                    .withOpacity(0.3),
+                                              ),
+                                            ),
+                                            child: Icon(
+                                              _getIconData(
+                                                  amenity['amenities_icon']),
+                                              color: Colors.orange,
+                                              size: 40,
                                             ),
                                           ),
-                                          child: Icon(
-                                            _getIconData(
-                                                amenity['amenities_icon']),
-                                            color: Colors.orange,
-                                            size: 40,
-                                          ),
-                                        ),
-                                        SizedBox(height: 12),
-                                        Text(
-                                          amenity['amenities_name'] ?? '',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        if (amenity['amenities_desc'] !=
-                                                null &&
-                                            amenity['amenities_desc']
-                                                .toString()
-                                                .isNotEmpty) ...[
-                                          SizedBox(height: 4),
+                                          SizedBox(height: 12),
                                           Text(
-                                            amenity['amenities_desc'],
+                                            amenity['amenities_name'] ?? '',
                                             style: TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.grey[600],
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
                                             ),
                                             textAlign: TextAlign.center,
-                                            maxLines: 2,
+                                            maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ],
-                                      ],
-                                    ),
-                                  ),
-                                  Positioned(
-                                    right: 4,
-                                    top: 4,
-                                    child: PopupMenuButton<String>(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12),
-                                      ),
-                                      onSelected: (value) {
-                                        if (value == 'edit') {
-                                          _showAddEditDialog(
-                                              amenity: amenity);
-                                        } else if (value == 'delete') {
-                                          _deleteAmenity(amenity);
-                                        }
-                                      },
-                                      itemBuilder: (context) => [
-                                        PopupMenuItem(
-                                          value: 'edit',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.edit,
-                                                  color: Colors.blue),
-                                              SizedBox(width: 8),
-                                              Text('แก้ไข'),
-                                            ],
-                                          ),
-                                        ),
-                                        PopupMenuItem(
-                                          value: 'delete',
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.delete,
-                                                  color: Colors.red),
-                                              SizedBox(width: 8),
-                                              Text('ลบ'),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                      icon: Icon(
-                                        Icons.more_vert,
-                                        color: Colors.grey[700],
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
+                                    Positioned(
+                                      right: 4,
+                                      top: 4,
+                                      child: PopupMenuButton<String>(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        onSelected: (value) {
+                                          if (value == 'edit') {
+                                            _showAddEditDialog(
+                                                amenity: amenity);
+                                          } else if (value == 'delete') {
+                                            _deleteAmenity(amenity);
+                                          }
+                                        },
+                                        itemBuilder: (context) => [
+                                          PopupMenuItem(
+                                            value: 'edit',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.edit,
+                                                    color: Colors.blue),
+                                                SizedBox(width: 8),
+                                                Text('แก้ไข'),
+                                              ],
+                                            ),
+                                          ),
+                                          PopupMenuItem(
+                                            value: 'delete',
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.delete,
+                                                    color: Colors.red),
+                                                SizedBox(width: 8),
+                                                Text('ลบ'),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                        icon: Icon(
+                                          Icons.more_vert,
+                                          color: Colors.grey[700],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditDialog(),
