@@ -537,16 +537,15 @@ class AuthService {
   static Future<bool> _serverUpdateLockout({required bool success}) async {
     try {
       final deviceId = await _getOrCreateDeviceId();
-      final ua = await _getUserAgent();
-      final ip = await _getClientIP();
+      // ส่งเฉพาะพารามิเตอร์ที่จำเป็น เพื่อหลีกเลี่ยงปัญหาชนิดข้อมูล (inet/text)
       await _supabase.rpc('auth_update_lockout', params: {
         'p_device_id': deviceId,
         'p_success': success,
-        'p_user_agent': ua,
-        'p_ip': ip,
       });
       return true;
     } catch (e) {
+      // debug log เงียบ ๆ และ fallback local
+      // print('auth_update_lockout rpc error: $e');
       return false;
     }
   }
