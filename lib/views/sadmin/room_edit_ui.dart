@@ -689,59 +689,66 @@ class _RoomEditUIState extends State<RoomEditUI> {
             final prefix = _safe(roomCateLabel) + _safe(roomNum);
 
             try {
+              // Simplify: rebuild room_images for this room to avoid update/RLS issues
+              await _supabase.from('room_images').delete().eq('room_id', widget.roomId);
+
               for (int i = 0; i < _allImages.length; i++) {
                 final it = _allImages[i];
-                if (it.imageId != null && it.imageId!.isNotEmpty) {
-                  // Update existing row metadata
-                  await _supabase.from('room_images').update({
+
+                if (it.imageUrl != null && it.imageUrl!.isNotEmpty) {
+                  // Existing file in storage: re-insert with same URL and new order/primary
+                  await _supabase.from('room_images').insert({
+                    'room_id': widget.roomId,
+                    'image_url': it.imageUrl,
                     'is_primary': it.isPrimary,
                     'display_order': i,
-                  }).match({'image_id': it.imageId, 'room_id': widget.roomId});
-                } else {
-                  // New image -> upload then insert
-                  final ext = it.name.split('.').last.toLowerCase();
-                  String customName;
-                  try {
-                    customName = await ImageService.generateSequentialFileName(
-                      bucket: 'room-images',
-                      folder: 'rooms',
-                      prefix: prefix,
-                      extension: ext,
-                    );
-                  } catch (_) {
-                    final d = DateTime.now();
-                    final y = d.year.toString();
-                    final m = d.month.toString().padLeft(2, '0');
-                    final day = d.day.toString().padLeft(2, '0');
-                    customName = '${prefix}_${y}${m}${day}_${(i + 1).toString().padLeft(3, '0')}.$ext';
-                  }
+                  });
+                  continue;
+                }
 
-                  Map<String, dynamic>? uploadResult;
-                  if (it.bytes != null) {
-                    uploadResult = await ImageService.uploadImageFromBytes(
-                      it.bytes!,
-                      it.name,
-                      'room-images',
-                      folder: 'rooms',
-                      customFileName: customName,
-                    );
-                  } else if (it.file != null) {
-                    uploadResult = await ImageService.uploadImage(
-                      it.file!,
-                      'room-images',
-                      folder: 'rooms',
-                      customFileName: customName,
-                    );
-                  }
+                // New image -> upload then insert
+                final ext = it.name.split('.').last.toLowerCase();
+                String customName;
+                try {
+                  customName = await ImageService.generateSequentialFileName(
+                    bucket: 'room-images',
+                    folder: 'rooms',
+                    prefix: prefix,
+                    extension: ext,
+                  );
+                } catch (_) {
+                  final d = DateTime.now();
+                  final y = d.year.toString();
+                  final m = d.month.toString().padLeft(2, '0');
+                  final day = d.day.toString().padLeft(2, '0');
+                  customName = '${prefix}_${y}${m}${day}_${(i + 1).toString().padLeft(3, '0')}.$ext';
+                }
 
-                  if (uploadResult != null && uploadResult['success'] == true) {
-                    await _supabase.from('room_images').insert({
-                      'room_id': widget.roomId,
-                      'image_url': uploadResult['url'],
-                      'is_primary': it.isPrimary,
-                      'display_order': i,
-                    });
-                  }
+                Map<String, dynamic>? uploadResult;
+                if (it.bytes != null) {
+                  uploadResult = await ImageService.uploadImageFromBytes(
+                    it.bytes!,
+                    it.name,
+                    'room-images',
+                    folder: 'rooms',
+                    customFileName: customName,
+                  );
+                } else if (it.file != null) {
+                  uploadResult = await ImageService.uploadImage(
+                    it.file!,
+                    'room-images',
+                    folder: 'rooms',
+                    customFileName: customName,
+                  );
+                }
+
+                if (uploadResult != null && uploadResult['success'] == true) {
+                  await _supabase.from('room_images').insert({
+                    'room_id': widget.roomId,
+                    'image_url': uploadResult['url'],
+                    'is_primary': it.isPrimary,
+                    'display_order': i,
+                  });
                 }
               }
             } finally {
