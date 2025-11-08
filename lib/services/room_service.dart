@@ -13,6 +13,8 @@ class RoomService {
     String? branchId,
     bool? isActive,
     String? roomStatus,
+    String? roomTypeId,
+    String? roomCategoryId,
     String orderBy = 'created_at',
     bool ascending = false,
   }) async {
@@ -42,6 +44,14 @@ class RoomService {
         query = query.eq('room_status', roomStatus);
       }
 
+      if (roomTypeId != null && roomTypeId.isNotEmpty) {
+        query = query.eq('room_type_id', roomTypeId);
+      }
+
+      if (roomCategoryId != null && roomCategoryId.isNotEmpty) {
+        query = query.eq('room_category_id', roomCategoryId);
+      }
+
       // Add ordering and pagination
       final result = await query
           .order(orderBy, ascending: ascending)
@@ -65,6 +75,8 @@ class RoomService {
   /// Get rooms by user role and permissions
   static Future<List<Map<String, dynamic>>> getRoomsByUser({
     String? branchId,
+    String? roomTypeId,
+    String? roomCategoryId,
   }) async {
     try {
       final currentUser = await AuthService.getCurrentUser();
@@ -79,7 +91,12 @@ class RoomService {
         DetailedPermission.all,
         DetailedPermission.manageRooms,
       ])) {
-        return getAllRooms(branchId: branchId, isActive: true);
+        return getAllRooms(
+          branchId: branchId,
+          isActive: true,
+          roomTypeId: roomTypeId,
+          roomCategoryId: roomCategoryId,
+        );
       }
 
       // For other users, return rooms they have access to
@@ -97,6 +114,14 @@ class RoomService {
 
       if (branchId != null && branchId.isNotEmpty) {
         query = query.eq('branch_id', branchId);
+      }
+
+      if (roomTypeId != null && roomTypeId.isNotEmpty) {
+        query = query.eq('room_type_id', roomTypeId);
+      }
+
+      if (roomCategoryId != null && roomCategoryId.isNotEmpty) {
+        query = query.eq('room_category_id', roomCategoryId);
       }
 
       final result = await query.order('room_number');
@@ -601,6 +626,8 @@ class RoomService {
   /// Get active rooms for public access
   static Future<List<Map<String, dynamic>>> getActiveRooms({
     String? branchId,
+    String? roomTypeId,
+    String? roomCategoryId,
   }) async {
     try {
       var query = _supabase.from('rooms').select('''
@@ -612,6 +639,14 @@ class RoomService {
 
       if (branchId != null && branchId.isNotEmpty) {
         query = query.eq('branch_id', branchId);
+      }
+
+      if (roomTypeId != null && roomTypeId.isNotEmpty) {
+        query = query.eq('room_type_id', roomTypeId);
+      }
+
+      if (roomCategoryId != null && roomCategoryId.isNotEmpty) {
+        query = query.eq('room_category_id', roomCategoryId);
       }
 
       final result = await query.order('room_number');
