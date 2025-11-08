@@ -146,8 +146,8 @@ class RoomService {
       final result = await _supabase.from('rooms').select('''
         *,
         branches!inner(branch_id, branch_name, branch_code, branch_address),
-        room_types(roomtype_id, roomtype_name, roomtype_desc),
-        room_categories(roomcate_id, roomcate_name, roomcate_desc)
+        room_types(roomtype_id, roomtype_name),
+        room_categories(roomcate_id, roomcate_name)
       ''').eq('room_id', roomId).maybeSingle();
 
       if (result == null) return null;
@@ -159,9 +159,7 @@ class RoomService {
         'branch_code': result['branches']?['branch_code'],
         'branch_address': result['branches']?['branch_address'],
         'room_type_name': result['room_types']?['roomtype_name'],
-        'room_type_desc': result['room_types']?['roomtype_desc'],
         'room_category_name': result['room_categories']?['roomcate_name'],
-        'room_category_desc': result['room_categories']?['roomcate_desc'],
       };
     } catch (e) {
       throw Exception('เกิดข้อผิดพลาดในการโหลดข้อมูลห้องพัก: $e');
