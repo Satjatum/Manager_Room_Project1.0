@@ -239,8 +239,10 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
   }
 
   Widget _buildCustomHeader() {
+    final String? cateName =
+        _roomData?['room_category_name'] ?? _roomData?['roomcate_name'];
     final title = _roomData != null
-        ? '${_roomData!['roomcate_name'] ?? 'ห้อง'} ${_roomData!['room_number']}'
+        ? '${(cateName ?? 'ห้อง')} ${_roomData!['room_number']}'
         : 'รายละเอียดห้องพัก';
     return Container(
       padding: const EdgeInsets.all(16),
@@ -610,6 +612,37 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: Colors.blue,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                // Room Category Badge
+                if ((_roomData!['room_category_name'] ??
+                        _roomData!['roomcate_name']) !=
+                    null)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border:
+                          Border.all(color: Colors.orange.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.label, size: 14, color: Colors.orange),
+                        const SizedBox(width: 4),
+                        Text(
+                          (_roomData!['room_category_name'] ??
+                                  _roomData!['roomcate_name'])
+                              .toString(),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange,
                           ),
                         ),
                       ],
