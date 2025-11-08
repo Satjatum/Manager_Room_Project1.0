@@ -58,11 +58,9 @@ class AuthService {
       final userQuery = await _findActiveUserByEmailOrUsername(emailOrUsername);
 
       if (userQuery == null) {
-        // record failed attempt (server) and fallback local
-        final updated = await _serverUpdateLockout(success: false);
-        if (!updated) {
-          await _recordFailedAttempt();
-        }
+        // Always record local fail; also try server update (best-effort)
+        await _recordFailedAttempt();
+        await _serverUpdateLockout(success: false);
         return {
           'success': false,
           'message': 'ไม่พบผู้ใช้งานนี้ในระบบ',
@@ -76,10 +74,9 @@ class AuthService {
       });
 
       if (!passwordCheck) {
-        final updated = await _serverUpdateLockout(success: false);
-        if (!updated) {
-          await _recordFailedAttempt();
-        }
+        // Always record local fail; also try server update (best-effort)
+        await _recordFailedAttempt();
+        await _serverUpdateLockout(success: false);
         return {
           'success': false,
           'message': 'รหัสผ่านไม่ถูกต้อง',
@@ -112,11 +109,9 @@ class AuthService {
       // Store session locally
       await _storeUserSession(user.userId, sessionToken);
 
-      // Reset failures on success
-      final updated = await _serverUpdateLockout(success: true);
-      if (!updated) {
-        await _resetFailedAttempts();
-      }
+      // Reset failures on success (local + server best-effort)
+      await _resetFailedAttempts();
+      await _serverUpdateLockout(success: true);
 
       return {
         'success': true,
@@ -528,10 +523,13 @@ class AuthService {
 
     final locked = row['locked'] == true;
     final remainingSeconds = (row['remaining_seconds'] as num?)?.toInt() ?? 0;
-    return {
-      'locked': locked,
-      'remaining': Duration(seconds: remainingSeconds),
-    };
+    // If server says unlocked, still check local lock
+    if (!locked) {
+      final local = await _getLocalLockStatus();
+      if (local['locked'] == true) return local;
+    }
+
+    return {'locked': locked, 'remaining': Duration(seconds: remainingSeconds)};
   }
 
   static Future<bool> _serverUpdateLockout({required bool success}) async {
