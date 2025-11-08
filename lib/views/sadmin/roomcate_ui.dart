@@ -162,28 +162,33 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                                   ? AppTheme.primary
                                   : Colors.grey[700],
                             ),
-                            SizedBox(height: 6),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 4),
-                              child: Text(
-                                option['label'] as String,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: isSelected
-                                      ? AppTheme.primary
-                                      : Colors.grey[700],
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
                           ],
                         ),
                       ),
                     );
                   },
                 ),
+              ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        'ยกเลิก',
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -202,281 +207,277 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
       text: isEdit ? category['roomcate_name'] : '',
     );
     final iconController = TextEditingController(
-      text: isEdit ? category['roomcate_icon'] ?? 'category' : 'category',
+      text: isEdit ? (category['roomcate_icon'] ?? 'category') : 'category',
     );
 
     bool isSubmitting = false;
 
     await showDialog(
       context: context,
-      barrierDismissible: false,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => Dialog(
-          backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
           child: Container(
-            constraints: BoxConstraints(maxWidth: 400),
             padding: EdgeInsets.all(24),
+            constraints: BoxConstraints(maxWidth: 460),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey[300]!, width: 1.5),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        isEdit ? Icons.edit : Icons.add,
-                        color: AppTheme.primary,
-                        size: 20,
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isEdit ? 'แก้ไขหมวดหมู่ห้อง' : 'เพิ่มหมวดหมู่ห้อง',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          Text(
-                            isEdit
-                                ? 'แก้ไขข้อมูลหมวดหมู่ห้อง'
-                                : 'กรอกข้อมูลหมวดหมู่ห้องใหม่',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close, color: Colors.grey[700]),
-                      onPressed: isSubmitting
-                          ? null
-                          : () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 24),
-
-                // Name field
-                Text(
-                  'ชื่อหมวดหมู่ห้อง',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                SizedBox(height: 8),
+                // Icon header
                 Container(
+                  padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey[300]!),
+                    color: AppTheme.primary.withOpacity(0.08),
+                    shape: BoxShape.circle,
                   ),
-                  child: TextField(
-                    controller: nameController,
-                    enabled: !isSubmitting,
-                    decoration: InputDecoration(
-                      hintText: 'กรอกชื่อหมวดหมู่ห้อง',
-                      hintStyle:
-                          TextStyle(color: Colors.grey[500], fontSize: 14),
-                      border: InputBorder.none,
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    ),
-                    style: TextStyle(fontSize: 14),
+                  child: Icon(
+                    isEdit ? Icons.edit : Icons.add_circle_outline,
+                    color: AppTheme.primary,
+                    size: 36,
                   ),
                 ),
-                SizedBox(height: 20),
-
-                // Icon field
+                SizedBox(height: 18),
                 Text(
-                  'ไอคอน',
+                  isEdit ? 'แก้ไขหมวดหมู่ห้อง' : 'เพิ่มหมวดหมู่ห้อง',
                   style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
                 ),
-                SizedBox(height: 8),
+                SizedBox(height: 16),
+                // Icon selector box
                 InkWell(
                   onTap: isSubmitting
                       ? null
-                      : () =>
-                          _showIconPicker(iconController, iconController.text),
-                  borderRadius: BorderRadius.circular(8),
+                      : () async {
+                          await _showIconPicker(
+                              iconController, iconController.text);
+                          setDialogState(() {});
+                        },
+                  borderRadius: BorderRadius.circular(12),
                   child: Container(
                     width: double.infinity,
+                    padding: EdgeInsets.symmetric(vertical: 18),
                     decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey[300]!),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border:
+                          Border.all(color: Colors.grey[300]!, width: 1.5),
                     ),
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    child: Row(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           _getIconData(iconController.text),
+                          size: 44,
                           color: AppTheme.primary,
-                          size: 20,
                         ),
-                        SizedBox(width: 12),
+                        SizedBox(height: 8),
                         Text(
-                          'เลือกไอคอน',
+                          'แตะเพื่อเลือกไอคอน',
                           style: TextStyle(
-                            color: Colors.grey[700],
-                            fontSize: 14,
+                            fontSize: 12,
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.w600,
                           ),
-                        ),
-                        Spacer(),
-                        Icon(
-                          Icons.keyboard_arrow_down,
-                          color: Colors.grey[600],
                         ),
                       ],
                     ),
                   ),
                 ),
-                SizedBox(height: 32),
-
-                // Buttons
+                SizedBox(height: 14),
+                // Name field
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'ชื่อหมวดหมู่ห้อง *',
+                    labelStyle: TextStyle(
+                      color: Colors.grey[700],
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 14,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: Colors.grey[300]!,
+                        width: 1.2,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: AppTheme.primary,
+                        width: 1.6,
+                      ),
+                    ),
+                  ),
+                  autofocus: !isEdit,
+                ),
+                SizedBox(height: 18),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton(
-                      onPressed: isSubmitting
-                          ? null
-                          : () => Navigator.of(context).pop(),
-                      child: Text(
-                        'ยกเลิก',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: isSubmitting
+                            ? null
+                            : () => Navigator.pop(context, false),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.grey[700],
+                          side: BorderSide(
+                            color: Colors.grey[300]!,
+                            width: 1.5,
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          'ยกเลิก',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
-                    SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: isSubmitting
-                          ? null
-                          : () async {
-                              if (nameController.text.trim().isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('กรุณากรอกชื่อหมวดหมู่ห้อง'),
-                                    backgroundColor: Colors.orange,
-                                  ),
-                                );
-                                return;
-                              }
-                              setDialogState(() => isSubmitting = true);
-
-                              try {
-                                // Show progress overlay similar to amenities_ui
-                                showDialog(
-                                  context: context,
-                                  barrierDismissible: false,
-                                  builder: (context) => Center(
-                                    child: CircularProgressIndicator(
-                                      color: AppTheme.primary,
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                if (nameController.text.trim().isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content:
+                                          Text('กรุณากรอกชื่อหมวดหมู่ห้อง'),
+                                      backgroundColor: Colors.orange,
                                     ),
-                                  ),
-                                );
-
-                                final payload = {
-                                  'roomcate_name': nameController.text.trim(),
-                                  'roomcate_icon': iconController.text,
-                                };
-
-                                Map<String, dynamic> resp;
-                                if (isEdit) {
-                                  resp = await RoomService.updateRoomCategory(
-                                    category['roomcate_id'],
-                                    payload,
                                   );
-                                } else {
-                                  resp = await RoomService.createRoomCategory(
-                                    payload,
-                                  );
+                                  return;
                                 }
+                                setDialogState(() => isSubmitting = true);
 
-                                if (mounted) Navigator.of(context).pop(); // close progress
+                                try {
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (context) => Center(
+                                      child: CircularProgressIndicator(
+                                        color: AppTheme.primary,
+                                      ),
+                                    ),
+                                  );
 
-                                if (mounted) {
-                                  if ((resp['success'] == true)) {
+                                  final payload = {
+                                    'roomcate_name':
+                                        nameController.text.trim(),
+                                    'roomcate_icon': iconController.text,
+                                  };
+
+                                  Map<String, dynamic> resp;
+                                  if (isEdit) {
+                                    resp = await RoomService.updateRoomCategory(
+                                      category!['roomcate_id'],
+                                      payload,
+                                    );
+                                  } else {
+                                    resp = await RoomService.createRoomCategory(
+                                      payload,
+                                    );
+                                  }
+
+                                  if (mounted && Navigator.canPop(context)) {
+                                    Navigator.of(context).pop(); // close spinner
+                                  }
+
+                                  if (mounted) {
+                                    if (resp['success'] == true) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                              resp['message'] ?? 'สำเร็จ'),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                      Navigator.of(context).pop(); // close dialog
+                                      await _loadCategories();
+                                    } else {
+                                      throw Exception(
+                                          resp['message'] ?? 'ไม่สำเร็จ');
+                                    }
+                                  }
+                                } catch (e) {
+                                  if (mounted && Navigator.canPop(context)) {
+                                    Navigator.of(context).pop(); // ensure closed
+                                  }
+                                  setDialogState(
+                                      () => isSubmitting = false);
+                                  if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                            resp['message'] ?? 'ดำเนินการสำเร็จ'),
-                                        backgroundColor: Colors.green,
+                                          e
+                                              .toString()
+                                              .replaceAll('Exception: ', ''),
+                                        ),
+                                        backgroundColor: Colors.red,
                                       ),
                                     );
-                                    Navigator.of(context).pop(); // close add/edit dialog
-                                    await _loadCategories();
-                                  } else {
-                                    throw Exception(resp['message'] ?? 'ดำเนินการไม่สำเร็จ');
                                   }
                                 }
-                              } catch (e) {
-                                if (mounted && Navigator.of(context).canPop()) {
-                                  Navigator.of(context).pop(); // ensure progress closed
-                                }
-                                setDialogState(() => isSubmitting = false);
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        e.toString().replaceAll('Exception: ', ''),
-                                      ),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 0,
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (!isSubmitting)
+                              Icon(
+                                  isEdit
+                                      ? Icons.save_outlined
+                                      : Icons.add),
+                            if (!isSubmitting) SizedBox(width: 8),
+                            isSubmitting
+                                ? SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(
+                                    isEdit ? 'บันทึก' : 'เพิ่ม',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                          ],
                         ),
                       ),
-                      child: isSubmitting
-                          ? SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : Text(
-                              isEdit ? 'บันทึก' : 'เพิ่ม',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
                     ),
                   ],
                 ),
@@ -592,38 +593,27 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final bool isMobile = screenWidth < 768;
-
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header (match amenities style)
-            Container(
-              padding: EdgeInsets.fromLTRB(24, 20, 24, 20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey[200]!),
-                ),
-              ),
+            // Header (match amenities)
+            Padding(
+              padding: EdgeInsets.all(24),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.category,
-                      color: AppTheme.primary,
-                      size: 24,
-                    ),
+                  IconButton(
+                    icon: Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                    onPressed: () {
+                      if (Navigator.of(context).canPop())
+                        Navigator.of(context).pop();
+                    },
+                    tooltip: 'ย้อนกลับ',
                   ),
-                  SizedBox(width: 16),
+                  SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -638,11 +628,8 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'สำหรับจัดการหมวดหมู่ห้องของที่พัก',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.black54,
-                          ),
+                          'สำหรับจัดการหมวดหมู่ห',
+                          style: TextStyle(fontSize: 14, color: Colors.black54),
                         ),
                       ],
                     ),
@@ -650,7 +637,7 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                 ],
               ),
             ),
-            // Search (match amenities)
+            // Search (match amenities style)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: Container(
@@ -762,7 +749,8 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                                     runSpacing: 12,
                                     children: List.generate(
                                         _filteredCategories.length, (index) {
-                                      final category = _filteredCategories[index];
+                                      final category =
+                                          _filteredCategories[index];
                                       return Container(
                                         width: double.infinity,
                                         child: InkWell(
@@ -868,23 +856,24 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                                                         ),
                                                       ),
                                                       child: Icon(
-                                                        _getIconData(
-                                                            category[
-                                                                'roomcate_icon']),
+                                                        _getIconData(category[
+                                                            'roomcate_icon']),
                                                         color: Colors.orange,
                                                         size: 40,
                                                       ),
                                                     ),
                                                     SizedBox(height: 12),
                                                     Text(
-                                                      category['roomcate_name'] ??
+                                                      category[
+                                                              'roomcate_name'] ??
                                                           '',
                                                       style: TextStyle(
                                                         fontSize: 14,
                                                         fontWeight:
                                                             FontWeight.w700,
                                                       ),
-                                                      textAlign: TextAlign.center,
+                                                      textAlign:
+                                                          TextAlign.center,
                                                       maxLines: 1,
                                                       overflow:
                                                           TextOverflow.ellipsis,
@@ -958,8 +947,7 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                                               CrossAxisAlignment.center,
                                           children: [
                                             Container(
-                                              padding:
-                                                  const EdgeInsets.all(12),
+                                              padding: const EdgeInsets.all(12),
                                               decoration: BoxDecoration(
                                                 color: Colors.orange
                                                     .withOpacity(0.08),
@@ -981,8 +969,7 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                                             const SizedBox(width: 12),
                                             Expanded(
                                               child: Text(
-                                                category['roomcate_name'] ??
-                                                    '',
+                                                category['roomcate_name'] ?? '',
                                                 style: const TextStyle(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.w700,
@@ -1138,8 +1125,7 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                                               ),
                                               SizedBox(height: 12),
                                               Text(
-                                                category['roomcate_name'] ??
-                                                    '',
+                                                category['roomcate_name'] ?? '',
                                                 style: TextStyle(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.w700,
