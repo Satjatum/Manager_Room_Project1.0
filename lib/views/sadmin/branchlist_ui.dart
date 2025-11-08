@@ -953,7 +953,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Branch Management',
+                    'จัดการสาขา',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -962,7 +962,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'Manage your branch locations and details',
+                    'สำหรับจัดการสาขา',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -988,7 +988,8 @@ class _BranchlistUiState extends State<BranchlistUi> {
                       controller: _searchController,
                       onChanged: _onSearchChanged,
                       decoration: InputDecoration(
-                        hintText: 'Search',
+                        hintText:
+                            'ค้นหาสาขาโดยชื่อ, รหัส, ที่อยู่, เบอร์โทร, ผู้จัดการ...',
                         hintStyle:
                             TextStyle(color: Colors.grey[500], fontSize: 14),
                         prefixIcon: Icon(Icons.search,
@@ -1032,11 +1033,12 @@ class _BranchlistUiState extends State<BranchlistUi> {
                               onChanged: _onStatusChanged,
                               items: [
                                 DropdownMenuItem(
-                                    value: 'all', child: Text('All Branches')),
+                                    value: 'all', child: Text('ทั้งหมด')),
                                 DropdownMenuItem(
-                                    value: 'active', child: Text('Active')),
+                                    value: 'active', child: Text('เปิดใช้งาน')),
                                 DropdownMenuItem(
-                                    value: 'inactive', child: Text('Inactive')),
+                                    value: 'inactive',
+                                    child: Text('ปิดใช้งาน')),
                               ],
                             ),
                           ),
@@ -1258,7 +1260,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                       Icon(Icons.visibility_outlined,
                           size: 20, color: Color(0xFF14B8A6)),
                       SizedBox(width: 12),
-                      Text('View Details'),
+                      Text('ดูรายละเอียด'),
                     ],
                   ),
                 ),
@@ -1270,7 +1272,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                         Icon(Icons.edit_outlined,
                             size: 20, color: Color(0xFF14B8A6)),
                         SizedBox(width: 12),
-                        Text('Edit Branch'),
+                        Text('แก้ไข'),
                       ],
                     ),
                   ),
@@ -1287,7 +1289,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                       ),
                       SizedBox(width: 12),
                       Text(
-                        isActive ? 'Deactivate' : 'Activate',
+                        isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
                         style: TextStyle(
                           color: isActive ? Colors.orange : Colors.green,
                         ),
@@ -1302,8 +1304,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                       children: [
                         Icon(Icons.delete_outline, size: 20, color: Colors.red),
                         SizedBox(width: 12),
-                        Text('Delete Branch',
-                            style: TextStyle(color: Colors.red)),
+                        Text('ลบสาขา', style: TextStyle(color: Colors.red)),
                       ],
                     ),
                   ),
@@ -1353,7 +1354,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
-            isActive ? 'Active' : 'Inactive',
+            isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน',
             style: TextStyle(
               color: Colors.white,
               fontSize: badgeFontSize,
@@ -1408,7 +1409,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                                           Padding(
                                             padding: EdgeInsets.only(top: 4),
                                             child: Text(
-                                              'Code: ${branch['branch_code']}',
+                                              'รหัสสาขา: ${branch['branch_code']}',
                                               style: TextStyle(
                                                 fontSize: subTitleSize,
                                                 color: Colors.grey[600],
@@ -1447,7 +1448,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                                       Padding(
                                         padding: EdgeInsets.only(top: 4),
                                         child: Text(
-                                          'Code: ${branch['branch_code']}',
+                                          'รหัสสาขา: ${branch['branch_code']}',
                                           style: TextStyle(
                                             fontSize: subTitleSize,
                                             color: Colors.grey[600],
@@ -1562,11 +1563,11 @@ class _BranchlistUiState extends State<BranchlistUi> {
                                     children: [
                                       TextSpan(
                                           text:
-                                              '${branch['manager_count'] ?? 1} manager'),
+                                              '${branch['manager_count'] ?? 1} ผู้จัดการ'),
                                       if (branch['manager_count'] != null &&
                                           branch['manager_count'] > 1)
                                         TextSpan(text: 's'),
-                                      TextSpan(text: ' • Primary: '),
+                                      TextSpan(text: 'หลัก: '),
                                       TextSpan(
                                         text: branch['primary_manager_name'],
                                         style: TextStyle(
