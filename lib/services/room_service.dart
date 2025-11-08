@@ -779,7 +779,7 @@ class RoomService {
     try {
       final result = await _supabase.from('room_amenities').select('''
         *,
-        amenities!inner(amenities_id, amenities_name, amenities_icon, amenities_desc)
+        amenities!inner(amenities_id, amenities_name, amenities_icon)
       ''').eq('room_id', roomId);
 
       return List<Map<String, dynamic>>.from(result).map((item) {
@@ -787,7 +787,6 @@ class RoomService {
           'amenities_id': item['amenities']?['amenities_id'],
           'amenities_name': item['amenities']?['amenities_name'],
           'amenities_icon': item['amenities']?['amenities_icon'],
-          'amenities_desc': item['amenities']?['amenities_desc'],
         };
       }).toList();
     } catch (e) {
