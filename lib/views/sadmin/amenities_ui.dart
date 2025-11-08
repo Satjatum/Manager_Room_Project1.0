@@ -167,11 +167,31 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
                           ),
                         ),
                         alignment: Alignment.center,
-                        child: Icon(
-                          option['icon'] as IconData,
-                          size: 28,
-                          color:
-                              isSelected ? AppTheme.primary : Colors.grey[700],
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              option['icon'] as IconData,
+                              size: 24,
+                              color: isSelected
+                                  ? AppTheme.primary
+                                  : Colors.grey[700],
+                            ),
+                            SizedBox(height: 6),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: Text(
+                                option['name'] as String,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: isSelected
+                                      ? AppTheme.primary
+                                      : Colors.grey[700],
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -224,6 +244,11 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
           child: Container(
             padding: EdgeInsets.all(24),
             constraints: BoxConstraints(maxWidth: 460),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey[300]!, width: 1.5),
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -297,8 +322,16 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
                     labelText: 'ชื่อสิ่งอำนวยความสะดวก *',
                     hintText: 'เช่น แอร์, WiFi',
                     prefixIcon: Icon(Icons.stars_outlined, size: 20),
-                    border: OutlineInputBorder(
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: Colors.grey[300]!, width: 1.2),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: AppTheme.primary, width: 1.6),
                     ),
                   ),
                   autofocus: !isEdit,
@@ -748,7 +781,7 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.grey[300]!),
                 ),
@@ -771,6 +804,8 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
                             },
                           )
                         : null,
+                    filled: true,
+                    fillColor: Colors.white,
                     border: InputBorder.none,
                     contentPadding:
                         EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -844,144 +879,135 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
                               ),
                             ],
                           )
-                        : GridView.builder(
-                            physics: AlwaysScrollableScrollPhysics(),
-                            padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              childAspectRatio: 1.05,
-                            ),
-                            itemCount: _filteredAmenities.length,
-                            itemBuilder: (context, index) {
-                              final amenity = _filteredAmenities[index];
-                              return InkWell(
-                                borderRadius: BorderRadius.circular(12),
-                                onTap: () =>
-                                    _showAddEditDialog(amenity: amenity),
-                                child: Stack(
-                                  children: [
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: Colors.grey[300]!,
+                        : LayoutBuilder(
+                            builder: (context, constraints) {
+                              final width = constraints.maxWidth;
+                              int cols = 2;
+                              if (width >= 2560) {
+                                cols = 5;
+                              } else if (width >= 1440) {
+                                cols = 4;
+                              } else if (width >= 1024) {
+                                cols = 3;
+                              } else if (width < 480) {
+                                cols = 1;
+                              }
+
+                              return GridView.builder(
+                                physics: AlwaysScrollableScrollPhysics(),
+                                padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: cols,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 1.05,
+                                ),
+                                itemCount: _filteredAmenities.length,
+                                itemBuilder: (context, index) {
+                                  final amenity = _filteredAmenities[index];
+                                  return InkWell(
+                                    borderRadius: BorderRadius.circular(12),
+                                    onTap: () =>
+                                        _showAddEditDialog(amenity: amenity),
+                                    child: Stack(
+                                      children: [
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: Colors.grey[300]!,
+                                            ),
+                                          ),
+                                          padding: EdgeInsets.all(12),
+                                          child: Column(
+                                            children: [
+                                              SizedBox(height: 6),
+                                              Container(
+                                                padding: EdgeInsets.all(16),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.orange
+                                                      .withOpacity(0.08),
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                  border: Border.all(
+                                                    color: Colors.orange
+                                                        .withOpacity(0.25),
+                                                  ),
+                                                ),
+                                                child: Icon(
+                                                  _getIconData(
+                                                      amenity['amenities_icon']),
+                                                  color: Colors.orange,
+                                                  size: 40,
+                                                ),
+                                              ),
+                                              SizedBox(height: 12),
+                                              Text(
+                                                amenity['amenities_name'] ?? '',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      padding: EdgeInsets.all(12),
-                                      child: Column(
-                                        children: [
-                                          SizedBox(height: 6),
-                                          Container(
-                                            padding: EdgeInsets.all(16),
-                                            decoration: BoxDecoration(
-                                              color: Colors.orange
-                                                  .withOpacity(0.08),
+                                        Positioned(
+                                          right: 4,
+                                          top: 4,
+                                          child: PopupMenuButton<String>(
+                                            shape: RoundedRectangleBorder(
                                               borderRadius:
                                                   BorderRadius.circular(12),
-                                              border: Border.all(
-                                                color: Colors.orange
-                                                    .withOpacity(0.25),
-                                              ),
                                             ),
-                                            child: Icon(
-                                              _getIconData(
-                                                  amenity['amenities_icon']),
-                                              color: Colors.orange,
-                                              size: 40,
-                                            ),
-                                          ),
-                                          SizedBox(height: 12),
-                                          Text(
-                                            amenity['amenities_name'] ?? '',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          SizedBox(height: 6),
-                                          Divider(height: 1, color: Colors.grey[200]),
-                                          SizedBox(height: 6),
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.extension,
-                                                  size: 14,
-                                                  color: Colors.grey[600]),
-                                              SizedBox(width: 4),
-                                              Flexible(
-                                                child: Text(
-                                                  (amenity['amenities_icon'] ??
-                                                          'icon')
-                                                      .toString(),
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    color: Colors.grey[600],
-                                                  ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
+                                            onSelected: (value) {
+                                              if (value == 'edit') {
+                                                _showAddEditDialog(
+                                                    amenity: amenity);
+                                              } else if (value == 'delete') {
+                                                _deleteAmenity(amenity);
+                                              }
+                                            },
+                                            itemBuilder: (context) => [
+                                              PopupMenuItem(
+                                                value: 'edit',
+                                                child: Row(
+                                                  children: [
+                                                    Icon(Icons.edit,
+                                                        color: Colors.blue),
+                                                    SizedBox(width: 8),
+                                                    Text('แก้ไข'),
+                                                  ],
                                                 ),
-                                              )
+                                              ),
+                                              PopupMenuItem(
+                                                value: 'delete',
+                                                child: Row(
+                                                  children: [
+                                                    Icon(Icons.delete,
+                                                        color: Colors.red),
+                                                    SizedBox(width: 8),
+                                                    Text('ลบ'),
+                                                  ],
+                                                ),
+                                              ),
                                             ],
-                                          )
-                                        ],
-                                      ),
-                                    ),
-                                    Positioned(
-                                      right: 4,
-                                      top: 4,
-                                      child: PopupMenuButton<String>(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                        onSelected: (value) {
-                                          if (value == 'edit') {
-                                            _showAddEditDialog(
-                                                amenity: amenity);
-                                          } else if (value == 'delete') {
-                                            _deleteAmenity(amenity);
-                                          }
-                                        },
-                                        itemBuilder: (context) => [
-                                          PopupMenuItem(
-                                            value: 'edit',
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.edit,
-                                                    color: Colors.blue),
-                                                SizedBox(width: 8),
-                                                Text('แก้ไข'),
-                                              ],
+                                            icon: Icon(
+                                              Icons.more_vert,
+                                              color: Colors.grey[700],
                                             ),
                                           ),
-                                          PopupMenuItem(
-                                            value: 'delete',
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.delete,
-                                                    color: Colors.red),
-                                                SizedBox(width: 8),
-                                                Text('ลบ'),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                        icon: Icon(
-                                          Icons.more_vert,
-                                          color: Colors.grey[700],
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  );
+                                },
                               );
                             },
                           ),
