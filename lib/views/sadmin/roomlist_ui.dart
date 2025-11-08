@@ -32,11 +32,16 @@ class _RoomListUIState extends State<RoomListUI> {
   List<Map<String, dynamic>> _rooms = [];
   List<Map<String, dynamic>> _filteredRooms = [];
   List<Map<String, dynamic>> _branches = [];
+  List<Map<String, dynamic>> _roomTypes = [];
+  List<Map<String, dynamic>> _roomCategories = [];
   Map<String, List<Map<String, dynamic>>> _roomAmenities = {};
   bool _isLoading = true;
   String _searchQuery = '';
   String _selectedStatus = 'all';
   String _selectedRoomStatusFilter = 'all';
+  String? _selectedRoomTypeId;
+  String? _selectedRoomCategoryId;
+  bool _filtersExpanded = false;
   String? _selectedBranchId;
   UserModel? _currentUser;
   bool _isAnonymous = false;
@@ -84,7 +89,26 @@ class _RoomListUIState extends State<RoomListUI> {
     } catch (e) {
       print('Error loading branches: $e');
     }
+    // Load type/category filters after branches available (uses branch scope)
+    await _loadTypeAndCategoryFilters();
     _loadRooms();
+  }
+
+  Future<void> _loadTypeAndCategoryFilters() async {
+    try {
+      final types = await RoomService.getRoomTypes(branchId: _selectedBranchId);
+      final cates =
+          await RoomService.getRoomCategories(branchId: _selectedBranchId);
+      if (mounted) {
+        setState(() {
+          _roomTypes = types;
+          _roomCategories = cates;
+        });
+      }
+    } catch (e) {
+      // Non-fatal; keep current filters empty
+      debugPrint('Error loading filters: $e');
+    }
   }
 
   Future<void> _loadRooms() async {
@@ -120,10 +144,11 @@ class _RoomListUIState extends State<RoomListUI> {
       if (mounted) {
         setState(() {
           _rooms = rooms;
-          _filteredRooms = _rooms;
           _roomAmenities = amenitiesMap;
           _isLoading = false;
         });
+        // Apply current filters to rooms
+        _filterRooms();
       }
     } catch (e) {
       if (mounted) {
@@ -167,8 +192,12 @@ class _RoomListUIState extends State<RoomListUI> {
   void _onBranchChanged(String? branchId) {
     setState(() {
       _selectedBranchId = branchId;
+      // Reset dependent filters when branch changes
+      _selectedRoomTypeId = null;
+      _selectedRoomCategoryId = null;
     });
     _refreshAddPermission();
+    _loadTypeAndCategoryFilters();
     _loadRooms();
   }
 
@@ -205,7 +234,21 @@ class _RoomListUIState extends State<RoomListUI> {
         final matchesStatus = _selectedRoomStatusFilter == 'all' ||
             (room['room_status'] ?? 'unknown') == _selectedRoomStatusFilter;
 
-        return matchesSearch && matchesStatus;
+        final matchesType = _selectedRoomTypeId == null ||
+            (room['room_type_id']?.toString() ?? '') ==
+                _selectedRoomTypeId;
+
+        final matchesCategory = _selectedRoomCategoryId == null ||
+            (room['room_category_id']?.toString() ?? '') ==
+                _selectedRoomCategoryId;
+
+        final matchesActive = _selectedStatus == 'all'
+            ? true
+            : ((_selectedStatus == 'active')
+                ? (room['is_active'] == true)
+                : (room['is_active'] == false));
+
+        return matchesSearch && matchesStatus && matchesType && matchesCategory && matchesActive;
       }).toList();
     });
   }
@@ -229,6 +272,22 @@ class _RoomListUIState extends State<RoomListUI> {
 
     if (_selectedRoomStatusFilter != 'all') {
       filters.add('สถานะ: ${_getStatusText(_selectedRoomStatusFilter)}');
+    }
+
+    if (_selectedRoomCategoryId != null) {
+      final cate = _roomCategories.firstWhere(
+        (c) => c['roomcate_id']?.toString() == _selectedRoomCategoryId,
+        orElse: () => {},
+      );
+      if (cate.isNotEmpty) filters.add('หมวดหมู่: ${cate['roomcate_name']}');
+    }
+
+    if (_selectedRoomTypeId != null) {
+      final type = _roomTypes.firstWhere(
+        (t) => t['roomtype_id']?.toString() == _selectedRoomTypeId,
+        orElse: () => {},
+      );
+      if (type.isNotEmpty) filters.add('ประเภท: ${type['roomtype_name']}');
     }
 
     if (_searchQuery.isNotEmpty) {
@@ -1157,145 +1216,290 @@ class _RoomListUIState extends State<RoomListUI> {
                 ),
               ),
               SizedBox(height: 16),
-              // Active status
+              // Advanced filters (Category & Type only)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   children: [
-                    SizedBox(
+                    Theme(
+                      data: Theme.of(context).copyWith(
+                        dividerColor: Colors.transparent,
+                        splashColor: Colors.transparent,
+                        highlightColor: Colors.transparent,
+                      ),
                       child: Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.grey[300]!),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.filter_list,
-                                size: 20, color: Colors.grey[700]),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedStatus,
-                                  isExpanded: true,
-                                  icon:
-                                      Icon(Icons.keyboard_arrow_down, size: 20),
-                                  style: TextStyle(
-                                      fontSize: 14, color: Colors.black87),
-                                  onChanged: _onStatusChanged,
-                                  items: const [
-                                    DropdownMenuItem(
-                                        value: 'all', child: Text('All')),
-                                    DropdownMenuItem(
-                                        value: 'active', child: Text('Active')),
-                                    DropdownMenuItem(
-                                        value: 'inactive',
-                                        child: Text('Inactive')),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (_branches.isNotEmpty && widget.branchId == null) ...[
-                      SizedBox(height: 12),
-                      SizedBox(
-                        child: Container(
-                          padding:
-                              EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
+                        child: ExpansionTile(
+                          tilePadding:
+                              const EdgeInsets.symmetric(horizontal: 12),
+                          childrenPadding:
+                              const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                          title: Row(
                             children: [
-                              Icon(Icons.place_outlined,
-                                  size: 20, color: Colors.grey[700]),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    value: _selectedBranchId ?? 'all',
-                                    isExpanded: true,
-                                    icon: Icon(Icons.keyboard_arrow_down,
-                                        size: 20),
+                              Icon(Icons.tune, size: 20, color: Colors.grey[700]),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'ตัวกรองเพิ่มเติม',
+                                style: TextStyle(fontSize: 14),
+                              ),
+                              const Spacer(),
+                              if (_selectedRoomCategoryId != null ||
+                                  _selectedRoomTypeId != null ||
+                                  _selectedStatus != 'all' ||
+                                  _selectedRoomStatusFilter != 'all')
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    'กำลังกรอง',
                                     style: TextStyle(
-                                        fontSize: 14, color: Colors.black87),
-                                    items: [
-                                      DropdownMenuItem(
-                                        value: 'all',
-                                        child: Text('ทุกสาขา'),
-                                      ),
-                                      ..._branches.map((branch) {
-                                        return DropdownMenuItem<String>(
-                                          value: branch['branch_id'] as String,
-                                          child:
-                                              Text(branch['branch_name'] ?? ''),
-                                        );
-                                      }).toList(),
-                                    ],
-                                    onChanged: (value) {
-                                      _onBranchChanged(
-                                          value == 'all' ? null : value);
-                                    },
+                                      color: Colors.orange[800],
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ),
-                              ),
                             ],
                           ),
-                        ),
-                      ),
-                    ],
-                    SizedBox(height: 16),
-                    // Room status
-                    SizedBox(
-                      child: Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
+                          onExpansionChanged: (v) =>
+                              setState(() => _filtersExpanded = v),
+                          initiallyExpanded: _filtersExpanded,
                           children: [
-                            Icon(Icons.hotel_class_rounded,
-                                size: 20, color: Colors.grey[700]),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedRoomStatusFilter,
-                                  isExpanded: true,
-                                  icon:
-                                      Icon(Icons.keyboard_arrow_down, size: 20),
-                                  style: TextStyle(
-                                      fontSize: 14, color: Colors.black87),
-                                  onChanged: _onRoomStatusFilterChanged,
-                                  items: const [
-                                    DropdownMenuItem(
-                                        value: 'all', child: Text('ทั้งหมด')),
-                                    DropdownMenuItem(
-                                        value: 'available',
-                                        child: Text('ห้องว่าง')),
-                                    DropdownMenuItem(
-                                        value: 'occupied',
-                                        child: Text('มีผู้เช่า')),
-                                    DropdownMenuItem(
-                                        value: 'maintenance',
-                                        child: Text('ซ่อมบำรุง')),
-                                    DropdownMenuItem(
-                                        value: 'reserved', child: Text('จอง')),
-                                    DropdownMenuItem(
-                                        value: 'unknown',
-                                        child: Text('ไม่ทราบ')),
+                            LayoutBuilder(
+                              builder: (context, c) {
+                                final isWide = MediaQuery.of(context).size.width >= 768;
+                                return Column(
+                                  children: [
+                                    // Row 1: Active status + Room status
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Container(
+                                            margin: EdgeInsets.only(top: 8, right: isWide ? 8 : 0),
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              border: Border.all(color: Colors.grey[300]!),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.power_settings_new,
+                                                    size: 20, color: Colors.grey[700]),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: DropdownButtonHideUnderline(
+                                                    child: DropdownButton<String>(
+                                                      value: _selectedStatus,
+                                                      isExpanded: true,
+                                                      icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+                                                      style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                                      items: const [
+                                                        DropdownMenuItem(
+                                                          value: 'all',
+                                                          child: Text('ทุกสถานะการใช้งาน'),
+                                                        ),
+                                                        DropdownMenuItem(
+                                                          value: 'active',
+                                                          child: Text('เปิดใช้งาน'),
+                                                        ),
+                                                        DropdownMenuItem(
+                                                          value: 'inactive',
+                                                          child: Text('ปิดใช้งาน'),
+                                                        ),
+                                                      ],
+                                                      onChanged: (value) {
+                                                        _onStatusChanged(value);
+                                                        _filterRooms();
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        if (isWide) const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Container(
+                                            margin: EdgeInsets.only(top: 8, left: isWide ? 8 : 0),
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              border: Border.all(color: Colors.grey[300]!),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.info_outline,
+                                                    size: 20, color: Colors.grey[700]),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child: DropdownButtonHideUnderline(
+                                                    child: DropdownButton<String>(
+                                                      value: _selectedRoomStatusFilter,
+                                                      isExpanded: true,
+                                                      icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+                                                      style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                                      items: const [
+                                                        DropdownMenuItem(
+                                                            value: 'all', child: Text('ทุกสถานะห้อง')),
+                                                        DropdownMenuItem(
+                                                            value: 'available', child: Text('ว่าง')),
+                                                        DropdownMenuItem(
+                                                            value: 'occupied', child: Text('มีผู้เช่า')),
+                                                        DropdownMenuItem(
+                                                            value: 'maintenance', child: Text('ซ่อมบำรุง')),
+                                                        DropdownMenuItem(
+                                                            value: 'reserved', child: Text('จอง')),
+                                                      ],
+                                                      onChanged: (value) {
+                                                        _onRoomStatusFilterChanged(value);
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    // Row 2: Category + Type
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Container(
+                                            margin: EdgeInsets.only(top: 8, right: isWide ? 8 : 0),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              border: Border.all(
+                                                  color: Colors.grey[300]!),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.grid_view_rounded,
+                                                    size: 20,
+                                                    color: Colors.grey[700]),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child:
+                                                      DropdownButtonHideUnderline(
+                                                    child: DropdownButton<String>(
+                                                      value: _selectedRoomCategoryId ?? 'all',
+                                                      isExpanded: true,
+                                                      icon: const Icon(
+                                                          Icons.keyboard_arrow_down,
+                                                          size: 20),
+                                                      style: const TextStyle(
+                                                          fontSize: 14,
+                                                          color: Colors.black87),
+                                                      items: [
+                                                        const DropdownMenuItem(
+                                                          value: 'all',
+                                                          child: Text('ทุกหมวดหมู่'),
+                                                        ),
+                                                        ..._roomCategories.map((c) {
+                                                          return DropdownMenuItem<String>(
+                                                            value: c['roomcate_id']
+                                                                ?.toString(),
+                                                            child: Text(
+                                                                c['roomcate_name'] ?? ''),
+                                                          );
+                                                        }).toList(),
+                                                      ],
+                                                      onChanged: (value) {
+                                                        setState(() {
+                                                          _selectedRoomCategoryId =
+                                                              value == 'all' ? null : value;
+                                                        });
+                                                        _filterRooms();
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        if (isWide) const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Container(
+                                            margin: EdgeInsets.only(top: 8, left: isWide ? 8 : 0),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              border: Border.all(
+                                                  color: Colors.grey[300]!),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.category_outlined,
+                                                    size: 20,
+                                                    color: Colors.grey[700]),
+                                                const SizedBox(width: 8),
+                                                Expanded(
+                                                  child:
+                                                      DropdownButtonHideUnderline(
+                                                    child: DropdownButton<String>(
+                                                      value: _selectedRoomTypeId ?? 'all',
+                                                      isExpanded: true,
+                                                      icon: const Icon(
+                                                          Icons.keyboard_arrow_down,
+                                                          size: 20),
+                                                      style: const TextStyle(
+                                                          fontSize: 14,
+                                                          color: Colors.black87),
+                                                      items: [
+                                                        const DropdownMenuItem(
+                                                          value: 'all',
+                                                          child: Text('ทุกประเภท'),
+                                                        ),
+                                                        ..._roomTypes.map((t) {
+                                                          return DropdownMenuItem<String>(
+                                                            value: t['roomtype_id']
+                                                                ?.toString(),
+                                                            child: Text(
+                                                                t['roomtype_name'] ?? ''),
+                                                          );
+                                                        }).toList(),
+                                                      ],
+                                                      onChanged: (value) {
+                                                        setState(() {
+                                                          _selectedRoomTypeId =
+                                                              value == 'all' ? null : value;
+                                                        });
+                                                        _filterRooms();
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ],
-                                ),
-                              ),
-                            ),
+                                );
+                              },
+                            )
                           ],
                         ),
                       ),

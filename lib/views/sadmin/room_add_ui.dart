@@ -109,9 +109,11 @@ class _RoomAddUIState extends State<RoomAddUI> {
 
     try {
       final branches = await BranchService.getBranchesByUser();
-      final roomTypes = await RoomService.getRoomTypes();
-      final roomCategories = await RoomService.getRoomCategories();
-      final amenities = await RoomService.getAmenities();
+      // ดึงข้อมูลตามสาขาที่เลือก (ถ้ามี) ไม่เช่นนั้นใช้สาขาของผู้ใช้
+      final String? effectiveBranchId = _selectedBranchId ?? _currentUser?.branchId;
+      final roomTypes = await RoomService.getRoomTypes(branchId: effectiveBranchId);
+      final roomCategories = await RoomService.getRoomCategories(branchId: effectiveBranchId);
+      final amenities = await RoomService.getAmenities(branchId: effectiveBranchId);
 
       if (mounted) {
         setState(() {
@@ -587,14 +589,17 @@ class _RoomAddUIState extends State<RoomAddUI> {
         setState(() => _isLoading = false);
 
         if (result['success']) {
-          // บันทึก amenities ถ้ามีการเลือก
+          // บันทึก amenities ถ้ามีการเลือก (ต้องระบุ branch_id ด้วย)
           if (_selectedAmenities.isNotEmpty && result['data'] != null) {
             final roomId = result['data']['room_id'];
+            final String? effectiveBranchId =
+                _selectedBranchId ?? result['data']['branch_id'] ?? _currentUser?.branchId;
             try {
               for (String amenityId in _selectedAmenities) {
                 await _supabase.from('room_amenities').insert({
                   'room_id': roomId,
                   'amenity_id': amenityId,
+                  'branch_id': effectiveBranchId,
                 });
               }
             } catch (e) {
@@ -802,40 +807,40 @@ class _RoomAddUIState extends State<RoomAddUI> {
   }
 
   Widget _buildCustomHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[300]!, width: 1)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.all(24),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
-            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
             tooltip: 'ย้อนกลับ',
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              children: const [
                 Text(
-                  widget.branchName != null
-                      ? 'เพิ่มห้องพัก - ${widget.branchName}'
-                      : 'เพิ่มห้องพักใหม่',
-                  style: const TextStyle(
-                    fontSize: 20,
+                  'Room Management',
+                  style: TextStyle(
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 4),
                 Text(
-                  widget.branchName != null
-                      ? 'สร้างห้องพักใหม่สำหรับสาขาที่เลือก'
-                      : 'สร้างห้องพักใหม่และกำหนดสาขา',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  'Manage your rooms and details',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black54,
+                  ),
                 ),
               ],
             ),
