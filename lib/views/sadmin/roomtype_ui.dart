@@ -448,34 +448,155 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
   }
 
   Future<void> _deleteRoomType(Map<String, dynamic> roomType) async {
+    final String name = (roomType['roomtype_name'] ?? '').toString();
+    final String id = (roomType['roomtype_id'] ?? '').toString();
+
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.warning, color: Colors.red),
-            SizedBox(width: 8),
-            Text('ยืนยันการลบ'),
-          ],
-        ),
-        content: Text(
-          'คุณต้องการลบประเภทห้อง "${roomType['roomtype_name']}" ใช่หรือไม่?\n\nหากมีห้องที่ใช้ประเภทนี้อยู่ จะไม่สามารถลบได้',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('ยกเลิก'),
+        child: Container(
+          padding: EdgeInsets.all(24),
+          constraints: BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.delete_forever_rounded,
+                  color: Colors.red.shade600,
+                  size: 40,
+                ),
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Delete Room Type?',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              SizedBox(height: 12),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.category, size: 18, color: Colors.grey[700]),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.shade100, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_rounded,
+                      color: Colors.red.shade600,
+                      size: 22,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'การดำเนินการนี้ไม่สามารถย้อนกลับได้\nข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
+                        style: TextStyle(
+                          color: Colors.red.shade800,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.delete_outline, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'Delete',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: Text('ลบ'),
-          ),
-        ],
+        ),
       ),
     );
 
@@ -484,23 +605,87 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => Center(
-            child: CircularProgressIndicator(color: AppTheme.primary),
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: CircularProgressIndicator(
+                            color: Colors.red.shade600,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                        Icon(
+                          Icons.delete_sweep_rounded,
+                          color: Colors.red.shade600,
+                          size: 28,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    'Deleting Room Type',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Please wait a moment...',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
 
-        final result = await RoomService.deleteRoomType(
-          roomType['roomtype_id'],
-        );
-
-        if (mounted) Navigator.pop(context);
+        final result = await RoomService.deleteRoomType(id);
+        if (mounted) Navigator.of(context).pop();
 
         if (mounted) {
-          if (result['success']) {
+          if (result['success'] == true) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(result['message']),
-                backgroundColor: Colors.green,
+                content: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.white),
+                    SizedBox(width: 12),
+                    Expanded(
+                        child: Text(result['message'] ?? 'ลบสำเร็จ')),
+                  ],
+                ),
+                backgroundColor: Colors.green.shade600,
+                behavior: SnackBarBehavior.floating,
               ),
             );
             await _loadRoomTypes();
@@ -509,14 +694,15 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
           }
         }
       } catch (e) {
-        if (mounted && Navigator.canPop(context)) {
-          Navigator.pop(context);
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
         }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(e.toString().replaceAll('Exception: ', '')),
-              backgroundColor: Colors.red,
+              backgroundColor: Colors.red.shade600,
+              behavior: SnackBarBehavior.floating,
             ),
           );
         }

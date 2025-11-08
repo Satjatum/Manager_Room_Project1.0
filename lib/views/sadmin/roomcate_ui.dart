@@ -490,82 +490,244 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
   }
 
   Future<void> _deleteCategory(Map<String, dynamic> category) async {
+    final String name = (category['roomcate_name'] ?? '').toString();
+    final String id = (category['roomcate_id'] ?? '').toString();
+
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
+      builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: EdgeInsets.all(24),
+          constraints: BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.delete_forever_rounded,
+                  color: Colors.red.shade600,
+                  size: 40,
+                ),
               ),
-              child: Icon(Icons.delete, color: Colors.red, size: 20),
-            ),
-            SizedBox(width: 12),
-            Text(
-              'ลบหมวดหมู่ห้อง',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-        content: Text(
-          'คุณต้องการลบหมวดหมู่ห้อง "${category['roomcate_name']}" ใช่หรือไม่?\n\nการดำเนินการนี้ไม่สามารถย้อนกลับได้',
-          style: TextStyle(fontSize: 14, height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(
-              'ยกเลิก',
-              style: TextStyle(
-                  color: Colors.grey[600], fontWeight: FontWeight.w600),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+              SizedBox(height: 20),
+              Text(
+                'Delete Room Category?',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
-            ),
-            child: Text(
-              'ลบ',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+              SizedBox(height: 12),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.category, size: 18, color: Colors.grey[700]),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.shade100, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_rounded,
+                      color: Colors.red.shade600,
+                      size: 22,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'การดำเนินการนี้ไม่สามารถย้อนกลับได้\nข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
+                        style: TextStyle(
+                          color: Colors.red.shade800,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.delete_outline, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'Delete',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
 
     if (confirmed == true) {
       try {
-        // Progress overlay similar to amenities_ui
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => Center(
-            child: CircularProgressIndicator(color: AppTheme.primary),
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: CircularProgressIndicator(
+                            color: Colors.red.shade600,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                        Icon(
+                          Icons.delete_sweep_rounded,
+                          color: Colors.red.shade600,
+                          size: 28,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    'Deleting Room Category',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Please wait a moment...',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
 
-        final result = await RoomService.deleteRoomCategory(
-          category['roomcate_id'],
-        );
-
-        if (mounted) Navigator.of(context).pop(); // close progress
+        final result = await RoomService.deleteRoomCategory(id);
+        if (mounted) Navigator.of(context).pop(); // close overlay
 
         if (mounted) {
           if (result['success'] == true) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(result['message'] ?? 'ลบสำเร็จ'),
-                backgroundColor: Colors.green,
+                content: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.white),
+                    SizedBox(width: 12),
+                    Expanded(
+                        child: Text(result['message'] ?? 'ลบสำเร็จ')),
+                  ],
+                ),
+                backgroundColor: Colors.green.shade600,
+                behavior: SnackBarBehavior.floating,
               ),
             );
             await _loadCategories();
@@ -580,10 +742,10 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                e.toString().replaceAll('Exception: ', ''),
-              ),
-              backgroundColor: Colors.red,
+              content:
+                  Text(e.toString().replaceAll('Exception: ', '')),
+              backgroundColor: Colors.red.shade600,
+              behavior: SnackBarBehavior.floating,
             ),
           );
         }
