@@ -630,14 +630,16 @@ class _RoomEditUIState extends State<RoomEditUI> {
         setState(() => _isLoading = false);
 
         if (result['success']) {
+          final String? effectiveBranchId =
+              _selectedBranchId ?? _currentUser?.branchId;
+
+          // Respect composite key (branch_id, room_id, amenity_id)
           await _supabase
               .from('room_amenities')
               .delete()
-              .eq('room_id', widget.roomId);
+              .match({'room_id': widget.roomId, 'branch_id': effectiveBranchId});
 
           if (_selectedAmenities.isNotEmpty) {
-            final String? effectiveBranchId =
-                _selectedBranchId ?? _currentUser?.branchId;
             for (String amenityId in _selectedAmenities) {
               await _supabase.from('room_amenities').insert({
                 'room_id': widget.roomId,
