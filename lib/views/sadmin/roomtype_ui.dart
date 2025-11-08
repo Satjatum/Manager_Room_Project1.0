@@ -16,6 +16,141 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
+  // Icon options for room types (similar style to amenities)
+  final List<Map<String, dynamic>> _iconOptions = [
+    {'name': 'category', 'icon': Icons.category, 'label': 'หมวดหมู่'},
+    {'name': 'hotel', 'icon': Icons.hotel, 'label': 'เตียง'},
+    {'name': 'apartment', 'icon': Icons.apartment, 'label': 'อพาร์ตเมนต์'},
+    {'name': 'home', 'icon': Icons.home_outlined, 'label': 'บ้าน'},
+    {'name': 'door_front', 'icon': Icons.door_front_door, 'label': 'ประตูหน้า'},
+    {'name': 'meeting', 'icon': Icons.meeting_room_outlined, 'label': 'ห้อง'},
+    {'name': 'king_bed', 'icon': Icons.king_bed_outlined, 'label': 'King'},
+    {'name': 'single_bed', 'icon': Icons.single_bed_outlined, 'label': 'Single'},
+    {'name': 'workspace', 'icon': Icons.workspaces_outline, 'label': 'ทำงาน'},
+    {'name': 'weekend', 'icon': Icons.weekend_outlined, 'label': 'โซฟา'},
+  ];
+
+  IconData _getIconData(String? iconName) {
+    if (iconName == null || iconName.isEmpty) return Icons.category;
+    final opt = _iconOptions.firstWhere(
+      (o) => o['name'] == iconName,
+      orElse: () => {'icon': Icons.category},
+    );
+    return opt['icon'] as IconData;
+  }
+
+  Future<void> _showIconPicker(
+      TextEditingController controller, String currentIcon) async {
+    final selectedIcon = await showDialog<String>(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: EdgeInsets.all(20),
+          constraints: BoxConstraints(maxWidth: 520),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.apps_rounded, color: AppTheme.primary),
+                  SizedBox(width: 8),
+                  Text('เลือกไอคอน',
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w700)),
+                  Spacer(),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(Icons.close, color: Colors.grey[700]),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12),
+              GridView.builder(
+                shrinkWrap: true,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 5,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
+                itemCount: _iconOptions.length,
+                itemBuilder: (context, index) {
+                  final option = _iconOptions[index];
+                  final isSelected = option['name'] == currentIcon;
+                  return InkWell(
+                    onTap: () => Navigator.pop(context, option['name']),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppTheme.primary
+                              : Colors.grey[300]!,
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            option['icon'] as IconData,
+                            size: 24,
+                            color: isSelected
+                                ? AppTheme.primary
+                                : Colors.grey[700],
+                          ),
+                          SizedBox(height: 6),
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 4),
+                            child: Text(
+                              option['name'] as String,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isSelected
+                                    ? AppTheme.primary
+                                    : Colors.grey[700],
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+              SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side:
+                            BorderSide(color: Colors.grey[300]!, width: 1.2),
+                        foregroundColor: Colors.grey[800],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text('ยกเลิก'),
+                    ),
+                  ),
+                ],
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+    if (selectedIcon != null) controller.text = selectedIcon;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -59,9 +194,8 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
       _searchQuery = query;
       _filteredRoomTypes = _roomTypes.where((type) {
         final name = (type['roomtype_name'] ?? '').toString().toLowerCase();
-        final desc = (type['roomtype_desc'] ?? '').toString().toLowerCase();
         final searchLower = query.toLowerCase();
-        return name.contains(searchLower) || desc.contains(searchLower);
+        return name.contains(searchLower);
       }).toList();
     });
   }
@@ -71,8 +205,8 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
     final nameController = TextEditingController(
       text: isEdit ? roomType['roomtype_name'] : '',
     );
-    final descController = TextEditingController(
-      text: isEdit ? roomType['roomtype_desc'] : '',
+    final iconController = TextEditingController(
+      text: isEdit ? (roomType['roomtype_icon'] ?? 'category') : 'category',
     );
 
     final result = await showDialog<bool>(
@@ -93,6 +227,36 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              InkWell(
+                onTap: () async {
+                  await _showIconPicker(iconController, iconController.text);
+                  setState(() {});
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!, width: 1.2),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_getIconData(iconController.text),
+                          size: 36, color: AppTheme.primary),
+                      SizedBox(height: 6),
+                      Text('แตะเพื่อเลือกไอคอน',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.primary,
+                              fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 12),
               TextField(
                 controller: nameController,
                 decoration: InputDecoration(
@@ -104,19 +268,6 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                   ),
                 ),
                 autofocus: true,
-              ),
-              SizedBox(height: 16),
-              TextField(
-                controller: descController,
-                decoration: InputDecoration(
-                  labelText: 'คำอธิบาย',
-                  hintText: 'รายละเอียดเพิ่มเติม',
-                  prefixIcon: Icon(Icons.description),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                maxLines: 3,
               ),
             ],
           ),
@@ -161,7 +312,7 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
 
         final data = {
           'roomtype_name': nameController.text.trim(),
-          'roomtype_desc': descController.text.trim(),
+          'roomtype_icon': iconController.text,
         };
 
         Map<String, dynamic> response;
@@ -285,211 +436,274 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('จัดการประเภทห้อง'),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _loadRoomTypes,
-            tooltip: 'รีเฟรช',
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                ),
-              ],
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header (match amenities)
+            Padding(
+              padding: EdgeInsets.all(24),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+                    },
+                    tooltip: 'ย้อนกลับ',
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          'Room Type Management',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Manage room types and icons',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: TextField(
-              controller: _searchController,
-              onChanged: _onSearchChanged,
-              decoration: InputDecoration(
-                hintText: 'ค้นหาประเภทห้อง',
-                prefixIcon: Icon(Icons.search),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _onSearchChanged('');
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
+            // Search
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
+                  decoration: InputDecoration(
+                    hintText: 'ค้นหาประเภทห้อง',
+                    hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey[600], size: 20),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(Icons.clear, color: Colors.grey[600], size: 20),
+                            onPressed: () {
+                              _searchController.clear();
+                              _onSearchChanged('');
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  ),
                 ),
               ),
             ),
-          ),
-          Expanded(
-            child: RefreshIndicator(
-              color: AppTheme.primary,
-              onRefresh: _loadRoomTypes,
-              child: _isLoading
-                  ? ListView(
-                      physics: AlwaysScrollableScrollPhysics(),
-                      children: [
-                        SizedBox(height: 120),
-                        Center(
-                          child: CircularProgressIndicator(
-                              color: AppTheme.primary),
-                        ),
-                      ],
-                    )
-                  : _filteredRoomTypes.isEmpty
-                      ? ListView(
-                          physics: AlwaysScrollableScrollPhysics(),
-                          children: [
-                            SizedBox(height: 120),
-                            Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.category_outlined,
-                                      size: 80, color: Colors.grey[400]),
-                                  SizedBox(height: 16),
-                                  Text(
-                                    _searchQuery.isNotEmpty
-                                        ? 'ไม่พบประเภทห้องที่ค้นหา'
-                                        : 'ยังไม่มีประเภทห้อง',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.grey[600],
+            SizedBox(height: 12),
+            // Count
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'Showing ${_filteredRoomTypes.length} of ${_roomTypes.length} types',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              ),
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                color: AppTheme.primary,
+                onRefresh: _loadRoomTypes,
+                child: _isLoading
+                    ? ListView(
+                        physics: AlwaysScrollableScrollPhysics(),
+                        children: [
+                          SizedBox(height: 120),
+                          Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+                        ],
+                      )
+                    : _filteredRoomTypes.isEmpty
+                        ? ListView(
+                            physics: AlwaysScrollableScrollPhysics(),
+                            children: [
+                              SizedBox(height: 120),
+                              Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.category_outlined, size: 80, color: Colors.grey[400]),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      _searchQuery.isNotEmpty ? 'ไม่พบประเภทห้องที่ค้นหา' : 'ยังไม่มีประเภทห้อง',
+                                      style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                                     ),
-                                  ),
-                                  SizedBox(height: 24),
-                                  Center(
-                                    child: ElevatedButton.icon(
+                                    SizedBox(height: 24),
+                                    ElevatedButton.icon(
                                       onPressed: () => _showAddEditDialog(),
-                                      icon: Icon(Icons.add), 
+                                      icon: Icon(Icons.add),
                                       label: Text('เพิ่มประเภทห้องแรก'),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: AppTheme.primary,
                                         foregroundColor: Colors.white,
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 24,
-                                          vertical: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        )
-                      : ListView.builder(
-                          padding: EdgeInsets.all(16),
-                          itemCount: _filteredRoomTypes.length,
-                          itemBuilder: (context, index) {
-                            final roomType = _filteredRoomTypes[index];
-                            return Container(
-                              margin: EdgeInsets.only(bottom: 12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey[300]!),
-                              ),
-                              child: ListTile(
-                                contentPadding: EdgeInsets.all(16),
-                                leading: Container(
-                                  padding: EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.withOpacity(0.08),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.blue.withOpacity(0.2),
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    Icons.category,
-                                    color: Colors.blue,
-                                    size: 28,
-                                  ),
-                                ),
-                                title: Text(
-                                  roomType['roomtype_name'] ?? '',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                subtitle:
-                                    roomType['roomtype_desc'] != null &&
-                                            roomType['roomtype_desc']
-                                                .toString()
-                                                .isNotEmpty
-                                        ? Padding(
-                                            padding: EdgeInsets.only(top: 4),
-                                            child: Text(
-                                              roomType['roomtype_desc'],
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                color: Colors.grey[600],
-                                              ),
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          )
-                                        : null,
-                                trailing: PopupMenuButton<String>(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  onSelected: (value) {
-                                    if (value == 'edit') {
-                                      _showAddEditDialog(roomType: roomType);
-                                    } else if (value == 'delete') {
-                                      _deleteRoomType(roomType);
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    PopupMenuItem(
-                                      value: 'edit',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.edit, color: Colors.blue),
-                                          SizedBox(width: 8),
-                                          Text('แก้ไข'),
-                                        ],
-                                      ),
-                                    ),
-                                    PopupMenuItem(
-                                      value: 'delete',
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.delete, color: Colors.red),
-                                          SizedBox(width: 8),
-                                          Text('ลบ'),
-                                        ],
+                                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                            ],
+                          )
+                        : LayoutBuilder(
+                            builder: (context, constraints) {
+                              final width = constraints.maxWidth;
+                              final bool isMobile = width < 768;
+
+                              if (isMobile) {
+                                return SingleChildScrollView(
+                                  physics: AlwaysScrollableScrollPhysics(),
+                                  padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
+                                  child: Wrap(
+                                    spacing: 12,
+                                    runSpacing: 12,
+                                    children: List.generate(_filteredRoomTypes.length, (index) {
+                                      final t = _filteredRoomTypes[index];
+                                      return ConstrainedBox(
+                                        constraints: BoxConstraints(minWidth: 160, maxWidth: 260),
+                                        child: _typeCard(context, t),
+                                      );
+                                    }),
+                                  ),
+                                );
+                              }
+
+                              int cols = 2;
+                              if (width >= 2560) cols = 5;
+                              else if (width >= 1440) cols = 4;
+                              else if (width >= 1024) cols = 3;
+                              else if (width < 480) cols = 1;
+
+                              return GridView.builder(
+                                physics: AlwaysScrollableScrollPhysics(),
+                                padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: cols,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 1.15,
+                                ),
+                                itemCount: _filteredRoomTypes.length,
+                                itemBuilder: (context, index) {
+                                  final t = _filteredRoomTypes[index];
+                                  return _typeCard(context, t);
+                                },
+                              );
+                            },
+                          ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditDialog(),
         backgroundColor: AppTheme.primary,
         child: Icon(Icons.add, color: Colors.white),
         tooltip: 'เพิ่มประเภทห้อง',
+      ),
+    );
+  }
+
+  Widget _typeCard(BuildContext context, Map<String, dynamic> t) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => _showAddEditDialog(roomType: t),
+      child: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            padding: EdgeInsets.all(12),
+            child: Column(
+              children: [
+                SizedBox(height: 6),
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.withOpacity(0.25)),
+                  ),
+                  child: Icon(
+                    _getIconData(t['roomtype_icon']?.toString()),
+                    color: Colors.blue,
+                    size: 40,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  t['roomtype_name'] ?? '',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            right: 4,
+            top: 4,
+            child: PopupMenuButton<String>(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              onSelected: (value) {
+                if (value == 'edit') {
+                  _showAddEditDialog(roomType: t);
+                } else if (value == 'delete') {
+                  _deleteRoomType(t);
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'edit',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit, color: Colors.blue),
+                      SizedBox(width: 8),
+                      Text('แก้ไข'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete, color: Colors.red),
+                      SizedBox(width: 8),
+                      Text('ลบ'),
+                    ],
+                  ),
+                ),
+              ],
+              icon: Icon(Icons.more_vert, color: Colors.grey[700]),
+            ),
+          ),
+        ],
       ),
     );
   }
