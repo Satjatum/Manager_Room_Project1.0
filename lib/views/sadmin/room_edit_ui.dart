@@ -536,7 +536,8 @@ class _RoomEditUIState extends State<RoomEditUI> {
           if (row is Map && row.isNotEmpty) url = row['image_url']?.toString();
         } catch (_) {}
 
-        await _supabase.from('room_images').delete().eq('image_id', imageId);
+        final dynamic _idValue = int.tryParse(imageId) ?? imageId;
+        await _supabase.from('room_images').delete().eq('image_id', _idValue);
         if (url != null && url!.isNotEmpty) {
           try {
             await ImageService.deleteImage(url!);
@@ -693,7 +694,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
                   await _supabase.from('room_images').update({
                     'is_primary': it.isPrimary,
                     'display_order': i,
-                  }).eq('image_id', it.imageId);
+                  }).eq('image_id', int.tryParse(it.imageId!) ?? it.imageId);
                 } else {
                   // New image -> upload then insert
                   final ext = it.name.split('.').last.toLowerCase();
