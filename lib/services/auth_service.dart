@@ -523,12 +523,7 @@ class AuthService {
 
     final locked = row['locked'] == true;
     final remainingSeconds = (row['remaining_seconds'] as num?)?.toInt() ?? 0;
-    // If server says unlocked, still check local lock
-    if (!locked) {
-      final local = await _getLocalLockStatus();
-      if (local['locked'] == true) return local;
-    }
-
+    // Trust server status when available; only fallback to local when RPC fails upstream
     return {'locked': locked, 'remaining': Duration(seconds: remainingSeconds)};
   }
 
@@ -556,6 +551,41 @@ class AuthService {
     final generated = await _generateSessionToken();
     await prefs.setString(_deviceIdKey, generated);
     return generated;
+  }
+
+  // ========== Admin unlock helpers ==========
+  static Future<Map<String, dynamic>> adminUnlockDevice({
+    required String deviceId,
+    bool fullReset = false, // ถ้า true จะรีเซ็ต lock_level = 0 ด้วย
+  }) async {
+    try {
+      await _supabase.rpc('auth_unlock_device', params: {
+        'p_device_id': deviceId,
+        'p_full_reset': fullReset,
+      });
+
+      // ถ้าเป็นอุปกรณ์นี้เอง ให้ล้างสถานะ local ด้วย
+      final currentDeviceId = await _getOrCreateDeviceId();
+      if (currentDeviceId == deviceId) {
+        await _clearLocalLock(fullReset: fullReset);
+      }
+
+      return {'success': true};
+    } catch (e) {
+      return {
+        'success': false,
+        'message': e.toString(),
+      };
+    }
+  }
+
+  static Future<void> _clearLocalLock({bool fullReset = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_lockUntilKey);
+    await prefs.setInt(_failCountKey, 0);
+    if (fullReset) {
+      await prefs.setInt(_lockLevelKey, 0);
+    }
   }
 
   // ========== Local fallback lockout helpers ==========
