@@ -6,6 +6,7 @@ class AuthService {
   static final SupabaseClient _supabase = Supabase.instance.client;
   static const String _sessionKey = 'user_session';
   static const String _userIdKey = 'current_user_id';
+  static const String _deviceIdKey = 'device_id';
   // Device-wide lockout keys (not per-account)
   static const String _failCountKey = 'login_fail_count';
   static const String _lockUntilKey = 'login_lock_until';
@@ -38,7 +39,7 @@ class AuthService {
     required String password,
   }) async {
     try {
-      // Check device-wide lockout before any request
+      // Check device-wide lockout before any request (server-first, fallback local)
       final lockInfo = await getLockStatus();
       if (lockInfo['locked'] == true) {
         final remaining = lockInfo['remaining'] as Duration?;
@@ -57,7 +58,11 @@ class AuthService {
       final userQuery = await _findActiveUserByEmailOrUsername(emailOrUsername);
 
       if (userQuery == null) {
-        await _recordFailedAttempt();
+        // record failed attempt (server) and fallback local
+        final updated = await _serverUpdateLockout(success: false);
+        if (!updated) {
+          await _recordFailedAttempt();
+        }
         return {
           'success': false,
           'message': 'ไม่พบผู้ใช้งานนี้ในระบบ',
@@ -71,7 +76,10 @@ class AuthService {
       });
 
       if (!passwordCheck) {
-        await _recordFailedAttempt();
+        final updated = await _serverUpdateLockout(success: false);
+        if (!updated) {
+          await _recordFailedAttempt();
+        }
         return {
           'success': false,
           'message': 'รหัสผ่านไม่ถูกต้อง',
@@ -105,7 +113,10 @@ class AuthService {
       await _storeUserSession(user.userId, sessionToken);
 
       // Reset failures on success
-      await _resetFailedAttempts();
+      final updated = await _serverUpdateLockout(success: true);
+      if (!updated) {
+        await _resetFailedAttempts();
+      }
 
       return {
         'success': true,
@@ -486,6 +497,72 @@ class AuthService {
 
   // ========== Device-wide lockout helpers ==========
   static Future<Map<String, dynamic>> getLockStatus() async {
+    // Try server-based status first
+    try {
+      final result = await _serverGetLockStatus();
+      return result;
+    } catch (e) {
+      // fallback local
+    }
+    return await _getLocalLockStatus();
+  }
+
+  // Server-first helpers
+  static Future<Map<String, dynamic>> _serverGetLockStatus() async {
+    final deviceId = await _getOrCreateDeviceId();
+    final res = await _supabase.rpc('auth_get_lock_status', params: {
+      'p_device_id': deviceId,
+    });
+
+    Map<String, dynamic>? row;
+    if (res is List && res.isNotEmpty) {
+      final first = res.first;
+      if (first is Map<String, dynamic>) row = first;
+    } else if (res is Map<String, dynamic>) {
+      row = res;
+    }
+
+    if (row == null) {
+      return {'locked': false, 'remaining': Duration.zero};
+    }
+
+    final locked = row['locked'] == true;
+    final remainingSeconds = (row['remaining_seconds'] as num?)?.toInt() ?? 0;
+    return {
+      'locked': locked,
+      'remaining': Duration(seconds: remainingSeconds),
+    };
+  }
+
+  static Future<bool> _serverUpdateLockout({required bool success}) async {
+    try {
+      final deviceId = await _getOrCreateDeviceId();
+      final ua = await _getUserAgent();
+      final ip = await _getClientIP();
+      await _supabase.rpc('auth_update_lockout', params: {
+        'p_device_id': deviceId,
+        'p_success': success,
+        'p_user_agent': ua,
+        'p_ip': ip,
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static Future<String> _getOrCreateDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final existing = prefs.getString(_deviceIdKey);
+    if (existing != null && existing.isNotEmpty) return existing;
+    // generate from server to avoid adding deps
+    final generated = await _generateSessionToken();
+    await prefs.setString(_deviceIdKey, generated);
+    return generated;
+  }
+
+  // ========== Local fallback lockout helpers ==========
+  static Future<Map<String, dynamic>> _getLocalLockStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final lockUntilIso = prefs.getString(_lockUntilKey);
     if (lockUntilIso == null) {
