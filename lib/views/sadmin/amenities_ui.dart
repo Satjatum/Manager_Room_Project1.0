@@ -882,27 +882,38 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
                         : LayoutBuilder(
                             builder: (context, constraints) {
                               final width = constraints.maxWidth;
-                              int cols = 2;
-                              if (width >= 2560) {
-                                cols = 5;
-                              } else if (width >= 1440) {
-                                cols = 4;
-                              } else if (width >= 1024) {
-                                cols = 3;
-                              } else if (width < 480) {
-                                cols = 1;
-                              }
+                              // Mobile: auto-fit columns by max width per tile
+                              final bool isMobile = width < 768;
+                              final gridDelegate = isMobile
+                                  ? SliverGridDelegateWithMaxCrossAxisExtent(
+                                      maxCrossAxisExtent: 220,
+                                      crossAxisSpacing: 12,
+                                      mainAxisSpacing: 12,
+                                      childAspectRatio: 1.05,
+                                    )
+                                  : (() {
+                                      int cols = 2;
+                                      if (width >= 2560) {
+                                        cols = 5;
+                                      } else if (width >= 1440) {
+                                        cols = 4;
+                                      } else if (width >= 1024) {
+                                        cols = 3;
+                                      } else if (width < 480) {
+                                        cols = 1;
+                                      }
+                                      return SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: cols,
+                                        crossAxisSpacing: 12,
+                                        mainAxisSpacing: 12,
+                                        childAspectRatio: 1.05,
+                                      );
+                                    })();
 
                               return GridView.builder(
                                 physics: AlwaysScrollableScrollPhysics(),
                                 padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: cols,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: 1.05,
-                                ),
+                                gridDelegate: gridDelegate,
                                 itemCount: _filteredAmenities.length,
                                 itemBuilder: (context, index) {
                                   final amenity = _filteredAmenities[index];
