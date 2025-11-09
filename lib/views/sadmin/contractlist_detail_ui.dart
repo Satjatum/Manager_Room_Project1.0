@@ -540,112 +540,121 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'รายละเอียดสัญญา',
-          style: TextStyle(
-            color: Colors.black87,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        actions: [
-          if (!_isLoading && _contract != null)
-            PopupMenuButton<String>(
-              icon: Icon(Icons.more_vert, color: Colors.black87),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              onSelected: (value) async {
-                switch (value) {
-                  case 'edit':
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            ContractEditUI(contractId: widget.contractId),
+
+      // 🔥 แทน AppBar ด้วย Header แบบ Custom
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(90),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new,
+                      color: Colors.black87),
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  tooltip: 'ย้อนกลับ',
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'รายละเอียดสัญญา',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                       ),
-                    );
-                    if (result == true) _loadData();
-                    break;
-                  case 'activate':
-                    _activateContract();
-                    break;
-                  case 'renew':
-                    _renewContract();
-                    break;
-                  case 'terminate':
-                    _terminateContract();
-                    break;
-                }
-              },
-              itemBuilder: (context) {
-                return [
-                  PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: const [
-                        Icon(Icons.edit_outlined,
-                            size: 20, color: Color(0xFF14B8A6)),
-                        SizedBox(width: 12),
-                        Text('แก้ไข'),
-                      ],
-                    ),
+                    ],
                   ),
-                  // if (status == 'pending')
-                  //   PopupMenuItem(
-                  //     value: 'activate',
-                  //     child: Row(
-                  //       children: [
-                  //         Icon(Icons.check_circle, color: Colors.green),
-                  //         SizedBox(width: 8),
-                  //         Text('เปิดใช้งานสัญญา'),
-                  //       ],
-                  //     ),
-                  //   ),
-                  if (status == 'active')
-                    PopupMenuItem(
-                      value: 'renew',
-                      child: Row(
-                        children: const [
-                          Icon(Icons.refresh,
-                              size: 20, color: Color(0xFF14B8A6)),
-                          SizedBox(width: 12),
-                          Text('ต่อสัญญา'),
-                        ],
-                      ),
+                ),
+                if (!_isLoading && _contract != null)
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, color: Colors.black87),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  if (status == 'active' || status == 'pending')
-                    PopupMenuItem(
-                      value: 'terminate',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.cancel,
-                            size: 20,
-                            color: Colors.red,
+                    onSelected: (value) async {
+                      switch (value) {
+                        case 'edit':
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ContractEditUI(contractId: widget.contractId),
+                            ),
+                          );
+                          if (result == true) _loadData();
+                          break;
+                        case 'activate':
+                          _activateContract();
+                          break;
+                        case 'renew':
+                          _renewContract();
+                          break;
+                        case 'terminate':
+                          _terminateContract();
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) {
+                      return [
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: const [
+                              Icon(Icons.edit_outlined,
+                                  size: 20, color: Color(0xFF14B8A6)),
+                              SizedBox(width: 12),
+                              Text('แก้ไข'),
+                            ],
                           ),
-                          SizedBox(width: 12),
-                          Text(
-                            'ยกเลิกสัญญา',
-                            style: TextStyle(
-                              color: Colors.red,
+                        ),
+                        if (status == 'active')
+                          PopupMenuItem(
+                            value: 'renew',
+                            child: Row(
+                              children: const [
+                                Icon(Icons.refresh,
+                                    size: 20, color: Color(0xFF14B8A6)),
+                                SizedBox(width: 12),
+                                Text('ต่อสัญญา'),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                ];
-              },
+                        if (status == 'active' || status == 'pending')
+                          PopupMenuItem(
+                            value: 'terminate',
+                            child: Row(
+                              children: const [
+                                Icon(Icons.cancel, size: 20, color: Colors.red),
+                                SizedBox(width: 12),
+                                Text(
+                                  'ยกเลิกสัญญา',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ];
+                    },
+                  ),
+              ],
             ),
-        ],
+          ),
+        ),
       ),
+
       body: _isLoading
           ? Center(
               child: CircularProgressIndicator(color: Color(0xFF10B981)),

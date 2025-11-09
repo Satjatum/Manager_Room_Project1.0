@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-// import 'package:manager_room_project/views/superadmin/contract_add_ui.dart';
-import 'package:manager_room_project/views/sadmin/contract_edit_ui.dart';
-import 'package:manager_room_project/views/sadmin/contract_add_ui.dart';
-import 'package:manager_room_project/views/sadmin/contractlist_detail_ui.dart';
-import 'package:manager_room_project/views/sadmin/contract_history_ui.dart';
+// -----
 import '../../services/tenant_service.dart';
 import '../../services/contract_service.dart';
+// -----
 import '../../middleware/auth_middleware.dart';
+// -----
 import '../../models/user_models.dart';
-import '../widgets/colors.dart';
+// -----
+import 'contract_edit_ui.dart';
+import 'contract_add_ui.dart';
+import 'contractlist_detail_ui.dart';
+import 'contract_history_ui.dart';
 import 'tenant_edit_ui.dart';
+// -----
+import '../widgets/colors.dart';
 
 class TenantDetailUI extends StatefulWidget {
   final String tenantId;
@@ -557,22 +561,42 @@ class _TenantDetailUIState extends State<TenantDetailUI>
         children: [
           // Top bar
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            padding: const EdgeInsets.all(24),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.black87),
-                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back_ios_new,
+                      color: Colors.black87),
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  tooltip: 'ย้อนกลับ',
                 ),
                 const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    'ข้อมูลผู้เช่า',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'รายละเอียดผู้เช่า',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'สำหรับดูรายละเอียดผู้เช่า',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 PopupMenuButton<String>(
@@ -713,7 +737,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              isActive ? 'Active' : 'Inactive',
+                              isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,

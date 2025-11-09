@@ -412,36 +412,6 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                       // เลขห้อง + หมวดหมู่ห้อง
                       Row(
                         children: [
-                          // เลขห้อง
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 4),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey[300]!),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.meeting_room_outlined,
-                                      size: 20, color: Colors.grey[700]),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _roomNumberController,
-                                      onChanged: (v) =>
-                                          setState(() => _roomNumberQuery = v),
-                                      decoration: const InputDecoration(
-                                        hintText: 'เลขห้อง',
-                                        border: InputBorder.none,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
                           // หมวดหมู่ห้อง
                           Expanded(
                             child: Container(

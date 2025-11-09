@@ -31,7 +31,6 @@ class _IssuelistUiState extends State<IssuelistUi>
   Map<String, dynamic> _statistics = {};
   List<Map<String, dynamic>> _branches = [];
 
-  String _selectedPriority = 'all';
   String _selectedType = 'all';
   String? _selectedBranchId;
   String _searchQuery = '';
@@ -172,13 +171,6 @@ class _IssuelistUiState extends State<IssuelistUi>
           .toList();
     }
 
-    // Filter by priority
-    if (_selectedPriority != 'all') {
-      filtered = filtered
-          .where((issue) => issue['issue_priority'] == _selectedPriority)
-          .toList();
-    }
-
     // Filter by type
     if (_selectedType != 'all') {
       filtered = filtered
@@ -226,36 +218,6 @@ class _IssuelistUiState extends State<IssuelistUi>
     return _statistics[status] ?? 0;
   }
 
-  Color _getPriorityColor(String priority) {
-    switch (priority) {
-      case 'urgent':
-        return Colors.red;
-      case 'high':
-        return Colors.orange;
-      case 'medium':
-        return Colors.blue;
-      case 'low':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _getPriorityText(String priority) {
-    switch (priority) {
-      case 'urgent':
-        return 'ด่วนมาก';
-      case 'high':
-        return 'สูง';
-      case 'medium':
-        return 'ปานกลาง';
-      case 'low':
-        return 'ต่ำ';
-      default:
-        return priority;
-    }
-  }
-
   Color _getStatusColor(String status) {
     switch (status) {
       case 'pending':
@@ -283,23 +245,6 @@ class _IssuelistUiState extends State<IssuelistUi>
         return 'ยกเลิก';
       default:
         return status;
-    }
-  }
-
-  String _getIssueTypeText(String type) {
-    switch (type) {
-      case 'repair':
-        return 'ซ่อมแซม';
-      case 'maintenance':
-        return 'บำรุงรักษา';
-      case 'complaint':
-        return 'ร้องเรียน';
-      case 'suggestion':
-        return 'ข้อเสนอแนะ';
-      case 'other':
-        return 'อื่นๆ';
-      default:
-        return type;
     }
   }
 
@@ -385,7 +330,7 @@ class _IssuelistUiState extends State<IssuelistUi>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Issue Management',
+                              'แจ้งปัญหา',
                               style: TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
@@ -394,7 +339,7 @@ class _IssuelistUiState extends State<IssuelistUi>
                             ),
                             SizedBox(height: 4),
                             Text(
-                              'จัดการรายการปัญหาและการติดตามสถานะ',
+                              'สำหรับแจ้งปัญหา',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.black54,
@@ -878,7 +823,6 @@ class _IssuelistUiState extends State<IssuelistUi>
     final roomNumber = issue['room_number'] ?? '';
     final branchName = issue['branch_name'] ?? '';
     final status = issue['issue_status'] ?? '';
-    final priority = issue['issue_priority'] ?? '';
     final type = issue['issue_type'] ?? '';
     final createdAt = issue['created_at'] != null
         ? DateTime.parse(issue['created_at'])
@@ -937,7 +881,6 @@ class _IssuelistUiState extends State<IssuelistUi>
               ),
               const SizedBox(height: 8),
 
-              // Status & Priority (inner white box with grey border)
               Container(
                 width: double.infinity,
                 padding:
@@ -967,29 +910,6 @@ class _IssuelistUiState extends State<IssuelistUi>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _getPriorityColor(priority).withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: _getPriorityColor(priority)),
-                      ),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.flag,
-                            size: 12, color: _getPriorityColor(priority)),
-                        const SizedBox(width: 4),
-                        Text(
-                          _getPriorityText(priority),
-                          style: TextStyle(
-                            color: _getPriorityColor(priority),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ]),
-                    ),
                   ],
                 ),
               ),
@@ -1017,25 +937,6 @@ class _IssuelistUiState extends State<IssuelistUi>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Icon(Icons.business,
-                              size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              branchName,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[700],
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
                       Row(
                         children: [
                           Icon(Icons.meeting_room,

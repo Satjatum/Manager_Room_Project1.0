@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
-import '../../services/room_service.dart';
+// -----
 import '../../models/user_models.dart';
+// -----
 import '../../middleware/auth_middleware.dart';
+// -----
+import '../../services/room_service.dart';
+// -----
 import '../widgets/colors.dart';
 
-class RoomDetailUI extends StatefulWidget {
+class RoomListDetailUi extends StatefulWidget {
   final String roomId;
 
-  const RoomDetailUI({
+  const RoomListDetailUi({
     Key? key,
     required this.roomId,
   }) : super(key: key);
 
   @override
-  State<RoomDetailUI> createState() => _RoomDetailUIState();
+  State<RoomListDetailUi> createState() => _RoomListDetailUiUiState();
 }
 
-class _RoomDetailUIState extends State<RoomDetailUI> {
+class _RoomListDetailUiUiState extends State<RoomListDetailUi> {
   Map<String, dynamic>? _roomData;
   List<Map<String, dynamic>> _amenities = [];
   List<Map<String, dynamic>> _images = [];
@@ -239,32 +243,42 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
   }
 
   Widget _buildCustomHeader() {
-    final String? cateName =
-        _roomData?['room_category_name'] ?? _roomData?['roomcate_name'];
-    final title = _roomData != null
-        ? '${(cateName ?? 'ห้อง')} ${_roomData!['room_number']}'
-        : 'รายละเอียดห้องพัก';
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[300]!, width: 1)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.all(24),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
-            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+            tooltip: 'ย้อนกลับ',
           ),
+          const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'รายละเอียด',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'สำหรับดูรายละเอียดแต่ห้อง',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -389,8 +403,7 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
                   top: 16,
                   right: 16,
                   child: Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: Colors.blue,
                       borderRadius: BorderRadius.circular(20),
@@ -627,8 +640,7 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
                     decoration: BoxDecoration(
                       color: Colors.orange.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(16),
-                      border:
-                          Border.all(color: Colors.orange.withOpacity(0.3)),
+                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,

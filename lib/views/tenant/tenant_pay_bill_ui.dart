@@ -11,7 +11,6 @@ import 'package:manager_room_project/services/image_service.dart';
 import 'package:manager_room_project/utils/promptpay_qr.dart'; // สร้างสตริง QR พร้อมเพย์แบบมีจำนวนเงิน
 import 'package:qr_flutter/qr_flutter.dart'; // แสดงภาพ QR จากสตริง
 import 'package:manager_room_project/views/widgets/colors.dart';
-import 'package:manager_room_project/views/tenant/bill_list_ui.dart';
 import 'package:manager_room_project/services/auth_service.dart';
 import 'package:manager_room_project/models/user_models.dart';
 import 'package:manager_room_project/services/branch_service.dart';
@@ -94,15 +93,23 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       // - ถ้ามีบัญชีธนาคาร ให้เริ่มที่ bank ก่อน ไม่งั้นใช้ promptpay
       // - เลือกบัญชีหลัก (is_primary) ของประเภทนั้นก่อน ถ้าไม่มีให้เลือกอันแรกของประเภทนั้น
       String initialType = 'bank';
-      final bankList = qrs.where((e) => (e['promptpay_id'] == null || e['promptpay_id'].toString().isEmpty)).toList();
-      final ppList = qrs.where((e) => (e['promptpay_id'] != null && e['promptpay_id'].toString().isNotEmpty)).toList();
+      final bankList = qrs
+          .where((e) => (e['promptpay_id'] == null ||
+              e['promptpay_id'].toString().isEmpty))
+          .toList();
+      final ppList = qrs
+          .where((e) => (e['promptpay_id'] != null &&
+              e['promptpay_id'].toString().isNotEmpty))
+          .toList();
       if (bankList.isEmpty && ppList.isNotEmpty) initialType = 'promptpay';
 
       String? initialQrId;
       if (initialType == 'bank') {
-        initialQrId = bankList.isNotEmpty ? bankList.first['qr_id'] as String? : null;
+        initialQrId =
+            bankList.isNotEmpty ? bankList.first['qr_id'] as String? : null;
       } else {
-        initialQrId = ppList.isNotEmpty ? ppList.first['qr_id'] as String? : null;
+        initialQrId =
+            ppList.isNotEmpty ? ppList.first['qr_id'] as String? : null;
       }
 
       setState(() {
@@ -387,16 +394,20 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
 
     // แยกตามประเภท: ธนาคาร vs พร้อมเพย์
     final bankList = _branchQrs
-        .where((e) => (e['promptpay_id'] == null || e['promptpay_id'].toString().isEmpty))
+        .where((e) =>
+            (e['promptpay_id'] == null || e['promptpay_id'].toString().isEmpty))
         .toList();
     final ppList = _branchQrs
-        .where((e) => (e['promptpay_id'] != null && e['promptpay_id'].toString().isNotEmpty))
+        .where((e) => (e['promptpay_id'] != null &&
+            e['promptpay_id'].toString().isNotEmpty))
         .toList();
 
     // อัปเดตการเลือกเริ่มต้นเมื่อสลับประเภท หาก _selectedQrId ไม่อยู่ในประเภทปัจจุบัน
-    List<Map<String, dynamic>> currentList = _payType == 'bank' ? bankList : ppList;
+    List<Map<String, dynamic>> currentList =
+        _payType == 'bank' ? bankList : ppList;
     if (currentList.isNotEmpty &&
-        (currentList.every((e) => e['qr_id'].toString() != (_selectedQrId ?? '')))) {
+        (currentList
+            .every((e) => e['qr_id'].toString() != (_selectedQrId ?? '')))) {
       _selectedQrId = currentList.first['qr_id'].toString();
     }
 
@@ -446,8 +457,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
 
         ...currentList.map((q) {
           final id = q['qr_id'].toString();
-          final isPromptPay =
-              (q['promptpay_id'] != null && q['promptpay_id'].toString().isNotEmpty);
+          final isPromptPay = (q['promptpay_id'] != null &&
+              q['promptpay_id'].toString().isNotEmpty);
 
           // แสดงหัวเรื่องแตกต่างกันตามประเภท
           final title = isPromptPay
@@ -461,7 +472,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
             margin: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
               border: Border.all(
-                  color: _selectedQrId == id ? scheme.primary : Colors.grey[300]!),
+                  color:
+                      _selectedQrId == id ? scheme.primary : Colors.grey[300]!),
               borderRadius: BorderRadius.circular(12),
             ),
             child: RadioListTile<String>(
@@ -479,19 +491,24 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                         if (!isPromptPay)
                           TextButton.icon(
                             onPressed: () async {
-                              final acc = (q['account_number'] ?? '').toString();
+                              final acc =
+                                  (q['account_number'] ?? '').toString();
                               if (acc.isNotEmpty) {
-                                await Clipboard.setData(ClipboardData(text: acc));
+                                await Clipboard.setData(
+                                    ClipboardData(text: acc));
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('คัดลอกเลขบัญชีแล้ว')),
+                                    const SnackBar(
+                                        content: Text('คัดลอกเลขบัญชีแล้ว')),
                                   );
                                 }
                               }
                             },
                             icon: const Icon(Icons.copy, size: 16),
                             label: const Text('คัดลอกเลขบัญชี'),
-                            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
+                            style: TextButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8)),
                           ),
                       ],
                     ),
@@ -696,7 +713,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
   Future<void> _openPromptPayScreen() async {
     // เปิดหน้าจอแสดง QR กลางหน้าจอ พร้อมจำนวนเงิน
     if (_selectedQrId == null) return;
-    final q = _branchQrs.firstWhere((e) => e['qr_id'].toString() == _selectedQrId,
+    final q = _branchQrs.firstWhere(
+        (e) => e['qr_id'].toString() == _selectedQrId,
         orElse: () => {});
     if (q.isEmpty) return;
     final amt = double.tryParse(_amountCtrl.text) ?? 0;
@@ -732,7 +750,10 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     final amountOk = (double.tryParse(_amountCtrl.text) ?? 0) > 0;
     final isBankFlow = _payType == 'bank';
     final isValid = isBankFlow
-        ? ((_slipFile != null) && (_selectedDate != null) && (_selectedTime != null) && amountOk)
+        ? ((_slipFile != null) &&
+            (_selectedDate != null) &&
+            (_selectedTime != null) &&
+            amountOk)
         : amountOk; // PromptPay: ต้องการเฉพาะจำนวนเงิน แล้วไปหน้า QR
     return SizedBox(
       width: double.infinity,
@@ -770,7 +791,6 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       ),
     );
   }
-
 }
 
 // หน้าจอแสดง QR พร้อมเพย์ แบบเต็มหน้าจอและอยู่กลางจอ
@@ -802,13 +822,15 @@ class _PromptPayQrPage extends StatelessWidget {
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        color: Colors.black87),
                     onPressed: () async {
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (ctx) => AlertDialog(
                           title: const Text('ออกจากหน้าชำระเงิน?'),
-                          content: const Text('คุณต้องการยกเลิกและกลับไปหน้าก่อนหน้าใช่หรือไม่'),
+                          content: const Text(
+                              'คุณต้องการยกเลิกและกลับไปหน้าก่อนหน้าใช่หรือไม่'),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.of(ctx).pop(false),
@@ -887,7 +909,8 @@ class _PromptPayQrPage extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: () async {
                       // สร้างการชำระเงินจำลองและตัดบิลทันที
-                      final res = await PaymentService.createPromptPayTestPayment(
+                      final res =
+                          await PaymentService.createPromptPayTestPayment(
                         invoiceId: invoiceId,
                         paidAmount: amount,
                         qrId: qrId,
@@ -908,7 +931,8 @@ class _PromptPayQrPage extends StatelessWidget {
                           });
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(res['message'] ?? 'ไม่สำเร็จ')),
+                            SnackBar(
+                                content: Text(res['message'] ?? 'ไม่สำเร็จ')),
                           );
                         }
                       }

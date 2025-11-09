@@ -822,34 +822,51 @@ class _TenantEditUIState extends State<TenantEditUI>
   Widget _buildWhiteHeader() {
     final name = _tenantFullNameController.text.trim();
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Colors.grey[300]!, width: 1)),
       ),
-      child: Row(
+      child: Column(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
-            onPressed: () => Navigator.pop(context),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // Top bar with back button
+          Padding(
+            padding: EdgeInsets.all(24),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Text(
-                  'แก้ไขข้อมูลผู้เช่า',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new,
+                      color: Colors.black87),
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  tooltip: 'ย้อนกลับ',
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  name.isNotEmpty ? name : 'อัปเดตข้อมูลผู้เช่า',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'แก้ไขข้อมูลผู้เช่า',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'สำหรับแก้ไขข้อมูลผู้เช่า',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

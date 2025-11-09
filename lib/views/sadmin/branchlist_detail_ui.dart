@@ -1,26 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:manager_room_project/views/sadmin/roomlist_ui.dart';
-import 'package:manager_room_project/views/sadmin/tenantlist_ui.dart';
+//--------
 import '../../models/user_models.dart';
+//--------
 import '../../middleware/auth_middleware.dart';
+//--------
 import '../../services/branch_service.dart';
 import '../../services/branch_manager_service.dart';
-import '../widgets/colors.dart';
+//--------
 import 'branch_edit_ui.dart';
 
-class BranchListDetail extends StatefulWidget {
+class BranchlistDetailUi extends StatefulWidget {
   final String branchId;
 
-  const BranchListDetail({
+  const BranchlistDetailUi({
     Key? key,
     required this.branchId,
   }) : super(key: key);
 
   @override
-  State<BranchListDetail> createState() => _BranchListDetailState();
+  State<BranchlistDetailUi> createState() => _BranchlistDetailUiState();
 }
 
-class _BranchListDetailState extends State<BranchListDetail>
+class _BranchlistDetailUiState extends State<BranchlistDetailUi>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -76,7 +77,7 @@ class _BranchListDetailState extends State<BranchListDetail>
       if (mounted) {
         setState(() => _isLoadingManagers = false);
       }
-      print('Error loading managers: $e');
+      print('เกิดข้อผิดพลาดในการโหลดผู้จัดการ: $e');
     }
   }
 
@@ -128,65 +129,187 @@ class _BranchListDetailState extends State<BranchListDetail>
 
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: currentStatus
-                    ? Colors.orange.shade100
-                    : Colors.green.shade100,
-                shape: BoxShape.circle,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: EdgeInsets.all(24),
+          constraints: BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon Header
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: currentStatus
+                      ? Colors.orange.shade50
+                      : Colors.green.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  currentStatus
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
+                  color: currentStatus
+                      ? Colors.orange.shade600
+                      : Colors.green.shade600,
+                  size: 40,
+                ),
               ),
-              child: Icon(
-                currentStatus
-                    ? Icons.visibility_off_rounded
-                    : Icons.visibility_rounded,
-                color: currentStatus
-                    ? Colors.orange.shade700
-                    : Colors.green.shade700,
+              SizedBox(height: 20),
+
+              // Title
+              Text(
+                currentStatus ? 'ปิดใช้งานสาขา?' : 'เปิดใช้งานสาขา?',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                currentStatus ? 'Deactivate Branch' : 'Activate Branch',
-                style: TextStyle(fontSize: 18),
+              SizedBox(height: 12),
+
+              // Branch Name
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.business, size: 18, color: Colors.grey[700]),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        branchName,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-                'Do you want to ${currentStatus ? 'deactivate' : 'activate'} the branch'),
-            SizedBox(height: 4),
-            Text(
-              '"$branchName"',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 4),
-            Text('?'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel'),
+              SizedBox(height: 16),
+
+              // Warning/Info Box
+              Container(
+                padding: EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: currentStatus
+                      ? Colors.orange.shade50
+                      : Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: currentStatus
+                        ? Colors.orange.shade100
+                        : Colors.green.shade100,
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      currentStatus
+                          ? Icons.warning_rounded
+                          : Icons.info_rounded,
+                      color: currentStatus
+                          ? Colors.orange.shade600
+                          : Colors.green.shade600,
+                      size: 22,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        currentStatus
+                            ? 'สาขานี้จะไม่แสดงในรายการสำหรับผู้ใช้ทั่วไป'
+                            : 'สาขานี้จะแสดงในรายการสำหรับผู้ใช้ทั่วไป',
+                        style: TextStyle(
+                          color: currentStatus
+                              ? Colors.orange.shade800
+                              : Colors.green.shade800,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 24),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: currentStatus
+                            ? Colors.orange.shade600
+                            : Colors.green.shade600,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            currentStatus
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            currentStatus ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: currentStatus ? Colors.orange : Colors.green,
-              foregroundColor: Colors.white,
-            ),
-            child: Text(currentStatus ? 'Deactivate' : 'Activate'),
-          ),
-        ],
+        ),
       ),
     );
 
@@ -195,19 +318,80 @@ class _BranchListDetailState extends State<BranchListDetail>
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => Center(
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
             child: Container(
-              padding: EdgeInsets.all(24),
+              padding: EdgeInsets.all(28),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: Offset(0, 10),
+                  ),
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(color: Color(0xFF10B981)),
-                  SizedBox(height: 16),
-                  Text('Processing...'),
+                  // Animated Icon Container
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: currentStatus
+                          ? Colors.orange.shade50
+                          : Colors.green.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: CircularProgressIndicator(
+                            color: currentStatus
+                                ? Colors.orange.shade600
+                                : Colors.green.shade600,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                        Icon(
+                          currentStatus
+                              ? Icons.visibility_off_rounded
+                              : Icons.visibility_rounded,
+                          color: currentStatus
+                              ? Colors.orange.shade600
+                              : Colors.green.shade600,
+                          size: 28,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 20),
+
+                  // Loading Text
+                  Text(
+                    currentStatus
+                        ? 'กำลังปิดใช้งานสาขา'
+                        : 'กำลังเปิดใช้งานสาขา',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'กรุณารอสักครู่...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -215,7 +399,7 @@ class _BranchListDetailState extends State<BranchListDetail>
         );
 
         final result = await BranchService.toggleBranchStatus(widget.branchId);
-        if (mounted) Navigator.pop(context);
+        if (mounted) Navigator.of(context).pop();
 
         if (mounted) {
           if (result['success']) {
@@ -238,8 +422,8 @@ class _BranchListDetailState extends State<BranchListDetail>
           }
         }
       } catch (e) {
-        if (mounted && Navigator.canPop(context)) {
-          Navigator.pop(context);
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
         }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -283,7 +467,7 @@ class _BranchListDetailState extends State<BranchListDetail>
               ),
               SizedBox(height: 20),
               Text(
-                'Delete Branch?',
+                'คุณต้องการลบสาขานี้หรือไม่?',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -334,7 +518,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'This action cannot be undone.\nAll data will be permanently deleted.',
+                        'การกระทำนี้ไม่สามารถย้อนกลับได้.\nข้อมูลทั้งหมดจะถูกลบอย่างถาวร.',
                         style: TextStyle(
                           color: Colors.red.shade800,
                           fontSize: 13,
@@ -359,7 +543,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: Text('Cancel',
+                      child: Text('ยกเลิก',
                           style: TextStyle(
                               fontSize: 15, fontWeight: FontWeight.w600)),
                     ),
@@ -382,7 +566,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                         children: [
                           Icon(Icons.delete_outline, size: 18),
                           SizedBox(width: 8),
-                          Text('Delete',
+                          Text('ลบ',
                               style: TextStyle(
                                   fontSize: 15, fontWeight: FontWeight.w600)),
                         ],
@@ -445,7 +629,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                   ),
                   SizedBox(height: 20),
                   Text(
-                    'Deleting Branch',
+                    'กำลังลบสาขา',
                     style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -453,7 +637,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Please wait a moment...',
+                    'กรุณารอสักครู่...',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                 ],
@@ -476,8 +660,8 @@ class _BranchListDetailState extends State<BranchListDetail>
                     Icon(Icons.check_circle, color: Colors.white),
                     SizedBox(width: 12),
                     Expanded(
-                        child: Text(result['message'] ??
-                            'Branch deleted successfully')),
+                        child:
+                            Text(result['message'] ?? 'ลบสาขาเรียบร้อยแล้ว')),
                   ],
                 ),
                 backgroundColor: Colors.green.shade600,
@@ -495,7 +679,7 @@ class _BranchListDetailState extends State<BranchListDetail>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
+              content: Text(e.toString().replaceAll('ข้อยกเว้น: ', '')),
               backgroundColor: Colors.red.shade600,
               behavior: SnackBarBehavior.floating,
             ),
@@ -525,12 +709,6 @@ class _BranchListDetailState extends State<BranchListDetail>
     if (_isLoading) {
       return Scaffold(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          title: Text('Branch Details'),
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          elevation: 0,
-        ),
         body: Center(
           child: CircularProgressIndicator(
               color: Color(0xFF10B981), strokeWidth: 3),
@@ -542,7 +720,7 @@ class _BranchListDetailState extends State<BranchListDetail>
       return Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
-          title: Text('Branch Details'),
+          title: Text('รายละเอียดสาขา'),
           backgroundColor: Colors.white,
           foregroundColor: Colors.black87,
           elevation: 0,
@@ -554,7 +732,7 @@ class _BranchListDetailState extends State<BranchListDetail>
               Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
               SizedBox(height: 16),
               Text(
-                'Branch not found',
+                'ไม่พบสาขา',
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -568,7 +746,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                 ),
-                child: Text('Go Back'),
+                child: Text('ย้อนกลับ'),
               ),
             ],
           ),
@@ -604,13 +782,13 @@ class _BranchListDetailState extends State<BranchListDetail>
                 tabs: [
                   Tab(
                       icon: Icon(Icons.info_outline, size: 20),
-                      text: 'Details'),
+                      text: 'รายละเอียด'),
                   Tab(
                       icon: Icon(Icons.analytics_outlined, size: 20),
-                      text: 'Statistics'),
+                      text: 'สถิติ'),
                   Tab(
                       icon: Icon(Icons.settings_outlined, size: 20),
-                      text: 'Management'),
+                      text: 'การจัดการ'),
                 ],
               ),
             ),
@@ -645,21 +823,42 @@ class _BranchListDetailState extends State<BranchListDetail>
         children: [
           // Top bar with back button
           Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(24),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 IconButton(
-                  icon: Icon(Icons.arrow_back, color: Colors.black87),
-                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back_ios_new,
+                      color: Colors.black87),
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  tooltip: 'ย้อนกลับ',
                 ),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    'Branch Details',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'เพิ่มสาขาใหม่',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'สำหรับเพิ่มสาขาใหม่ในระบบ',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -692,7 +891,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _branchData!['branch_name'] ?? 'No Name',
+                        _branchData!['branch_name'] ?? 'ไม่มีชื่อสาขา',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -702,7 +901,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                       if (_branchData!['branch_code'] != null) ...[
                         SizedBox(height: 4),
                         Text(
-                          'Code: ${_branchData!['branch_code']}',
+                          'รหัสสาขา: ${_branchData!['branch_code']}',
                           style:
                               TextStyle(fontSize: 14, color: Colors.grey[600]),
                         ),
@@ -717,7 +916,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          isActive ? 'Active' : 'Inactive',
+                          isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 13,
@@ -757,22 +956,22 @@ class _BranchListDetailState extends State<BranchListDetail>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildInfoSection(
-              'Basic Information',
+              'ข้อมูลพื้นฐาน',
               Icons.info_outline,
               [
-                _buildInfoRow('Branch Name',
-                    _branchData!['branch_name'] ?? 'Not specified'),
-                _buildInfoRow('Branch Code',
-                    _branchData!['branch_code'] ?? 'Not specified'),
                 _buildInfoRow(
-                    'Phone', _branchData!['branch_phone'] ?? 'Not specified'),
-                _buildInfoRow('Address',
-                    _branchData!['branch_address'] ?? 'Not specified'),
+                    'ชื่อสาขา', _branchData!['branch_name'] ?? 'ไม่มีชื่อสาขา'),
+                _buildInfoRow(
+                    'รหัสสาขา', _branchData!['branch_code'] ?? 'ไม่มีรหัสสาขา'),
+                _buildInfoRow('โทรศัพท์',
+                    _branchData!['branch_phone'] ?? 'ไม่มีหมายเลขโทรศัพท์'),
+                _buildInfoRow('ที่อยู่',
+                    _branchData!['branch_address'] ?? 'ไม่มีที่อยู่'),
               ],
             ),
             SizedBox(height: 20),
             _buildInfoSection(
-              'Branch Managers',
+              'ผู้จัดการสาขา',
               Icons.people_outline,
               [
                 if (_isLoadingManagers)
@@ -787,7 +986,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                   Padding(
                     padding: EdgeInsets.symmetric(vertical: 12),
                     child: Text(
-                      'No managers assigned',
+                      'ไม่มีผู้จัดการที่กำหนดสำหรับสาขานี้',
                       style: TextStyle(
                           fontStyle: FontStyle.italic, color: Colors.grey[600]),
                     ),
@@ -802,7 +1001,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                 _branchData!['branch_desc'].toString().isNotEmpty) ...[
               SizedBox(height: 20),
               _buildInfoSection(
-                'Description',
+                'รายละเอียดเพิ่มเติม',
                 Icons.description_outlined,
                 [
                   Padding(
@@ -835,7 +1034,7 @@ class _BranchListDetailState extends State<BranchListDetail>
               children: [
                 Expanded(
                   child: _buildStatCard(
-                    'Total Rooms',
+                    'จำนวนห้องทั้งหมด',
                     _branchStats['total_rooms']?.toString() ?? '0',
                     Icons.hotel_outlined,
                     Colors.blue,
@@ -844,7 +1043,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                 SizedBox(width: 16),
                 Expanded(
                   child: _buildStatCard(
-                    'Occupied',
+                    'ห้องที่ถูกเช่าแล้ว',
                     _branchStats['occupied_rooms']?.toString() ?? '0',
                     Icons.people_outline,
                     Colors.green,
@@ -857,7 +1056,7 @@ class _BranchListDetailState extends State<BranchListDetail>
               children: [
                 Expanded(
                   child: _buildStatCard(
-                    'Available',
+                    'ห้องว่าง',
                     _branchStats['available_rooms']?.toString() ?? '0',
                     Icons.meeting_room_outlined,
                     Colors.orange,
@@ -866,7 +1065,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                 SizedBox(width: 16),
                 Expanded(
                   child: _buildStatCard(
-                    'Maintenance',
+                    'ซ่อมแซม',
                     _branchStats['maintenance_rooms']?.toString() ?? '0',
                     Icons.build_outlined,
                     Colors.amber,
@@ -889,56 +1088,19 @@ class _BranchListDetailState extends State<BranchListDetail>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildActionCard(
-            icon: Icons.hotel_outlined,
-            title: 'View Rooms',
-            subtitle: 'View all rooms in this branch',
-            color: Colors.blue,
-            onTap: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => RoomListUI(
-                    branchId: widget.branchId,
-                    branchName: _branchData!['branch_name'] ?? '',
-                  ),
-                ),
-              );
-              if (result == true) await _loadBranchDetails();
-            },
-          ),
-          SizedBox(height: 12),
-          _buildActionCard(
-            icon: Icons.person_outline,
-            title: 'View Tenants',
-            subtitle: 'View all tenants in this branch',
-            color: Colors.green,
-            onTap: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => TenantListUI(
-                    branchId: widget.branchId,
-                    branchName: _branchData!['branch_name'] ?? '',
-                  ),
-                ),
-              );
-              if (result == true) await _loadBranchDetails();
-            },
-          ),
           if (_canManage) ...[
             SizedBox(height: 12),
             _buildActionCard(
               icon: Icons.edit_outlined,
-              title: 'Edit Branch',
-              subtitle: 'Update branch information and details',
+              title: 'แก้ไขสาขา',
+              subtitle: 'อัปเดตข้อมูลและรายละเอียดสาขา',
               color: Color(0xFF14B8A6),
               onTap: () async {
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) =>
-                        BranchEditPage(branchId: widget.branchId),
+                        BranchEditUi(branchId: widget.branchId),
                   ),
                 );
                 if (result == true) await _loadBranchDetails();
@@ -949,10 +1111,8 @@ class _BranchListDetailState extends State<BranchListDetail>
               icon: isActive
                   ? Icons.visibility_off_outlined
                   : Icons.visibility_outlined,
-              title: isActive ? 'Deactivate Branch' : 'Activate Branch',
-              subtitle: isActive
-                  ? 'Hide this branch from the system'
-                  : 'Show this branch in the system',
+              title: isActive ? 'ปิดการใช้งาน' : 'เปิดการใช้งาน',
+              subtitle: isActive ? 'ซ่อนสาขานี้จากระบบ' : 'แสดงสาขานี้ในระบบ',
               color: isActive ? Colors.orange : Colors.green,
               onTap: _toggleBranchStatus,
             ),
@@ -960,8 +1120,8 @@ class _BranchListDetailState extends State<BranchListDetail>
               SizedBox(height: 12),
               _buildActionCard(
                 icon: Icons.delete_forever_outlined,
-                title: 'Delete Branch',
-                subtitle: 'Permanently delete this branch',
+                title: 'ลบสาขา',
+                subtitle: 'ลบสาขานี้อย่างถาวร',
                 color: Colors.red,
                 onTap: _deleteBranch,
               ),
@@ -981,7 +1141,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Please log in to access management features',
+                      'กรุณาเข้าสู่ระบบเพื่อเข้าถึงฟีเจอร์การจัดการ',
                       style:
                           TextStyle(color: Colors.blue.shade700, fontSize: 14),
                     ),
@@ -1109,7 +1269,7 @@ class _BranchListDetailState extends State<BranchListDetail>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  userData['user_name'] ?? 'No Name',
+                  userData['user_name'] ?? 'ไม่มีชื่อ',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
@@ -1118,7 +1278,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                 ),
                 SizedBox(height: 4),
                 Text(
-                  userData['user_email'] ?? 'No Email',
+                  userData['user_email'] ?? 'ไม่มีอีเมล',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.grey[600],
@@ -1135,7 +1295,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
-                'Primary',
+                'หลัก',
                 style: TextStyle(
                   fontSize: 11,
                   color: Colors.white,
@@ -1213,7 +1373,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                   color: Color(0xFF10B981), size: 22),
               SizedBox(width: 10),
               Text(
-                'Occupancy Rate',
+                'อัตราการเข้าพัก',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1227,7 +1387,7 @@ class _BranchListDetailState extends State<BranchListDetail>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Current Occupancy',
+                'อัตราการเข้าพักปัจจุบัน',
                 style: TextStyle(
                     fontWeight: FontWeight.w500,
                     fontSize: 14,
@@ -1286,7 +1446,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Occupied',
+                        'ห้องที่ถูกเช่า',
                         style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[700],
@@ -1325,7 +1485,7 @@ class _BranchListDetailState extends State<BranchListDetail>
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Available',
+                        'ห้องว่าง',
                         style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[700],

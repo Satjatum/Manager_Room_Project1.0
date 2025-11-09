@@ -135,8 +135,8 @@ class _RoomEditUIState extends State<RoomEditUI> {
           _selectedAmenities =
               amenities.map((a) => a['amenities_id'] as String).toList();
           _existingImages = images;
-          _existingImages.sort((a, b) => (a['display_order'] ?? 0)
-              .compareTo(b['display_order'] ?? 0));
+          _existingImages.sort((a, b) =>
+              (a['display_order'] ?? 0).compareTo(b['display_order'] ?? 0));
           _allImages
             ..clear()
             ..addAll(_existingImages.map((img) => _ImageItem(
@@ -547,10 +547,12 @@ class _RoomEditUIState extends State<RoomEditUI> {
         }
 
         setState(() {
-          _existingImages.removeWhere((img) => img['image_id']?.toString() == imageId);
+          _existingImages
+              .removeWhere((img) => img['image_id']?.toString() == imageId);
           _allImages.removeWhere((it) => it.imageId == imageId);
           // Re-ensure a primary exists
-          if (_allImages.where((e) => e.isPrimary).isEmpty && _allImages.isNotEmpty) {
+          if (_allImages.where((e) => e.isPrimary).isEmpty &&
+              _allImages.isNotEmpty) {
             _allImages.first.isPrimary = true;
           }
         });
@@ -630,21 +632,30 @@ class _RoomEditUIState extends State<RoomEditUI> {
         setState(() => _isLoading = false);
 
         if (result['success']) {
-          final String? effectiveBranchId =
-              _selectedBranchId ?? _currentUser?.branchId;
+          final String? branchId = (_selectedBranchId ??
+                  _currentUser?.branchId ??
+                  _roomData?['branch_id'])
+              ?.toString();
 
-          // Respect composite key (branch_id, room_id, amenity_id)
-          await _supabase
-              .from('room_amenities')
-              .delete()
-              .match({'room_id': widget.roomId, 'branch_id': effectiveBranchId});
+          // Respect composite key (branch_id, room_id, amenity_id) when possible; fallback to room_id only
+          if (branchId != null && branchId.isNotEmpty) {
+            await _supabase
+                .from('room_amenities')
+                .delete()
+                .match({'room_id': widget.roomId, 'branch_id': branchId});
+          } else {
+            await _supabase
+                .from('room_amenities')
+                .delete()
+                .eq('room_id', widget.roomId);
+          }
 
           if (_selectedAmenities.isNotEmpty) {
             for (String amenityId in _selectedAmenities) {
               await _supabase.from('room_amenities').insert({
                 'room_id': widget.roomId,
                 'amenity_id': amenityId,
-                'branch_id': effectiveBranchId,
+                'branch_id': branchId,
               });
             }
           }
@@ -692,7 +703,10 @@ class _RoomEditUIState extends State<RoomEditUI> {
 
             try {
               // Simplify: rebuild room_images for this room to avoid update/RLS issues
-              await _supabase.from('room_images').delete().eq('room_id', widget.roomId);
+              await _supabase
+                  .from('room_images')
+                  .delete()
+                  .eq('room_id', widget.roomId);
 
               for (int i = 0; i < _allImages.length; i++) {
                 final it = _allImages[i];
@@ -723,7 +737,8 @@ class _RoomEditUIState extends State<RoomEditUI> {
                   final y = d.year.toString();
                   final m = d.month.toString().padLeft(2, '0');
                   final day = d.day.toString().padLeft(2, '0');
-                  customName = '${prefix}_${y}${m}${day}_${(i + 1).toString().padLeft(3, '0')}.$ext';
+                  customName =
+                      '${prefix}_${y}${m}${day}_${(i + 1).toString().padLeft(3, '0')}.$ext';
                 }
 
                 Map<String, dynamic>? uploadResult;
@@ -924,39 +939,40 @@ class _RoomEditUIState extends State<RoomEditUI> {
   }
 
   Widget _buildCustomHeader() {
-    final roomNo = _roomData != null ? (_roomData!['room_number'] ?? '') : '';
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[300]!, width: 1)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.all(24),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
-            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
             tooltip: 'ย้อนกลับ',
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              children: const [
                 Text(
-                  roomNo.toString().isNotEmpty
-                      ? 'แก้ไขห้องพัก - $roomNo'
-                      : 'แก้ไขห้องพัก',
-                  style: const TextStyle(
-                    fontSize: 20,
+                  'แก้ไขห้องพัก',
+                  style: TextStyle(
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 4),
                 Text(
-                  'ปรับปรุงข้อมูลห้องพักและรูปภาพ',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  'สำหรับแก้ไขห้องพัก',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black54,
+                  ),
                 ),
               ],
             ),
@@ -1042,7 +1058,8 @@ class _RoomEditUIState extends State<RoomEditUI> {
               const SizedBox(width: 8),
               if (kIsWeb)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade100,
                     borderRadius: BorderRadius.circular(8),
@@ -1059,7 +1076,8 @@ class _RoomEditUIState extends State<RoomEditUI> {
               const Spacer(),
               if (hasImages)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.green.shade100,
                     borderRadius: BorderRadius.circular(12),
@@ -1129,7 +1147,8 @@ class _RoomEditUIState extends State<RoomEditUI> {
                           tooltip: 'ตั้งเป็นรูปหลัก',
                         ),
                         const SizedBox(width: 8),
-                        Text('ลำดับ ${index + 1}', style: const TextStyle(fontSize: 12)),
+                        Text('ลำดับ ${index + 1}',
+                            style: const TextStyle(fontSize: 12)),
                       ],
                     ),
                     trailing: IconButton(
@@ -1152,10 +1171,13 @@ class _RoomEditUIState extends State<RoomEditUI> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: _allImages.length < _maxImages ? _pickImages : null,
+                    onPressed:
+                        _allImages.length < _maxImages ? _pickImages : null,
                     icon: const Icon(Icons.add_photo_alternate),
                     label: Text(
-                      _allImages.length < _maxImages ? 'เพิ่มรูปภาพ' : 'ครบ $_maxImages รูปแล้ว',
+                      _allImages.length < _maxImages
+                          ? 'เพิ่มรูปภาพ'
+                          : 'ครบ $_maxImages รูปแล้ว',
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.primary,
@@ -1187,7 +1209,9 @@ class _RoomEditUIState extends State<RoomEditUI> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      kIsWeb ? 'เลือกไฟล์รูปภาพ' : 'เลือกรูปภาพห้องพัก (สูงสุด $_maxImages รูป)',
+                      kIsWeb
+                          ? 'เลือกไฟล์รูปภาพ'
+                          : 'เลือกรูปภาพห้องพัก (สูงสุด $_maxImages รูป)',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.grey.shade700,
@@ -1199,12 +1223,14 @@ class _RoomEditUIState extends State<RoomEditUI> {
                       kIsWeb
                           ? 'แตะเพื่อเลือกไฟล์จากคอมพิวเตอร์'
                           : 'แตะเพื่อเลือกหลายรูปจากแกลเลอรี่หรือถ่ายรูปใหม่',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.grey.shade500),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: Colors.blue.shade50,
                         borderRadius: BorderRadius.circular(20),
@@ -1257,7 +1283,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
           TextFormField(
             controller: _roomNumberController,
             decoration: InputDecoration(
-              labelText: 'หมายเลขห้อง/บ้าน *',
+              labelText: 'หมายเลขห้อง *',
               prefixIcon: const Icon(Icons.room),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1285,7 +1311,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
           DropdownButtonFormField<String>(
             value: _selectedRoomCategoryId,
             decoration: InputDecoration(
-              labelText: 'หมวดหมู่ห้อง/บ้าน',
+              labelText: 'หมวดหมู่ห้อง',
               prefixIcon: const Icon(Icons.label),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1318,7 +1344,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
           DropdownButtonFormField<String>(
             value: _selectedRoomTypeId,
             decoration: InputDecoration(
-              labelText: 'ประเภทแอร์/พัดลม',
+              labelText: 'ประเภทห้อง',
               prefixIcon: const Icon(Icons.category),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1352,8 +1378,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
             controller: _roomSizeController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: 'ขนาดห้อง/บ้าน (ตร.ม.)',
-              hintText: 'เช่น 25',
+              labelText: 'ขนาดห้อง ',
               prefixIcon: const Icon(Icons.aspect_ratio),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1406,8 +1431,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
             controller: _roomPriceController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: 'ค่าเช่า (บาท/เดือน) *',
-              hintText: 'เช่น 3500',
+              labelText: 'ค่าเช่า *',
               prefixIcon: const Icon(Icons.attach_money),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1439,8 +1463,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
             controller: _roomDepositController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: 'ค่าประกัน (บาท) *',
-              hintText: 'เช่น 3500',
+              labelText: 'ค่าประกัน',
               prefixIcon: const Icon(Icons.security),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1689,9 +1712,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
             controller: _roomDescController,
             maxLines: 4,
             decoration: InputDecoration(
-              labelText: 'รายละเอียดห้องพัก',
-              hintText:
-                  'อธิบายเกี่ยวกับห้องพัก เช่น สิ่งอำนวยความสะดวก, ข้อมูลเพิ่มเติม',
+              labelText: 'รายละเอียดห้อง',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),

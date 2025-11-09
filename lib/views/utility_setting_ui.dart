@@ -4,7 +4,6 @@ import '../services/utility_rate_service.dart';
 import '../services/branch_service.dart';
 import '../services/auth_service.dart';
 import '../models/user_models.dart';
-import 'widgets/colors.dart';
 
 class UtilityRatesManagementUi extends StatefulWidget {
   final String? branchId;
@@ -32,7 +31,8 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
       if (r['is_metered'] == true) {
         final name = (r['rate_name'] ?? '').toString().toLowerCase();
         if (name.contains('น้ำ') || name.contains('water')) hasWater = true;
-        if (name.contains('ไฟ') || name.contains('electric')) hasElectric = true;
+        if (name.contains('ไฟ') || name.contains('electric'))
+          hasElectric = true;
       }
       if (hasWater && hasElectric) return true;
     }
@@ -99,7 +99,8 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
         return;
       }
 
-      final branchId = widget.branchId ?? selectedBranchId ?? branchesData[0]['branch_id'];
+      final branchId =
+          widget.branchId ?? selectedBranchId ?? branchesData[0]['branch_id'];
       final ratesData = await UtilityRatesService.getUtilityRates(
         branchId: branchId,
       );
@@ -140,7 +141,8 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
         text: rate?['additional_charge']?.toString() ?? '0');
 
     final lockMeteredAddition = !isEdit && _hasBothStandardMetered();
-    bool isMetered = lockMeteredAddition ? false : (rate?['is_metered'] ?? true);
+    bool isMetered =
+        lockMeteredAddition ? false : (rate?['is_metered'] ?? true);
     bool isFixed = rate?['is_fixed'] ?? !isMetered;
     bool isActive = rate?['is_active'] ?? true;
 
@@ -838,45 +840,45 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                     ),
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                  child: widget.branchId != null
-                      ? const SizedBox()
-                      : branches.isEmpty
+                      child: widget.branchId != null
                           ? const SizedBox()
-                          : Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                              ),
-                              child: DropdownButtonFormField<String>(
-                                value: selectedBranchId,
-                                isExpanded: true,
-                                decoration: const InputDecoration(
-                                  labelText: 'เลือกสาขา',
-                                  border: InputBorder.none,
-                                  prefixIcon: Icon(
-                                    Icons.store,
-                                    color: Color(0xFF1ABC9C),
-                                    size: 22,
+                          : branches.isEmpty
+                              ? const SizedBox()
+                              : Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                  ),
+                                  child: DropdownButtonFormField<String>(
+                                    value: selectedBranchId,
+                                    isExpanded: true,
+                                    decoration: const InputDecoration(
+                                      labelText: 'เลือกสาขา',
+                                      border: InputBorder.none,
+                                      prefixIcon: Icon(
+                                        Icons.store,
+                                        color: Color(0xFF1ABC9C),
+                                        size: 22,
+                                      ),
+                                    ),
+                                    items: branches.map((branch) {
+                                      return DropdownMenuItem<String>(
+                                        value: branch['branch_id'],
+                                        child: Text(
+                                          branch['branch_name'],
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        selectedBranchId = value;
+                                      });
+                                      _loadData();
+                                    },
                                   ),
                                 ),
-                                items: branches.map((branch) {
-                                  return DropdownMenuItem<String>(
-                                    value: branch['branch_id'],
-                                    child: Text(
-                                      branch['branch_name'],
-                                      style: const TextStyle(fontSize: 14),
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedBranchId = value;
-                                  });
-                                  _loadData();
-                                },
-                              ),
-                            ),
                     ),
                   ),
                   Expanded(

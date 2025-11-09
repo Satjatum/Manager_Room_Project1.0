@@ -324,36 +324,6 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
     }
   }
 
-  String _getPriorityText(String priority) {
-    switch (priority) {
-      case 'low':
-        return 'ต่ำ';
-      case 'medium':
-        return 'ปานกลาง';
-      case 'high':
-        return 'สูง';
-      case 'urgent':
-        return 'เร่งด่วน';
-      default:
-        return priority;
-    }
-  }
-
-  Color _getPriorityColor(String priority) {
-    switch (priority) {
-      case 'low':
-        return Colors.green;
-      case 'medium':
-        return Colors.blue;
-      case 'high':
-        return Colors.orange;
-      case 'urgent':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -446,7 +416,6 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
 
   Widget _buildHeaderCard() {
     final status = _issue!['issue_status'] ?? 'pending';
-    final priority = _issue!['issue_priority'] ?? 'medium';
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -527,39 +496,6 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: _getStatusColor(status),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: _getPriorityColor(priority).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: _getPriorityColor(priority).withOpacity(0.3),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.flag,
-                        size: 16,
-                        color: _getPriorityColor(priority),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        _getPriorityText(priority),
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: _getPriorityColor(priority),
                         ),
                       ),
                     ],
@@ -1255,7 +1191,8 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
             Text('ยืนยันการลบปัญหา'),
           ],
         ),
-        content: const Text('ต้องการลบปัญหานี้ใช่หรือไม่? การลบไม่สามารถย้อนกลับได้'),
+        content: const Text(
+            'ต้องการลบปัญหานี้ใช่หรือไม่? การลบไม่สามารถย้อนกลับได้'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),

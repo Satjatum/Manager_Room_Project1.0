@@ -18,7 +18,8 @@ class _DraftImage {
   final String name;
   bool isPrimary;
 
-  _DraftImage({this.file, this.bytes, required this.name, this.isPrimary = false});
+  _DraftImage(
+      {this.file, this.bytes, required this.name, this.isPrimary = false});
 }
 
 class RoomAddUI extends StatefulWidget {
@@ -100,7 +101,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
         });
       }
     } catch (e) {
-      print('Error loading current user: $e');
+      print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
       if (mounted) {
         setState(() {
           _currentUser = null;
@@ -117,10 +118,14 @@ class _RoomAddUIState extends State<RoomAddUI> {
     try {
       final branches = await BranchService.getBranchesByUser();
       // ดึงข้อมูลตามสาขาที่เลือก (ถ้ามี) ไม่เช่นนั้นใช้สาขาของผู้ใช้
-      final String? effectiveBranchId = _selectedBranchId ?? _currentUser?.branchId;
-      final roomTypes = await RoomService.getRoomTypes(branchId: effectiveBranchId);
-      final roomCategories = await RoomService.getRoomCategories(branchId: effectiveBranchId);
-      final amenities = await RoomService.getAmenities(branchId: effectiveBranchId);
+      final String? effectiveBranchId =
+          _selectedBranchId ?? _currentUser?.branchId;
+      final roomTypes =
+          await RoomService.getRoomTypes(branchId: effectiveBranchId);
+      final roomCategories =
+          await RoomService.getRoomCategories(branchId: effectiveBranchId);
+      final amenities =
+          await RoomService.getAmenities(branchId: effectiveBranchId);
 
       if (mounted) {
         setState(() {
@@ -178,7 +183,8 @@ class _RoomAddUIState extends State<RoomAddUI> {
       final name = image.name;
       if (await _validateImageBytesForWeb(bytes, name)) {
         setState(() {
-          _images.add(_DraftImage(bytes: bytes, name: name, isPrimary: _images.isEmpty));
+          _images.add(_DraftImage(
+              bytes: bytes, name: name, isPrimary: _images.isEmpty));
         });
       }
     }
@@ -310,7 +316,8 @@ class _RoomAddUIState extends State<RoomAddUI> {
           if (_images.length >= 5) break;
           final f = File(img.path);
           if (await _validateImageFile(f)) {
-            _images.add(_DraftImage(file: f, name: img.name, isPrimary: _images.isEmpty));
+            _images.add(_DraftImage(
+                file: f, name: img.name, isPrimary: _images.isEmpty));
           }
         }
         if (mounted) setState(() {});
@@ -327,7 +334,8 @@ class _RoomAddUIState extends State<RoomAddUI> {
         final file = File(image.path);
         if (await _validateImageFile(file)) {
           setState(() {
-            _images.add(_DraftImage(file: file, name: image.name, isPrimary: _images.isEmpty));
+            _images.add(_DraftImage(
+                file: file, name: image.name, isPrimary: _images.isEmpty));
           });
         }
       }
@@ -516,8 +524,9 @@ class _RoomAddUIState extends State<RoomAddUI> {
           // บันทึก amenities ถ้ามีการเลือก (ต้องระบุ branch_id ด้วย)
           if (_selectedAmenities.isNotEmpty && result['data'] != null) {
             final roomId = result['data']['room_id'];
-            final String? effectiveBranchId =
-                _selectedBranchId ?? result['data']['branch_id'] ?? _currentUser?.branchId;
+            final String? effectiveBranchId = _selectedBranchId ??
+                result['data']['branch_id'] ??
+                _currentUser?.branchId;
             try {
               for (String amenityId in _selectedAmenities) {
                 await _supabase.from('room_amenities').insert({
@@ -527,7 +536,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
                 });
               }
             } catch (e) {
-              print('Error saving amenities: $e');
+              print('เกิดข้อผิดพลาดในการบันทึกสิ่งอำนวยความสะดวก: $e');
               // ไม่ต้อง show error เพราะห้องสร้างสำเร็จแล้ว
             }
           }
@@ -551,7 +560,9 @@ class _RoomAddUIState extends State<RoomAddUI> {
 
             String _safe(String? s) {
               final v = (s ?? '').trim();
-              return v.replaceAll(RegExp(r"[\\/:*?\<>|]"), '').replaceAll(RegExp(r"\s+"), '');
+              return v
+                  .replaceAll(RegExp(r"[\\/:*?\<>|]"), '')
+                  .replaceAll(RegExp(r"\s+"), '');
             }
 
             String roomCateLabel = '';
@@ -587,7 +598,8 @@ class _RoomAddUIState extends State<RoomAddUI> {
                   final y = d.year.toString();
                   final m = d.month.toString().padLeft(2, '0');
                   final day = d.day.toString().padLeft(2, '0');
-                  customName = '${prefix}_${y}${m}${day}_${(i + 1).toString().padLeft(3, '0')}.$ext';
+                  customName =
+                      '${prefix}_${y}${m}${day}_${(i + 1).toString().padLeft(3, '0')}.$ext';
                 }
 
                 Map<String, dynamic>? uploadResult;
@@ -827,7 +839,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
                 Text(
-                  'Room Management',
+                  'เพิ่มห้องพัก',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -836,7 +848,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'Manage your rooms and details',
+                  'สำหรับเพิ่มห้องพัก',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.black54,
@@ -1010,7 +1022,8 @@ class _RoomAddUIState extends State<RoomAddUI> {
                           tooltip: 'ตั้งเป็นรูปหลัก',
                         ),
                         const SizedBox(width: 8),
-                        Text('ลำดับ ${index + 1}', style: const TextStyle(fontSize: 12)),
+                        Text('ลำดับ ${index + 1}',
+                            style: const TextStyle(fontSize: 12)),
                       ],
                     ),
                     trailing: IconButton(
@@ -1029,7 +1042,8 @@ class _RoomAddUIState extends State<RoomAddUI> {
                   child: OutlinedButton.icon(
                     onPressed: _images.length < 5 ? _pickImages : null,
                     icon: const Icon(Icons.add_photo_alternate),
-                    label: Text(_images.length < 5 ? 'เพิ่มรูปภาพ' : 'ครบ 5 รูปแล้ว'),
+                    label: Text(
+                        _images.length < 5 ? 'เพิ่มรูปภาพ' : 'ครบ 5 รูปแล้ว'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.primary,
                       side: BorderSide(color: AppTheme.primary),
@@ -1064,7 +1078,9 @@ class _RoomAddUIState extends State<RoomAddUI> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      kIsWeb ? 'เลือกไฟล์รูปภาพ' : 'เลือกรูปภาพห้องพัก (สูงสุด 5 รูป)',
+                      kIsWeb
+                          ? 'เลือกไฟล์รูปภาพ'
+                          : 'เลือกรูปภาพห้องพัก (สูงสุด 5 รูป)',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.grey.shade700,
@@ -1109,7 +1125,6 @@ class _RoomAddUIState extends State<RoomAddUI> {
     );
   }
 
-
   Widget _buildBasicInfoSection() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1136,98 +1151,10 @@ class _RoomAddUIState extends State<RoomAddUI> {
             ],
           ),
           const SizedBox(height: 16),
-          // if (widget.branchId == null)
-          //   Column(
-          //     children: [
-          //       DropdownButtonFormField<String>(
-          //         value: _selectedBranchId,
-          //         decoration: InputDecoration(
-          //           labelText: 'สาขา *',
-          //           prefixIcon: const Icon(Icons.business),
-          //           border: OutlineInputBorder(
-          //             borderRadius: BorderRadius.circular(8),
-          //           ),
-          //           filled: true,
-          //           fillColor: Colors.grey.shade50,
-          //         ),
-          //         items: _branches.map((branch) {
-          //           return DropdownMenuItem<String>(
-          //             value: branch['branch_id'],
-          //             child: Text(branch['branch_name'] ?? ''),
-          //           );
-          //         }).toList(),
-          //         onChanged: (value) {
-          //           setState(() {
-          //             _selectedBranchId = value;
-          //           });
-          //         },
-          //         validator: (value) {
-          //           if (widget.branchId == null) {
-          //             if (value == null || value.isEmpty) {
-          //               return 'กรุณาเลือกสาขา';
-          //             }
-          //           }
-          //           return null;
-          //         },
-          //       ),
-          //       const SizedBox(height: 16),
-          //     ],
-          //   )
-          // else
-          //   Column(
-          //     crossAxisAlignment: CrossAxisAlignment.start,
-          //     children: [
-          //       Text('สาขาที่เลือก',
-          //           style: TextStyle(
-          //               fontSize: 12,
-          //               color: Colors.grey[700],
-          //               fontWeight: FontWeight.w500)),
-          //       const SizedBox(height: 8),
-          //       Container(
-          //         padding:
-          //             const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          //         decoration: BoxDecoration(
-          //           color: Colors.grey.shade50,
-          //           borderRadius: BorderRadius.circular(8),
-          //           border: Border.all(color: Colors.grey[300]!),
-          //         ),
-          //         child: Row(
-          //           children: [
-          //             const Icon(Icons.apartment,
-          //                 size: 18, color: Colors.black54),
-          //             const SizedBox(width: 8),
-          //             Expanded(
-          //               child: Text(
-          //                 widget.branchName ?? widget.branchId ?? '-',
-          //                 style: const TextStyle(
-          //                     fontSize: 14, color: Colors.black87),
-          //                 overflow: TextOverflow.ellipsis,
-          //               ),
-          //             ),
-          //             Container(
-          //               padding: const EdgeInsets.symmetric(
-          //                   horizontal: 8, vertical: 2),
-          //               decoration: BoxDecoration(
-          //                 color: Colors.green.shade100,
-          //                 borderRadius: BorderRadius.circular(12),
-          //                 border: Border.all(color: Colors.green.shade200),
-          //               ),
-          //               child: Text('ล็อก',
-          //                   style: TextStyle(
-          //                       fontSize: 11,
-          //                       color: Colors.green.shade700,
-          //                       fontWeight: FontWeight.w600)),
-          //             ),
-          //           ],
-          //         ),
-          //       ),
-          //       const SizedBox(height: 16),
-          //     ],
-          //   ),
           TextFormField(
             controller: _roomNumberController,
             decoration: InputDecoration(
-              labelText: 'หมายเลขห้อง/บ้าน *',
+              labelText: 'หมายเลขห้อง *',
               prefixIcon: const Icon(Icons.room),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1255,7 +1182,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
           DropdownButtonFormField<String>(
             value: _selectedRoomCategoryId,
             decoration: InputDecoration(
-              labelText: 'หมวดหมู่ห้อง/บ้าน',
+              labelText: 'หมวดหมู่ห้อง',
               prefixIcon: const Icon(Icons.label),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1288,7 +1215,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
           DropdownButtonFormField<String>(
             value: _selectedRoomTypeId,
             decoration: InputDecoration(
-              labelText: 'ประเภทแอร์/พัดลม',
+              labelText: 'ประเภทห้อง',
               prefixIcon: const Icon(Icons.category),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1322,8 +1249,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
             controller: _roomSizeController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: 'ขนาดห้อง/บ้าน (ตร.ม.)',
-              hintText: 'เช่น 25',
+              labelText: 'ขนาดห้อง',
               prefixIcon: const Icon(Icons.aspect_ratio),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1376,8 +1302,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
             controller: _roomPriceController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: 'ค่าเช่า (บาท/เดือน) *',
-              hintText: 'เช่น 3500',
+              labelText: 'ค่าเช่า*',
               prefixIcon: const Icon(Icons.attach_money),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1409,8 +1334,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
             controller: _roomDepositController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: 'ค่าประกัน (บาท) *',
-              hintText: 'เช่น 3500',
+              labelText: 'ค่าประกัน *',
               prefixIcon: const Icon(Icons.security),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1723,8 +1647,6 @@ class _RoomAddUIState extends State<RoomAddUI> {
             maxLines: 4,
             decoration: InputDecoration(
               labelText: 'รายละเอียดห้องพัก',
-              hintText:
-                  'อธิบายเกี่ยวกับห้องพัก เช่น สิ่งอำนวยความสะดวก, ข้อมูลเพิ่มเติม',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -1794,43 +1716,6 @@ class _RoomAddUIState extends State<RoomAddUI> {
             contentPadding: EdgeInsets.zero,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSaveButton() {
-    // Deprecated placement; kept for backward compatibility if ever reused in body.
-    final bool canSave = !_isLoading && !_isLoadingData;
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: ElevatedButton.icon(
-        onPressed: canSave ? _saveRoom : null,
-        icon: _isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : const Icon(Icons.save, color: Colors.white),
-        label: Text(
-          _isLoading ? 'กำลังบันทึก...' : 'บันทึกห้องพัก',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: canSave ? AppTheme.primary : Colors.grey,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          elevation: canSave ? 2 : 0,
-        ),
       ),
     );
   }

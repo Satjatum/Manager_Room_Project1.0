@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+//--------
 import 'package:manager_room_project/views/sadmin/roomlist_ui.dart';
 import 'package:manager_room_project/views/sadmin/tenantlist_ui.dart';
 import 'package:manager_room_project/views/sadmin/issuelist_ui.dart';
@@ -7,6 +8,7 @@ import 'package:manager_room_project/views/sadmin/meterlist_ui.dart';
 import 'package:manager_room_project/views/sadmin/meter_billing_ui.dart';
 import 'package:manager_room_project/views/sadmin/payment_verification_ui.dart';
 import 'package:manager_room_project/views/sadmin/settingbranch_ui.dart';
+//--------
 import 'package:manager_room_project/views/widgets/colors.dart';
 
 class BranchDashboardPage extends StatelessWidget {
@@ -207,7 +209,7 @@ class BranchDashboardPage extends StatelessWidget {
                     } else if (maxW < 480) {
                       cross = 3; // Mobile M/L
                     } else {
-                      cross = 4; // Tablet and above
+                      cross = 8; // Tablet and above
                     }
 
                     final content = ListView(
@@ -227,7 +229,8 @@ class BranchDashboardPage extends StatelessWidget {
                             childAspectRatio: 0.9,
                           ),
                           itemCount: items.length,
-                          itemBuilder: (context, i) => _DashCard(item: items[i]),
+                          itemBuilder: (context, i) =>
+                              _DashCard(item: items[i]),
                         ),
                       ],
                     );

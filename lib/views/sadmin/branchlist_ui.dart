@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
-import 'package:manager_room_project/views/sadmin/branchdash_ui.dart';
-import 'package:manager_room_project/views/widgets/mainnavbar.dart';
+//--------
 import '../../models/user_models.dart';
+//--------
 import '../../middleware/auth_middleware.dart';
+//--------
 import '../../services/branch_service.dart';
+//--------
 import 'branch_add_ui.dart';
-import 'branchlist_detail_ui.dart';
 import 'branch_edit_ui.dart';
+import 'branchdash_ui.dart';
+import 'branchlist_detail_ui.dart';
+// -------
+import '../widgets/mainnavbar.dart';
 import '../widgets/colors.dart';
 
 class BranchlistUi extends StatefulWidget {
@@ -911,7 +916,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => BranchListDetail(
+        builder: (context) => BranchlistDetailUi(
           branchId: branchId,
         ),
       ),
@@ -1106,7 +1111,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => BranchAddPage()),
+                  MaterialPageRoute(builder: (context) => BranchAddUi()),
                 ).then((result) {
                   if (result == true) _loadBranches();
                 });
@@ -1322,7 +1327,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => BranchEditPage(
+                        builder: (context) => BranchEditUi(
                           branchId: branch['branch_id'],
                         ),
                       ),

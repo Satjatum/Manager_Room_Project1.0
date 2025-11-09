@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../services/contract_service.dart';
-import '../widgets/colors.dart';
 
 class ContractEditUI extends StatefulWidget {
   final String contractId;
@@ -215,36 +214,47 @@ class _ContractEditUIState extends State<ContractEditUI> {
     }
   }
 
-  String _formatDate(DateTime? date) {
-    if (date == null) return 'เลือกวันที่';
-    return '${date.day}/${date.month}/${date.year + 543}';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'แก้ไขสัญญาเช่า',
-          style: TextStyle(
-            color: Colors.black87,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Container(
-            color: Colors.grey[300],
-            height: 1,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(90),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new,
+                          color: Colors.black87),
+                      onPressed: () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      tooltip: 'ย้อนกลับ',
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'แก้ไขสัญญาเช่า',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -497,7 +507,6 @@ class _ContractEditUIState extends State<ContractEditUI> {
                             ),
                             prefixIcon: Icon(
                               Icons.attach_money,
-                              color: Color(0xFF10B981),
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
@@ -546,7 +555,6 @@ class _ContractEditUIState extends State<ContractEditUI> {
                             ),
                             prefixIcon: Icon(
                               Icons.security,
-                              color: Colors.amber[700],
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
@@ -594,7 +602,6 @@ class _ContractEditUIState extends State<ContractEditUI> {
                             ),
                             prefixIcon: Icon(
                               Icons.calendar_month,
-                              color: Colors.blue[600],
                             ),
                             helperText: 'เลือกวันที่ 1-31 ของทุกเดือน',
                             helperStyle: TextStyle(

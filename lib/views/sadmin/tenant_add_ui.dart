@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as path;
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../services/tenant_service.dart';
@@ -12,9 +13,8 @@ import '../../services/image_service.dart';
 import '../../services/user_service.dart';
 import '../../models/user_models.dart';
 import '../../middleware/auth_middleware.dart';
-import '../widgets/colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:path/path.dart' as path;
+import '../widgets/colors.dart';
 
 class TenantAddUI extends StatefulWidget {
   final String? branchId;
@@ -908,12 +908,6 @@ class _TenantAddUIState extends State<TenantAddUI>
   Widget build(BuildContext context) {
     if (_isCheckingAuth) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('เพิ่มผู้เช่าใหม่'),
-          backgroundColor: AppTheme.primary,
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -929,12 +923,6 @@ class _TenantAddUIState extends State<TenantAddUI>
 
     if (_currentUser == null) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('เพิ่มผู้เช่าใหม่'),
-          backgroundColor: AppTheme.primary,
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -982,47 +970,6 @@ class _TenantAddUIState extends State<TenantAddUI>
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'เพิ่มผู้เช่าใหม่',
-              style: TextStyle(
-                color: Colors.black87,
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            if (widget.branchName != null)
-              Text(
-                widget.branchName!,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                  fontWeight: FontWeight.normal,
-                ),
-              ),
-          ],
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Color(0xFF10B981),
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Color(0xFF10B981),
-          tabs: const [
-            Tab(text: 'ข้อมูลผู้เช่า'),
-            Tab(text: 'บัญชีผู้ใช้'),
-            Tab(text: 'สัญญาเช่า'),
-          ],
-        ),
-      ),
       body: _isLoading
           ? Center(
               child: Column(
@@ -1034,22 +981,88 @@ class _TenantAddUIState extends State<TenantAddUI>
                 ],
               ),
             )
-          : Form(
-              key: _formKey,
+          : SafeArea(
               child: Column(
                 children: [
-                  Expanded(
-                    child: TabBarView(
-                      controller: _tabController,
-                      physics: const NeverScrollableScrollPhysics(),
+                  // ✅ ใช้หัวใหม่แทน AppBar
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        _buildTenantInfoTab(),
-                        _buildUserAccountTab(),
-                        _buildContractTab(),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new,
+                              color: Colors.black87),
+                          onPressed: () {
+                            if (Navigator.of(context).canPop()) {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          tooltip: 'ย้อนกลับ',
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                'เพิ่มข้อมูลผู้เช่า',
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'สำหรับเพิ่มข้อมูลผู้เช่า',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  _buildNavigationButtons(),
+
+                  // ✅ TabBar เหมือนเดิม
+                  TabBar(
+                    controller: _tabController,
+                    labelColor: const Color(0xFF10B981),
+                    unselectedLabelColor: Colors.grey,
+                    indicatorColor: const Color(0xFF10B981),
+                    tabs: const [
+                      Tab(text: 'ข้อมูลผู้เช่า'),
+                      Tab(text: 'บัญชีผู้ใช้'),
+                      Tab(text: 'สัญญาเช่า'),
+                    ],
+                  ),
+
+                  // ✅ เนื้อหา TabBar + ปุ่มด้านล่างเหมือนเดิม
+                  Expanded(
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: TabBarView(
+                              controller: _tabController,
+                              physics: const NeverScrollableScrollPhysics(),
+                              children: [
+                                _buildTenantInfoTab(),
+                                _buildUserAccountTab(),
+                                _buildContractTab(),
+                              ],
+                            ),
+                          ),
+                          _buildNavigationButtons(),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1842,42 +1855,42 @@ class _TenantAddUIState extends State<TenantAddUI>
             // เลขที่สัญญา
             Row(
               children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _contractNumController,
-                    decoration: InputDecoration(
-                      labelText: 'เลขที่สัญญา *',
-                      prefixIcon: const Icon(Icons.assignment),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                            color: Color(0xff10B981), width: 2),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            BorderSide(color: Colors.grey[300]!, width: 1),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey.shade50,
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'กรุณากรอกเลขที่สัญญา';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _generateContractNumber,
-                  icon: Icon(Icons.refresh, color: AppTheme.primary),
-                  tooltip: 'สร้างเลขที่สัญญาใหม่',
-                ),
+                // Expanded(
+                //   child: TextFormField(
+                //     controller: _contractNumController,
+                //     decoration: InputDecoration(
+                //       labelText: 'เลขที่สัญญา *',
+                //       prefixIcon: const Icon(Icons.assignment),
+                //       border: OutlineInputBorder(
+                //         borderRadius: BorderRadius.circular(12),
+                //       ),
+                //       focusedBorder: OutlineInputBorder(
+                //         borderRadius: BorderRadius.circular(12),
+                //         borderSide: const BorderSide(
+                //             color: Color(0xff10B981), width: 2),
+                //       ),
+                //       enabledBorder: OutlineInputBorder(
+                //         borderRadius: BorderRadius.circular(12),
+                //         borderSide:
+                //             BorderSide(color: Colors.grey[300]!, width: 1),
+                //       ),
+                //       filled: true,
+                //       fillColor: Colors.grey.shade50,
+                //     ),
+                //     validator: (value) {
+                //       if (value == null || value.trim().isEmpty) {
+                //         return 'กรุณากรอกเลขที่สัญญา';
+                //       }
+                //       return null;
+                //     },
+                //   ),
+                // ),
+                // const SizedBox(width: 8),
+                // IconButton(
+                //   onPressed: _generateContractNumber,
+                //   icon: Icon(Icons.refresh, color: AppTheme.primary),
+                //   tooltip: 'สร้างเลขที่สัญญาใหม่',
+                // ),
               ],
             ),
             const SizedBox(height: 16),
@@ -2283,7 +2296,10 @@ class _TenantAddUIState extends State<TenantAddUI>
               child: OutlinedButton.icon(
                 onPressed: _previousTab,
                 icon: const Icon(Icons.arrow_back),
-                label: const Text('ย้อนกลับ'),
+                label: const Text(
+                  'ย้อนกลับ',
+                  style: TextStyle(color: Colors.black),
+                ),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(

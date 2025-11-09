@@ -13,7 +13,6 @@ class IssueService {
     String? branchId,
     String? issueType,
     String? issueStatus,
-    String? issuePriority,
     String orderBy = 'created_at',
     bool ascending = false,
   }) async {
@@ -49,10 +48,6 @@ class IssueService {
 
       if (issueStatus != null && issueStatus.isNotEmpty) {
         query = query.eq('issue_status', issueStatus);
-      }
-
-      if (issuePriority != null && issuePriority.isNotEmpty) {
-        query = query.eq('issue_priority', issuePriority);
       }
 
       final result = await query
@@ -261,7 +256,6 @@ class IssueService {
         'room_id': issueData['room_id'],
         'tenant_id': issueData['tenant_id'] ?? currentUser.tenantId,
         'issue_type': issueData['issue_type'],
-        'issue_priority': issueData['issue_priority'] ?? 'medium',
         'issue_title': issueData['issue_title'].toString().trim(),
         'issue_desc': issueData['issue_desc'].toString().trim(),
         'issue_status': 'pending',
@@ -310,7 +304,6 @@ class IssueService {
       // Prepare data for update
       final updateData = {
         'issue_type': issueData['issue_type'],
-        'issue_priority': issueData['issue_priority'],
         'issue_title': issueData['issue_title']?.toString().trim(),
         'issue_desc': issueData['issue_desc']?.toString().trim(),
         'issue_status': issueData['issue_status'],
@@ -368,8 +361,7 @@ class IssueService {
 
       await _supabase
           .from('issue_reports')
-          .update({'assigned_to': userId})
-          .eq('issue_id', issueId);
+          .update({'assigned_to': userId}).eq('issue_id', issueId);
 
       return {
         'success': true,
@@ -413,7 +405,8 @@ class IssueService {
         };
       }
 
-      final String currentStatus = (current['issue_status'] ?? 'pending').toString();
+      final String currentStatus =
+          (current['issue_status'] ?? 'pending').toString();
       final bool hasAssignee = current['assigned_to'] != null;
 
       // If requested status equals current, treat as success (no-op)
@@ -451,7 +444,8 @@ class IssueService {
       if (!allowed) {
         return {
           'success': false,
-          'message': 'ไม่สามารถเปลี่ยนสถานะจาก "$currentStatus" เป็น "$status" ได้',
+          'message':
+              'ไม่สามารถเปลี่ยนสถานะจาก "$currentStatus" เป็น "$status" ได้',
         };
       }
 
@@ -509,10 +503,7 @@ class IssueService {
       }
 
       // Delete related images first (if any)
-      await _supabase
-          .from('issue_images')
-          .delete()
-          .eq('issue_id', issueId);
+      await _supabase.from('issue_images').delete().eq('issue_id', issueId);
 
       // Delete the issue
       final deleted = await _supabase
