@@ -153,8 +153,10 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
   Future<void> _loadRoomsAndPrevious() async {
     setState(() => _loadingRooms = true);
     try {
-      // Load active rooms for selected branch
-      _rooms = await MeterReadingService.getActiveRoomsForMeterReading();
+      // Load active rooms for selected branch (restrict to branch)
+      _rooms = await MeterReadingService.getActiveRoomsForMeterReading(
+        branchId: widget.branchId,
+      );
 
       // Sort by room number (asc) then category
       _rooms.sort((a, b) {
@@ -1236,103 +1238,63 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       final canCreate =
           _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
 
-      // Popup menu per row; open when any cell is tapped
-      final popupKey = GlobalKey<PopupMenuButtonState<String>>();
-
-      void _openMenu() {
-        popupKey.currentState?.showButtonMenu();
-      }
-
       return DataRow(cells: [
-        DataCell(Text(tenant, overflow: TextOverflow.ellipsis), onTap: _openMenu),
-        DataCell(Text(roomNo), onTap: _openMenu),
-        DataCell(Text(room['room_category_name']?.toString() ?? '-'), onTap: _openMenu),
-        DataCell(Text(prev.toStringAsFixed(0)), onTap: _openMenu),
-        DataCell(Text(current != null ? current.toStringAsFixed(0) : '-'), onTap: _openMenu),
-        DataCell(Text(usage != null ? usage.toStringAsFixed(2) : '-'), onTap: _openMenu),
-        DataCell(Text(statusStr), onTap: _openMenu),
-        // Hidden popup trigger cell
-        DataCell(
-          Offstage(
-            offstage: false,
-            child: PopupMenuButton<String>(
-              key: popupKey,
-              onSelected: (value) async {
-                switch (value) {
-                  case 'create':
-                    if (canCreate) await _showCreateDialog(room);
-                    break;
-                  case 'edit_water':
-                    if (canEdit) await _showEditDialogWater(roomId);
-                    break;
-                  case 'delete':
-                    if (!canDelete) break;
-                    final rid = (existing?['reading_id'] ?? '').toString();
-                    final isBilled = ((existing?['reading_status'] ?? '') == 'billed');
-                    if (isBilled) {
-                      await _confirmDeleteBilled(
-                        rid,
-                        (_invoiceIdByRoom[roomId] ?? ''),
-                        roomId,
-                      );
-                    } else {
-                      await _confirmDelete(rid, roomId);
-                    }
-                    break;
-                }
-              },
-              itemBuilder: (ctx) {
-                final items = <PopupMenuEntry<String>>[];
-                if (isNew && canCreate) {
-                  items.add(
-                    const PopupMenuItem<String>(
-                      value: 'create',
-                      child: ListTile(
-                        dense: true,
-                        leading: Icon(Icons.add),
-                        title: Text('กรอกข้อมูล'),
-                      ),
-                    ),
-                  );
-                }
-                if (!isNew && canEdit) {
-                  items.add(
-                    const PopupMenuItem<String>(
-                      value: 'edit_water',
-                      child: ListTile(
-                        dense: true,
-                        leading: Icon(Icons.edit),
-                        title: Text('แก้ไขค่าน้ำ'),
-                      ),
-                    ),
-                  );
-                }
-                if (!isNew && canDelete) {
-                  items.add(
-                    const PopupMenuItem<String>(
-                      value: 'delete',
-                      child: ListTile(
-                        dense: true,
-                        leading: Icon(Icons.delete_outline, color: Colors.red),
-                        title: Text('ลบ', style: TextStyle(color: Colors.red)),
-                      ),
-                    ),
-                  );
-                }
-                if (items.isEmpty) {
-                  items.add(
-                    const PopupMenuItem<String>(
-                      value: 'noop',
-                      enabled: false,
-                      child: Text('ไม่มีรายการ')
-                    ),
-                  );
-                }
-                return items;
-              },
-            ),
-          ),
-        ),
+        DataCell(Text(tenant, overflow: TextOverflow.ellipsis), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(roomNo), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(room['room_category_name']?.toString() ?? '-'), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(prev.toStringAsFixed(0)), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(current != null ? current.toStringAsFixed(0) : '-'), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(usage != null ? usage.toStringAsFixed(2) : '-'), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(statusStr), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(const Icon(Icons.edit_note, size: 18), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
       ]);
     }).toList();
 
@@ -1405,103 +1367,63 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       final canCreate =
           _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
 
-      // Popup menu per row; open when any cell is tapped
-      final popupKey = GlobalKey<PopupMenuButtonState<String>>();
-
-      void _openMenu() {
-        popupKey.currentState?.showButtonMenu();
-      }
-
       return DataRow(cells: [
-        DataCell(Text(tenant, overflow: TextOverflow.ellipsis), onTap: _openMenu),
-        DataCell(Text(roomNo), onTap: _openMenu),
-        DataCell(Text(room['room_category_name']?.toString() ?? '-'), onTap: _openMenu),
-        DataCell(Text(prev.toStringAsFixed(0)), onTap: _openMenu),
-        DataCell(Text(current != null ? current.toStringAsFixed(0) : '-'), onTap: _openMenu),
-        DataCell(Text(usage != null ? usage.toStringAsFixed(2) : '-'), onTap: _openMenu),
-        DataCell(Text(status), onTap: _openMenu),
-        // Hidden popup trigger cell
-        DataCell(
-          Offstage(
-            offstage: false,
-            child: PopupMenuButton<String>(
-              key: popupKey,
-              onSelected: (value) async {
-                switch (value) {
-                  case 'create':
-                    if (canCreate) await _showCreateDialog(room);
-                    break;
-                  case 'edit_electric':
-                    if (canEdit) await _showEditDialogElectric(roomId);
-                    break;
-                  case 'delete':
-                    if (!canDelete) break;
-                    final rid = (existing?['reading_id'] ?? '').toString();
-                    final isBilled = ((existing?['reading_status'] ?? '') == 'billed');
-                    if (isBilled) {
-                      await _confirmDeleteBilled(
-                        rid,
-                        (_invoiceIdByRoom[roomId] ?? ''),
-                        roomId,
-                      );
-                    } else {
-                      await _confirmDelete(rid, roomId);
-                    }
-                    break;
-                }
-              },
-              itemBuilder: (ctx) {
-                final items = <PopupMenuEntry<String>>[];
-                if (isNew && canCreate) {
-                  items.add(
-                    const PopupMenuItem<String>(
-                      value: 'create',
-                      child: ListTile(
-                        dense: true,
-                        leading: Icon(Icons.add),
-                        title: Text('กรอกข้อมูล'),
-                      ),
-                    ),
-                  );
-                }
-                if (!isNew && canEdit) {
-                  items.add(
-                    const PopupMenuItem<String>(
-                      value: 'edit_electric',
-                      child: ListTile(
-                        dense: true,
-                        leading: Icon(Icons.edit),
-                        title: Text('แก้ไขค่าไฟ'),
-                      ),
-                    ),
-                  );
-                }
-                if (!isNew && canDelete) {
-                  items.add(
-                    const PopupMenuItem<String>(
-                      value: 'delete',
-                      child: ListTile(
-                        dense: true,
-                        leading: Icon(Icons.delete_outline, color: Colors.red),
-                        title: Text('ลบ', style: TextStyle(color: Colors.red)),
-                      ),
-                    ),
-                  );
-                }
-                if (items.isEmpty) {
-                  items.add(
-                    const PopupMenuItem<String>(
-                      value: 'noop',
-                      enabled: false,
-                      child: Text('ไม่มีรายการ')
-                    ),
-                  );
-                }
-                return items;
-              },
-            ),
-          ),
-        ),
+        DataCell(Text(tenant, overflow: TextOverflow.ellipsis), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(roomNo), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(room['room_category_name']?.toString() ?? '-'), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(prev.toStringAsFixed(0)), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(current != null ? current.toStringAsFixed(0) : '-'), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(usage != null ? usage.toStringAsFixed(2) : '-'), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(status), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(const Icon(Icons.edit_note, size: 18), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
       ]);
     }).toList();
 
