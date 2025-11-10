@@ -597,9 +597,11 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                   ),
                 ],
               ),
-              content: SingleChildScrollView(
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -637,7 +639,9 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                     const SizedBox(height: 12),
                     filesList(),
                     const SizedBox(height: 10),
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
                         OutlinedButton.icon(
                           onPressed: localImages.length >= 10 ? null : pickImages,
@@ -648,7 +652,6 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                             side: BorderSide(color: AppTheme.primary),
                           ),
                         ),
-                        const SizedBox(width: 8),
                         if (localImages.isNotEmpty)
                           TextButton.icon(
                             onPressed: () => setLocalState(() => localImages.clear()),
