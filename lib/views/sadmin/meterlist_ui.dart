@@ -77,6 +77,10 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year; // ค.ศ. (แสดงผล พ.ศ.)
 
+  // Hovered column index per tab (-1/null = none)
+  int? _hoveredWaterCol;
+  int? _hoveredElectricCol;
+
   // Period helpers
   bool get _isCurrentPeriod {
     final now = DateTime.now();
@@ -1183,6 +1187,59 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     );
   }
 
+  // --- Hover helpers ---
+  Color _hoverBg(bool isHovered, {required bool isWater}) {
+    final base = isWater ? Colors.blue : Colors.orange;
+    return isHovered ? base.withOpacity(0.08) : Colors.transparent;
+  }
+
+  Widget _hoverHeaderLabel(String text, int col, {required bool isWater}) {
+    final hovered = isWater ? _hoveredWaterCol == col : _hoveredElectricCol == col;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 120),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: _hoverBg(hovered, isWater: isWater),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
+    );
+  }
+
+  Widget _wrapHoverCell({
+    required Widget child,
+    required int col,
+    required bool isWater,
+  }) {
+    return MouseRegion(
+      onEnter: (_) => setState(() {
+        if (isWater) {
+          _hoveredWaterCol = col;
+        } else {
+          _hoveredElectricCol = col;
+        }
+      }),
+      onExit: (_) => setState(() {
+        if (isWater) {
+          _hoveredWaterCol = null;
+        } else {
+          _hoveredElectricCol = null;
+        }
+      }),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        decoration: BoxDecoration(
+          color: _hoverBg(
+              (isWater ? _hoveredWaterCol == col : _hoveredElectricCol == col),
+              isWater: isWater),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: child,
+      ),
+    );
+  }
+
   Widget _buildWaterDataTable(List<Map<String, dynamic>> rooms) {
     // หา rate id ของน้ำ
     String? waterRateId;
@@ -1299,17 +1356,164 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     }).toList();
 
     return DataTable(
-      columns: const [
-        DataColumn(label: Text('ผู้เช่า')),
-        DataColumn(label: Text('เลขที่')),
-        DataColumn(label: Text('ประเภท')),
-        DataColumn(label: Text('ก่อนหน้า')),
-        DataColumn(label: Text('ปัจจุบัน')),
-        DataColumn(label: Text('ใช้งาน')),
-        DataColumn(label: Text('สถานะ')),
-        DataColumn(label: Text('')),
+      columns: [
+        DataColumn(label: _hoverHeaderLabel('ผู้เช่า', 0, isWater: true)),
+        DataColumn(label: _hoverHeaderLabel('เลขที่', 1, isWater: true)),
+        DataColumn(label: _hoverHeaderLabel('ประเภท', 2, isWater: true)),
+        DataColumn(label: _hoverHeaderLabel('ก่อนหน้า', 3, isWater: true)),
+        DataColumn(label: _hoverHeaderLabel('ปัจจุบัน', 4, isWater: true)),
+        DataColumn(label: _hoverHeaderLabel('ใช้งาน', 5, isWater: true)),
+        DataColumn(label: _hoverHeaderLabel('สถานะ', 6, isWater: true)),
+        DataColumn(label: _hoverHeaderLabel('', 7, isWater: true)),
       ],
-      rows: rows,
+      rows: rooms.map((room) {
+        final roomId = (room['room_id'] ?? '').toString();
+        final roomNo = (room['room_number'] ?? '-').toString();
+        final tenant = (room['tenant_name'] ?? '-').toString();
+        final existing = _existingByRoom[roomId];
+
+        // previous/current for water
+        String? waterRateId;
+        for (final rate in _meteredRates) {
+          final r = Map<String, dynamic>.from(rate);
+          final rid = (r['rate_id'] ?? '').toString();
+          if (rid.isEmpty) continue;
+          if (_isWaterRate(r)) {
+            waterRateId = rid;
+            break;
+          }
+        }
+        final prev = (existing != null)
+            ? (existing['water_previous_reading'] ?? 0.0).toDouble()
+            : (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
+        final curMapForWater = _dynCurCtrls[roomId];
+        final cvCtrl = (waterRateId != null && curMapForWater != null)
+            ? curMapForWater[waterRateId!]
+            : null;
+        final current = (existing != null)
+            ? (existing['water_current_reading'] ?? 0.0).toDouble()
+            : double.tryParse((cvCtrl?.text ?? '').trim());
+        final usage = (current != null) ? (current - prev) : null;
+        final statusStr = (existing == null)
+            ? 'ยังไม่บันทึก'
+            : ((existing['reading_status'] ?? '').toString() == 'billed'
+                ? 'ออกบิลแล้ว'
+                : 'ยืนยันแล้ว');
+
+        final isNew = existing == null;
+        final canCreate = _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
+
+        return DataRow(cells: [
+          DataCell(
+            _wrapHoverCell(
+              isWater: true,
+              col: 0,
+              child: Text(tenant, overflow: TextOverflow.ellipsis),
+            ),
+            onTap: () async {
+              if (isNew) {
+                if (canCreate) await _showCreateDialog(room);
+              } else {
+                await _showEditDialog(roomId);
+              }
+            },
+          ),
+          DataCell(
+            _wrapHoverCell(isWater: true, col: 1, child: Text(roomNo)),
+            onTap: () async {
+              if (isNew) {
+                if (canCreate) await _showCreateDialog(room);
+              } else {
+                await _showEditDialog(roomId);
+              }
+            },
+          ),
+          DataCell(
+            _wrapHoverCell(
+              isWater: true,
+              col: 2,
+              child: Text(room['room_category_name']?.toString() ?? '-'),
+            ),
+            onTap: () async {
+              if (isNew) {
+                if (canCreate) await _showCreateDialog(room);
+              } else {
+                await _showEditDialog(roomId);
+              }
+            },
+          ),
+          DataCell(
+            _wrapHoverCell(
+              isWater: true,
+              col: 3,
+              child: Text(prev.toStringAsFixed(0)),
+            ),
+            onTap: () async {
+              if (isNew) {
+                if (canCreate) await _showCreateDialog(room);
+              } else {
+                await _showEditDialog(roomId);
+              }
+            },
+          ),
+          DataCell(
+            _wrapHoverCell(
+              isWater: true,
+              col: 4,
+              child: Text(current != null ? current.toStringAsFixed(0) : '-'),
+            ),
+            onTap: () async {
+              if (isNew) {
+                if (canCreate) await _showCreateDialog(room);
+              } else {
+                await _showEditDialog(roomId);
+              }
+            },
+          ),
+          DataCell(
+            _wrapHoverCell(
+              isWater: true,
+              col: 5,
+              child: Text(usage != null ? usage.toStringAsFixed(2) : '-'),
+            ),
+            onTap: () async {
+              if (isNew) {
+                if (canCreate) await _showCreateDialog(room);
+              } else {
+                await _showEditDialog(roomId);
+              }
+            },
+          ),
+          DataCell(
+            _wrapHoverCell(
+              isWater: true,
+              col: 6,
+              child: Text(statusStr),
+            ),
+            onTap: () async {
+              if (isNew) {
+                if (canCreate) await _showCreateDialog(room);
+              } else {
+                await _showEditDialog(roomId);
+              }
+            },
+          ),
+          DataCell(
+            _wrapHoverCell(
+              isWater: true,
+              col: 7,
+              child: const Icon(Icons.edit_note, size: 18),
+            ),
+            onTap: () async {
+              if (isNew) {
+                if (canCreate) await _showCreateDialog(room);
+              } else {
+                await _showEditDialog(roomId);
+              }
+            },
+          ),
+        ]);
+      }).toList(),
       headingRowColor: MaterialStateProperty.all(Colors.blue.withOpacity(0.06)),
       dataRowColor: MaterialStateProperty.all(Colors.white),
       border: TableBorder.symmetric(
@@ -1428,17 +1632,164 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     }).toList();
 
     return DataTable(
-      columns: const [
-        DataColumn(label: Text('ผู้เช่า')),
-        DataColumn(label: Text('เลขที่')),
-        DataColumn(label: Text('ประเภท')),
-        DataColumn(label: Text('ก่อนหน้า')),
-        DataColumn(label: Text('ปัจจุบัน')),
-        DataColumn(label: Text('ใช้งาน')),
-        DataColumn(label: Text('สถานะ')),
-        DataColumn(label: Text('')),
+      columns: [
+        DataColumn(label: _hoverHeaderLabel('ผู้เช่า', 0, isWater: false)),
+        DataColumn(label: _hoverHeaderLabel('เลขที่', 1, isWater: false)),
+        DataColumn(label: _hoverHeaderLabel('ประเภท', 2, isWater: false)),
+        DataColumn(label: _hoverHeaderLabel('ก่อนหน้า', 3, isWater: false)),
+        DataColumn(label: _hoverHeaderLabel('ปัจจุบัน', 4, isWater: false)),
+        DataColumn(label: _hoverHeaderLabel('ใช้งาน', 5, isWater: false)),
+        DataColumn(label: _hoverHeaderLabel('สถานะ', 6, isWater: false)),
+        DataColumn(label: _hoverHeaderLabel('', 7, isWater: false)),
       ],
-      rows: rows,
+      rows: rooms.map((room) {
+        final roomId = (room['room_id'] ?? '').toString();
+        final roomNo = (room['room_number'] ?? '-').toString();
+        final tenant = (room['tenant_name'] ?? '-').toString();
+        final existing = _existingByRoom[roomId];
+
+        // previous/current for electric
+        String? electricRateId;
+        for (final rate in _meteredRates) {
+          final r = Map<String, dynamic>.from(rate);
+          final rid = (r['rate_id'] ?? '').toString();
+          if (rid.isEmpty) continue;
+          if (_isElectricRate(r)) {
+            electricRateId = rid;
+            break;
+          }
+        }
+        final prev = (existing != null)
+            ? (existing['electric_previous_reading'] ?? 0.0).toDouble()
+            : (_prevElecByRoom[roomId] ?? 0.0).toDouble();
+        final curMapForElec = _dynCurCtrls[roomId];
+        final cvCtrl = (electricRateId != null && curMapForElec != null)
+            ? curMapForElec[electricRateId!]
+            : null;
+        final current = (existing != null)
+            ? (existing['electric_current_reading'] ?? 0.0).toDouble()
+            : double.tryParse((cvCtrl?.text ?? '').trim());
+        final usage = (current != null) ? (current - prev) : null;
+        final status = (existing == null)
+            ? 'ยังไม่บันทึก'
+            : ((existing['reading_status'] ?? '').toString() == 'billed'
+                ? 'ออกบิลแล้ว'
+                : 'ยืนยันแล้ว');
+
+        final isNew = existing == null;
+        final canCreate = _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
+
+        return DataRow(cells: [
+          DataCell(
+            _wrapHoverCell(
+              isWater: false,
+              col: 0,
+              child: Text(tenant, overflow: TextOverflow.ellipsis),
+            ),
+            onTap: () async {
+              if (isNew) {
+                if (canCreate) await _showCreateDialog(room);
+              } else {
+                await _showEditDialog(roomId);
+              }
+            },
+          ),
+          DataCell(
+            _wrapHoverCell(isWater: false, col: 1, child: Text(roomNo)),
+            onTap: () async {
+              if (isNew) {
+                if (canCreate) await _showCreateDialog(room);
+              } else {
+                await _showEditDialog(roomId);
+              }
+            },
+          ),
+          DataCell(
+            _wrapHoverCell(
+              isWater: false,
+              col: 2,
+              child: Text(room['room_category_name']?.toString() ?? '-'),
+            ),
+            onTap: () async {
+              if (isNew) {
+                if (canCreate) await _showCreateDialog(room);
+              } else {
+                await _showEditDialog(roomId);
+              }
+            },
+          ),
+          DataCell(
+            _wrapHoverCell(
+              isWater: false,
+              col: 3,
+              child: Text(prev.toStringAsFixed(0)),
+            ),
+            onTap: () async {
+              if (isNew) {
+                if (canCreate) await _showCreateDialog(room);
+              } else {
+                await _showEditDialog(roomId);
+              }
+            },
+          ),
+          DataCell(
+            _wrapHoverCell(
+              isWater: false,
+              col: 4,
+              child: Text(current != null ? current.toStringAsFixed(0) : '-'),
+            ),
+            onTap: () async {
+              if (isNew) {
+                if (canCreate) await _showCreateDialog(room);
+              } else {
+                await _showEditDialog(roomId);
+              }
+            },
+          ),
+          DataCell(
+            _wrapHoverCell(
+              isWater: false,
+              col: 5,
+              child: Text(usage != null ? usage.toStringAsFixed(2) : '-'),
+            ),
+            onTap: () async {
+              if (isNew) {
+                if (canCreate) await _showCreateDialog(room);
+              } else {
+                await _showEditDialog(roomId);
+              }
+            },
+          ),
+          DataCell(
+            _wrapHoverCell(
+              isWater: false,
+              col: 6,
+              child: Text(status),
+            ),
+            onTap: () async {
+              if (isNew) {
+                if (canCreate) await _showCreateDialog(room);
+              } else {
+                await _showEditDialog(roomId);
+              }
+            },
+          ),
+          DataCell(
+            _wrapHoverCell(
+              isWater: false,
+              col: 7,
+              child: const Icon(Icons.edit_note, size: 18),
+            ),
+            onTap: () async {
+              if (isNew) {
+                if (canCreate) await _showCreateDialog(room);
+              } else {
+                await _showEditDialog(roomId);
+              }
+            },
+          ),
+        ]);
+      }).toList(),
       headingRowColor:
           MaterialStateProperty.all(Colors.orange.withOpacity(0.06)),
       dataRowColor: MaterialStateProperty.all(Colors.white),
