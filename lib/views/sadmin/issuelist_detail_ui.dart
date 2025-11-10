@@ -215,30 +215,35 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                   ),
                   const SizedBox(height: 12),
                   if (_resolveImages.isNotEmpty)
-                    Container(
-                      constraints: const BoxConstraints(maxHeight: 240),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: _resolveImages.length,
-                        separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade300),
-                        itemBuilder: (context, index) {
-                          final f = _resolveImages[index];
-                          final name = _fileDisplayName(f);
-                          return ListTile(
-                            dense: true,
-                            leading: const Icon(Icons.image, color: Colors.grey),
-                            title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.close, color: Colors.red),
-                              onPressed: () => setState(() => _resolveImages.removeAt(index)),
-                            ),
-                          );
-                        },
+                    SizedBox(
+                      height: 240,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Scrollbar(
+                          child: ListView.separated(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: false,
+                            itemCount: _resolveImages.length,
+                            separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade300),
+                            itemBuilder: (context, index) {
+                              final f = _resolveImages[index];
+                              final name = _fileDisplayName(f);
+                              return ListTile(
+                                dense: true,
+                                leading: const Icon(Icons.image, color: Colors.grey),
+                                title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.close, color: Colors.red),
+                                  onPressed: () => setState(() => _resolveImages.removeAt(index)),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       ),
                     ),
                   const SizedBox(height: 10),
@@ -1349,6 +1354,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         ),
         content: SizedBox(
           width: double.maxFinite,
+          height: 360,
           child: _availableUsers.isEmpty
               ? const Center(
                   child: Padding(
@@ -1356,44 +1362,47 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                     child: Text('ไม่พบผู้ใช้ในระบบ'),
                   ),
                 )
-              : ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _availableUsers.length,
-                  itemBuilder: (context, index) {
-                    final user = _availableUsers[index];
-                    final isAssigned =
-                        user['user_id'] == _issue!['assigned_to'];
+              : Scrollbar(
+                  child: ListView.builder(
+                    shrinkWrap: false,
+                    itemCount: _availableUsers.length,
+                    itemBuilder: (context, index) {
+                      final user = _availableUsers[index];
+                      final isAssigned =
+                          user['user_id'] == _issue!['assigned_to'];
 
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: isAssigned
-                            ? Colors.blue.shade100
-                            : Colors.grey.shade200,
-                        child: Icon(
-                          Icons.person,
-                          color: isAssigned
-                              ? Colors.blue.shade700
-                              : Colors.grey.shade600,
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: isAssigned
+                              ? Colors.blue.shade100
+                              : Colors.grey.shade200,
+                          child: Icon(
+                            Icons.person,
+                            color: isAssigned
+                                ? Colors.blue.shade700
+                                : Colors.grey.shade600,
+                          ),
                         ),
-                      ),
-                      title: Text(
-                        user['user_name'] ?? 'ไม่ระบุชื่อ',
-                        style: TextStyle(
-                          fontWeight:
-                              isAssigned ? FontWeight.bold : FontWeight.normal,
+                        title: Text(
+                          user['user_name'] ?? 'ไม่ระบุชื่อ',
+                          style: TextStyle(
+                            fontWeight: isAssigned
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
                         ),
-                      ),
-                      subtitle: Text(user['user_email'] ?? ''),
-                      trailing: isAssigned
-                          ? Icon(Icons.check_circle,
-                              color: Colors.blue.shade700)
-                          : null,
-                      onTap: () {
-                        Navigator.pop(context);
-                        _assignUser(user['user_id']);
-                      },
-                    );
-                  },
+                        subtitle: Text(user['user_email'] ?? ''),
+                        trailing: isAssigned
+                            ? Icon(Icons.check_circle,
+                                color: Colors.blue.shade700)
+                            : null,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _assignUser(user['user_id']);
+                        },
+                      );
+                    },
+                  ),
                 ),
         ),
         actions: [
