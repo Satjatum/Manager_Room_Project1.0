@@ -723,7 +723,6 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
             controller: _titleController,
             decoration: InputDecoration(
               labelText: 'หัวข้อปัญหา',
-              hintText: 'เช่น ก๊อกน้ำรั่ว, แอร์เสีย',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -786,7 +785,6 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
             controller: _descController,
             decoration: InputDecoration(
               labelText: 'รายละเอียด',
-              hintText: 'อธิบายปัญหาโดยละเอียด',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
