@@ -1550,7 +1550,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       headingRowColor: MaterialStateProperty.all(Colors.blue.withOpacity(0.06)),
       dataRowColor: MaterialStateProperty.resolveWith((states) {
         if (states.contains(MaterialState.hovered)) {
-          return Colors.blue.withOpacity(0.04);
+          return Colors.grey.withOpacity(0.08); // hover แถวเป็นสีเทาอ่อน
         }
         return Colors.white;
       }),
@@ -1865,7 +1865,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
           MaterialStateProperty.all(Colors.orange.withOpacity(0.06)),
       dataRowColor: MaterialStateProperty.resolveWith((states) {
         if (states.contains(MaterialState.hovered)) {
-          return Colors.orange.withOpacity(0.04);
+          return Colors.grey.withOpacity(0.08); // hover แถวเป็นสีเทาอ่อน
         }
         return Colors.white;
       }),
