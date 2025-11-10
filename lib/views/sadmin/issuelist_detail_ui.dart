@@ -28,6 +28,14 @@ class _ResolvePayload {
   const _ResolvePayload({this.text, required this.images});
 }
 
+class _UploadState {
+  final int current;
+  final int total;
+  final String phase; // e.g., 'อัปเดตสถานะ', 'อัปโหลดรูป'
+  final String? fileName;
+  const _UploadState({required this.current, required this.total, required this.phase, this.fileName});
+}
+
 class _IssueDetailScreenState extends State<IssueDetailScreen> {
   bool _isLoading = true;
   UserModel? _currentUser;
@@ -149,7 +157,9 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
       if (payload == null) return; // cancelled
 
       try {
-        // Show blocking progress while updating and uploading
+        final progress = ValueNotifier<_UploadState>(
+          const _UploadState(current: 0, total: 0, phase: 'อัปเดตสถานะ'),
+        );
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -160,17 +170,30 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: CircularProgressIndicator(strokeWidth: 3),
-                  ),
-                  SizedBox(height: 12),
-                  Text('กำลังบันทึก...', style: TextStyle(fontWeight: FontWeight.w600)),
-                ],
+              child: ValueListenableBuilder<_UploadState>(
+                valueListenable: progress,
+                builder: (context, state, __) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(strokeWidth: 3),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        state.phase,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      if (state.total > 0) ...[
+                        const SizedBox(height: 8),
+                        Text('${state.current}/${state.total}${state.fileName != null ? ' • ' + state.fileName! : ''}',
+                            style: TextStyle(color: Colors.grey[700], fontSize: 12)),
+                      ],
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -191,7 +214,16 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
             );
             if (created['success'] == true) {
               final responseId = created['data']['response_id'] as String;
+              final total = payload.images.length;
+              int idx = 0;
               for (final img in payload.images) {
+                idx++;
+                progress.value = _UploadState(
+                  current: idx,
+                  total: total,
+                  phase: 'อัปโหลดรูป',
+                  fileName: kIsWeb ? img.name : _fileDisplayName(img),
+                );
                 if (kIsWeb) {
                   final ext = img.name.contains('.') ? img.name.split('.').last.toLowerCase() : 'jpg';
                   final bytes = await img.readAsBytes();
