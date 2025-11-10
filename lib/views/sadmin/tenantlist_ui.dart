@@ -1420,7 +1420,7 @@ class _TenantListUIState extends State<TenantListUI> {
                                       if (result == true && mounted)
                                         await _loadTenants();
                                       break;
-                                    case 'toggle':
+                                    case 'toggle_status':
                                       if (_isAnonymous) {
                                         _showLoginPrompt(isActive
                                             ? 'ปิดใช้งาน'
