@@ -211,82 +211,52 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                   ),
                   const SizedBox(height: 12),
                   if (_resolveImages.isNotEmpty)
-                    SizedBox(
-                      height: 84,
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 240),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
+                        shrinkWrap: true,
                         itemCount: _resolveImages.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade300),
                         itemBuilder: (context, index) {
-                          final imageFile = _resolveImages[index];
-                          return Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: kIsWeb
-                                    ? FutureBuilder(
-                                        future: imageFile.readAsBytes(),
-                                        builder: (context, snapshot) {
-                                          if (snapshot.hasData) {
-                                            return Image.memory(
-                                              snapshot.data!,
-                                              width: 84,
-                                              height: 84,
-                                              fit: BoxFit.cover,
-                                            );
-                                          }
-                                          return Container(
-                                            width: 84,
-                                            height: 84,
-                                            color: Colors.grey[200],
-                                            child: Center(
-                                              child: CircularProgressIndicator(
-                                                color: AppTheme.primary,
-                                                strokeWidth: 2,
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      )
-                                    : Image.file(
-                                        File(imageFile.path),
-                                        width: 84,
-                                        height: 84,
-                                        fit: BoxFit.cover,
-                                      ),
-                              ),
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: InkWell(
-                                  onTap: () => setState(() => _resolveImages.removeAt(index)),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.close, size: 14, color: Colors.white),
-                                  ),
-                                ),
-                              ),
-                            ],
+                          final f = _resolveImages[index];
+                          final name = _fileDisplayName(f);
+                          return ListTile(
+                            dense: true,
+                            leading: const Icon(Icons.image, color: Colors.grey),
+                            title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.close, color: Colors.red),
+                              onPressed: () => setState(() => _resolveImages.removeAt(index)),
+                            ),
                           );
                         },
                       ),
                     ),
                   const SizedBox(height: 10),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: OutlinedButton.icon(
-                      onPressed: _resolveImages.length >= 10 ? null : _pickResolveImages,
-                      icon: const Icon(Icons.add_photo_alternate),
-                      label: Text('แนบรูป (${_resolveImages.length}/10)'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.primary,
-                        side: BorderSide(color: AppTheme.primary),
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _resolveImages.length >= 10 ? null : _pickResolveImages,
+                        icon: const Icon(Icons.add_photo_alternate),
+                        label: Text('แนบรูป (${_resolveImages.length}/10)'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.primary,
+                          side: BorderSide(color: AppTheme.primary),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      if (_resolveImages.isNotEmpty)
+                        TextButton.icon(
+                          onPressed: () => setState(() => _resolveImages.clear()),
+                          icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                          label: const Text('ล้างรูป', style: TextStyle(color: Colors.red)),
+                        ),
+                    ],
                   ),
                 ],
               )
@@ -1448,6 +1418,13 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
     } catch (e) {
       return 'ไม่ระบุ';
     }
+  }
+
+  String _fileDisplayName(XFile f) {
+    if (kIsWeb) return f.name;
+    final p = f.path;
+    final parts = p.split(RegExp(r'[\\/]'));
+    return parts.isNotEmpty ? parts.last : p;
   }
 
   void _showImageViewer(String url) {
