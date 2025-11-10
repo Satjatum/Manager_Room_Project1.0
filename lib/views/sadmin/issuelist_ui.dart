@@ -99,9 +99,22 @@ class _IssuelistUiState extends State<IssuelistUi>
 
   Future<void> _loadIssues() async {
     try {
-      _allIssues = await IssueService.getIssuesByUser(
-        branchId: _selectedBranchId,
-      );
+      // Role-based visibility
+      if (_currentUser?.userRole == UserRole.tenant) {
+        // Tenants: only their own issues (service enforces tenant_id)
+        _allIssues = await IssueService.getIssuesByUser();
+      } else if (_currentUser?.userRole == UserRole.admin ||
+          _currentUser?.userRole == UserRole.superAdmin) {
+        // Admin/Superadmin: see all issues in the selected branch (if any)
+        _allIssues = await IssueService.getAllIssues(
+          branchId: _selectedBranchId,
+        );
+      } else {
+        // Fallback to user-based scope
+        _allIssues = await IssueService.getIssuesByUser(
+          branchId: _selectedBranchId,
+        );
+      }
       _applyFilters();
     } catch (e) {
       print('Error loading issues: $e');

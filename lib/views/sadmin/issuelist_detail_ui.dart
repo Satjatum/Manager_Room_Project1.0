@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import '../../services/issue_service.dart';
+import '../../services/issue_response_service.dart';
+import '../../services/image_service.dart';
 import '../../services/user_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_models.dart';
@@ -17,20 +22,98 @@ class IssueDetailScreen extends StatefulWidget {
   State<IssueDetailScreen> createState() => _IssueDetailScreenState();
 }
 
+class _ResolvePayload {
+  final String? text;
+  final List<XFile> images;
+  const _ResolvePayload({this.text, required this.images});
+}
+
+class _UploadState {
+  final int current;
+  final int total;
+  final String phase; // e.g., 'อัปเดตสถานะ', 'อัปโหลดรูป'
+  final String? fileName;
+  const _UploadState({required this.current, required this.total, required this.phase, this.fileName});
+}
+
 class _IssueDetailScreenState extends State<IssueDetailScreen> {
   bool _isLoading = true;
   UserModel? _currentUser;
   Map<String, dynamic>? _issue;
   List<Map<String, dynamic>> _images = [];
+  List<Map<String, dynamic>> _responses = [];
   List<Map<String, dynamic>> _availableUsers = [];
 
   final _resolutionController = TextEditingController();
+  // Images attached when marking as resolved
+  final List<XFile> _resolveImages = [];
+  bool _sendingReply = false;
 
   @override
   void initState() {
     super.initState();
     _loadData();
   }
+
+  Future<void> _loadResponses() async {
+    try {
+      final rows = await IssueResponseService.listResponses(widget.issueId);
+      if (mounted) setState(() => _responses = rows);
+    } catch (e) {
+      _showErrorSnackBar('โหลดการตอบกลับไม่สำเร็จ: $e');
+    }
+  }
+
+  Future<void> _pickResolveImages() async {
+    try {
+      final picker = ImagePicker();
+      if (kIsWeb) {
+        final picked = await picker.pickMultiImage(maxWidth: 1920, maxHeight: 1080, imageQuality: 85);
+        if (picked.isNotEmpty) {
+          final remaining = 10 - _resolveImages.length;
+          if (remaining > 0) setState(() => _resolveImages.addAll(picked.take(remaining)));
+        }
+      } else {
+        final source = await showDialog<ImageSource>(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text('เลือกรูปภาพ'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('กล้อง'),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('คลังรูปภาพ'),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+              ],
+            ),
+          ),
+        );
+        if (source == ImageSource.camera) {
+          final photo = await picker.pickImage(source: ImageSource.camera, maxWidth: 1920, maxHeight: 1080, imageQuality: 85);
+          if (photo != null && _resolveImages.length < 10) {
+            setState(() => _resolveImages.add(photo));
+          }
+        } else if (source == ImageSource.gallery) {
+          final picked = await picker.pickMultiImage(maxWidth: 1920, maxHeight: 1080, imageQuality: 85);
+          if (picked.isNotEmpty) {
+            final remaining = 10 - _resolveImages.length;
+            if (remaining > 0) setState(() => _resolveImages.addAll(picked.take(remaining)));
+          }
+        }
+      }
+    } catch (e) {
+      _showErrorSnackBar('เลือกไฟล์ไม่สำเร็จ: $e');
+    }
+  }
+  
 
   @override
   void dispose() {
@@ -40,6 +123,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
 
   Future<void> _loadData() async {
     try {
+      if (!mounted) return;
       setState(() => _isLoading = true);
 
       _currentUser = await AuthService.getCurrentUser();
@@ -47,6 +131,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
 
       if (_issue != null) {
         _images = await IssueService.getIssueImages(widget.issueId);
+        await _loadResponses();
       }
 
       if (_currentUser != null &&
@@ -58,9 +143,10 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         _availableUsers = await UserService.getAssignableUsers();
       }
 
+      if (!mounted) return;
       setState(() => _isLoading = false);
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
       if (mounted) {
         _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
       }
@@ -68,10 +154,193 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
   }
 
   Future<void> _updateStatus(String status) async {
+    bool statusUpdated = false;
+    if (status == 'resolved') {
+      final payload = await _openResolveDialog();
+      if (payload == null) return; // cancelled
+
+      try {
+        final progress = ValueNotifier<_UploadState>(
+          const _UploadState(current: 0, total: 0, phase: 'อัปเดตสถานะ'),
+        );
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: ValueListenableBuilder<_UploadState>(
+                valueListenable: progress,
+                builder: (context, state, __) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            SizedBox(
+                              width: 50,
+                              height: 50,
+                              child: CircularProgressIndicator(
+                                color: Colors.green.shade600,
+                                strokeWidth: 3,
+                              ),
+                            ),
+                            Icon(
+                              Icons.cloud_upload_rounded,
+                              color: Colors.green.shade600,
+                              size: 28,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'กำลังบันทึก',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        state.total > 0
+                            ? 'อัปโหลดรูป ${state.current}/${state.total}${state.fileName != null ? ' • ' + state.fileName! : ''}'
+                            : state.phase,
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+
+        final updateResult = await IssueService.updateIssueStatus(
+          widget.issueId,
+          'resolved',
+          resolutionNotes: null,
+        );
+
+        if (updateResult['success']) {
+          statusUpdated = true;
+          try {
+            final created = await IssueResponseService.createResponse(
+              issueId: widget.issueId,
+              responseText: (payload.text ?? '').trim().isEmpty ? null : payload.text!.trim(),
+              createdBy: _currentUser?.userId ?? '',
+            );
+            if (created['success'] == true) {
+              final responseId = created['data']['response_id'] as String;
+              final total = payload.images.length;
+              int idx = 0;
+              for (final img in payload.images) {
+                idx++;
+                progress.value = _UploadState(
+                  current: idx,
+                  total: total,
+                  phase: 'อัปโหลดรูป',
+                  fileName: kIsWeb ? img.name : _fileDisplayName(img),
+                );
+                if (kIsWeb) {
+                  final ext = img.name.contains('.') ? img.name.split('.').last.toLowerCase() : 'jpg';
+                  final bytes = await img.readAsBytes();
+                  final seq = await ImageService.generateSequentialFileName(
+                    bucket: 'issue_res_images',
+                    folder: 'responses/${widget.issueId}',
+                    prefix: 'Resp',
+                    extension: ext,
+                  );
+                  final up = await ImageService.uploadImageFromBytes(
+                    bytes,
+                    img.name,
+                    'issue_res_images',
+                    folder: 'responses/${widget.issueId}',
+                    customFileName: seq,
+                  );
+                  if (up['success'] == true) {
+                    await IssueResponseService.addResponseImage(responseId: responseId, imageUrl: up['url']);
+                  } else {
+                    _showErrorSnackBar(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                  }
+                } else {
+                  final ext = img.path.contains('.') ? img.path.split('.').last.toLowerCase() : 'jpg';
+                  final seq = await ImageService.generateSequentialFileName(
+                    bucket: 'issue_res_images',
+                    folder: 'responses/${widget.issueId}',
+                    prefix: 'Resp',
+                    extension: ext,
+                  );
+                  final up = await ImageService.uploadImage(
+                    File(img.path),
+                    'issue_res_images',
+                    folder: 'responses/${widget.issueId}',
+                    customFileName: seq,
+                  );
+                  if (up['success'] == true) {
+                    await IssueResponseService.addResponseImage(responseId: responseId, imageUrl: up['url']);
+                  } else {
+                    _showErrorSnackBar(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                  }
+                }
+              }
+            }
+          } catch (_) {}
+
+          if (mounted) {
+            _showSuccessSnackBar(updateResult['message']);
+            _resolutionController.clear();
+            _resolveImages.clear();
+          }
+        } else {
+          throw Exception(updateResult['message']);
+        }
+      } catch (e) {
+        if (mounted) {
+          _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
+        }
+      } finally {
+        if (mounted && Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+        if (statusUpdated && mounted) {
+          Navigator.pop(context, true); // refresh issuelist
+        }
+      }
+
+      return;
+    }
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.grey.shade300),
+        ),
         title: Row(
           children: [
             Container(
@@ -95,53 +364,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
             ),
           ],
         ),
-        content: status == 'resolved'
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.shade200),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.info_outline,
-                            color: Colors.blue.shade700, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'กรุณาระบุรายละเอียดการแก้ไข',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.blue.shade700,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _resolutionController,
-                    decoration: InputDecoration(
-                      hintText: 'อธิบายวิธีการแก้ไขปัญหา...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            BorderSide(color: AppTheme.primary, width: 2),
-                      ),
-                    ),
-                    maxLines: 4,
-                  ),
-                ],
-              )
-            : Column(
+        content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
@@ -203,18 +426,153 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
 
     if (result == true) {
       try {
+        // Validate for resolved: must have text or at least 1 image
+        if (status == 'resolved') {
+          final hasText = _resolutionController.text.trim().isNotEmpty;
+          final hasImg = _resolveImages.isNotEmpty;
+          if (!hasText && !hasImg) {
+            _showErrorSnackBar('กรุณากรอกข้อความหรือแนบรูปอย่างน้อย 1 รายการ');
+            return;
+          }
+        }
+
+        // Show blocking progress while updating and uploading
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: CircularProgressIndicator(
+                            color: Colors.blue.shade600,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                        Icon(
+                          Icons.autorenew_rounded,
+                          color: Colors.blue.shade600,
+                          size: 28,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'กำลังบันทึก...',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'กรุณารอสักครู่...',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
         final updateResult = await IssueService.updateIssueStatus(
           widget.issueId,
           status,
-          resolutionNotes:
-              status == 'resolved' ? _resolutionController.text.trim() : null,
+          resolutionNotes: null, // use response_txt instead of resolution_notes
         );
 
         if (updateResult['success']) {
+          statusUpdated = true;
+          // When resolved, also create a response entry with images to appear in timeline
+          if (status == 'resolved') {
+            try {
+              final text = _resolutionController.text.trim();
+              final created = await IssueResponseService.createResponse(
+                issueId: widget.issueId,
+                responseText: text.isEmpty ? null : text,
+                createdBy: _currentUser?.userId ?? '',
+              );
+              if (created['success'] == true) {
+                final responseId = created['data']['response_id'] as String;
+                for (final img in List<XFile>.from(_resolveImages)) {
+                  if (kIsWeb) {
+                    final ext = img.name.contains('.') ? img.name.split('.').last.toLowerCase() : 'jpg';
+                    final bytes = await img.readAsBytes();
+                    final seq = await ImageService.generateSequentialFileName(
+                      bucket: 'issue_res_images',
+                      folder: 'responses/${widget.issueId}',
+                      prefix: 'Resp',
+                      extension: ext,
+                    );
+                    final up = await ImageService.uploadImageFromBytes(
+                      bytes,
+                      img.name,
+                      'issue_res_images',
+                      folder: 'responses/${widget.issueId}',
+                      customFileName: seq,
+                    );
+                    if (up['success'] == true) {
+                      await IssueResponseService.addResponseImage(responseId: responseId, imageUrl: up['url']);
+                    } else {
+                      _showErrorSnackBar(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                    }
+                  } else {
+                    final ext = img.path.contains('.') ? img.path.split('.').last.toLowerCase() : 'jpg';
+                    final seq = await ImageService.generateSequentialFileName(
+                      bucket: 'issue_res_images',
+                      folder: 'responses/${widget.issueId}',
+                      prefix: 'Resp',
+                      extension: ext,
+                    );
+                    final up = await ImageService.uploadImage(
+                      File(img.path),
+                      'issue_res_images',
+                      folder: 'responses/${widget.issueId}',
+                      customFileName: seq,
+                    );
+                    if (up['success'] == true) {
+                      await IssueResponseService.addResponseImage(responseId: responseId, imageUrl: up['url']);
+                    } else {
+                      _showErrorSnackBar(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                    }
+                  }
+                }
+              }
+            } catch (_) {}
+            _resolveImages.clear();
+          }
           if (mounted) {
             _showSuccessSnackBar(updateResult['message']);
             _resolutionController.clear();
-            _loadData();
           }
         } else {
           throw Exception(updateResult['message']);
@@ -223,16 +581,228 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         if (mounted) {
           _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
         }
+      } finally {
+        if (mounted && Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true).pop(); // close progress
+        }
+        if (statusUpdated && mounted) {
+          Navigator.pop(context, true); // refresh issuelist
+        }
       }
     }
+  }
+
+  Future<_ResolvePayload?> _openResolveDialog() async {
+    final textController = TextEditingController();
+    final List<XFile> localImages = [];
+
+    return showDialog<_ResolvePayload>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setLocalState) {
+            Future<void> pickImages() async {
+              try {
+                final picker = ImagePicker();
+                final picked = await picker.pickMultiImage(maxWidth: 1920, maxHeight: 1080, imageQuality: 85);
+                if (picked.isNotEmpty) {
+                  final remaining = 10 - localImages.length;
+                  if (remaining > 0) {
+                    setLocalState(() {
+                      localImages.addAll(picked.take(remaining));
+                    });
+                  }
+                }
+              } catch (e) {
+                _showErrorSnackBar('เลือกไฟล์ไม่สำเร็จ: $e');
+              }
+            }
+
+            Widget imagePreviews() {
+              if (localImages.isEmpty) return const SizedBox.shrink();
+              return Container(
+                height: 110,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (int i = 0; i < localImages.length; i++)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: SizedBox(
+                                  width: 90,
+                                  height: 90,
+                                  child: kIsWeb
+                                      ? Image.network(
+                                          localImages[i].path,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Image.file(
+                                          File(localImages[i].path),
+                                          fit: BoxFit.cover,
+                                        ),
+                                ),
+                              ),
+                              Positioned(
+                                top: -6,
+                                right: -6,
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: () => setLocalState(() => localImages.removeAt(i)),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.1),
+                                            blurRadius: 3,
+                                            offset: const Offset(0, 1),
+                                          )
+                                        ],
+                                      ),
+                                      padding: const EdgeInsets.all(2),
+                                      child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: Colors.grey.shade300),
+              ),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor('resolved').withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      _getStatusIcon('resolved'),
+                      color: _getStatusColor('resolved'),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text('บันทึกการแก้ไขเสร็จสิ้น', style: TextStyle(fontSize: 16)),
+                  ),
+                ],
+              ),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // หมายเหตุ: ไม่บังคับกรอกข้อความหรือแนบรูป
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: textController,
+                      decoration: InputDecoration(
+                        hintText: 'รายละเอียดการแก้ไข...',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppTheme.primary, width: 2),
+                        ),
+                      ),
+                      maxLines: 4,
+                    ),
+                    const SizedBox(height: 12),
+                    imagePreviews(),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: localImages.length >= 10 ? null : pickImages,
+                          icon: const Icon(Icons.add_photo_alternate),
+                          label: Text('แนบรูป (${localImages.length}/10)'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.primary,
+                            side: BorderSide(color: AppTheme.primary),
+                          ),
+                        ),
+                        if (localImages.isNotEmpty)
+                          TextButton.icon(
+                            onPressed: () => setLocalState(() => localImages.clear()),
+                            icon: const Icon(Icons.delete_sweep, color: Colors.red),
+                            label: const Text('ล้างรูป', style: TextStyle(color: Colors.red)),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actionsPadding: const EdgeInsets.all(16),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, null),
+                  child: const Text('ยกเลิก'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final text = textController.text.trim();
+                    Navigator.pop(context, _ResolvePayload(text: text.isEmpty ? null : text, images: List<XFile>.from(localImages)));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _getStatusColor('resolved'),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('ยืนยัน'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _assignUser(String userId) async {
     try {
       final result = await IssueService.assignIssue(widget.issueId, userId);
       if (result['success']) {
+        // Auto change status to in_progress after assignment
+        final statusRes = await IssueService.updateIssueStatus(
+          widget.issueId,
+          'in_progress',
+        );
         if (mounted) {
-          _showSuccessSnackBar(result['message']);
+          final msg = statusRes['success'] == true
+              ? 'มอบหมายและเริ่มดำเนินการแล้ว'
+              : result['message'];
+          _showSuccessSnackBar(msg);
           _loadData();
         }
       } else {
@@ -549,8 +1119,19 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
           const SizedBox(height: 12),
           _buildDetailRow(
             icon: Icons.meeting_room_outlined,
-            label: 'ห้อง',
-            value: _issue!['room_number'] ?? 'ไม่ระบุ',
+            label: 'roomcate',
+            value: (
+                  _issue!['roomcate'] ??
+                  _issue!['room_category_name'] ??
+                  _issue!['room_type_name'] ??
+                  ''
+                ).toString().isNotEmpty
+                ? (
+                    _issue!['roomcate'] ??
+                    _issue!['room_category_name'] ??
+                    _issue!['room_type_name']
+                  ).toString()
+                : (_issue!['room_number'] ?? 'ไม่ระบุ'),
           ),
           const SizedBox(height: 12),
           _buildDetailRow(
@@ -578,46 +1159,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
               value: _formatDate(_issue!['resolved_date']),
             ),
           ],
-          if (_issue!['resolution_notes'] != null &&
-              _issue!['resolution_notes'].toString().isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.note_alt_outlined,
-                          color: Colors.green.shade700, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        'บันทึกการแก้ไข',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _issue!['resolution_notes'],
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[800],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          // หมายเหตุ: รายละเอียดการแก้ไขจะไปอยู่ในประวัติการดำเนินงานจาก response_txt
         ],
       ),
     );
@@ -810,6 +1352,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
             color: Colors.red,
             onTap: () => _confirmDelete(),
           ),
+          
         ],
       ),
     );
@@ -921,6 +1464,25 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         'description': 'ปัญหาได้รับการแก้ไขเรียบร้อย',
       });
     }
+
+    // Add responses as part of timeline (evidence of resolution)
+    for (final r in _responses) {
+      final List imgs = List<Map<String, dynamic>>.from(r['issue_response_images'] ?? []);
+      timeline.add({
+        'date': r['created_at'],
+        'status': 'resolved',
+        'title': 'หลักฐานการแก้ไข',
+        'user': _issue!['assigned_user_name'] ?? 'ผู้ดูแล',
+        'icon': Icons.forum_outlined,
+        'description': (r['response_text'] ?? '').toString().isEmpty
+            ? 'มีการอัปโหลดรูปภาพหลักฐาน'
+            : (r['response_text'] ?? '').toString(),
+        'images': imgs.map((e) => e['image_url']).toList(),
+      });
+    }
+
+    // Sort by date ascending
+    timeline.sort((a, b) => DateTime.parse(a['date']).compareTo(DateTime.parse(b['date'])));
 
     if (timeline.isEmpty) {
       return Center(
@@ -1038,6 +1600,38 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                           color: Colors.grey[700],
                         ),
                       ),
+                      if ((item['images'] ?? []).isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 90,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: (item['images'] as List).length,
+                            separatorBuilder: (_, __) => const SizedBox(width: 10),
+                            itemBuilder: (context, index) {
+                              final url = (item['images'] as List)[index] as String;
+                              return GestureDetector(
+                                onTap: () => _showImageViewer(url),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    url,
+                                    height: 90,
+                                    width: 90,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (c, e, s) => Container(
+                                      height: 90,
+                                      width: 90,
+                                      color: Colors.grey[300],
+                                      child: Icon(Icons.broken_image, color: Colors.grey[600]),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -1045,7 +1639,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                               size: 14, color: Colors.grey[500]),
                           const SizedBox(width: 4),
                           Text(
-                            '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}',
+                            '${date.day}/${date.month}/${date.year + 543} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[600],
@@ -1106,6 +1700,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         ),
         content: SizedBox(
           width: double.maxFinite,
+          height: 360,
           child: _availableUsers.isEmpty
               ? const Center(
                   child: Padding(
@@ -1113,44 +1708,47 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                     child: Text('ไม่พบผู้ใช้ในระบบ'),
                   ),
                 )
-              : ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _availableUsers.length,
-                  itemBuilder: (context, index) {
-                    final user = _availableUsers[index];
-                    final isAssigned =
-                        user['user_id'] == _issue!['assigned_to'];
+              : Scrollbar(
+                  child: ListView.builder(
+                    shrinkWrap: false,
+                    itemCount: _availableUsers.length,
+                    itemBuilder: (context, index) {
+                      final user = _availableUsers[index];
+                      final isAssigned =
+                          user['user_id'] == _issue!['assigned_to'];
 
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: isAssigned
-                            ? Colors.blue.shade100
-                            : Colors.grey.shade200,
-                        child: Icon(
-                          Icons.person,
-                          color: isAssigned
-                              ? Colors.blue.shade700
-                              : Colors.grey.shade600,
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: isAssigned
+                              ? Colors.blue.shade100
+                              : Colors.grey.shade200,
+                          child: Icon(
+                            Icons.person,
+                            color: isAssigned
+                                ? Colors.blue.shade700
+                                : Colors.grey.shade600,
+                          ),
                         ),
-                      ),
-                      title: Text(
-                        user['user_name'] ?? 'ไม่ระบุชื่อ',
-                        style: TextStyle(
-                          fontWeight:
-                              isAssigned ? FontWeight.bold : FontWeight.normal,
+                        title: Text(
+                          user['user_name'] ?? 'ไม่ระบุชื่อ',
+                          style: TextStyle(
+                            fontWeight: isAssigned
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
                         ),
-                      ),
-                      subtitle: Text(user['user_email'] ?? ''),
-                      trailing: isAssigned
-                          ? Icon(Icons.check_circle,
-                              color: Colors.blue.shade700)
-                          : null,
-                      onTap: () {
-                        Navigator.pop(context);
-                        _assignUser(user['user_id']);
-                      },
-                    );
-                  },
+                        subtitle: Text(user['user_email'] ?? ''),
+                        trailing: isAssigned
+                            ? Icon(Icons.check_circle,
+                                color: Colors.blue.shade700)
+                            : null,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _assignUser(user['user_id']);
+                        },
+                      );
+                    },
+                  ),
                 ),
         ),
         actions: [
@@ -1182,32 +1780,258 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
   void _confirmDelete() {
     showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: const [
-            Icon(Icons.delete_forever, color: Colors.red),
-            SizedBox(width: 8),
-            Text('ยืนยันการลบปัญหา'),
-          ],
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.delete_forever_rounded,
+                  color: Colors.red.shade600,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'ลบปัญหา',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.assignment, size: 18, color: Colors.grey[700]),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        (_issue?['issue_title'] ?? '').toString().isNotEmpty
+                            ? (_issue?['issue_title'] ?? '').toString()
+                            : 'Issue ${_issue?['issue_id'] ?? ''}',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.shade100, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_rounded,
+                      color: Colors.red.shade600,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'การดำเนินการนี้ไม่สามารถย้อนกลับได้\nข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
+                        style: TextStyle(
+                          color: Colors.red.shade800,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.delete_outline, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'ลบ',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        content: const Text(
-            'ต้องการลบปัญหานี้ใช่หรือไม่? การลบไม่สามารถย้อนกลับได้'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('ยกเลิก'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('ลบ'),
-          ),
-        ],
       ),
-    ).then((confirmed) {
-      if (confirmed == true) {
-        _deleteIssue();
+    ).then((confirm) async {
+      if (confirm == true) {
+        try {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              child: Container(
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: 50,
+                            height: 50,
+                            child: CircularProgressIndicator(
+                              color: Colors.red.shade600,
+                              strokeWidth: 3,
+                            ),
+                          ),
+                          Icon(
+                            Icons.delete_sweep_rounded,
+                            color: Colors.red.shade600,
+                            size: 28,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'ลบปัญหา',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'กรุณารอสักครู่...',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+
+          final result = await IssueService.deleteIssue(widget.issueId);
+
+          if (mounted && Navigator.of(context).canPop()) {
+            Navigator.of(context).pop(); // close progress
+          }
+
+          if (mounted) {
+            if (result['success']) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(result['message'] ?? 'ลบสำเร็จ'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+              Navigator.pop(context, true); // Close detail and refresh list
+            } else {
+              throw Exception(result['message']);
+            }
+          }
+        } catch (e) {
+          if (mounted && Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content:
+                    Text(e.toString().replaceAll('ข้อยกเว้น: ', '')),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        }
       }
     });
   }
@@ -1216,9 +2040,42 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
     if (dateStr == null) return 'ไม่ระบุ';
     try {
       final date = DateTime.parse(dateStr);
-      return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      final beYear = date.year + 543;
+      return '${date.day}/${date.month}/$beYear ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
     } catch (e) {
       return 'ไม่ระบุ';
     }
+  }
+
+  String _fileDisplayName(XFile f) {
+    if (kIsWeb) return f.name;
+    final p = f.path;
+    final parts = p.split(RegExp(r'[\\/]'));
+    return parts.isNotEmpty ? parts.last : p;
+  }
+
+  void _showImageViewer(String url) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: Container(
+          color: Colors.black,
+          child: Center(
+            child: InteractiveViewer(
+              panEnabled: true,
+              minScale: 0.5,
+              maxScale: 4,
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.white, size: 64),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

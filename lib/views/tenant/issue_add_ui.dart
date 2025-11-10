@@ -597,6 +597,9 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // ไม่ต้องแสดงข้อมูลห้องพักตามคำขอ
+                    // เพิ่มฟอร์มให้ครบตาม schema issue_reports: issue_type, issue_title, issue_desc
+                    _buildTypeAndPriorityCard(),
+                    const SizedBox(height: 16),
                     _buildImagesCard(),
                     const SizedBox(height: 16),
                     _buildSubmitButton(),
@@ -723,7 +726,6 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
             controller: _titleController,
             decoration: InputDecoration(
               labelText: 'หัวข้อปัญหา',
-              hintText: 'เช่น ก๊อกน้ำรั่ว, แอร์เสีย',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -786,7 +788,6 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
             controller: _descController,
             decoration: InputDecoration(
               labelText: 'รายละเอียด',
-              hintText: 'อธิบายปัญหาโดยละเอียด',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
