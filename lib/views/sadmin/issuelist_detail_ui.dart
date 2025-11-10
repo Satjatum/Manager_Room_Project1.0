@@ -123,6 +123,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
 
   Future<void> _loadData() async {
     try {
+      if (!mounted) return;
       setState(() => _isLoading = true);
 
       _currentUser = await AuthService.getCurrentUser();
@@ -142,9 +143,10 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         _availableUsers = await UserService.getAssignableUsers();
       }
 
+      if (!mounted) return;
       setState(() => _isLoading = false);
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
       if (mounted) {
         _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
       }
@@ -311,8 +313,6 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
             _showSuccessSnackBar(updateResult['message']);
             _resolutionController.clear();
             _resolveImages.clear();
-            await _loadResponses();
-            _loadData();
           }
         } else {
           throw Exception(updateResult['message']);
@@ -569,12 +569,10 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
               }
             } catch (_) {}
             _resolveImages.clear();
-            await _loadResponses();
           }
           if (mounted) {
             _showSuccessSnackBar(updateResult['message']);
             _resolutionController.clear();
-            _loadData();
           }
         } else {
           throw Exception(updateResult['message']);
