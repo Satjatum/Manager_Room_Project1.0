@@ -1236,55 +1236,103 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       final canCreate =
           _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
 
+      // Popup menu per row; open when any cell is tapped
+      final popupKey = GlobalKey<PopupMenuButtonState<String>>();
+
+      void _openMenu() {
+        popupKey.currentState?.showButtonMenu();
+      }
+
       return DataRow(cells: [
-        DataCell(Text(tenant, overflow: TextOverflow.ellipsis)),
-        DataCell(Text(roomNo)),
-        DataCell(Text(room['room_category_name']?.toString() ?? '-')),
-        DataCell(Text(prev.toStringAsFixed(0))),
-        DataCell(Text(current != null ? current.toStringAsFixed(0) : '-')),
-        DataCell(Text(usage != null ? usage.toStringAsFixed(2) : '-')),
-        DataCell(Text(statusStr)),
-        DataCell(Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isNew) ...[
-              ElevatedButton.icon(
-                onPressed: canCreate ? () => _showCreateDialog(room) : null,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('กรอกข้อมูล'),
-              ),
-            ] else ...[
-              OutlinedButton.icon(
-                onPressed: canEdit ? () => _showEditDialogWater(roomId) : null,
-                icon: const Icon(Icons.edit, size: 18),
-                label: const Text('แก้ไข'),
-              ),
-            ],
-            const SizedBox(width: 8),
-            if (!isNew)
-              TextButton.icon(
-                onPressed: canDelete
-                    ? () {
-                        final rid = (existing?['reading_id'] ?? '').toString();
-                        final isBilled =
-                            ((existing?['reading_status'] ?? '') == 'billed');
-                        if (isBilled) {
-                          _confirmDeleteBilled(
-                            rid,
-                            (_invoiceIdByRoom[roomId] ?? ''),
-                            roomId,
-                          );
-                        } else {
-                          _confirmDelete(rid, roomId);
-                        }
-                      }
-                    : null,
-                icon: const Icon(Icons.delete_outline,
-                    color: Colors.red, size: 18),
-                label: const Text('ลบ', style: TextStyle(color: Colors.red)),
-              ),
-          ],
-        )),
+        DataCell(Text(tenant, overflow: TextOverflow.ellipsis), onTap: _openMenu),
+        DataCell(Text(roomNo), onTap: _openMenu),
+        DataCell(Text(room['room_category_name']?.toString() ?? '-'), onTap: _openMenu),
+        DataCell(Text(prev.toStringAsFixed(0)), onTap: _openMenu),
+        DataCell(Text(current != null ? current.toStringAsFixed(0) : '-'), onTap: _openMenu),
+        DataCell(Text(usage != null ? usage.toStringAsFixed(2) : '-'), onTap: _openMenu),
+        DataCell(Text(statusStr), onTap: _openMenu),
+        // Hidden popup trigger cell
+        DataCell(
+          Offstage(
+            offstage: false,
+            child: PopupMenuButton<String>(
+              key: popupKey,
+              onSelected: (value) async {
+                switch (value) {
+                  case 'create':
+                    if (canCreate) await _showCreateDialog(room);
+                    break;
+                  case 'edit_water':
+                    if (canEdit) await _showEditDialogWater(roomId);
+                    break;
+                  case 'delete':
+                    if (!canDelete) break;
+                    final rid = (existing?['reading_id'] ?? '').toString();
+                    final isBilled = ((existing?['reading_status'] ?? '') == 'billed');
+                    if (isBilled) {
+                      await _confirmDeleteBilled(
+                        rid,
+                        (_invoiceIdByRoom[roomId] ?? ''),
+                        roomId,
+                      );
+                    } else {
+                      await _confirmDelete(rid, roomId);
+                    }
+                    break;
+                }
+              },
+              itemBuilder: (ctx) {
+                final items = <PopupMenuEntry<String>>[];
+                if (isNew && canCreate) {
+                  items.add(
+                    const PopupMenuItem<String>(
+                      value: 'create',
+                      child: ListTile(
+                        dense: true,
+                        leading: Icon(Icons.add),
+                        title: Text('กรอกข้อมูล'),
+                      ),
+                    ),
+                  );
+                }
+                if (!isNew && canEdit) {
+                  items.add(
+                    const PopupMenuItem<String>(
+                      value: 'edit_water',
+                      child: ListTile(
+                        dense: true,
+                        leading: Icon(Icons.edit),
+                        title: Text('แก้ไขค่าน้ำ'),
+                      ),
+                    ),
+                  );
+                }
+                if (!isNew && canDelete) {
+                  items.add(
+                    const PopupMenuItem<String>(
+                      value: 'delete',
+                      child: ListTile(
+                        dense: true,
+                        leading: Icon(Icons.delete_outline, color: Colors.red),
+                        title: Text('ลบ', style: TextStyle(color: Colors.red)),
+                      ),
+                    ),
+                  );
+                }
+                if (items.isEmpty) {
+                  items.add(
+                    const PopupMenuItem<String>(
+                      value: 'noop',
+                      enabled: false,
+                      child: Text('ไม่มีรายการ')
+                    ),
+                  );
+                }
+                return items;
+              },
+            ),
+          ),
+        ),
       ]);
     }).toList();
 
@@ -1357,56 +1405,103 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       final canCreate =
           _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
 
+      // Popup menu per row; open when any cell is tapped
+      final popupKey = GlobalKey<PopupMenuButtonState<String>>();
+
+      void _openMenu() {
+        popupKey.currentState?.showButtonMenu();
+      }
+
       return DataRow(cells: [
-        DataCell(Text(tenant, overflow: TextOverflow.ellipsis)),
-        DataCell(Text(roomNo)),
-        DataCell(Text(room['room_category_name']?.toString() ?? '-')),
-        DataCell(Text(prev.toStringAsFixed(0))),
-        DataCell(Text(current != null ? current.toStringAsFixed(0) : '-')),
-        DataCell(Text(usage != null ? usage.toStringAsFixed(2) : '-')),
-        DataCell(Text(status)),
-        DataCell(Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isNew) ...[
-              ElevatedButton.icon(
-                onPressed: canCreate ? () => _showCreateDialog(room) : null,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('กรอกข้อมูล'),
-              ),
-            ] else ...[
-              OutlinedButton.icon(
-                onPressed:
-                    canEdit ? () => _showEditDialogElectric(roomId) : null,
-                icon: const Icon(Icons.edit, size: 18),
-                label: const Text('แก้ไข'),
-              ),
-            ],
-            const SizedBox(width: 8),
-            if (!isNew)
-              TextButton.icon(
-                onPressed: canDelete
-                    ? () {
-                        final rid = (existing?['reading_id'] ?? '').toString();
-                        final isBilled =
-                            ((existing?['reading_status'] ?? '') == 'billed');
-                        if (isBilled) {
-                          _confirmDeleteBilled(
-                            rid,
-                            (_invoiceIdByRoom[roomId] ?? ''),
-                            roomId,
-                          );
-                        } else {
-                          _confirmDelete(rid, roomId);
-                        }
-                      }
-                    : null,
-                icon: const Icon(Icons.delete_outline,
-                    color: Colors.red, size: 18),
-                label: const Text('ลบ', style: TextStyle(color: Colors.red)),
-              ),
-          ],
-        )),
+        DataCell(Text(tenant, overflow: TextOverflow.ellipsis), onTap: _openMenu),
+        DataCell(Text(roomNo), onTap: _openMenu),
+        DataCell(Text(room['room_category_name']?.toString() ?? '-'), onTap: _openMenu),
+        DataCell(Text(prev.toStringAsFixed(0)), onTap: _openMenu),
+        DataCell(Text(current != null ? current.toStringAsFixed(0) : '-'), onTap: _openMenu),
+        DataCell(Text(usage != null ? usage.toStringAsFixed(2) : '-'), onTap: _openMenu),
+        DataCell(Text(status), onTap: _openMenu),
+        // Hidden popup trigger cell
+        DataCell(
+          Offstage(
+            offstage: false,
+            child: PopupMenuButton<String>(
+              key: popupKey,
+              onSelected: (value) async {
+                switch (value) {
+                  case 'create':
+                    if (canCreate) await _showCreateDialog(room);
+                    break;
+                  case 'edit_electric':
+                    if (canEdit) await _showEditDialogElectric(roomId);
+                    break;
+                  case 'delete':
+                    if (!canDelete) break;
+                    final rid = (existing?['reading_id'] ?? '').toString();
+                    final isBilled = ((existing?['reading_status'] ?? '') == 'billed');
+                    if (isBilled) {
+                      await _confirmDeleteBilled(
+                        rid,
+                        (_invoiceIdByRoom[roomId] ?? ''),
+                        roomId,
+                      );
+                    } else {
+                      await _confirmDelete(rid, roomId);
+                    }
+                    break;
+                }
+              },
+              itemBuilder: (ctx) {
+                final items = <PopupMenuEntry<String>>[];
+                if (isNew && canCreate) {
+                  items.add(
+                    const PopupMenuItem<String>(
+                      value: 'create',
+                      child: ListTile(
+                        dense: true,
+                        leading: Icon(Icons.add),
+                        title: Text('กรอกข้อมูล'),
+                      ),
+                    ),
+                  );
+                }
+                if (!isNew && canEdit) {
+                  items.add(
+                    const PopupMenuItem<String>(
+                      value: 'edit_electric',
+                      child: ListTile(
+                        dense: true,
+                        leading: Icon(Icons.edit),
+                        title: Text('แก้ไขค่าไฟ'),
+                      ),
+                    ),
+                  );
+                }
+                if (!isNew && canDelete) {
+                  items.add(
+                    const PopupMenuItem<String>(
+                      value: 'delete',
+                      child: ListTile(
+                        dense: true,
+                        leading: Icon(Icons.delete_outline, color: Colors.red),
+                        title: Text('ลบ', style: TextStyle(color: Colors.red)),
+                      ),
+                    ),
+                  );
+                }
+                if (items.isEmpty) {
+                  items.add(
+                    const PopupMenuItem<String>(
+                      value: 'noop',
+                      enabled: false,
+                      child: Text('ไม่มีรายการ')
+                    ),
+                  );
+                }
+                return items;
+              },
+            ),
+          ),
+        ),
       ]);
     }).toList();
 
