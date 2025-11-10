@@ -218,7 +218,7 @@ class _SuperadmindashUiState extends State<SuperadmindashUi> {
                             const MeterReadingsListPage(),
                           ),
                           onOpenIssues: () => _openPage(
-                            const IssuelistUi(),
+                            const IssueListUi(),
                           ),
                           onOpenPayments: () => _openPage(
                             const PaymentVerificationPage(),

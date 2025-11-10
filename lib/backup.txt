@@ -131,7 +131,6 @@ CREATE TABLE public.issue_images (
   image_id uuid NOT NULL DEFAULT gen_random_uuid(),
   issue_id uuid NOT NULL,
   image_url text NOT NULL,
-  description text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT issue_images_pkey PRIMARY KEY (image_id),
   CONSTRAINT issue_images_issue_id_fkey FOREIGN KEY (issue_id) REFERENCES public.issue_reports(issue_id)
@@ -142,13 +141,11 @@ CREATE TABLE public.issue_reports (
   room_id uuid,
   tenant_id uuid,
   issue_type character varying NOT NULL CHECK (issue_type::text = ANY (ARRAY['repair'::character varying, 'maintenance'::character varying, 'complaint'::character varying, 'suggestion'::character varying, 'other'::character varying]::text[])),
-  issue_priority character varying NOT NULL DEFAULT 'medium'::character varying CHECK (issue_priority::text = ANY (ARRAY['low'::character varying, 'medium'::character varying, 'high'::character varying, 'urgent'::character varying]::text[])),
   issue_title character varying NOT NULL,
   issue_desc text NOT NULL,
   issue_status character varying NOT NULL DEFAULT 'pending'::character varying CHECK (issue_status::text = ANY (ARRAY['pending'::character varying, 'in_progress'::character varying, 'resolved'::character varying, 'cancelled'::character varying]::text[])),
   assigned_to uuid,
   resolved_date timestamp with time zone,
-  resolution_notes text,
   created_by uuid,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
@@ -157,6 +154,25 @@ CREATE TABLE public.issue_reports (
   CONSTRAINT issue_reports_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(tenant_id),
   CONSTRAINT issue_reports_assigned_to_fkey FOREIGN KEY (assigned_to) REFERENCES public.users(user_id),
   CONSTRAINT issue_reports_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(user_id)
+);
+CREATE TABLE public.issue_response_images (
+  image_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  response_id uuid NOT NULL,
+  image_url text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT issue_response_images_pkey PRIMARY KEY (image_id),
+  CONSTRAINT issue_response_images_response_id_fkey FOREIGN KEY (response_id) REFERENCES public.issue_responses(response_id)
+);
+CREATE TABLE public.issue_responses (
+  response_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  issue_id uuid NOT NULL,
+  response_text text,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT issue_responses_pkey PRIMARY KEY (response_id),
+  CONSTRAINT issue_responses_issue_id_fkey FOREIGN KEY (issue_id) REFERENCES public.issue_reports(issue_id),
+  CONSTRAINT issue_responses_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(user_id)
 );
 CREATE TABLE public.meter_readings (
   reading_id uuid NOT NULL DEFAULT gen_random_uuid(),

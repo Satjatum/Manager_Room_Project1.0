@@ -1,3 +1,4 @@
+import 'package:printing/printing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import '../models/user_models.dart';
@@ -180,22 +181,25 @@ class IssueService {
   static Future<Map<String, dynamic>?> getIssueById(String issueId) async {
     try {
       final result = await _supabase.from('issue_reports').select('''
-        *,
-        rooms!inner(
-          room_id,
-          room_number,
-          branches!inner(branch_id, branch_name, branch_code, branch_address)
-        ),
-        tenants(tenant_id, tenant_fullname, tenant_phone),
-        assigned_user:assigned_to(user_id, user_name, user_email),
-        created_user:created_by(user_id, user_name)
-      ''').eq('issue_id', issueId).maybeSingle();
+      *,
+      rooms!inner(
+        room_id,
+        room_number,
+        branches!inner(branch_id, branch_name, branch_code, branch_address),
+        room_categories!inner(roomcate_name)
+      ),
+      tenants(tenant_id, tenant_fullname, tenant_phone),
+      assigned_user:assigned_to(user_id, user_name, user_email),
+      created_user:created_by(user_id, user_name)
+    ''').eq('issue_id', issueId).maybeSingle();
 
       if (result == null) return null;
 
       return {
         ...result,
         'room_number': result['rooms']?['room_number'],
+        'room_category_name': result['rooms']?['room_categories']
+            ?['roomcate_name'],
         'branch_id': result['rooms']?['branches']?['branch_id'],
         'branch_name': result['rooms']?['branches']?['branch_name'],
         'tenant_fullname': result['tenants']?['tenant_fullname'],

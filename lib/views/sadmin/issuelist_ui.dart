@@ -7,20 +7,20 @@ import '../../services/branch_service.dart';
 import '../../models/user_models.dart';
 import '../widgets/colors.dart';
 
-class IssuelistUi extends StatefulWidget {
+class IssueListUi extends StatefulWidget {
   final String? branchId;
   final String? branchName;
-  const IssuelistUi({
+  const IssueListUi({
     Key? key,
     this.branchId,
     this.branchName,
   }) : super(key: key);
 
   @override
-  State<IssuelistUi> createState() => _IssuelistUiState();
+  State<IssueListUi> createState() => _IssueListUiState();
 }
 
-class _IssuelistUiState extends State<IssuelistUi>
+class _IssueListUiState extends State<IssueListUi>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = true;
@@ -855,7 +855,7 @@ class _IssuelistUiState extends State<IssuelistUi>
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => IssueDetailScreen(
+              builder: (context) => IssueListDetailUi(
                 issueId: issue['issue_id'],
               ),
             ),

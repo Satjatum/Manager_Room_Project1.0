@@ -1512,9 +1512,9 @@ class _RoomListUIState extends State<RoomListUI> {
         double amenityIconSize = 12.0;
         double amenityFontSize = 11.0;
         double spacing = 10.0;
-        int maxAmenitiesShow = 5;
+        int maxAmenitiesShow = 3;
 
-        if (isTablet) {
+        if (isTablet || isLaptop || isLaptopL || is4K) {
           cardMargin = 18.0;
           cardPadding = 18.0;
           iconSize = 18.0;
@@ -1525,44 +1525,58 @@ class _RoomListUIState extends State<RoomListUI> {
           amenityIconSize = 13.0;
           amenityFontSize = 12.0;
           spacing = 12.0;
-          maxAmenitiesShow = 6;
-        } else if (isLaptop) {
-          cardMargin = 20.0;
-          cardPadding = 20.0;
-          iconSize = 20.0;
-          titleFontSize = 18.0;
-          subtitleFontSize = 15.0;
-          chipFontSize = 14.0;
-          bodyFontSize = 15.0;
-          amenityIconSize = 14.0;
-          amenityFontSize = 13.0;
-          spacing = 14.0;
-          maxAmenitiesShow = 5;
-        } else if (isLaptopL) {
-          cardMargin = 22.0;
-          cardPadding = 22.0;
-          iconSize = 22.0;
-          titleFontSize = 20.0;
-          subtitleFontSize = 16.0;
-          chipFontSize = 15.0;
-          bodyFontSize = 16.0;
-          amenityIconSize = 15.0;
-          amenityFontSize = 14.0;
-          spacing = 16.0;
           maxAmenitiesShow = 3;
-        } else if (is4K) {
-          cardMargin = 24.0;
-          cardPadding = 24.0;
-          iconSize = 24.0;
-          titleFontSize = 22.0;
-          subtitleFontSize = 18.0;
-          chipFontSize = 16.0;
-          bodyFontSize = 18.0;
-          amenityIconSize = 16.0;
-          amenityFontSize = 15.0;
-          spacing = 18.0;
-          maxAmenitiesShow = 10;
         }
+
+        // if (isTablet) {
+        //   cardMargin = 18.0;
+        //   cardPadding = 18.0;
+        //   iconSize = 18.0;
+        //   titleFontSize = 17.0;
+        //   subtitleFontSize = 14.0;
+        //   chipFontSize = 13.0;
+        //   bodyFontSize = 14.0;
+        //   amenityIconSize = 13.0;
+        //   amenityFontSize = 12.0;
+        //   spacing = 12.0;
+        //   maxAmenitiesShow = 3;
+        // } else if (isLaptop) {
+        //   cardMargin = 18.0;
+        //   cardPadding = 18.0;
+        //   iconSize = 18.0;
+        //   titleFontSize = 17.0;
+        //   subtitleFontSize = 14.0;
+        //   chipFontSize = 13.0;
+        //   bodyFontSize = 14.0;
+        //   amenityIconSize = 13.0;
+        //   amenityFontSize = 12.0;
+        //   spacing = 12.0;
+        //   maxAmenitiesShow = 3;
+        // } else if (isLaptopL) {
+        //   cardMargin = 18.0;
+        //   cardPadding = 18.0;
+        //   iconSize = 18.0;
+        //   titleFontSize = 17.0;
+        //   subtitleFontSize = 14.0;
+        //   chipFontSize = 13.0;
+        //   bodyFontSize = 14.0;
+        //   amenityIconSize = 13.0;
+        //   amenityFontSize = 12.0;
+        //   spacing = 12.0;
+        //   maxAmenitiesShow = 3;
+        // } else if (is4K) {
+        //   cardMargin = 18.0;
+        //   cardPadding = 18.0;
+        //   iconSize = 18.0;
+        //   titleFontSize = 17.0;
+        //   subtitleFontSize = 14.0;
+        //   chipFontSize = 13.0;
+        //   bodyFontSize = 14.0;
+        //   amenityIconSize = 13.0;
+        //   amenityFontSize = 12.0;
+        //   spacing = 12.0;
+        //   maxAmenitiesShow = 3;
+        // }
 
         return Card(
           margin: EdgeInsets.only(bottom: cardMargin),

@@ -76,7 +76,7 @@ class BranchDashboardPage extends StatelessWidget {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => IssuelistUi(
+            builder: (_) => IssueListUi(
               branchId: branchId,
               branchName: branchName,
             ),

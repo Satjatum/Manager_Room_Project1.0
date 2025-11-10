@@ -10,16 +10,16 @@ import '../../services/user_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_models.dart';
 
-class IssueDetailScreen extends StatefulWidget {
+class IssueListDetailUi extends StatefulWidget {
   final String issueId;
 
-  const IssueDetailScreen({
+  const IssueListDetailUi({
     Key? key,
     required this.issueId,
   }) : super(key: key);
 
   @override
-  State<IssueDetailScreen> createState() => _IssueDetailScreenState();
+  State<IssueListDetailUi> createState() => _IssueListDetailUiState();
 }
 
 class _ResolvePayload {
@@ -33,10 +33,14 @@ class _UploadState {
   final int total;
   final String phase; // e.g., 'อัปเดตสถานะ', 'อัปโหลดรูป'
   final String? fileName;
-  const _UploadState({required this.current, required this.total, required this.phase, this.fileName});
+  const _UploadState(
+      {required this.current,
+      required this.total,
+      required this.phase,
+      this.fileName});
 }
 
-class _IssueDetailScreenState extends State<IssueDetailScreen> {
+class _IssueListDetailUiState extends State<IssueListDetailUi> {
   bool _isLoading = true;
   UserModel? _currentUser;
   Map<String, dynamic>? _issue;
@@ -47,7 +51,6 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
   final _resolutionController = TextEditingController();
   // Images attached when marking as resolved
   final List<XFile> _resolveImages = [];
-  bool _sendingReply = false;
 
   @override
   void initState() {
@@ -63,57 +66,6 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
       _showErrorSnackBar('โหลดการตอบกลับไม่สำเร็จ: $e');
     }
   }
-
-  Future<void> _pickResolveImages() async {
-    try {
-      final picker = ImagePicker();
-      if (kIsWeb) {
-        final picked = await picker.pickMultiImage(maxWidth: 1920, maxHeight: 1080, imageQuality: 85);
-        if (picked.isNotEmpty) {
-          final remaining = 10 - _resolveImages.length;
-          if (remaining > 0) setState(() => _resolveImages.addAll(picked.take(remaining)));
-        }
-      } else {
-        final source = await showDialog<ImageSource>(
-          context: context,
-          builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('เลือกรูปภาพ'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.camera_alt),
-                  title: const Text('กล้อง'),
-                  onTap: () => Navigator.pop(context, ImageSource.camera),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.photo_library),
-                  title: const Text('คลังรูปภาพ'),
-                  onTap: () => Navigator.pop(context, ImageSource.gallery),
-                ),
-              ],
-            ),
-          ),
-        );
-        if (source == ImageSource.camera) {
-          final photo = await picker.pickImage(source: ImageSource.camera, maxWidth: 1920, maxHeight: 1080, imageQuality: 85);
-          if (photo != null && _resolveImages.length < 10) {
-            setState(() => _resolveImages.add(photo));
-          }
-        } else if (source == ImageSource.gallery) {
-          final picked = await picker.pickMultiImage(maxWidth: 1920, maxHeight: 1080, imageQuality: 85);
-          if (picked.isNotEmpty) {
-            final remaining = 10 - _resolveImages.length;
-            if (remaining > 0) setState(() => _resolveImages.addAll(picked.take(remaining)));
-          }
-        }
-      }
-    } catch (e) {
-      _showErrorSnackBar('เลือกไฟล์ไม่สำเร็จ: $e');
-    }
-  }
-  
 
   @override
   void dispose() {
@@ -249,7 +201,9 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
           try {
             final created = await IssueResponseService.createResponse(
               issueId: widget.issueId,
-              responseText: (payload.text ?? '').trim().isEmpty ? null : payload.text!.trim(),
+              responseText: (payload.text ?? '').trim().isEmpty
+                  ? null
+                  : payload.text!.trim(),
               createdBy: _currentUser?.userId ?? '',
             );
             if (created['success'] == true) {
@@ -265,7 +219,9 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                   fileName: kIsWeb ? img.name : _fileDisplayName(img),
                 );
                 if (kIsWeb) {
-                  final ext = img.name.contains('.') ? img.name.split('.').last.toLowerCase() : 'jpg';
+                  final ext = img.name.contains('.')
+                      ? img.name.split('.').last.toLowerCase()
+                      : 'jpg';
                   final bytes = await img.readAsBytes();
                   final seq = await ImageService.generateSequentialFileName(
                     bucket: 'issue_res_images',
@@ -281,12 +237,16 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                     customFileName: seq,
                   );
                   if (up['success'] == true) {
-                    await IssueResponseService.addResponseImage(responseId: responseId, imageUrl: up['url']);
+                    await IssueResponseService.addResponseImage(
+                        responseId: responseId, imageUrl: up['url']);
                   } else {
-                    _showErrorSnackBar(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                    _showErrorSnackBar(
+                        up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
                   }
                 } else {
-                  final ext = img.path.contains('.') ? img.path.split('.').last.toLowerCase() : 'jpg';
+                  final ext = img.path.contains('.')
+                      ? img.path.split('.').last.toLowerCase()
+                      : 'jpg';
                   final seq = await ImageService.generateSequentialFileName(
                     bucket: 'issue_res_images',
                     folder: 'responses/${widget.issueId}',
@@ -300,9 +260,11 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                     customFileName: seq,
                   );
                   if (up['success'] == true) {
-                    await IssueResponseService.addResponseImage(responseId: responseId, imageUrl: up['url']);
+                    await IssueResponseService.addResponseImage(
+                        responseId: responseId, imageUrl: up['url']);
                   } else {
-                    _showErrorSnackBar(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                    _showErrorSnackBar(
+                        up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
                   }
                 }
               }
@@ -365,39 +327,39 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
           ],
         ),
         content: Column(
-                mainAxisSize: MainAxisSize.min,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'ต้องการเปลี่ยนสถานะเป็น ${_getStatusText(status)} ใช่หรือไม่?',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.shade200),
+              ),
+              child: Row(
                 children: [
-                  Text(
-                    'ต้องการเปลี่ยนสถานะเป็น ${_getStatusText(status)} ใช่หรือไม่?',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.amber.shade200),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.warning_amber_rounded,
-                            color: Colors.amber.shade700, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'การเปลี่ยนสถานะจะถูกบันทึกในประวัติ',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.amber.shade800,
-                            ),
-                          ),
-                        ),
-                      ],
+                  Icon(Icons.warning_amber_rounded,
+                      color: Colors.amber.shade700, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'การเปลี่ยนสถานะจะถูกบันทึกในประวัติ',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.amber.shade800,
+                      ),
                     ),
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
         actionsPadding: const EdgeInsets.all(16),
         actions: [
           TextButton(
@@ -525,7 +487,9 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                 final responseId = created['data']['response_id'] as String;
                 for (final img in List<XFile>.from(_resolveImages)) {
                   if (kIsWeb) {
-                    final ext = img.name.contains('.') ? img.name.split('.').last.toLowerCase() : 'jpg';
+                    final ext = img.name.contains('.')
+                        ? img.name.split('.').last.toLowerCase()
+                        : 'jpg';
                     final bytes = await img.readAsBytes();
                     final seq = await ImageService.generateSequentialFileName(
                       bucket: 'issue_res_images',
@@ -541,12 +505,16 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                       customFileName: seq,
                     );
                     if (up['success'] == true) {
-                      await IssueResponseService.addResponseImage(responseId: responseId, imageUrl: up['url']);
+                      await IssueResponseService.addResponseImage(
+                          responseId: responseId, imageUrl: up['url']);
                     } else {
-                      _showErrorSnackBar(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                      _showErrorSnackBar(
+                          up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
                     }
                   } else {
-                    final ext = img.path.contains('.') ? img.path.split('.').last.toLowerCase() : 'jpg';
+                    final ext = img.path.contains('.')
+                        ? img.path.split('.').last.toLowerCase()
+                        : 'jpg';
                     final seq = await ImageService.generateSequentialFileName(
                       bucket: 'issue_res_images',
                       folder: 'responses/${widget.issueId}',
@@ -560,9 +528,11 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                       customFileName: seq,
                     );
                     if (up['success'] == true) {
-                      await IssueResponseService.addResponseImage(responseId: responseId, imageUrl: up['url']);
+                      await IssueResponseService.addResponseImage(
+                          responseId: responseId, imageUrl: up['url']);
                     } else {
-                      _showErrorSnackBar(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                      _showErrorSnackBar(
+                          up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
                     }
                   }
                 }
@@ -605,7 +575,8 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
             Future<void> pickImages() async {
               try {
                 final picker = ImagePicker();
-                final picked = await picker.pickMultiImage(maxWidth: 1920, maxHeight: 1080, imageQuality: 85);
+                final picked = await picker.pickMultiImage(
+                    maxWidth: 1920, maxHeight: 1080, imageQuality: 85);
                 if (picked.isNotEmpty) {
                   final remaining = 10 - localImages.length;
                   if (remaining > 0) {
@@ -661,21 +632,24 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                                 child: Material(
                                   color: Colors.transparent,
                                   child: InkWell(
-                                    onTap: () => setLocalState(() => localImages.removeAt(i)),
+                                    onTap: () => setLocalState(
+                                        () => localImages.removeAt(i)),
                                     child: Container(
                                       decoration: BoxDecoration(
                                         color: Colors.red,
                                         borderRadius: BorderRadius.circular(12),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(0.1),
+                                            color:
+                                                Colors.black.withOpacity(0.1),
                                             blurRadius: 3,
                                             offset: const Offset(0, 1),
                                           )
                                         ],
                                       ),
                                       padding: const EdgeInsets.all(2),
-                                      child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                      child: const Icon(Icons.close,
+                                          color: Colors.white, size: 16),
                                     ),
                                   ),
                                 ),
@@ -711,7 +685,8 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
-                    child: Text('บันทึกการแก้ไขเสร็จสิ้น', style: TextStyle(fontSize: 16)),
+                    child: Text('บันทึกการแก้ไขเสร็จสิ้น',
+                        style: TextStyle(fontSize: 16)),
                   ),
                 ],
               ),
@@ -727,10 +702,12 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                       controller: textController,
                       decoration: InputDecoration(
                         hintText: 'รายละเอียดการแก้ไข...',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: AppTheme.primary, width: 2),
+                          borderSide:
+                              BorderSide(color: AppTheme.primary, width: 2),
                         ),
                       ),
                       maxLines: 4,
@@ -743,7 +720,8 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                       runSpacing: 8,
                       children: [
                         OutlinedButton.icon(
-                          onPressed: localImages.length >= 10 ? null : pickImages,
+                          onPressed:
+                              localImages.length >= 10 ? null : pickImages,
                           icon: const Icon(Icons.add_photo_alternate),
                           label: Text('แนบรูป (${localImages.length}/10)'),
                           style: OutlinedButton.styleFrom(
@@ -753,9 +731,12 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                         ),
                         if (localImages.isNotEmpty)
                           TextButton.icon(
-                            onPressed: () => setLocalState(() => localImages.clear()),
-                            icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                            label: const Text('ล้างรูป', style: TextStyle(color: Colors.red)),
+                            onPressed: () =>
+                                setLocalState(() => localImages.clear()),
+                            icon: const Icon(Icons.delete_sweep,
+                                color: Colors.red),
+                            label: const Text('ล้างรูป',
+                                style: TextStyle(color: Colors.red)),
                           ),
                       ],
                     ),
@@ -771,13 +752,19 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                 ElevatedButton(
                   onPressed: () {
                     final text = textController.text.trim();
-                    Navigator.pop(context, _ResolvePayload(text: text.isEmpty ? null : text, images: List<XFile>.from(localImages)));
+                    Navigator.pop(
+                        context,
+                        _ResolvePayload(
+                            text: text.isEmpty ? null : text,
+                            images: List<XFile>.from(localImages)));
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _getStatusColor('resolved'),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   child: const Text('ยืนยัน'),
                 ),
@@ -897,90 +884,124 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'รายละเอียดปัญหา',
-          style: TextStyle(
-            color: Colors.black87,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: Colors.grey[300],
-          ),
-        ),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _issue == null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+      backgroundColor: Colors.white,
+      body: Column(
+        children: [
+          // Custom Header
+          Container(
+            color: Colors.white,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline,
-                          size: 64, color: Colors.grey[400]),
-                      const SizedBox(height: 16),
-                      Text(
-                        'ไม่พบข้อมูล',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new,
+                            color: Colors.black87),
+                        onPressed: () {
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        tooltip: 'ย้อนกลับ',
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              'รายละเอียดปัญหา',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'รายละเอียดและสถานะของปัญหาที่แจ้ง',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadData,
-                  color: AppTheme.primary,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Actions Card
-                        if (_currentUser != null &&
-                            _currentUser!.hasAnyPermission([
-                              DetailedPermission.all,
-                              DetailedPermission.manageIssues,
-                            ])) ...[
-                          _buildActionsCard(),
-                          const SizedBox(height: 16),
-                        ],
-
-                        // Header Card
-                        _buildHeaderCard(),
-                        const SizedBox(height: 16),
-
-                        // Details Card
-                        _buildDetailsCard(),
-                        const SizedBox(height: 16),
-
-                        // Images Section
-                        if (_images.isNotEmpty) ...[
-                          _buildImagesSection(),
-                          const SizedBox(height: 16),
-                        ],
-
-                        // Timeline Section
-                        _buildTimelineSection(),
-                      ],
-                    ),
-                  ),
                 ),
+              ],
+            ),
+          ),
+          // Body Content
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _issue == null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.error_outline,
+                                size: 64, color: Colors.grey[400]),
+                            const SizedBox(height: 16),
+                            Text(
+                              'ไม่พบข้อมูล',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: _loadData,
+                        color: AppTheme.primary,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Actions Card
+                              if (_currentUser != null &&
+                                  _currentUser!.hasAnyPermission([
+                                    DetailedPermission.all,
+                                    DetailedPermission.manageIssues,
+                                  ])) ...[
+                                _buildActionsCard(),
+                                const SizedBox(height: 16),
+                              ],
+
+                              // Header Card
+                              _buildHeaderCard(),
+                              const SizedBox(height: 16),
+
+                              // Details Card
+                              _buildDetailsCard(),
+                              const SizedBox(height: 16),
+
+                              // Images Section
+                              if (_images.isNotEmpty) ...[
+                                _buildImagesSection(),
+                                const SizedBox(height: 16),
+                              ],
+
+                              // Timeline Section
+                              _buildTimelineSection(),
+                            ],
+                          ),
+                        ),
+                      ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1111,27 +1132,16 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
             value: _issue!['issue_desc'] ?? 'ไม่มีคำอธิบาย',
           ),
           const SizedBox(height: 12),
-          _buildDetailRow(
-            icon: Icons.business_outlined,
-            label: 'สาขา',
-            value: _issue!['branch_name'] ?? 'ไม่ระบุ',
-          ),
+          // _buildDetailRow(
+          //   icon: Icons.business_outlined,
+          //   label: 'สาขา',
+          //   value: _issue!['branch_name'] ?? 'ไม่ระบุ',
+          // ),
           const SizedBox(height: 12),
           _buildDetailRow(
             icon: Icons.meeting_room_outlined,
-            label: 'roomcate',
-            value: (
-                  _issue!['roomcate'] ??
-                  _issue!['room_category_name'] ??
-                  _issue!['room_type_name'] ??
-                  ''
-                ).toString().isNotEmpty
-                ? (
-                    _issue!['roomcate'] ??
-                    _issue!['room_category_name'] ??
-                    _issue!['room_type_name']
-                  ).toString()
-                : (_issue!['room_number'] ?? 'ไม่ระบุ'),
+            label: _issue!['room_category_name'] ?? 'ไม่ระบุประเภท',
+            value: _issue!['room_number'] ?? 'ไม่ระบุห้อง',
           ),
           const SizedBox(height: 12),
           _buildDetailRow(
@@ -1352,7 +1362,6 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
             color: Colors.red,
             onTap: () => _confirmDelete(),
           ),
-          
         ],
       ),
     );
@@ -1467,7 +1476,8 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
 
     // Add responses as part of timeline (evidence of resolution)
     for (final r in _responses) {
-      final List imgs = List<Map<String, dynamic>>.from(r['issue_response_images'] ?? []);
+      final List imgs =
+          List<Map<String, dynamic>>.from(r['issue_response_images'] ?? []);
       timeline.add({
         'date': r['created_at'],
         'status': 'resolved',
@@ -1482,7 +1492,8 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
     }
 
     // Sort by date ascending
-    timeline.sort((a, b) => DateTime.parse(a['date']).compareTo(DateTime.parse(b['date'])));
+    timeline.sort((a, b) =>
+        DateTime.parse(a['date']).compareTo(DateTime.parse(b['date'])));
 
     if (timeline.isEmpty) {
       return Center(
@@ -1607,9 +1618,11 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
                             itemCount: (item['images'] as List).length,
-                            separatorBuilder: (_, __) => const SizedBox(width: 10),
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(width: 10),
                             itemBuilder: (context, index) {
-                              final url = (item['images'] as List)[index] as String;
+                              final url =
+                                  (item['images'] as List)[index] as String;
                               return GestureDetector(
                                 onTap: () => _showImageViewer(url),
                                 child: ClipRRect(
@@ -1623,7 +1636,8 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                                       height: 90,
                                       width: 90,
                                       color: Colors.grey[300],
-                                      child: Icon(Icons.broken_image, color: Colors.grey[600]),
+                                      child: Icon(Icons.broken_image,
+                                          color: Colors.grey[600]),
                                     ),
                                   ),
                                 ),
@@ -1811,7 +1825,8 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
               ),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(8),
@@ -2024,8 +2039,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content:
-                    Text(e.toString().replaceAll('ข้อยกเว้น: ', '')),
+                content: Text(e.toString().replaceAll('ข้อยกเว้น: ', '')),
                 backgroundColor: Colors.red,
                 duration: const Duration(seconds: 3),
               ),
@@ -2070,7 +2084,8 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
               child: Image.network(
                 url,
                 fit: BoxFit.contain,
-                errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.white, size: 64),
+                errorBuilder: (c, e, s) => const Icon(Icons.broken_image,
+                    color: Colors.white, size: 64),
               ),
             ),
           ),
