@@ -1502,20 +1502,58 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             _wrapHoverCell(
               isWater: true,
               col: 7,
-              child: const Icon(Icons.edit_note, size: 18),
+              child: PopupMenuButton<String>(
+                tooltip: 'ตัวเลือก',
+                icon: const Icon(Icons.more_horiz, size: 20),
+                onSelected: (value) async {
+                  if (value == 'create') {
+                    if (canCreate) await _showCreateDialog(room);
+                  } else if (value == 'edit') {
+                    await _showEditDialog(roomId);
+                  } else if (value == 'delete') {
+                    final readingId = (existing?['reading_id'] ?? '').toString();
+                    if (readingId.isNotEmpty) {
+                      await _confirmDelete(readingId, roomId);
+                    }
+                  } else if (value == 'delete_billed') {
+                    final readingId = (existing?['reading_id'] ?? '').toString();
+                    final invoiceId = (_invoiceIdByRoom[roomId] ?? '');
+                    if (readingId.isNotEmpty) {
+                      await _confirmDeleteBilled(readingId, invoiceId, roomId);
+                    }
+                  }
+                },
+                itemBuilder: (context) {
+                  final billed =
+                      ((existing?['reading_status'] ?? '').toString() == 'billed');
+                  final items = <PopupMenuEntry<String>>[];
+                  if (isNew && canCreate) {
+                    items.add(const PopupMenuItem(
+                        value: 'create', child: Text('กรอกข้อมูล')));
+                  }
+                  if (!isNew && _isCurrentPeriod && !billed) {
+                    items.add(const PopupMenuItem(
+                        value: 'edit', child: Text('แก้ไข')));
+                  }
+                  if (!isNew && _isCurrentPeriod) {
+                    items.add(PopupMenuItem(
+                        value: billed ? 'delete_billed' : 'delete',
+                        child: Text(billed ? 'ลบ (รวมบิลเดือนนี้)' : 'ลบ')));
+                  }
+                  return items;
+                },
+              ),
             ),
-            onTap: () async {
-              if (isNew) {
-                if (canCreate) await _showCreateDialog(room);
-              } else {
-                await _showEditDialog(roomId);
-              }
-            },
           ),
         ]);
       }).toList(),
       headingRowColor: MaterialStateProperty.all(Colors.blue.withOpacity(0.06)),
-      dataRowColor: MaterialStateProperty.all(Colors.white),
+      dataRowColor: MaterialStateProperty.resolveWith((states) {
+        if (states.contains(MaterialState.hovered)) {
+          return Colors.blue.withOpacity(0.04);
+        }
+        return Colors.white;
+      }),
       border: TableBorder.symmetric(
         inside: BorderSide(color: Colors.grey[300]!),
         outside: BorderSide.none,
@@ -1778,21 +1816,59 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             _wrapHoverCell(
               isWater: false,
               col: 7,
-              child: const Icon(Icons.edit_note, size: 18),
+              child: PopupMenuButton<String>(
+                tooltip: 'ตัวเลือก',
+                icon: const Icon(Icons.more_horiz, size: 20),
+                onSelected: (value) async {
+                  if (value == 'create') {
+                    if (canCreate) await _showCreateDialog(room);
+                  } else if (value == 'edit') {
+                    await _showEditDialog(roomId);
+                  } else if (value == 'delete') {
+                    final readingId = (existing?['reading_id'] ?? '').toString();
+                    if (readingId.isNotEmpty) {
+                      await _confirmDelete(readingId, roomId);
+                    }
+                  } else if (value == 'delete_billed') {
+                    final readingId = (existing?['reading_id'] ?? '').toString();
+                    final invoiceId = (_invoiceIdByRoom[roomId] ?? '');
+                    if (readingId.isNotEmpty) {
+                      await _confirmDeleteBilled(readingId, invoiceId, roomId);
+                    }
+                  }
+                },
+                itemBuilder: (context) {
+                  final billed =
+                      ((existing?['reading_status'] ?? '').toString() == 'billed');
+                  final items = <PopupMenuEntry<String>>[];
+                  if (isNew && canCreate) {
+                    items.add(const PopupMenuItem(
+                        value: 'create', child: Text('กรอกข้อมูล')));
+                  }
+                  if (!isNew && _isCurrentPeriod && !billed) {
+                    items.add(const PopupMenuItem(
+                        value: 'edit', child: Text('แก้ไข')));
+                  }
+                  if (!isNew && _isCurrentPeriod) {
+                    items.add(PopupMenuItem(
+                        value: billed ? 'delete_billed' : 'delete',
+                        child: Text(billed ? 'ลบ (รวมบิลเดือนนี้)' : 'ลบ')));
+                  }
+                  return items;
+                },
+              ),
             ),
-            onTap: () async {
-              if (isNew) {
-                if (canCreate) await _showCreateDialog(room);
-              } else {
-                await _showEditDialog(roomId);
-              }
-            },
           ),
         ]);
       }).toList(),
       headingRowColor:
           MaterialStateProperty.all(Colors.orange.withOpacity(0.06)),
-      dataRowColor: MaterialStateProperty.all(Colors.white),
+      dataRowColor: MaterialStateProperty.resolveWith((states) {
+        if (states.contains(MaterialState.hovered)) {
+          return Colors.orange.withOpacity(0.04);
+        }
+        return Colors.white;
+      }),
       border: TableBorder.symmetric(
         inside: BorderSide(color: Colors.grey[300]!),
         outside: BorderSide.none,
