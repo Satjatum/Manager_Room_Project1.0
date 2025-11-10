@@ -141,7 +141,11 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.grey.shade300),
+        ),
         title: Row(
           children: [
             Container(
@@ -172,21 +176,21 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.shade200),
+                      border: Border.all(color: Colors.grey.shade300),
                     ),
                     child: Row(
                       children: [
                         Icon(Icons.info_outline,
-                            color: Colors.blue.shade700, size: 20),
+                            color: Colors.grey.shade700, size: 20),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'กรุณาระบุรายละเอียดการแก้ไข',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.blue.shade700,
+                              color: Colors.grey.shade700,
                             ),
                           ),
                         ),
@@ -214,7 +218,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                     Container(
                       constraints: const BoxConstraints(maxHeight: 240),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
+                        color: Colors.white,
                         border: Border.all(color: Colors.grey.shade300),
                         borderRadius: BorderRadius.circular(8),
                       ),
