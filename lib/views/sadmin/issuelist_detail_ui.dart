@@ -355,8 +355,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         final updateResult = await IssueService.updateIssueStatus(
           widget.issueId,
           status,
-          resolutionNotes:
-              status == 'resolved' ? _resolutionController.text.trim() : null,
+          resolutionNotes: null, // use response_txt instead of resolution_notes
         );
 
         if (updateResult['success']) {
@@ -794,46 +793,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
               value: _formatDate(_issue!['resolved_date']),
             ),
           ],
-          if (_issue!['resolution_notes'] != null &&
-              _issue!['resolution_notes'].toString().isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.note_alt_outlined,
-                          color: Colors.green.shade700, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        'บันทึกการแก้ไข',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _issue!['resolution_notes'],
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[800],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          // หมายเหตุ: รายละเอียดการแก้ไขจะไปอยู่ในประวัติการดำเนินงานจาก response_txt
         ],
       ),
     );
@@ -1284,18 +1244,21 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                             separatorBuilder: (_, __) => const SizedBox(width: 10),
                             itemBuilder: (context, index) {
                               final url = (item['images'] as List)[index] as String;
-                              return ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  url,
-                                  height: 90,
-                                  width: 90,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (c, e, s) => Container(
+                              return GestureDetector(
+                                onTap: () => _showImageViewer(url),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    url,
                                     height: 90,
                                     width: 90,
-                                    color: Colors.grey[300],
-                                    child: Icon(Icons.broken_image, color: Colors.grey[600]),
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (c, e, s) => Container(
+                                      height: 90,
+                                      width: 90,
+                                      color: Colors.grey[300],
+                                      child: Icon(Icons.broken_image, color: Colors.grey[600]),
+                                    ),
                                   ),
                                 ),
                               );
@@ -1485,5 +1448,30 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
     } catch (e) {
       return 'ไม่ระบุ';
     }
+  }
+
+  void _showImageViewer(String url) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => GestureDetector(
+        onTap: () => Navigator.pop(context),
+        child: Container(
+          color: Colors.black,
+          child: Center(
+            child: InteractiveViewer(
+              panEnabled: true,
+              minScale: 0.5,
+              maxScale: 4,
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.white, size: 64),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
