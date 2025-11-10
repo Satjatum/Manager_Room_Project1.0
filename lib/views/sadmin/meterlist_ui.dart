@@ -1189,8 +1189,8 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
 
   // --- Hover helpers ---
   Color _hoverBg(bool isHovered, {required bool isWater}) {
-    final base = isWater ? Colors.blue : Colors.orange;
-    return isHovered ? base.withOpacity(0.08) : Colors.transparent;
+    // ปิดเอฟเฟกต์ hover รายคอลัมน์ ให้เหลือเฉพาะ hover แถวเทาอ่อน
+    return Colors.transparent;
   }
 
   Widget _hoverHeaderLabel(String text, int col, {required bool isWater}) {
