@@ -535,37 +535,71 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
               }
             }
 
-            Widget filesList() {
+            Widget imagePreviews() {
               if (localImages.isEmpty) return const SizedBox.shrink();
-              return SizedBox(
-                height: 220,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Scrollbar(
-                    child: ListView.separated(
-                      padding: EdgeInsets.zero,
-                      itemCount: localImages.length,
-                      separatorBuilder: (_, __) => Divider(height: 1, color: Colors.grey.shade300),
-                      itemBuilder: (context, index) {
-                        final f = localImages[index];
-                        final name = _fileDisplayName(f);
-                        return ListTile(
-                          dense: true,
-                          leading: const Icon(Icons.image, color: Colors.grey),
-                          title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.close, color: Colors.red),
-                            onPressed: () {
-                              setLocalState(() => localImages.removeAt(index));
-                            },
+              return Container(
+                height: 110,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (int i = 0; i < localImages.length; i++)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: SizedBox(
+                                  width: 90,
+                                  height: 90,
+                                  child: kIsWeb
+                                      ? Image.network(
+                                          localImages[i].path,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Image.file(
+                                          File(localImages[i].path),
+                                          fit: BoxFit.cover,
+                                        ),
+                                ),
+                              ),
+                              Positioned(
+                                top: -6,
+                                right: -6,
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: () => setLocalState(() => localImages.removeAt(i)),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        borderRadius: BorderRadius.circular(12),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.1),
+                                            blurRadius: 3,
+                                            offset: const Offset(0, 1),
+                                          )
+                                        ],
+                                      ),
+                                      padding: const EdgeInsets.all(2),
+                                      child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                    ],
                   ),
                 ),
               );
@@ -603,26 +637,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.info_outline, color: Colors.grey.shade700, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'กรุณากรอกข้อความ หรือแนบรูปอย่างน้อย 1 รายการ',
-                              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    // หมายเหตุ: ไม่บังคับกรอกข้อความหรือแนบรูป
                     const SizedBox(height: 12),
                     TextField(
                       controller: textController,
@@ -637,7 +652,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                       maxLines: 4,
                     ),
                     const SizedBox(height: 12),
-                    filesList(),
+                    imagePreviews(),
                     const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
@@ -672,10 +687,6 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                 ElevatedButton(
                   onPressed: () {
                     final text = textController.text.trim();
-                    if (text.isEmpty && localImages.isEmpty) {
-                      _showErrorSnackBar('กรุณากรอกข้อความหรือแนบรูปอย่างน้อย 1 รายการ');
-                      return;
-                    }
                     Navigator.pop(context, _ResolvePayload(text: text.isEmpty ? null : text, images: List<XFile>.from(localImages)));
                   },
                   style: ElevatedButton.styleFrom(
