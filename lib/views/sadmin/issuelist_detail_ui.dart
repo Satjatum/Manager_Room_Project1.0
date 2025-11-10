@@ -322,6 +322,43 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
 
     if (result == true) {
       try {
+        // Validate for resolved: must have text or at least 1 image
+        if (status == 'resolved') {
+          final hasText = _resolutionController.text.trim().isNotEmpty;
+          final hasImg = _resolveImages.isNotEmpty;
+          if (!hasText && !hasImg) {
+            _showErrorSnackBar('กรุณากรอกข้อความหรือแนบรูปอย่างน้อย 1 รายการ');
+            return;
+          }
+        }
+
+        // Show blocking progress while updating and uploading
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => Center(
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(strokeWidth: 3),
+                  ),
+                  SizedBox(height: 12),
+                  Text('กำลังบันทึก...', style: TextStyle(fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ),
+        );
+
         final updateResult = await IssueService.updateIssueStatus(
           widget.issueId,
           status,
@@ -399,6 +436,10 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
       } catch (e) {
         if (mounted) {
           _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
+        }
+      } finally {
+        if (mounted && Navigator.of(context, rootNavigator: true).canPop()) {
+          Navigator.of(context, rootNavigator: true).pop(); // close progress
         }
       }
     }
