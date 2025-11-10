@@ -152,6 +152,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
   }
 
   Future<void> _updateStatus(String status) async {
+    bool statusUpdated = false;
     if (status == 'resolved') {
       final payload = await _openResolveDialog();
       if (payload == null) return; // cancelled
@@ -163,12 +164,21 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (_) => Center(
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
             child: Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
               child: ValueListenableBuilder<_UploadState>(
                 valueListenable: progress,
@@ -176,21 +186,48 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: CircularProgressIndicator(strokeWidth: 3),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            SizedBox(
+                              width: 50,
+                              height: 50,
+                              child: CircularProgressIndicator(
+                                color: Colors.green.shade600,
+                                strokeWidth: 3,
+                              ),
+                            ),
+                            Icon(
+                              Icons.cloud_upload_rounded,
+                              color: Colors.green.shade600,
+                              size: 28,
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'กำลังบันทึก',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       Text(
-                        state.phase,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        state.total > 0
+                            ? 'อัปโหลดรูป ${state.current}/${state.total}${state.fileName != null ? ' • ' + state.fileName! : ''}'
+                            : state.phase,
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        textAlign: TextAlign.center,
                       ),
-                      if (state.total > 0) ...[
-                        const SizedBox(height: 8),
-                        Text('${state.current}/${state.total}${state.fileName != null ? ' • ' + state.fileName! : ''}',
-                            style: TextStyle(color: Colors.grey[700], fontSize: 12)),
-                      ],
                     ],
                   );
                 },
@@ -206,6 +243,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         );
 
         if (updateResult['success']) {
+          statusUpdated = true;
           try {
             final created = await IssueResponseService.createResponse(
               issueId: widget.issueId,
@@ -286,6 +324,9 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
       } finally {
         if (mounted && Navigator.of(context, rootNavigator: true).canPop()) {
           Navigator.of(context, rootNavigator: true).pop();
+        }
+        if (statusUpdated && mounted) {
+          Navigator.pop(context, true); // refresh issuelist
         }
       }
 
@@ -399,23 +440,64 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (_) => Center(
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
             child: Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
-                  SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: CircularProgressIndicator(strokeWidth: 3),
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: CircularProgressIndicator(
+                            color: Colors.blue.shade600,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                        Icon(
+                          Icons.autorenew_rounded,
+                          color: Colors.blue.shade600,
+                          size: 28,
+                        ),
+                      ],
+                    ),
                   ),
-                  SizedBox(height: 12),
-                  Text('กำลังบันทึก...', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'กำลังบันทึก...',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'กรุณารอสักครู่...',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
                 ],
               ),
             ),
@@ -429,6 +511,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         );
 
         if (updateResult['success']) {
+          statusUpdated = true;
           // When resolved, also create a response entry with images to appear in timeline
           if (status == 'resolved') {
             try {
@@ -503,6 +586,9 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
       } finally {
         if (mounted && Navigator.of(context, rootNavigator: true).canPop()) {
           Navigator.of(context, rootNavigator: true).pop(); // close progress
+        }
+        if (statusUpdated && mounted) {
+          Navigator.pop(context, true); // refresh issuelist
         }
       }
     }
@@ -1035,8 +1121,19 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
           const SizedBox(height: 12),
           _buildDetailRow(
             icon: Icons.meeting_room_outlined,
-            label: 'ห้อง',
-            value: _issue!['room_number'] ?? 'ไม่ระบุ',
+            label: 'roomcate',
+            value: (
+                  _issue!['roomcate'] ??
+                  _issue!['room_category_name'] ??
+                  _issue!['room_type_name'] ??
+                  ''
+                ).toString().isNotEmpty
+                ? (
+                    _issue!['roomcate'] ??
+                    _issue!['room_category_name'] ??
+                    _issue!['room_type_name']
+                  ).toString()
+                : (_issue!['room_number'] ?? 'ไม่ระบุ'),
           ),
           const SizedBox(height: 12),
           _buildDetailRow(
@@ -1544,7 +1641,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                               size: 14, color: Colors.grey[500]),
                           const SizedBox(width: 4),
                           Text(
-                            '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}',
+                            '${date.day}/${date.month}/${date.year + 543} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}',
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[600],
@@ -1685,32 +1782,258 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
   void _confirmDelete() {
     showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: const [
-            Icon(Icons.delete_forever, color: Colors.red),
-            SizedBox(width: 8),
-            Text('ยืนยันการลบปัญหา'),
-          ],
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.delete_forever_rounded,
+                  color: Colors.red.shade600,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'ลบปัญหา',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.assignment, size: 18, color: Colors.grey[700]),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        (_issue?['issue_title'] ?? '').toString().isNotEmpty
+                            ? (_issue?['issue_title'] ?? '').toString()
+                            : 'Issue ${_issue?['issue_id'] ?? ''}',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.shade100, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_rounded,
+                      color: Colors.red.shade600,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'การดำเนินการนี้ไม่สามารถย้อนกลับได้\nข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
+                        style: TextStyle(
+                          color: Colors.red.shade800,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.delete_outline, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'ลบ',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        content: const Text(
-            'ต้องการลบปัญหานี้ใช่หรือไม่? การลบไม่สามารถย้อนกลับได้'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('ยกเลิก'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('ลบ'),
-          ),
-        ],
       ),
-    ).then((confirmed) {
-      if (confirmed == true) {
-        _deleteIssue();
+    ).then((confirm) async {
+      if (confirm == true) {
+        try {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              child: Container(
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox(
+                            width: 50,
+                            height: 50,
+                            child: CircularProgressIndicator(
+                              color: Colors.red.shade600,
+                              strokeWidth: 3,
+                            ),
+                          ),
+                          Icon(
+                            Icons.delete_sweep_rounded,
+                            color: Colors.red.shade600,
+                            size: 28,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'ลบปัญหา',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'กรุณารอสักครู่...',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+
+          final result = await IssueService.deleteIssue(widget.issueId);
+
+          if (mounted && Navigator.of(context).canPop()) {
+            Navigator.of(context).pop(); // close progress
+          }
+
+          if (mounted) {
+            if (result['success']) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(result['message'] ?? 'ลบสำเร็จ'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+              Navigator.pop(context, true); // Close detail and refresh list
+            } else {
+              throw Exception(result['message']);
+            }
+          }
+        } catch (e) {
+          if (mounted && Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content:
+                    Text(e.toString().replaceAll('ข้อยกเว้น: ', '')),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        }
       }
     });
   }
@@ -1719,7 +2042,8 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
     if (dateStr == null) return 'ไม่ระบุ';
     try {
       final date = DateTime.parse(dateStr);
-      return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      final beYear = date.year + 543;
+      return '${date.day}/${date.month}/$beYear ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
     } catch (e) {
       return 'ไม่ระบุ';
     }
