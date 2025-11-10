@@ -597,6 +597,9 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // ไม่ต้องแสดงข้อมูลห้องพักตามคำขอ
+                    // เพิ่มฟอร์มให้ครบตาม schema issue_reports: issue_type, issue_title, issue_desc
+                    _buildTypeAndPriorityCard(),
+                    const SizedBox(height: 16),
                     _buildImagesCard(),
                     const SizedBox(height: 16),
                     _buildSubmitButton(),
