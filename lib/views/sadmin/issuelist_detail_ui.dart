@@ -31,8 +31,8 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
   List<Map<String, dynamic>> _availableUsers = [];
 
   final _resolutionController = TextEditingController();
-  final _replyController = TextEditingController();
-  final List<XFile> _replyImages = [];
+  // Images attached when marking as resolved
+  final List<XFile> _resolveImages = [];
   bool _sendingReply = false;
 
   @override
@@ -50,14 +50,14 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
     }
   }
 
-  Future<void> _pickReplyImages() async {
+  Future<void> _pickResolveImages() async {
     try {
       final picker = ImagePicker();
       if (kIsWeb) {
         final picked = await picker.pickMultiImage(maxWidth: 1920, maxHeight: 1080, imageQuality: 85);
         if (picked.isNotEmpty) {
-          final remaining = 10 - _replyImages.length;
-          if (remaining > 0) setState(() => _replyImages.addAll(picked.take(remaining)));
+          final remaining = 10 - _resolveImages.length;
+          if (remaining > 0) setState(() => _resolveImages.addAll(picked.take(remaining)));
         }
       } else {
         final source = await showDialog<ImageSource>(
@@ -84,14 +84,14 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         );
         if (source == ImageSource.camera) {
           final photo = await picker.pickImage(source: ImageSource.camera, maxWidth: 1920, maxHeight: 1080, imageQuality: 85);
-          if (photo != null && _replyImages.length < 10) {
-            setState(() => _replyImages.add(photo));
+          if (photo != null && _resolveImages.length < 10) {
+            setState(() => _resolveImages.add(photo));
           }
         } else if (source == ImageSource.gallery) {
           final picked = await picker.pickMultiImage(maxWidth: 1920, maxHeight: 1080, imageQuality: 85);
           if (picked.isNotEmpty) {
-            final remaining = 10 - _replyImages.length;
-            if (remaining > 0) setState(() => _replyImages.addAll(picked.take(remaining)));
+            final remaining = 10 - _resolveImages.length;
+            if (remaining > 0) setState(() => _resolveImages.addAll(picked.take(remaining)));
           }
         }
       }
@@ -99,185 +99,11 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
       _showErrorSnackBar('เลือกไฟล์ไม่สำเร็จ: $e');
     }
   }
-
-  Future<void> _sendReply() async {
-    if (_sendingReply) return;
-    final text = _replyController.text.trim();
-    if (text.isEmpty && _replyImages.isEmpty) {
-      _showErrorSnackBar('กรุณากรอกข้อความหรือแนบรูปอย่างน้อย 1 รายการ');
-      return;
-    }
-
-    final u = _currentUser;
-    final isAllowed = (u?.userRole == UserRole.admin || u?.userRole == UserRole.superAdmin) ||
-        (u?.hasAnyPermission([
-              DetailedPermission.all,
-              DetailedPermission.manageIssues,
-            ]) ??
-            false);
-    if (!isAllowed) {
-      _showErrorSnackBar('คุณไม่มีสิทธิ์ตอบกลับ');
-      return;
-    }
-
-    if (_replyImages.length > 10) {
-      _showErrorSnackBar('แนบรูปได้สูงสุด 10 รูปต่อการตอบกลับ');
-      return;
-    }
-
-    setState(() => _sendingReply = true);
-    try {
-      final created = await IssueResponseService.createResponse(
-        issueId: widget.issueId,
-        responseText: text.isEmpty ? null : text,
-        createdBy: u!.userId,
-      );
-      if (created['success'] != true) {
-        throw Exception(created['message'] ?? 'บันทึกการตอบกลับไม่สำเร็จ');
-      }
-      final responseId = created['data']['response_id'] as String;
-
-      for (final img in List<XFile>.from(_replyImages)) {
-        if (kIsWeb) {
-          final ext = img.name.contains('.') ? img.name.split('.').last.toLowerCase() : 'jpg';
-          final bytes = await img.readAsBytes();
-          final seq = await ImageService.generateSequentialFileName(
-            bucket: 'issue_res_images',
-            folder: 'responses/${widget.issueId}',
-            prefix: 'Resp',
-            extension: ext,
-          );
-          final up = await ImageService.uploadImageFromBytes(
-            bytes,
-            img.name,
-            'issue_res_images',
-            folder: 'responses/${widget.issueId}',
-            customFileName: seq,
-          );
-          if (up['success'] == true) {
-            await IssueResponseService.addResponseImage(responseId: responseId, imageUrl: up['url']);
-          } else {
-            _showErrorSnackBar(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
-          }
-        } else {
-          final ext = img.path.contains('.') ? img.path.split('.').last.toLowerCase() : 'jpg';
-          final seq = await ImageService.generateSequentialFileName(
-            bucket: 'issue_res_images',
-            folder: 'responses/${widget.issueId}',
-            prefix: 'Resp',
-            extension: ext,
-          );
-          final up = await ImageService.uploadImage(
-            File(img.path),
-            'issue_res_images',
-            folder: 'responses/${widget.issueId}',
-            customFileName: seq,
-          );
-          if (up['success'] == true) {
-            await IssueResponseService.addResponseImage(responseId: responseId, imageUrl: up['url']);
-          } else {
-            _showErrorSnackBar(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
-          }
-        }
-      }
-
-      _replyController.clear();
-      _replyImages.clear();
-      await _loadResponses();
-      _showSuccessSnackBar('ส่งการตอบกลับสำเร็จ');
-    } catch (e) {
-      _showErrorSnackBar('ส่งการตอบกลับไม่สำเร็จ: $e');
-    } finally {
-      if (mounted) setState(() => _sendingReply = false);
-    }
-  }
-
-  Widget _buildResponsesSection() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.forum_outlined, color: AppTheme.primary, size: 22),
-              const SizedBox(width: 10),
-              const Text(
-                'การตอบกลับ',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ..._responses.map((r) {
-            final text = (r['response_text'] ?? '').toString();
-            final imgs = List<Map<String, dynamic>>.from(r['issue_response_images'] ?? []);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
-                      const SizedBox(width: 6),
-                      Text(
-                        _formatDate(r['created_at']?.toString()),
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                  if (text.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(text, style: const TextStyle(fontSize: 14)),
-                  ],
-                  if (imgs.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 90,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: imgs.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 10),
-                        itemBuilder: (context, index) {
-                          final url = imgs[index]['image_url'] as String;
-                          return ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              url,
-                              height: 90,
-                              width: 90,
-                              fit: BoxFit.cover,
-                              errorBuilder: (c, e, s) => Container(
-                                height: 90,
-                                width: 90,
-                                color: Colors.grey[300],
-                                child: Icon(Icons.broken_image, color: Colors.grey[600]),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            );
-          }).toList(),
-        ],
-      ),
-    );
-  }
+  
 
   @override
   void dispose() {
     _resolutionController.dispose();
-    _replyController.dispose();
     super.dispose();
   }
 
@@ -383,6 +209,85 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                     ),
                     maxLines: 4,
                   ),
+                  const SizedBox(height: 12),
+                  if (_resolveImages.isNotEmpty)
+                    SizedBox(
+                      height: 84,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _resolveImages.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (context, index) {
+                          final imageFile = _resolveImages[index];
+                          return Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: kIsWeb
+                                    ? FutureBuilder(
+                                        future: imageFile.readAsBytes(),
+                                        builder: (context, snapshot) {
+                                          if (snapshot.hasData) {
+                                            return Image.memory(
+                                              snapshot.data!,
+                                              width: 84,
+                                              height: 84,
+                                              fit: BoxFit.cover,
+                                            );
+                                          }
+                                          return Container(
+                                            width: 84,
+                                            height: 84,
+                                            color: Colors.grey[200],
+                                            child: Center(
+                                              child: CircularProgressIndicator(
+                                                color: AppTheme.primary,
+                                                strokeWidth: 2,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      )
+                                    : Image.file(
+                                        File(imageFile.path),
+                                        width: 84,
+                                        height: 84,
+                                        fit: BoxFit.cover,
+                                      ),
+                              ),
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: InkWell(
+                                  onTap: () => setState(() => _resolveImages.removeAt(index)),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.close, size: 14, color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: _resolveImages.length >= 10 ? null : _pickResolveImages,
+                      icon: const Icon(Icons.add_photo_alternate),
+                      label: Text('แนบรูป (${_resolveImages.length}/10)'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primary,
+                        side: BorderSide(color: AppTheme.primary),
+                      ),
+                    ),
+                  ),
                 ],
               )
             : Column(
@@ -455,6 +360,65 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         );
 
         if (updateResult['success']) {
+          // When resolved, also create a response entry with images to appear in timeline
+          if (status == 'resolved') {
+            try {
+              final text = _resolutionController.text.trim();
+              final created = await IssueResponseService.createResponse(
+                issueId: widget.issueId,
+                responseText: text.isEmpty ? null : text,
+                createdBy: _currentUser?.userId ?? '',
+              );
+              if (created['success'] == true) {
+                final responseId = created['data']['response_id'] as String;
+                for (final img in List<XFile>.from(_resolveImages)) {
+                  if (kIsWeb) {
+                    final ext = img.name.contains('.') ? img.name.split('.').last.toLowerCase() : 'jpg';
+                    final bytes = await img.readAsBytes();
+                    final seq = await ImageService.generateSequentialFileName(
+                      bucket: 'issue_res_images',
+                      folder: 'responses/${widget.issueId}',
+                      prefix: 'Resp',
+                      extension: ext,
+                    );
+                    final up = await ImageService.uploadImageFromBytes(
+                      bytes,
+                      img.name,
+                      'issue_res_images',
+                      folder: 'responses/${widget.issueId}',
+                      customFileName: seq,
+                    );
+                    if (up['success'] == true) {
+                      await IssueResponseService.addResponseImage(responseId: responseId, imageUrl: up['url']);
+                    } else {
+                      _showErrorSnackBar(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                    }
+                  } else {
+                    final ext = img.path.contains('.') ? img.path.split('.').last.toLowerCase() : 'jpg';
+                    final seq = await ImageService.generateSequentialFileName(
+                      bucket: 'issue_res_images',
+                      folder: 'responses/${widget.issueId}',
+                      prefix: 'Resp',
+                      extension: ext,
+                    );
+                    final up = await ImageService.uploadImage(
+                      File(img.path),
+                      'issue_res_images',
+                      folder: 'responses/${widget.issueId}',
+                      customFileName: seq,
+                    );
+                    if (up['success'] == true) {
+                      await IssueResponseService.addResponseImage(responseId: responseId, imageUrl: up['url']);
+                    } else {
+                      _showErrorSnackBar(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                    }
+                  }
+                }
+              }
+            } catch (_) {}
+            _resolveImages.clear();
+            await _loadResponses();
+          }
           if (mounted) {
             _showSuccessSnackBar(updateResult['message']);
             _resolutionController.clear();
@@ -475,8 +439,16 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
     try {
       final result = await IssueService.assignIssue(widget.issueId, userId);
       if (result['success']) {
+        // Auto change status to in_progress after assignment
+        final statusRes = await IssueService.updateIssueStatus(
+          widget.issueId,
+          'in_progress',
+        );
         if (mounted) {
-          _showSuccessSnackBar(result['message']);
+          final msg = statusRes['success'] == true
+              ? 'มอบหมายและเริ่มดำเนินการแล้ว'
+              : result['message'];
+          _showSuccessSnackBar(msg);
           _loadData();
         }
       } else {
@@ -642,12 +614,6 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                         // Details Card
                         _buildDetailsCard(),
                         const SizedBox(height: 16),
-
-                        // Responses Section
-                        if (_responses.isNotEmpty) ...[
-                          _buildResponsesSection(),
-                          const SizedBox(height: 16),
-                        ],
 
                         // Images Section
                         if (_images.isNotEmpty) ...[
@@ -1060,148 +1026,7 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
             color: Colors.red,
             onTap: () => _confirmDelete(),
           ),
-          const SizedBox(height: 16),
-          if (_currentUser != null &&
-              (_currentUser!.userRole == UserRole.admin ||
-                  _currentUser!.userRole == UserRole.superAdmin ||
-                  _currentUser!.hasAnyPermission([
-                    DetailedPermission.all,
-                    DetailedPermission.manageIssues,
-                  ])))
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.reply_outlined, color: AppTheme.primary, size: 22),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'ตอบกลับงาน',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _replyController,
-                  minLines: 1,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    hintText: 'พิมพ์ข้อความตอบกลับ...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: AppTheme.primary, width: 2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                if (_replyImages.isNotEmpty)
-                  SizedBox(
-                    height: 84,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _replyImages.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
-                      itemBuilder: (context, index) {
-                        final imageFile = _replyImages[index];
-                        return Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: kIsWeb
-                                  ? FutureBuilder(
-                                      future: imageFile.readAsBytes(),
-                                      builder: (context, snapshot) {
-                                        if (snapshot.hasData) {
-                                          return Image.memory(
-                                            snapshot.data!,
-                                            width: 84,
-                                            height: 84,
-                                            fit: BoxFit.cover,
-                                          );
-                                        }
-                                        return Container(
-                                          width: 84,
-                                          height: 84,
-                                          color: Colors.grey[200],
-                                          child: Center(
-                                            child: CircularProgressIndicator(
-                                              color: AppTheme.primary,
-                                              strokeWidth: 2,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  : Image.file(
-                                      File(imageFile.path),
-                                      width: 84,
-                                      height: 84,
-                                      fit: BoxFit.cover,
-                                    ),
-                            ),
-                            Positioned(
-                              top: 4,
-                              right: 4,
-                              child: InkWell(
-                                onTap: () => setState(() => _replyImages.removeAt(index)),
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.close, size: 14, color: Colors.white),
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: _replyImages.length >= 10 ? null : _pickReplyImages,
-                      icon: const Icon(Icons.add_photo_alternate),
-                      label: Text('แนบรูป (${_replyImages.length}/10)'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.primary,
-                        side: BorderSide(color: AppTheme.primary),
-                      ),
-                    ),
-                    const Spacer(),
-                    ElevatedButton.icon(
-                      onPressed: _sendingReply ? null : _sendReply,
-                      icon: _sendingReply
-                          ? SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Icon(Icons.send),
-                      label: const Text('ส่งตอบกลับ'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+          
         ],
       ),
     );
@@ -1313,6 +1138,25 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
         'description': 'ปัญหาได้รับการแก้ไขเรียบร้อย',
       });
     }
+
+    // Add responses as part of timeline (evidence of resolution)
+    for (final r in _responses) {
+      final List imgs = List<Map<String, dynamic>>.from(r['issue_response_images'] ?? []);
+      timeline.add({
+        'date': r['created_at'],
+        'status': 'resolved',
+        'title': 'หลักฐานการแก้ไข',
+        'user': _issue!['assigned_user_name'] ?? 'ผู้ดูแล',
+        'icon': Icons.forum_outlined,
+        'description': (r['response_text'] ?? '').toString().isEmpty
+            ? 'มีการอัปโหลดรูปภาพหลักฐาน'
+            : (r['response_text'] ?? '').toString(),
+        'images': imgs.map((e) => e['image_url']).toList(),
+      });
+    }
+
+    // Sort by date ascending
+    timeline.sort((a, b) => DateTime.parse(a['date']).compareTo(DateTime.parse(b['date'])));
 
     if (timeline.isEmpty) {
       return Center(
@@ -1430,6 +1274,35 @@ class _IssueDetailScreenState extends State<IssueDetailScreen> {
                           color: Colors.grey[700],
                         ),
                       ),
+                      if ((item['images'] ?? []).isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: 90,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: (item['images'] as List).length,
+                            separatorBuilder: (_, __) => const SizedBox(width: 10),
+                            itemBuilder: (context, index) {
+                              final url = (item['images'] as List)[index] as String;
+                              return ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  url,
+                                  height: 90,
+                                  width: 90,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (c, e, s) => Container(
+                                    height: 90,
+                                    width: 90,
+                                    color: Colors.grey[300],
+                                    child: Icon(Icons.broken_image, color: Colors.grey[600]),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 8),
                       Row(
                         children: [
