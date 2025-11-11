@@ -1243,6 +1243,31 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     );
   }
 
+  // --- Row tap helpers to ensure selection toggles on ANY cell tap ---
+  Future<void> _onTapWaterRow(
+      String roomId, Map<String, dynamic> room, bool isNew, bool canCreate) async {
+    setState(() {
+      _selectedWaterRowId = (_selectedWaterRowId == roomId) ? null : roomId;
+    });
+    if (isNew) {
+      if (canCreate) await _showCreateDialog(room);
+    } else {
+      await _showEditDialog(roomId);
+    }
+  }
+
+  Future<void> _onTapElectricRow(
+      String roomId, Map<String, dynamic> room, bool isNew, bool canCreate) async {
+    setState(() {
+      _selectedElectricRowId = (_selectedElectricRowId == roomId) ? null : roomId;
+    });
+    if (isNew) {
+      if (canCreate) await _showCreateDialog(room);
+    } else {
+      await _showEditDialog(roomId);
+    }
+  }
+
   Widget _buildWaterDataTable(List<Map<String, dynamic>> rooms) {
     // หา rate id ของน้ำ
     String? waterRateId;
@@ -1421,23 +1446,11 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               col: 0,
               child: Text(tenant, overflow: TextOverflow.ellipsis),
             ),
-            onTap: () async {
-              if (isNew) {
-                if (canCreate) await _showCreateDialog(room);
-              } else {
-                await _showEditDialog(roomId);
-              }
-            },
+            onTap: () => _onTapWaterRow(roomId, room, isNew, canCreate),
           ),
           DataCell(
             _wrapHoverCell(isWater: true, col: 1, child: Text(roomNo)),
-            onTap: () async {
-              if (isNew) {
-                if (canCreate) await _showCreateDialog(room);
-              } else {
-                await _showEditDialog(roomId);
-              }
-            },
+            onTap: () => _onTapWaterRow(roomId, room, isNew, canCreate),
           ),
           DataCell(
             _wrapHoverCell(
@@ -1445,13 +1458,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               col: 2,
               child: Text(room['room_category_name']?.toString() ?? '-'),
             ),
-            onTap: () async {
-              if (isNew) {
-                if (canCreate) await _showCreateDialog(room);
-              } else {
-                await _showEditDialog(roomId);
-              }
-            },
+            onTap: () => _onTapWaterRow(roomId, room, isNew, canCreate),
           ),
           DataCell(
             _wrapHoverCell(
@@ -1459,13 +1466,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               col: 3,
               child: Text(prev.toStringAsFixed(0)),
             ),
-            onTap: () async {
-              if (isNew) {
-                if (canCreate) await _showCreateDialog(room);
-              } else {
-                await _showEditDialog(roomId);
-              }
-            },
+            onTap: () => _onTapWaterRow(roomId, room, isNew, canCreate),
           ),
           DataCell(
             _wrapHoverCell(
@@ -1473,13 +1474,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               col: 4,
               child: Text(current != null ? current.toStringAsFixed(0) : '-'),
             ),
-            onTap: () async {
-              if (isNew) {
-                if (canCreate) await _showCreateDialog(room);
-              } else {
-                await _showEditDialog(roomId);
-              }
-            },
+            onTap: () => _onTapWaterRow(roomId, room, isNew, canCreate),
           ),
           DataCell(
             _wrapHoverCell(
@@ -1487,13 +1482,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               col: 5,
               child: Text(usage != null ? usage.toStringAsFixed(2) : '-'),
             ),
-            onTap: () async {
-              if (isNew) {
-                if (canCreate) await _showCreateDialog(room);
-              } else {
-                await _showEditDialog(roomId);
-              }
-            },
+            onTap: () => _onTapWaterRow(roomId, room, isNew, canCreate),
           ),
           DataCell(
             _wrapHoverCell(
@@ -1501,13 +1490,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
               col: 6,
               child: Text(statusStr),
             ),
-            onTap: () async {
-              if (isNew) {
-                if (canCreate) await _showCreateDialog(room);
-              } else {
-                await _showEditDialog(roomId);
-              }
-            },
+            onTap: () => _onTapWaterRow(roomId, room, isNew, canCreate),
           ),
           DataCell(
             _wrapHoverCell(
@@ -1631,62 +1614,22 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             });
           },
           cells: [
-        DataCell(Text(tenant, overflow: TextOverflow.ellipsis), onTap: () async {
-          if (isNew) {
-            if (canCreate) await _showCreateDialog(room);
-          } else {
-            await _showEditDialog(roomId);
-          }
-        }),
-        DataCell(Text(roomNo), onTap: () async {
-          if (isNew) {
-            if (canCreate) await _showCreateDialog(room);
-          } else {
-            await _showEditDialog(roomId);
-          }
-        }),
-        DataCell(Text(room['room_category_name']?.toString() ?? '-'), onTap: () async {
-          if (isNew) {
-            if (canCreate) await _showCreateDialog(room);
-          } else {
-            await _showEditDialog(roomId);
-          }
-        }),
-        DataCell(Text(prev.toStringAsFixed(0)), onTap: () async {
-          if (isNew) {
-            if (canCreate) await _showCreateDialog(room);
-          } else {
-            await _showEditDialog(roomId);
-          }
-        }),
-        DataCell(Text(current != null ? current.toStringAsFixed(0) : '-'), onTap: () async {
-          if (isNew) {
-            if (canCreate) await _showCreateDialog(room);
-          } else {
-            await _showEditDialog(roomId);
-          }
-        }),
-        DataCell(Text(usage != null ? usage.toStringAsFixed(2) : '-'), onTap: () async {
-          if (isNew) {
-            if (canCreate) await _showCreateDialog(room);
-          } else {
-            await _showEditDialog(roomId);
-          }
-        }),
-        DataCell(Text(status), onTap: () async {
-          if (isNew) {
-            if (canCreate) await _showCreateDialog(room);
-          } else {
-            await _showEditDialog(roomId);
-          }
-        }),
-        DataCell(const Icon(Icons.edit_note, size: 18), onTap: () async {
-          if (isNew) {
-            if (canCreate) await _showCreateDialog(room);
-          } else {
-            await _showEditDialog(roomId);
-          }
-        }),
+        DataCell(Text(tenant, overflow: TextOverflow.ellipsis),
+            onTap: () => _onTapElectricRow(roomId, room, isNew, canCreate)),
+        DataCell(Text(roomNo),
+            onTap: () => _onTapElectricRow(roomId, room, isNew, canCreate)),
+        DataCell(Text(room['room_category_name']?.toString() ?? '-'),
+            onTap: () => _onTapElectricRow(roomId, room, isNew, canCreate)),
+        DataCell(Text(prev.toStringAsFixed(0)),
+            onTap: () => _onTapElectricRow(roomId, room, isNew, canCreate)),
+        DataCell(Text(current != null ? current.toStringAsFixed(0) : '-'),
+            onTap: () => _onTapElectricRow(roomId, room, isNew, canCreate)),
+        DataCell(Text(usage != null ? usage.toStringAsFixed(2) : '-'),
+            onTap: () => _onTapElectricRow(roomId, room, isNew, canCreate)),
+        DataCell(Text(status),
+            onTap: () => _onTapElectricRow(roomId, room, isNew, canCreate)),
+        DataCell(const Icon(Icons.edit_note, size: 18),
+            onTap: () => _onTapElectricRow(roomId, room, isNew, canCreate)),
         ]);
     }).toList();
 
