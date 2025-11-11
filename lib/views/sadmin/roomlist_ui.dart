@@ -279,15 +279,25 @@ class _RoomListUIState extends State<RoomListUI> {
 
   Future<void> _toggleRoomStatus(
       String roomId, String roomNumber, bool currentActive) async {
+    final room = _rooms.firstWhere(
+      (r) => (r['room_id']?.toString() ?? '') == roomId.toString(),
+      orElse: () => const {},
+    );
+    final categoryName = (room['room_category_name'] ?? '').toString();
+
     if (_isAnonymous) {
-      _showLoginPrompt('เปลี่ยนสถานะ');
+      _showLoginPrompt(
+          "เปลี่ยนสถานะ ${categoryName.isNotEmpty ? categoryName : 'ห้อง $roomNumber'}");
       return;
     }
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Container(
           padding: EdgeInsets.all(24),
           constraints: BoxConstraints(maxWidth: 400),
@@ -341,7 +351,7 @@ class _RoomListUIState extends State<RoomListUI> {
                     SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        'Room $roomNumber',
+                        '$categoryNameเลขที่ $roomNumber',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -387,8 +397,8 @@ class _RoomListUIState extends State<RoomListUI> {
                     Expanded(
                       child: Text(
                         currentActive
-                            ? 'ห้องนี้จะไม่แสดงในรายการ'
-                            : 'ห้องนี้จะแสดงในรายการ',
+                            ? '$categoryNameนี้จะไม่แสดงในรายการ'
+                            : '$categoryNameนี้จะแสดงในรายการ',
                         style: TextStyle(
                           color: currentActive
                               ? Colors.orange.shade800
@@ -530,8 +540,8 @@ class _RoomListUIState extends State<RoomListUI> {
                   SizedBox(height: 20),
                   Text(
                     currentActive
-                        ? 'กำลังปิดใช้งานห้อง'
-                        : 'กำลังเปิดใช้งานห้อง',
+                        ? 'กำลังปิดใช้งาน$categoryName'
+                        : 'กำลังเปิดใช้งาน$categoryName',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -586,14 +596,22 @@ class _RoomListUIState extends State<RoomListUI> {
   }
 
   Future<void> _deleteRoom(String roomId, String roomNumber) async {
+    final room = _rooms.firstWhere(
+      (r) => (r['room_id']?.toString() ?? '') == roomId.toString(),
+      orElse: () => const {},
+    );
+    final categoryName = (room['room_category_name'] ?? '').toString();
+
     if (_isAnonymous) {
-      _showLoginPrompt('ลบห้อง');
+      _showLoginPrompt(
+          "ลบ ${categoryName.isNotEmpty ? categoryName : 'ห้อง $roomNumber'}");
       return;
     }
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           padding: EdgeInsets.all(24),
@@ -617,7 +635,7 @@ class _RoomListUIState extends State<RoomListUI> {
               SizedBox(height: 20),
               // Title
               Text(
-                'ลบห้อง',
+                'ลบ$categoryName',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -640,7 +658,7 @@ class _RoomListUIState extends State<RoomListUI> {
                     SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        'ห้อง $roomNumber',
+                        '$categoryNameเลขที่ $roomNumber',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -673,7 +691,7 @@ class _RoomListUIState extends State<RoomListUI> {
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'การดำเนินการนี้ไม่สามารถย้อนกลับได้\nข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
+                        'ข้อมูลทั้งหมดจะถูกลบถาวร',
                         style: TextStyle(
                           color: Colors.red.shade800,
                           fontSize: 13,
@@ -796,7 +814,7 @@ class _RoomListUIState extends State<RoomListUI> {
                   ),
                   SizedBox(height: 20),
                   Text(
-                    'ลบห้อง',
+                    'ลบ$categoryNameเลขที่ $roomNumber',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -1017,7 +1035,7 @@ class _RoomListUIState extends State<RoomListUI> {
                       controller: _searchController,
                       onChanged: _onSearchChanged,
                       decoration: InputDecoration(
-                        hintText: 'ค้นหาห้องโดยหมวดหมู่, ประเภท, เลขห้อง...',
+                        hintText: 'ค้นหา',
                         hintStyle:
                             TextStyle(color: Colors.grey[500], fontSize: 14),
                         prefixIcon: Icon(Icons.search,
@@ -1069,6 +1087,7 @@ class _RoomListUIState extends State<RoomListUI> {
                               Expanded(
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
+                                    dropdownColor: Colors.white,
                                     value: _selectedStatus,
                                     isExpanded: true,
                                     icon: const Icon(Icons.keyboard_arrow_down,
@@ -1116,6 +1135,7 @@ class _RoomListUIState extends State<RoomListUI> {
                               Expanded(
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
+                                    dropdownColor: Colors.white,
                                     value: _selectedRoomStatusFilter,
                                     isExpanded: true,
                                     icon: const Icon(Icons.keyboard_arrow_down,
@@ -1174,6 +1194,7 @@ class _RoomListUIState extends State<RoomListUI> {
                               Expanded(
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
+                                    dropdownColor: Colors.white,
                                     value: _selectedRoomCategoryId ?? 'all',
                                     isExpanded: true,
                                     icon: const Icon(Icons.keyboard_arrow_down,
@@ -1224,6 +1245,7 @@ class _RoomListUIState extends State<RoomListUI> {
                               Expanded(
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
+                                    dropdownColor: Colors.white,
                                     value: _selectedRoomTypeId ?? 'all',
                                     isExpanded: true,
                                     icon: const Icon(Icons.keyboard_arrow_down,
@@ -1527,56 +1549,6 @@ class _RoomListUIState extends State<RoomListUI> {
           spacing = 12.0;
           maxAmenitiesShow = 3;
         }
-
-        // if (isTablet) {
-        //   cardMargin = 18.0;
-        //   cardPadding = 18.0;
-        //   iconSize = 18.0;
-        //   titleFontSize = 17.0;
-        //   subtitleFontSize = 14.0;
-        //   chipFontSize = 13.0;
-        //   bodyFontSize = 14.0;
-        //   amenityIconSize = 13.0;
-        //   amenityFontSize = 12.0;
-        //   spacing = 12.0;
-        //   maxAmenitiesShow = 3;
-        // } else if (isLaptop) {
-        //   cardMargin = 18.0;
-        //   cardPadding = 18.0;
-        //   iconSize = 18.0;
-        //   titleFontSize = 17.0;
-        //   subtitleFontSize = 14.0;
-        //   chipFontSize = 13.0;
-        //   bodyFontSize = 14.0;
-        //   amenityIconSize = 13.0;
-        //   amenityFontSize = 12.0;
-        //   spacing = 12.0;
-        //   maxAmenitiesShow = 3;
-        // } else if (isLaptopL) {
-        //   cardMargin = 18.0;
-        //   cardPadding = 18.0;
-        //   iconSize = 18.0;
-        //   titleFontSize = 17.0;
-        //   subtitleFontSize = 14.0;
-        //   chipFontSize = 13.0;
-        //   bodyFontSize = 14.0;
-        //   amenityIconSize = 13.0;
-        //   amenityFontSize = 12.0;
-        //   spacing = 12.0;
-        //   maxAmenitiesShow = 3;
-        // } else if (is4K) {
-        //   cardMargin = 18.0;
-        //   cardPadding = 18.0;
-        //   iconSize = 18.0;
-        //   titleFontSize = 17.0;
-        //   subtitleFontSize = 14.0;
-        //   chipFontSize = 13.0;
-        //   bodyFontSize = 14.0;
-        //   amenityIconSize = 13.0;
-        //   amenityFontSize = 12.0;
-        //   spacing = 12.0;
-        //   maxAmenitiesShow = 3;
-        // }
 
         return Card(
           margin: EdgeInsets.only(bottom: cardMargin),
@@ -1933,6 +1905,7 @@ class _RoomListUIState extends State<RoomListUI> {
   Widget _buildRoomMenu(
       Map<String, dynamic> room, bool canManage, bool isActive) {
     return PopupMenuButton<String>(
+      color: Colors.white,
       padding: EdgeInsets.zero,
       icon: Icon(Icons.more_vert, color: Colors.grey[600], size: 22),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

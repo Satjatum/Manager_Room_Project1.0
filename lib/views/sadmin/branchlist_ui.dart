@@ -993,8 +993,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                       controller: _searchController,
                       onChanged: _onSearchChanged,
                       decoration: InputDecoration(
-                        hintText:
-                            'ค้นหาสาขาโดยชื่อ, รหัส, ที่อยู่, เบอร์โทร, ผู้จัดการ...',
+                        hintText: 'ค้นหา',
                         hintStyle:
                             TextStyle(color: Colors.grey[500], fontSize: 14),
                         prefixIcon: Icon(Icons.search,

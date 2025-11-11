@@ -612,7 +612,8 @@ class _TenantListUIState extends State<TenantListUI> {
 
               // Tenant label
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(8),
@@ -963,7 +964,7 @@ class _TenantListUIState extends State<TenantListUI> {
                       controller: _searchController,
                       onChanged: _onSearchChanged,
                       decoration: InputDecoration(
-                        hintText: 'ค้นหาผู้เช่าโดยชื่อ, เบอร์โทรศัพท์, ',
+                        hintText: 'ค้นหา',
                         hintStyle:
                             TextStyle(color: Colors.grey[500], fontSize: 14),
                         prefixIcon: Icon(Icons.search,

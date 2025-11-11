@@ -215,7 +215,7 @@ class _SuperadmindashUiState extends State<SuperadmindashUi> {
                                   )['branch_name'],
                           )),
                           onOpenMeters: () => _openPage(
-                            const MeterReadingsListPage(),
+                            const MeterListUi(),
                           ),
                           onOpenIssues: () => _openPage(
                             const IssueListUi(),
