@@ -80,6 +80,9 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
   // Hovered column index per tab (-1/null = none)
   int? _hoveredWaterCol;
   int? _hoveredElectricCol;
+  // Selected row id per tab
+  String? _selectedWaterRowId;
+  String? _selectedElectricRowId;
 
   // Period helpers
   bool get _isCurrentPeriod {
@@ -1403,7 +1406,14 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         final isNew = existing == null;
         final canCreate = _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
 
-        return DataRow(cells: [
+        return DataRow(
+          selected: _selectedWaterRowId == roomId,
+          onSelectChanged: (sel) {
+            setState(() {
+              _selectedWaterRowId = (_selectedWaterRowId == roomId) ? null : roomId;
+            });
+          },
+          cells: [
           DataCell(
             _wrapHoverCell(
               isWater: true,
@@ -1549,6 +1559,9 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       }).toList(),
       headingRowColor: MaterialStateProperty.all(Colors.blue.withOpacity(0.06)),
       dataRowColor: MaterialStateProperty.resolveWith((states) {
+        if (states.contains(MaterialState.selected)) {
+          return Colors.blue.withOpacity(0.12); // แถวที่คลิก (น้ำ)
+        }
         if (states.contains(MaterialState.hovered)) {
           return Colors.grey.withOpacity(0.08); // hover แถวเป็นสีเทาอ่อน
         }
@@ -1609,7 +1622,14 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       final canCreate =
           _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
 
-      return DataRow(cells: [
+        return DataRow(
+          selected: _selectedElectricRowId == roomId,
+          onSelectChanged: (sel) {
+            setState(() {
+              _selectedElectricRowId = (_selectedElectricRowId == roomId) ? null : roomId;
+            });
+          },
+          cells: [
         DataCell(Text(tenant, overflow: TextOverflow.ellipsis), onTap: () async {
           if (isNew) {
             if (canCreate) await _showCreateDialog(room);
@@ -1666,7 +1686,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             await _showEditDialog(roomId);
           }
         }),
-      ]);
+        ]);
     }).toList();
 
     return DataTable(
@@ -1864,6 +1884,9 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       headingRowColor:
           MaterialStateProperty.all(Colors.orange.withOpacity(0.06)),
       dataRowColor: MaterialStateProperty.resolveWith((states) {
+        if (states.contains(MaterialState.selected)) {
+          return Colors.orange.withOpacity(0.12); // แถวที่คลิก (ไฟ)
+        }
         if (states.contains(MaterialState.hovered)) {
           return Colors.grey.withOpacity(0.08); // hover แถวเป็นสีเทาอ่อน
         }
