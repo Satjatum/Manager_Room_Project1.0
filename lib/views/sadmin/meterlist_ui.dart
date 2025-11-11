@@ -1359,6 +1359,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     }).toList();
 
     return DataTable(
+      showCheckboxColumn: false,
       columns: [
         DataColumn(label: _hoverHeaderLabel('ผู้เช่า', 0, isWater: true)),
         DataColumn(label: _hoverHeaderLabel('เลขที่', 1, isWater: true)),
@@ -1690,6 +1691,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     }).toList();
 
     return DataTable(
+      showCheckboxColumn: false,
       columns: [
         DataColumn(label: _hoverHeaderLabel('ผู้เช่า', 0, isWater: false)),
         DataColumn(label: _hoverHeaderLabel('เลขที่', 1, isWater: false)),
