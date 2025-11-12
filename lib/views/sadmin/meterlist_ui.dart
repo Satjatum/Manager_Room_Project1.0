@@ -2216,7 +2216,19 @@ class _MeterListUiState extends State<MeterListUi> {
 
   Future<void> _updateRow(String roomId) async {
     final existing = _existingByRoom[roomId];
-    if (existing == null) return;
+    // If there is no existing reading for this room/month, treat this as create
+    if (existing == null) {
+      final room = _rooms.firstWhere(
+        (r) => (r['room_id']?.toString() ?? '') == roomId,
+        orElse: () => <String, dynamic>{},
+      );
+      if (room.isNotEmpty) {
+        await _saveRow(room);
+      } else {
+        _showErrorSnackBar('ไม่พบข้อมูลห้อง');
+      }
+      return;
+    }
     final nCtrl = _noteCtrl[roomId]!;
 
     final prevW = (existing['water_previous_reading'] ?? 0.0).toDouble();
@@ -2297,27 +2309,258 @@ class _MeterListUiState extends State<MeterListUi> {
   }
 
   Future<void> _confirmDelete(String readingId, String roomId) async {
-    final ok = await showDialog<bool>(
+    final tenantName = (() {
+      try {
+        final r = _rooms.firstWhere(
+          (e) => (e['room_id']?.toString() ?? '') == roomId,
+          orElse: () => <String, dynamic>{},
+        );
+        return (r['tenant_name'] ?? '').toString();
+      } catch (_) {
+        return '';
+      }
+    })();
+
+    final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('ยืนยันการลบ'),
-        content: const Text('ต้องการลบข้อมูลค่ามิเตอร์ของเดือนนี้ใช่หรือไม่?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('ยกเลิก')),
-          ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('ลบ')),
-        ],
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.delete_outline,
+                  color: Colors.red.shade600,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title
+              const Text(
+                'ยืนยันการลบผู้เช่า',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Tenant label
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.person, size: 18, color: Colors.grey[700]),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        tenantName.isEmpty ? '-' : tenantName,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Info Box
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.red.shade100,
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.warning_rounded,
+                      color: Colors.red.shade600,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'การลบนี้ไม่สามารถกู้คืนได้',
+                            style: TextStyle(
+                              color: Colors.red,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.delete_outline, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'ยืนยันการลบ',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
 
-    if (ok != true) return;
+    if (confirm != true) return;
+
+    // Loading dialog while deleting
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 50,
+                      height: 50,
+                      child: CircularProgressIndicator(
+                        color: Colors.red,
+                        strokeWidth: 3,
+                      ),
+                    ),
+                    Icon(
+                      Icons.delete_outline,
+                      color: Colors.red.shade600,
+                      size: 28,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'กำลังลบข้อมูลผู้เช่า',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'กรุณารอสักครู่...',
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
 
     setState(() => _savingRoomIds.add(roomId));
     try {
       final res = await MeterReadingService.deleteMeterReading(readingId);
+      if (mounted) Navigator.of(context).pop(); // close loading dialog
       if (res['success'] == true) {
         _showSuccessSnackBar('ลบข้อมูลสำเร็จ');
         final warns = List.from(res['warnings'] ?? const []);
@@ -2376,6 +2619,7 @@ class _MeterListUiState extends State<MeterListUi> {
         _showErrorSnackBar(res['message'] ?? 'ลบไม่สำเร็จ');
       }
     } catch (e) {
+      if (mounted) Navigator.of(context).pop(); // close loading dialog
       _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
     } finally {
       if (mounted) setState(() => _savingRoomIds.remove(roomId));
