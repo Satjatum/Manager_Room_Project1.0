@@ -1071,7 +1071,7 @@ class _BranchEditUiState extends State<BranchEditUi>
                   ],
                 ),
                 SizedBox(height: 8),
-                Text('กรุณาเลือกผู้จัดการอย่างน้อย 1 คน (สามารถเลือกได้หลายคน)',
+                Text('กรุณาเลือกผู้จัดการอย่างน้อยหนึ่งคน',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600])),
                 if (_selectedManagerIds.isNotEmpty) ...[
                   SizedBox(height: 12),
@@ -1088,7 +1088,7 @@ class _BranchEditUiState extends State<BranchEditUi>
                             color: Colors.green.shade600, size: 20),
                         SizedBox(width: 8),
                         Text(
-                          '${_selectedManagerIds.length} ผู้จัดการ${_selectedManagerIds.length > 1 ? 'หลายคน' : 'คนเดียว'} ถูกเลือก',
+                          'เลือกผู้จัดการแล้ว ${_selectedManagerIds.length} ${_selectedManagerIds.length > 1 ? 'คน' : 'คน'} ',
                           style: TextStyle(
                               color: Colors.green.shade700,
                               fontWeight: FontWeight.w500),
@@ -1296,11 +1296,12 @@ class _BranchEditUiState extends State<BranchEditUi>
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'รูปสาขา',
+                  'รูปภาพสาขา',
                   style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
               ),
               if (_hasSelectedImage())
@@ -1542,11 +1543,14 @@ class _BranchEditUiState extends State<BranchEditUi>
                     color: Color(0xFF10B981), size: 20),
               ),
               SizedBox(width: 12),
-              Text('ข้อมูลพื้นฐาน',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87)),
+              Text(
+                'ข้อมูลพื้นฐานสาขา',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
             ],
           ),
           SizedBox(height: 16),
@@ -1625,7 +1629,6 @@ class _BranchEditUiState extends State<BranchEditUi>
               ),
               filled: true,
               fillColor: Colors.grey.shade50,
-              helperText: 'หมายเลขโทรศัพท์ของสาขา (ไม่บังคับ)',
             ),
             keyboardType: TextInputType.phone,
             validator: (value) {
@@ -1690,11 +1693,14 @@ class _BranchEditUiState extends State<BranchEditUi>
                     color: Color(0xFF10B981), size: 20),
               ),
               SizedBox(width: 12),
-              Text('รายละเอียดเพิ่มเติม',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87)),
+              Text(
+                'รายละเอียดเพิ่มเติม',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
             ],
           ),
           SizedBox(height: 16),

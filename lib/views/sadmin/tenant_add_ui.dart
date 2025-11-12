@@ -61,7 +61,7 @@ class _TenantAddUIState extends State<TenantAddUI>
   DateTime? _contractStartDate;
   DateTime? _contractEndDate;
   int _paymentDay = 1;
-  bool _contractPaid = false;
+  bool _contractPaid = true;
   bool _isActive = true;
   bool _createUserAccount = true;
   bool _isLoading = false;
@@ -469,6 +469,23 @@ class _TenantAddUIState extends State<TenantAddUI>
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
       locale: Localizations.localeOf(context),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppTheme.primary, // สีของ header และวันที่เลือก
+              onPrimary: Colors.white, // สีของตัวอักษรใน header
+              onSurface: Colors.black, // สีของวันที่ในปฏิทิน
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.black, // สีของปุ่ม Cancel และ OK
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
@@ -1375,6 +1392,7 @@ class _TenantAddUIState extends State<TenantAddUI>
 
             // เพศ
             DropdownButtonFormField<String>(
+              dropdownColor: Colors.white,
               value: _selectedGender,
               decoration: InputDecoration(
                 labelText: 'เพศ',
@@ -1731,6 +1749,7 @@ class _TenantAddUIState extends State<TenantAddUI>
             ],
             if (_selectedBranchId != null) ...[
               DropdownButtonFormField<String>(
+                dropdownColor: Colors.white,
                 value: _selectedRoomId,
                 decoration: InputDecoration(
                   labelText: 'ห้องพัก *',
@@ -1848,49 +1867,6 @@ class _TenantAddUIState extends State<TenantAddUI>
                     color: AppTheme.primary,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // เลขที่สัญญา
-            Row(
-              children: [
-                // Expanded(
-                //   child: TextFormField(
-                //     controller: _contractNumController,
-                //     decoration: InputDecoration(
-                //       labelText: 'เลขที่สัญญา *',
-                //       prefixIcon: const Icon(Icons.assignment),
-                //       border: OutlineInputBorder(
-                //         borderRadius: BorderRadius.circular(12),
-                //       ),
-                //       focusedBorder: OutlineInputBorder(
-                //         borderRadius: BorderRadius.circular(12),
-                //         borderSide: const BorderSide(
-                //             color: Color(0xff10B981), width: 2),
-                //       ),
-                //       enabledBorder: OutlineInputBorder(
-                //         borderRadius: BorderRadius.circular(12),
-                //         borderSide:
-                //             BorderSide(color: Colors.grey[300]!, width: 1),
-                //       ),
-                //       filled: true,
-                //       fillColor: Colors.grey.shade50,
-                //     ),
-                //     validator: (value) {
-                //       if (value == null || value.trim().isEmpty) {
-                //         return 'กรุณากรอกเลขที่สัญญา';
-                //       }
-                //       return null;
-                //     },
-                //   ),
-                // ),
-                // const SizedBox(width: 8),
-                // IconButton(
-                //   onPressed: _generateContractNumber,
-                //   icon: Icon(Icons.refresh, color: AppTheme.primary),
-                //   tooltip: 'สร้างเลขที่สัญญาใหม่',
-                // ),
               ],
             ),
             const SizedBox(height: 16),
@@ -2037,6 +2013,7 @@ class _TenantAddUIState extends State<TenantAddUI>
 
             // วันที่ชำระประจำเดือน
             DropdownButtonFormField<int>(
+              dropdownColor: Colors.white,
               value: _paymentDay,
               decoration: InputDecoration(
                 labelText: 'วันที่ชำระประจำเดือน',

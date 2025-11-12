@@ -1310,6 +1310,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             value: _selectedRoomCategoryId,
+            dropdownColor: Colors.white,
             decoration: InputDecoration(
               labelText: 'หมวดหมู่ห้อง',
               prefixIcon: const Icon(Icons.label),
@@ -1342,6 +1343,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
+            dropdownColor: Colors.white,
             value: _selectedRoomTypeId,
             decoration: InputDecoration(
               labelText: 'ประเภทห้อง',
@@ -1522,6 +1524,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
+            dropdownColor: Colors.white,
             value: _selectedRoomStatus,
             decoration: InputDecoration(
               labelText: 'สถานะห้อง',

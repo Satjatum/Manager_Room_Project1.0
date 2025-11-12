@@ -604,7 +604,7 @@ class _RoomListUIState extends State<RoomListUI> {
 
     if (_isAnonymous) {
       _showLoginPrompt(
-          "ลบ ${categoryName.isNotEmpty ? categoryName : 'ห้อง $roomNumber'}");
+          "ยืนยันการลบ ${categoryName.isNotEmpty ? categoryName : 'ห้อง $roomNumber'}");
       return;
     }
 
@@ -1371,20 +1371,20 @@ class _RoomListUIState extends State<RoomListUI> {
                               double estimatedTileHeight;
 
                               if (width >= 2560) {
-                                // 4K - larger cards
-                                estimatedTileHeight = tileWidth * 1.55;
+                                // 4K - slightly reduced height
+                                estimatedTileHeight = tileWidth * 1.40;
                               } else if (width >= 1440) {
-                                // Laptop L - เพิ่มความสูงเพื่อแก้ 82px overflow
-                                estimatedTileHeight = tileWidth * 1.60;
+                                // Laptop L - reduce height for better aesthetics
+                                estimatedTileHeight = tileWidth * 1.50;
                               } else if (width >= 1024) {
-                                // Laptop - เพิ่มความสูงเพื่อแก้ 67px overflow
-                                estimatedTileHeight = tileWidth * 1.58;
+                                // Laptop - reduce height for better aesthetics
+                                estimatedTileHeight = tileWidth * 1.45;
                               } else if (width >= 768) {
                                 // Tablet
-                                estimatedTileHeight = tileWidth * 1.50;
+                                estimatedTileHeight = tileWidth * 1.35;
                               } else {
                                 // Fallback
-                                estimatedTileHeight = tileWidth * 1.50;
+                                estimatedTileHeight = tileWidth * 1.40;
                               }
 
                               double dynamicAspect =
@@ -1536,9 +1536,14 @@ class _RoomListUIState extends State<RoomListUI> {
         double spacing = 10.0;
         int maxAmenitiesShow = 3;
 
-        if (isTablet || isLaptop || isLaptopL || is4K) {
-          cardMargin = 18.0;
-          cardPadding = 18.0;
+        // Determine if the screen is tablet-sized or larger
+        final bool isLargeScreen = isTablet || isLaptop || isLaptopL || is4K;
+
+        if (isLargeScreen) {
+          // On tablet and larger devices, reduce padding and spacing slightly
+          // to prevent cards from looking oversized relative to their content.
+          cardMargin = 16.0;
+          cardPadding = 14.0; // was 18.0
           iconSize = 18.0;
           titleFontSize = 17.0;
           subtitleFontSize = 14.0;
@@ -1546,7 +1551,7 @@ class _RoomListUIState extends State<RoomListUI> {
           bodyFontSize = 14.0;
           amenityIconSize = 13.0;
           amenityFontSize = 12.0;
-          spacing = 12.0;
+          spacing = 10.0; // was 12.0
           maxAmenitiesShow = 3;
         }
 
@@ -1773,8 +1778,11 @@ class _RoomListUIState extends State<RoomListUI> {
                                 color: Colors.grey[700],
                                 height: 1.4,
                               ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                              // On tablet and larger, restrict the description to a few lines
+                              // to reduce card height; otherwise show full description.
+                              maxLines: isLargeScreen ? 4 : null,
+                              overflow:
+                                  isLargeScreen ? TextOverflow.ellipsis : null,
                             ),
                           ),
                         ],

@@ -933,7 +933,7 @@ class _BranchAddUiState extends State<BranchAddUi>
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'กรุณาเลือกผู้จัดการอย่างน้อย 1 คน (สามารถเลือกได้หลายคน)',
+                  'กรุณาเลือกผู้จัดการอย่างน้อยหนึ่งคน',
                   style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
                 if (_selectedManagerIds.isNotEmpty) ...[
@@ -951,7 +951,7 @@ class _BranchAddUiState extends State<BranchAddUi>
                             color: Colors.green.shade600, size: 20),
                         SizedBox(width: 8),
                         Text(
-                          '${_selectedManagerIds.length} ผู้จัดการ${_selectedManagerIds.length > 1 ? 'หลายคน' : 'คน'} ถูกเลือกแล้ว',
+                          'เลือกผู้จัดการแล้ว ${_selectedManagerIds.length} ${_selectedManagerIds.length > 1 ? 'คน' : 'คน'} ',
                           style: TextStyle(
                             color: Colors.green.shade700,
                             fontWeight: FontWeight.w500,
@@ -1158,6 +1158,7 @@ class _BranchAddUiState extends State<BranchAddUi>
           Row(
             children: [
               Container(
+                padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: Color(0xFF10B981).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -1244,7 +1245,7 @@ class _BranchAddUiState extends State<BranchAddUi>
                   child: OutlinedButton.icon(
                     onPressed: _pickImage,
                     icon: Icon(Icons.swap_horiz, size: 18),
-                    label: Text('Change'),
+                    label: Text('เปลี่ยน'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Color(0xFF10B981),
                       side: BorderSide(color: Color(0xFF10B981)),
@@ -1257,7 +1258,7 @@ class _BranchAddUiState extends State<BranchAddUi>
                   child: OutlinedButton.icon(
                     onPressed: _removeImage,
                     icon: Icon(Icons.delete_outline, size: 18),
-                    label: Text('Remove'),
+                    label: Text('ลบ'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
                       side: BorderSide(color: Colors.red.shade300),
@@ -1480,7 +1481,6 @@ class _BranchAddUiState extends State<BranchAddUi>
               ),
               filled: true,
               fillColor: Colors.grey.shade50,
-              helperText: 'หมายเลขโทรศัพท์ติดต่อสาขา (ไม่บังคับ)',
             ),
             maxLength: 10,
             keyboardType: TextInputType.phone,

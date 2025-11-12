@@ -72,7 +72,7 @@ class _TenantEditUIState extends State<TenantEditUI>
   DateTime? _contractStartDate;
   DateTime? _contractEndDate;
   int _paymentDay = 1;
-  bool _contractPaid = false;
+  bool _contractPaid = true;
 
   UserModel? _currentUser;
 
@@ -419,9 +419,26 @@ class _TenantEditUIState extends State<TenantEditUI>
       initialDate: isStartDate
           ? (_contractStartDate ?? DateTime.now())
           : (_contractEndDate ?? DateTime.now().add(const Duration(days: 365))),
-      firstDate: DateTime(2020),
+      firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
       locale: Localizations.localeOf(context),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppTheme.primary, // สีของ header และวันที่เลือก
+              onPrimary: Colors.white, // สีของตัวอักษรใน header
+              onSurface: Colors.black, // สีของวันที่ในปฏิทิน
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.black, // สีของปุ่ม Cancel และ OK
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
@@ -1351,6 +1368,7 @@ class _TenantEditUIState extends State<TenantEditUI>
 
           // วันที่ชำระประจำเดือน
           DropdownButtonFormField<int>(
+            dropdownColor: Colors.white,
             value: _paymentDay,
             decoration: InputDecoration(
               labelText: 'วันที่ชำระประจำเดือน',
@@ -1764,6 +1782,7 @@ class _TenantEditUIState extends State<TenantEditUI>
 
           // เพศ
           DropdownButtonFormField<String>(
+            dropdownColor: Colors.white,
             value: _selectedGender,
             decoration: InputDecoration(
               labelText: 'เพศ',

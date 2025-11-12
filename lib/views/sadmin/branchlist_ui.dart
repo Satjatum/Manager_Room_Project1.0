@@ -665,7 +665,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
 
               // Title
               Text(
-                'Delete Branch?',
+                'ยืนยันการลบสาขา',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -723,7 +723,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'การดำเนินการนี้ไม่สามารถย้อนกลับได้\nข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
+                        'ข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
                         style: TextStyle(
                           color: Colors.red.shade800,
                           fontSize: 13,
@@ -751,7 +751,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                         ),
                       ),
                       child: Text(
-                        'Cancel',
+                        'ยกเลิก',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -778,7 +778,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                           Icon(Icons.delete_outline, size: 18),
                           SizedBox(width: 8),
                           Text(
-                            'Delete',
+                            'ลบ',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -850,7 +850,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
 
                   // Loading Text
                   Text(
-                    'Deleting Branch',
+                    'ลบสาขา',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -859,7 +859,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Please wait a moment...',
+                    'กรุณารอสักครู่...',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -1029,6 +1029,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                         Expanded(
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
+                              dropdownColor: Colors.white,
                               value: _selectedStatus,
                               isExpanded: true,
                               icon: Icon(Icons.keyboard_arrow_down, size: 20),
@@ -1252,9 +1253,15 @@ class _BranchlistUiState extends State<BranchlistUi> {
 
         Widget buildMenu() => PopupMenuButton<String>(
               padding: EdgeInsets.zero,
-              icon: Icon(Icons.more_vert, color: Colors.grey[600], size: 22),
+              color: Colors.white,
+              icon: Icon(
+                Icons.more_vert,
+                color: Colors.grey[600],
+                size: 22,
+              ),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
               offset: Offset(0, 40),
               itemBuilder: (context) => [
                 PopupMenuItem(
