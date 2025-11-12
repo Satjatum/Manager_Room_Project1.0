@@ -1024,8 +1024,9 @@ class _BranchlistUiState extends State<BranchlistUi> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.filter_list, size: 20, color: Colors.white),
-                        SizedBox(width: 8),
+                        Icon(Icons.filter_list,
+                            size: 20, color: Colors.grey[700]),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(

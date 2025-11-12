@@ -787,8 +787,8 @@ class _TenantEditUIState extends State<TenantEditUI>
                 indicatorWeight: 3,
                 tabs: const [
                   Tab(icon: Icon(Icons.person), text: 'ข้อมูลผู้เช่า'),
-                  Tab(icon: Icon(Icons.description), text: 'ข้อมูลสัญญา'),
                   Tab(icon: Icon(Icons.account_circle), text: 'บัญชีผู้ใช้'),
+                  Tab(icon: Icon(Icons.description), text: 'ข้อมูลสัญญา'),
                 ],
               ),
             ),
@@ -837,7 +837,6 @@ class _TenantEditUIState extends State<TenantEditUI>
   }
 
   Widget _buildWhiteHeader() {
-    final name = _tenantFullNameController.text.trim();
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1184,16 +1183,10 @@ class _TenantEditUIState extends State<TenantEditUI>
           const Divider(height: 24),
           _buildInfoRow(
             icon: Icons.home,
-            label: 'ห้องพัก',
+            label: _activeContract!['room_category_name'],
             value: _activeContract!['rooms']?['room_number'] ?? '-',
           ),
           const Divider(height: 24),
-          _buildInfoRow(
-            icon: Icons.business,
-            label: 'สาขา',
-            value:
-                _activeContract!['rooms']?['branches']?['branch_name'] ?? '-',
-          ),
         ],
       ),
     );

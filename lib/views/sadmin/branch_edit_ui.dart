@@ -910,7 +910,7 @@ class _BranchEditUiState extends State<BranchEditUi>
                   tabs: [
                     Tab(
                         icon: Icon(Icons.info_outline, size: 20),
-                        text: 'ข้อมูลสาขา'),
+                        text: 'รายละเอียดสาขา'),
                     Tab(
                         icon: Icon(Icons.people_outline, size: 20),
                         text: 'ผู้จัดการ'),

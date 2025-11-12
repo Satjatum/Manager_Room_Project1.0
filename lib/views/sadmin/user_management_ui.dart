@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:manager_room_project/views/widgets/colors.dart';
 import '../../models/user_models.dart';
 import '../../services/user_service.dart';
 

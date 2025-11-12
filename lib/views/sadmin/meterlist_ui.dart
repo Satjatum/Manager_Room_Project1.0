@@ -437,6 +437,7 @@ class _MeterListUiState extends State<MeterListUi> {
                                   Expanded(
                                     child: DropdownButtonHideUnderline(
                                       child: DropdownButton<String?>(
+                                        dropdownColor: Colors.white,
                                         value: _selectedCategory,
                                         isExpanded: true,
                                         icon: const Icon(
@@ -491,6 +492,7 @@ class _MeterListUiState extends State<MeterListUi> {
                                   Expanded(
                                     child: DropdownButtonHideUnderline(
                                       child: DropdownButton<int>(
+                                        dropdownColor: Colors.white,
                                         value: _selectedMonth,
                                         isExpanded: true,
                                         icon: const Icon(
@@ -534,6 +536,7 @@ class _MeterListUiState extends State<MeterListUi> {
                                   Expanded(
                                     child: DropdownButtonHideUnderline(
                                       child: DropdownButton<int>(
+                                        dropdownColor: Colors.white,
                                         value: _selectedYear,
                                         isExpanded: true,
                                         icon: const Icon(

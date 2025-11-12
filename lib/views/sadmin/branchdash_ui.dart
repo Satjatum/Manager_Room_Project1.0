@@ -41,7 +41,10 @@ class BranchDashboardPage extends StatelessWidget {
       return ok == true;
     }
 
-    final items = [
+    // Define the list of dashboard actions. Each card in the grid is built
+    // using these descriptors. Keeping this list near the top of the build
+    // method makes it easier to add or remove items later on.
+    final items = <_DashItem>[
       _DashItem(
         icon: Icons.meeting_room_outlined,
         label: 'ห้องพัก',
@@ -145,12 +148,19 @@ class BranchDashboardPage extends StatelessWidget {
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header section (theme-aligned with branchlist_ui / settingbranch_ui)
-              Padding(
-                padding: const EdgeInsets.all(24),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Capture the full screen width. We'll compute our responsive
+              // breakpoints based on the entire available width rather than
+              // constraining the content to a fixed maximum. This allows the
+              // dashboard to stretch across the screen on larger displays.
+              final double screenW = constraints.maxWidth;
+              // Compose the header with a back button and title. On larger screens
+              // the header remains aligned to the left, while on phones it
+              // stretches across the width.
+              final header = Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -181,82 +191,88 @@ class BranchDashboardPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            (branchName == null || branchName!.isEmpty)
-                                ? 'เลือกเมนูการทำงานของสาขา'
-                                : 'เลือกเมนูการทำงานของสาขา',
+                            'เลือกเมนูการทำงานของสาขา',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[600],
                             ),
                           ),
-                          // เอารหัสสาขาออก และย้ายชื่อสาขาไปแสดงในส่วนเนื้อหาด้านล่างเป็น Card
                         ],
                       ),
                     ),
                   ],
                 ),
-              ),
+              );
 
-              // Content section — Responsive breakpoints; center only on phone
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final maxW = _maxContentWidth(constraints.maxWidth);
-                    // Determine columns by available width
-                    int cross = 4;
-                    if (maxW < 360) {
-                      cross = 2; // Mobile S
-                    } else if (maxW < 480) {
-                      cross = 3; // Mobile M/L
-                    } else {
-                      cross = 8; // Tablet and above
-                    }
+              // Determine the number of columns based on available width. The grid
+              // uses a fixed cross axis count so the cards fill the entire row
+              // before wrapping to the next line. Adjust these breakpoints to
+              // your liking to achieve a consistent look across devices.
+              int crossAxisCount;
+              if (screenW < 480) {
+                crossAxisCount = 2; // small phones
+              } else if (screenW < 800) {
+                crossAxisCount = 3; // large phones / small tablets
+              } else if (screenW < 1100) {
+                crossAxisCount = 4; // tablets / small laptops
+              } else if (screenW < 1400) {
+                crossAxisCount = 5; // medium desktops
+              } else {
+                crossAxisCount = 6; // large desktops / wide screens
+              }
 
-                    final content = ListView(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-                      children: [
-                        if ((branchName ?? '').isNotEmpty)
-                          _BranchNameCard(name: branchName!),
-                        const SizedBox(height: 8),
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: cross,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 0.9,
-                          ),
-                          itemCount: items.length,
-                          itemBuilder: (context, i) =>
-                              _DashCard(item: items[i]),
-                        ),
-                      ],
-                    );
+              // Build the list containing the branch name card (if provided) and the
+              // responsive grid. Using a fixed cross axis count ensures the
+              // buttons span the entire width of the content area before
+              // starting a new line.
+              final contentList = ListView(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                children: [
+                  if ((branchName ?? '').isNotEmpty)
+                    _BranchNameCard(name: branchName!),
+                  const SizedBox(height: 12),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 20,
+                      childAspectRatio: 0.9,
+                    ),
+                    itemCount: items.length,
+                    itemBuilder: (context, i) => _DashCard(item: items[i]),
+                  ),
+                ],
+              );
 
-                    if (isMobileApp) {
-                      // Center on native phones
-                      return Align(
-                        alignment: Alignment.topCenter,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(maxWidth: maxW),
-                          child: content,
-                        ),
-                      );
-                    }
-                    // Desktop/Web: left align within responsive max width
-                    return Align(
-                      alignment: Alignment.topLeft,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: maxW),
-                        child: content,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+              // Assemble the final layout. On mobile devices we center the content
+              // horizontally within the viewport; on larger screens we left align
+              // the content within the maximum width to provide a more desktop‑like
+              // experience.
+              if (isMobileApp) {
+                // On mobile devices, stretch the content across the full width of the
+                // screen. We no longer use ConstrainedBox so the grid fills
+                // horizontally before wrapping.
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    header,
+                    Expanded(child: contentList),
+                  ],
+                );
+              }
+              // Desktop/web: likewise stretch the dashboard to fill the available
+              // width. The crossAxisCount calculation above handles responsive
+              // column counts.
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  header,
+                  Expanded(child: contentList),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -265,14 +281,10 @@ class BranchDashboardPage extends StatelessWidget {
 }
 
 // Responsive content widths (Mobile S/M/L, Tablet, Laptop, Laptop L, 4K)
-double _maxContentWidth(double screenWidth) {
-  if (screenWidth >= 2560) return 1280; // 4K
-  if (screenWidth >= 1440) return 1100; // Laptop L
-  if (screenWidth >= 1200) return 1000; // Laptop
-  if (screenWidth >= 900) return 860; // Tablet landscape / small desktop
-  if (screenWidth >= 600) return 560; // Mobile L / Tablet portrait
-  return screenWidth; // Mobile S/M
-}
+// Previously the layout limited its width using _maxContentWidth, but now
+// the dashboard stretches to fill the available space. The helper is kept
+// for legacy compatibility but returns the input unchanged.
+double _maxContentWidth(double screenWidth) => screenWidth;
 
 class _DashItem {
   final IconData icon;
@@ -287,36 +299,55 @@ class _DashCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Each dashboard card uses a subtle elevation and increased padding to
+    // create a modern, touch‑friendly appearance. The circular icon
+    // container scales up slightly and the font size is increased to aid
+    // readability on larger screens.
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: item.onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Ink(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.grey[300]!),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.08),
+                    color: AppTheme.primary.withOpacity(0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(item.icon, color: AppTheme.primary, size: 24),
+                  child: Center(
+                    child: Icon(
+                      item.icon,
+                      color: AppTheme.primary,
+                      size: 30,
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 Text(
                   item.label,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
                   ),
@@ -339,30 +370,42 @@ class _BranchNameCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Display the branch name in its own card with a larger icon and
+    // comfortable padding. This card sits above the grid and is only
+    // shown when a branch name is provided.
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey[300]!),
+      ),
       elevation: 0,
       color: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
+                color: AppTheme.primary.withOpacity(0.15),
                 shape: BoxShape.circle,
               ),
-              child:
-                  const Icon(Icons.business, color: AppTheme.primary, size: 20),
+              child: const Center(
+                child: Icon(
+                  Icons.business,
+                  color: AppTheme.primary,
+                  size: 24,
+                ),
+              ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Expanded(
               child: Text(
                 name,
                 style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
                   color: Colors.black87,
                 ),
                 maxLines: 2,

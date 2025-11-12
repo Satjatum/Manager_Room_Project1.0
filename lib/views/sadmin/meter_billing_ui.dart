@@ -21,6 +21,12 @@ class MeterBillingPage extends StatefulWidget {
 }
 
 class _MeterBillingPageState extends State<MeterBillingPage> {
+  // Controller for the search TextField. Used to capture and clear the search input.
+  final TextEditingController _searchController = TextEditingController();
+
+  // Stores the current search query string. When this changes, _applyFilters
+  // updates the underlying _roomFilter used by the list filter.
+  String _searchQuery = '';
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
 
@@ -29,6 +35,23 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
   String _roomFilter = '';
   String? _selectedCategory;
   List<String> _categories = [];
+
+  @override
+  void dispose() {
+    // Dispose of controllers to free resources when this widget is removed.
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// Applies the current search query and other filters to update the room filter.
+  void _applyFilters() {
+    setState(() {
+      // Trim and assign the search query to _roomFilter which is used by
+      // _getFilteredReadings to filter the list. This keeps the search and
+      // filtering logic consistent.
+      _roomFilter = _searchQuery.trim();
+    });
+  }
 
   @override
   void initState() {
@@ -64,7 +87,9 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
           .toSet()
           .toList()
         ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-      _categories = ['ทั้งหมด', ...cats];
+      // Do not include 'ทั้งหมด' here; the UI will provide a dedicated
+      // 'ทั้งหมด' (All) option with a null value.
+      _categories = cats;
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -82,7 +107,7 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
       final rn = (r['room_number'] ?? '').toString().toLowerCase();
       final rc = (r['room_category_name'] ?? '').toString();
       final roomMatch = roomKey.isEmpty || rn.contains(roomKey);
-      final catMatch = category == null || category == 'ทั้งหมด' || rc == category;
+      final catMatch = category == null || rc == category;
       return roomMatch && catMatch;
     }).toList();
   }
@@ -107,10 +132,6 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
 
   @override
   Widget build(BuildContext context) {
-    final platform = Theme.of(context).platform;
-    final bool isMobileApp = !kIsWeb &&
-        (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -157,139 +178,210 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                 ],
               ),
             ),
+            // Search box
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    // Update the search query and apply filters whenever the user types.
+                    setState(() => _searchQuery = value);
+                    _applyFilters();
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'ค้นหา',
+                    hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                    prefixIcon:
+                        Icon(Icons.search, color: Colors.grey[600], size: 20),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(Icons.clear,
+                                color: Colors.grey[600], size: 20),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                              _applyFilters();
+                            },
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                  ),
+                ),
+              ),
+            ),
 
             // Filters and list within responsive container
             Expanded(
               child: Column(
                 children: [
+                  // Filters for category, month and year using custom styled dropdowns
                   Padding(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
-                          child: DropdownButtonFormField<int>(
-                            value: _selectedMonth,
-                            decoration: InputDecoration(
-                              labelText: 'เดือน',
-                              border: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                        // หมวดหมู่ห้อง
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 4),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey[300]!),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.grid_view_outlined,
+                                        size: 20, color: Colors.grey[700]),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: DropdownButtonHideUnderline(
+                                        child: DropdownButton<String?>(
+                                          dropdownColor: Colors.white,
+                                          value: _selectedCategory,
+                                          isExpanded: true,
+                                          icon: const Icon(
+                                              Icons.keyboard_arrow_down,
+                                              size: 20),
+                                          style: const TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.black87),
+                                          onChanged: (val) => setState(
+                                              () => _selectedCategory = val),
+                                          items: [
+                                            const DropdownMenuItem<String?>(
+                                              value: null,
+                                              child: Text('ทั้งหมด'),
+                                            ),
+                                            ..._categories
+                                                .map(
+                                                  (c) =>
+                                                      DropdownMenuItem<String?>(
+                                                          value: c,
+                                                          child: Text(c)),
+                                                )
+                                                .toList(),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              enabledBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey[300]!),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey[500]!),
-                              ),
-                              isDense: true,
-                              filled: true,
-                              fillColor: Colors.white,
                             ),
-                            items: List.generate(12, (i) => i + 1)
-                                .map((m) => DropdownMenuItem(
-                                    value: m, child: Text(_getMonthName(m))))
-                                .toList(),
-                            onChanged: (v) async {
-                              setState(
-                                  () => _selectedMonth = v ?? _selectedMonth);
-                              await _loadData();
-                            },
-                          ),
+                          ],
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: DropdownButtonFormField<int>(
-                            value: _selectedYear,
-                            decoration: InputDecoration(
-                              labelText: 'ปี (พ.ศ.)',
-                              border: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                        const SizedBox(height: 12),
+                        // เดือน + ปี (พ.ศ.)
+                        Row(
+                          children: [
+                            // เดือน
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 4),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey[300]!),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.calendar_today_outlined,
+                                        size: 18, color: Colors.grey[700]),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: DropdownButtonHideUnderline(
+                                        child: DropdownButton<int>(
+                                          dropdownColor: Colors.white,
+                                          value: _selectedMonth,
+                                          isExpanded: true,
+                                          icon: const Icon(
+                                              Icons.keyboard_arrow_down,
+                                              size: 20),
+                                          style: const TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.black87),
+                                          items: List.generate(12, (i) => i + 1)
+                                              .map((m) => DropdownMenuItem(
+                                                  value: m,
+                                                  child:
+                                                      Text(_getMonthName(m))))
+                                              .toList(),
+                                          onChanged: (val) async {
+                                            setState(() => _selectedMonth =
+                                                val ?? _selectedMonth);
+                                            await _loadData();
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              enabledBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey[300]!),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey[500]!),
-                              ),
-                              isDense: true,
-                              filled: true,
-                              fillColor: Colors.white,
                             ),
-                            items:
-                                List.generate(6, (i) => DateTime.now().year - i)
-                                    .map((y) => DropdownMenuItem(
-                                        value: y, child: Text('${y + 543}')))
-                                    .toList(),
-                            onChanged: (v) async {
-                              setState(
-                                  () => _selectedYear = v ?? _selectedYear);
-                              await _loadData();
-                            },
-                          ),
+                            const SizedBox(width: 8),
+                            // ปี (พ.ศ.)
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 4),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey[300]!),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.date_range,
+                                        size: 20, color: Colors.grey[700]),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: DropdownButtonHideUnderline(
+                                        child: DropdownButton<int>(
+                                          dropdownColor: Colors.white,
+                                          value: _selectedYear,
+                                          isExpanded: true,
+                                          icon: const Icon(
+                                              Icons.keyboard_arrow_down,
+                                              size: 20),
+                                          style: const TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.black87),
+                                          items: List.generate(
+                                                  6,
+                                                  (i) =>
+                                                      DateTime.now().year - i)
+                                              .map((y) => DropdownMenuItem(
+                                                  value: y,
+                                                  child: Text('${y + 543}')))
+                                              .toList(),
+                                          onChanged: (val) async {
+                                            setState(() => _selectedYear =
+                                                val ?? _selectedYear);
+                                            await _loadData();
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: TextFormField(
-                            decoration: InputDecoration(
-                              labelText: 'ค้นหาเลขห้อง',
-                              border: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey[300]!),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey[300]!),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey[500]!),
-                              ),
-                              isDense: true,
-                              filled: true,
-                              fillColor: Colors.white,
-                              prefixIcon: const Icon(Icons.search),
-                            ),
-                            onChanged: (v) => setState(() => _roomFilter = v),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 2,
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedCategory ?? (_categories.isNotEmpty ? 'ทั้งหมด' : null),
-                            decoration: InputDecoration(
-                              labelText: 'หมวดหมู่ห้อง',
-                              border: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey[300]!),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey[300]!),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey[500]!),
-                              ),
-                              isDense: true,
-                              filled: true,
-                              fillColor: Colors.white,
-                            ),
-                            items: _categories
-                                .map((c) => DropdownMenuItem<String>(
-                                      value: c,
-                                      child: Text(c),
-                                    ))
-                                .toList(),
-                            onChanged: (v) => setState(() => _selectedCategory = v),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
                   Expanded(
                     child: _loading
                         ? const Center(
@@ -306,8 +398,9 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                                   itemCount: _getFilteredReadings().length,
                                   separatorBuilder: (_, __) =>
                                       const SizedBox(height: 8),
-                                  itemBuilder: (context, index) => _buildReadingTile(
-                                      _getFilteredReadings()[index]),
+                                  itemBuilder: (context, index) =>
+                                      _buildReadingTile(
+                                          _getFilteredReadings()[index]),
                                 ),
                               ),
                   ),
@@ -340,7 +433,8 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
     final roomNo = (r['room_number'] ?? '-').toString();
     final tenant = (r['tenant_name'] ?? '-').toString();
     final roomCate = (r['room_category_name'] ?? '-').toString();
-
+    final monthName = _getMonthName(r['reading_month'] ?? _selectedMonth);
+    final yearDisplay = (_selectedYear + 543).toString();
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -350,65 +444,83 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
           BoxShadow(color: Color(0x0F000000), blurRadius: 10, spreadRadius: -2),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.08),
-                shape: BoxShape.circle,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _goToInvoice(r),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Leading icon/avatar
+              Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withOpacity(0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.meeting_room, color: AppTheme.primary),
               ),
-              child: const Icon(Icons.meeting_room, color: AppTheme.primary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '$tenant',
-                    style: TextStyle(color: Colors.grey[700], fontSize: 16),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'เลขที่: $roomNo',
-                    style: TextStyle(color: Colors.grey[700], fontSize: 13.5),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'ประเภทห้อง: $roomCate',
-                    style: TextStyle(color: Colors.grey[700], fontSize: 13.5),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'เดือน ${_getMonthName(r['reading_month'] ?? _selectedMonth)} ${_selectedYear + 543}',
-                    style: TextStyle(color: Colors.grey[700], fontSize: 13.5),
-                  ),
-                ],
+              const SizedBox(width: 16),
+              // Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Tenant name
+                    Text(
+                      tenant,
+                      style: TextStyle(
+                        color: Colors.grey[800],
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    // A wrap of info chips to adapt to various widths
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 6,
+                      children: [
+                        _infoItem(Icons.tag, 'ห้อง: $roomNo'),
+                        _infoItem(Icons.category, 'ประเภท: $roomCate'),
+                        _infoItem(Icons.calendar_today,
+                            'รอบบิลเดือน$monthName $yearDisplay'),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            ElevatedButton(
-              onPressed: () => _goToInvoice(r),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                minimumSize: const Size(0, 36),
-                textStyle:
-                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              const SizedBox(width: 12),
+              // Trailing arrow
+              Icon(
+                Icons.chevron_right,
+                color: Colors.grey[500],
+                size: 24,
               ),
-              child: const Text('ออกบิล'),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  /// Builds a small info item with an icon and text used inside the reading
+  /// tile. This widget uses a Row with minimal spacing and a smaller font size
+  /// to display secondary details. It helps keep `_buildReadingTile` concise.
+  Widget _infoItem(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: Colors.grey[600], size: 14),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: TextStyle(color: Colors.grey[700], fontSize: 12.5),
+        ),
+      ],
     );
   }
 
@@ -435,14 +547,4 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
       await _loadData();
     }
   }
-}
-
-// Responsive content widths (Mobile S/M/L, Tablet, Laptop, Laptop L, 4K)
-double _maxContentWidth(double screenWidth) {
-  if (screenWidth >= 2560) return 1280; // 4K
-  if (screenWidth >= 1440) return 1100; // Laptop L
-  if (screenWidth >= 1200) return 1000; // Laptop
-  if (screenWidth >= 900) return 860; // Tablet landscape / small desktop
-  if (screenWidth >= 600) return 560; // Mobile L / Tablet portrait
-  return screenWidth; // Mobile S/M
 }
