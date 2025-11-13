@@ -96,24 +96,12 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
           status: status,
           branchId: _currentBranchFilter(),
         );
-        // If showing "ชำระแล้ว" (verified), include PromptPay payments that have no slip
-        List<Map<String, dynamic>> ppPaid = [];
-        if (status == 'verified') {
-          ppPaid = await PaymentService.listPromptPayVerifiedPayments(
-            branchId: _currentBranchFilter(),
-          );
-        }
-        // เงื่อนไขตามนโยบาย:
-        // - ธนาคาร: ต้องมีสลิปรออนุมัติ (แสดงในแท็บรอดำเนินการ)
-        // - PromptPay: ถ้าชำระครบจำนวนจะอนุมัติอัตโนมัติและไม่ต้องตรวจสอบสลิป → ไม่ต้องแสดงใน Pending
-        final filtered = (status == 'pending')
-            ? res.where((e) => (e['payment_method'] ?? 'transfer') == 'transfer').toList()
-            : res;
+        // แสดงเฉพาะการชำระแบบโอนธนาคารเท่านั้น (ตัด PromptPay ออกทั้งหมด)
+        final filtered = res
+            .where((e) => (e['payment_method'] ?? 'transfer') == 'transfer')
+            .toList();
         setState(() {
-          _slips = [
-            ...filtered,
-            ...ppPaid,
-          ];
+          _slips = filtered;
           _invoices = [];
           _loading = false;
         });
@@ -619,8 +607,6 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     final status = (s['slip_status'] ?? 'pending').toString();
     final createdAt = (s['created_at'] ?? '').toString();
     final canAction = status == 'pending';
-    final isPromptPay = (s['payment_method'] ?? 'transfer') == 'promptpay' ||
-        (s['is_promptpay'] == true);
 
     return LayoutBuilder(builder: (context, constraints) {
       final double width = constraints.maxWidth;
@@ -679,7 +665,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                       const SizedBox(width: 8),
                       _statusChip(status),
                       const SizedBox(width: 6),
-                      _methodChip(isPromptPay ? 'promptpay' : 'transfer'),
+                      _methodChip('transfer'),
                     ],
                   ),
 
@@ -787,7 +773,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                   // Actions
                   Row(
                     children: [
-                      if (canAction && !isPromptPay) ...[
+                      if (canAction) ...[
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: () => _rejectSlip(s),
@@ -817,7 +803,6 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                                 MaterialPageRoute(
                                   builder: (_) => PaymentVerificationDetailPage(
                                     slipId: (s['slip_id'] ?? '').toString(),
-                                    initialRow: s,
                                   ),
                                 ),
                               );
