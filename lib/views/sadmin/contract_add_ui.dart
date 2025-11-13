@@ -368,9 +368,10 @@ class _ContractAddUIState extends State<ContractAddUI> {
               ),
             ),
           ),
+          // Move Save button into body bottom
+          _buildBottomBar(),
         ],
       ),
-      bottomNavigationBar: _buildBottomBar(),
     );
   }
 
