@@ -95,7 +95,7 @@ class _ContractHistoryUIState extends State<ContractHistoryUI> {
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // Header แบบเดียวกับตัวอย่าง พร้อมข้อความตามหน้าจอ
+          // Header ตามโค้ดที่กำหนด
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -103,53 +103,50 @@ class _ContractHistoryUIState extends State<ContractHistoryUI> {
                 bottom: BorderSide(color: Colors.grey[300]!, width: 1),
               ),
             ),
-            child: Column(
-              children: [
-                // Top bar with back button
-                Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new,
-                            color: Colors.black87),
-                        onPressed: () {
-                          if (Navigator.of(context).canPop()) {
-                            Navigator.of(context).pop();
-                          }
-                        },
-                        tooltip: 'ย้อนกลับ',
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              'ประวัติสัญญาเช่า',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
+            child: Column(children: [
+              // Top bar with back button
+              Padding(
+                padding: EdgeInsets.all(24),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                      onPressed: () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      tooltip: 'ย้อนกลับ',
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'แก้ไขข้อมูลผู้เช่า',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
                             ),
-                            SizedBox(height: 4),
-                            Text(
-                              'สำหรับดูประวัติสัญญา',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.black54,
-                              ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'สำหรับแก้ไขข้อมูลผู้เช่า',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.black54,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ]),
           ),
 
           // เนื้อหาเดิม
