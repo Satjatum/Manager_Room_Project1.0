@@ -1178,13 +1178,15 @@ class _TenantEditUIState extends State<TenantEditUI>
           _buildInfoRow(
             icon: Icons.assignment,
             label: 'เลขที่สัญญา',
-            value: _activeContract!['contract_num'] ?? '-',
+            value: _activeContract?['contract_num']?.toString() ?? '-',
           ),
           const Divider(height: 24),
           _buildInfoRow(
             icon: Icons.home,
-            label: _activeContract!['room_category_name'],
-            value: _activeContract!['rooms']?['room_number'] ?? '-',
+            label: (_activeContract?['room_category_name']?.toString() ??
+                _activeContract?['roomcate_name']?.toString() ??
+                'ประเภทห้อง'),
+            value: _activeContract?['rooms']?['room_number']?.toString() ?? '-',
           ),
           const Divider(height: 24),
         ],

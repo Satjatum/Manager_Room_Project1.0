@@ -1212,7 +1212,6 @@ class _TenantListUIState extends State<TenantListUI> {
   Widget _buildCompactTenantCard(Map<String, dynamic> tenant) {
     // Data preparation (use current available fields)
     final isActive = tenant['is_active'] ?? false;
-    final tenantId = tenant['tenant_id'];
     final tenantName = tenant['tenant_fullname'] ?? 'ไม่ระบุชื่อ';
     final phone =
         _formatPhoneNumber(tenant['tenant_phone']?.toString() ?? 'ไม่ระบุ');
@@ -1239,10 +1238,21 @@ class _TenantListUIState extends State<TenantListUI> {
             _showLoginPrompt('ดูรายละเอียด');
             return;
           }
+          final String? idStr = tenant['tenant_id']?.toString();
+          if (idStr == null || idStr.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('ไม่พบรหัสผู้เช่า'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 2),
+              ),
+            );
+            return;
+          }
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => TenantDetailUI(tenantId: tenantId),
+              builder: (context) => TenantDetailUI(tenantId: idStr),
             ),
           );
           if (result == true && mounted) await _loadTenants();
@@ -1445,11 +1455,23 @@ class _TenantListUIState extends State<TenantListUI> {
                                 _showLoginPrompt('ดูรายละเอียด');
                                 return;
                               }
+                              final String? idStr =
+                                  tenant['tenant_id']?.toString();
+                              if (idStr == null || idStr.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('ไม่พบรหัสผู้เช่า'),
+                                    backgroundColor: Colors.red,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                                return;
+                              }
                               final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) =>
-                                      TenantDetailUI(tenantId: tenantId),
+                                      TenantDetailUI(tenantId: idStr),
                                 ),
                               );
                               if (result == true && mounted)
@@ -1461,11 +1483,23 @@ class _TenantListUIState extends State<TenantListUI> {
                                 return;
                               }
                               if (!canManage) return;
+                              final String? idStr =
+                                  tenant['tenant_id']?.toString();
+                              if (idStr == null || idStr.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('ไม่พบรหัสผู้เช่า'),
+                                    backgroundColor: Colors.red,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                                return;
+                              }
                               final result = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => TenantEditUI(
-                                    tenantId: tenantId,
+                                    tenantId: idStr,
                                     tenantData: tenant,
                                   ),
                                 ),
@@ -1480,8 +1514,20 @@ class _TenantListUIState extends State<TenantListUI> {
                                 return;
                               }
                               if (!canManage) return;
+                              final String? idStr =
+                                  tenant['tenant_id']?.toString();
+                              if (idStr == null || idStr.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('ไม่พบรหัสผู้เช่า'),
+                                    backgroundColor: Colors.red,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                                return;
+                              }
                               _toggleTenantStatus(
-                                tenant['tenant_id'],
+                                idStr,
                                 tenant['tenant_fullname'] ?? '',
                                 isActive,
                               );
@@ -1491,8 +1537,20 @@ class _TenantListUIState extends State<TenantListUI> {
                                 _showLoginPrompt('ลบผู้เช่า');
                                 return;
                               }
+                              final String? idStr =
+                                  tenant['tenant_id']?.toString();
+                              if (idStr == null || idStr.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('ไม่พบรหัสผู้เช่า'),
+                                    backgroundColor: Colors.red,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                                return;
+                              }
                               _deleteTenant(
-                                tenant['tenant_id'],
+                                idStr,
                                 tenant['tenant_fullname'] ?? '',
                               );
                               break;
