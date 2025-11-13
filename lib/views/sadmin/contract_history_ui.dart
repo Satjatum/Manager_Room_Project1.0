@@ -93,145 +93,183 @@ class _ContractHistoryUIState extends State<ContractHistoryUI> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'ประวัติสัญญา',
-              style: TextStyle(
-                color: Colors.black87,
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
+      body: Column(
+        children: [
+          // Header แบบเดียวกับตัวอย่าง พร้อมข้อความตามหน้าจอ
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                bottom: BorderSide(color: Colors.grey[300]!, width: 1),
               ),
             ),
-            if (widget.tenantName != null)
-              Text(
-                widget.tenantName!,
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
-              ),
-          ],
-        ),
-      ),
-      body: _loading
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(color: AppTheme.primary),
-                  const SizedBox(height: 12),
-                  const Text('กำลังโหลด...'),
-                ],
-              ),
-            )
-          : RefreshIndicator(
-              onRefresh: _load,
-              color: AppTheme.primary,
-              child: _contracts.isEmpty
-                  ? ListView(
-                      children: [
-                        const SizedBox(height: 80),
-                        Icon(Icons.description_outlined,
-                            size: 64, color: Colors.grey[400]),
-                        const SizedBox(height: 12),
-                        Center(
-                          child: Text(
-                            'ยังไม่มีประวัติสัญญา',
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        )
-                      ],
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _contracts.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final c = _contracts[index];
-                        return Material(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ContractDetailUI(
-                                    contractId: c['contract_id'],
-                                  ),
-                                ),
-                              );
-                              if (mounted) _load();
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey[300]!),
-                                borderRadius: BorderRadius.circular(12),
+            child: Column(
+              children: [
+                // Top bar with back button
+                Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new,
+                            color: Colors.black87),
+                        onPressed: () {
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        tooltip: 'ย้อนกลับ',
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              'ประวัติสัญญาเช่า',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
                               ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: _statusColor(c['contract_status'])
-                                          .withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      _statusText(c['contract_status']),
-                                      style: TextStyle(
-                                        color:
-                                            _statusColor(c['contract_status']),
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 12,
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'สำหรับดูประวัติสัญญา',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // เนื้อหาเดิม
+          Expanded(
+            child: _loading
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(color: AppTheme.primary),
+                        const SizedBox(height: 12),
+                        const Text('กำลังโหลด...'),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    color: AppTheme.primary,
+                    child: _contracts.isEmpty
+                        ? ListView(
+                            children: [
+                              const SizedBox(height: 80),
+                              Icon(Icons.description_outlined,
+                                  size: 64, color: Colors.grey[400]),
+                              const SizedBox(height: 12),
+                              Center(
+                                child: Text(
+                                  'ยังไม่มีประวัติสัญญา',
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              )
+                            ],
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _contracts.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final c = _contracts[index];
+                              return Material(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: () async {
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ContractDetailUI(
+                                          contractId: c['contract_id'],
+                                        ),
                                       ),
+                                    );
+                                    if (mounted) _load();
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(14),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.grey[300]!),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                    child: Row(
                                       children: [
-                                        Text(
-                                          'สัญญา: ${c['contract_num'] ?? '-'}  | ${c['roomcate_name']}เลขที่${c['room_number'] ?? '-'}',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 15,
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 10, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: _statusColor(c['contract_status'])
+                                                .withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(20),
                                           ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'ช่วงสัญญา: ${_formatDate(c['start_date'])} - ${_formatDate(c['end_date'])}',
-                                          style: TextStyle(
-                                            color: Colors.grey[700],
-                                            fontSize: 12,
+                                          child: Text(
+                                            _statusText(c['contract_status']),
+                                            style: TextStyle(
+                                              color:
+                                                  _statusColor(c['contract_status']),
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 12,
+                                            ),
                                           ),
                                         ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'สัญญา: ${c['contract_num'] ?? '-'}  | ${c['roomcate_name']}เลขที่${c['room_number'] ?? '-'}',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 15,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                'ช่วงสัญญา: ${_formatDate(c['start_date'])} - ${_formatDate(c['end_date'])}',
+                                                style: TextStyle(
+                                                  color: Colors.grey[700],
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const Icon(Icons.chevron_right,
+                                            color: Colors.grey),
                                       ],
                                     ),
                                   ),
-                                  const Icon(Icons.chevron_right,
-                                      color: Colors.grey),
-                                ],
-                              ),
-                            ),
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
-            ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

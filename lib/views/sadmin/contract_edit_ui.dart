@@ -252,14 +252,27 @@ class _ContractEditUIState extends State<ContractEditUI> {
                       tooltip: 'ย้อนกลับ',
                     ),
                     const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'แก้ไขสัญญาเช่า',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'แก้ไขสัญญาเช่า',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'สำหรับแก้ไขข้อมูลสัญญา',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
