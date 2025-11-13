@@ -39,6 +39,8 @@ class _TenantListUIState extends State<TenantListUI> {
   UserModel? _currentUser;
   bool _isAnonymous = false;
   final TextEditingController _searchController = TextEditingController();
+  // tenant_id -> { 'room_number': '...', 'roomcate_name': '...' }
+  Map<String, Map<String, String>> _tenantRoomInfo = {};
 
   // Screen breakpoints
   static const double mobileBreakpoint = 600;
@@ -118,8 +120,10 @@ class _TenantListUIState extends State<TenantListUI> {
         setState(() {
           _tenants = tenants;
           _filteredTenants = _tenants;
-          _isLoading = false;
         });
+        // Load room info in batch (active contracts only)
+        await _loadTenantRooms();
+        if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
       if (mounted) {
@@ -142,6 +146,29 @@ class _TenantListUIState extends State<TenantListUI> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _loadTenantRooms() async {
+    try {
+      final ids = _tenants
+          .map((t) => t['tenant_id']?.toString())
+          .whereType<String>()
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList();
+      if (ids.isEmpty) {
+        if (mounted) setState(() => _tenantRoomInfo = {});
+        return;
+      }
+      final map = await TenantService.getActiveRoomsForTenants(ids);
+      if (mounted) {
+        setState(() {
+          _tenantRoomInfo = map;
+        });
+      }
+    } catch (e) {
+      // Non-blocking; simply keep room info empty on error
     }
   }
 
@@ -1219,6 +1246,14 @@ class _TenantListUIState extends State<TenantListUI> {
     final profileImageUrl =
         (tenant['tenant_profile'] ?? tenant['tenant_profile_image'])
             ?.toString();
+    final String? tenantId = tenant['tenant_id']?.toString();
+    final roomInfo = tenantId == null ? null : _tenantRoomInfo[tenantId];
+    final String roomLine = (roomInfo == null)
+        ? ''
+        : [
+            (roomInfo['roomcate_name'] ?? '').trim(),
+            (roomInfo['room_number'] ?? '').trim(),
+          ].where((e) => e.isNotEmpty).join(' ');
 
     final canManage = !_isAnonymous &&
         (_currentUser?.userRole == UserRole.superAdmin ||
@@ -1406,6 +1441,31 @@ class _TenantListUIState extends State<TenantListUI> {
                                         style: TextStyle(
                                             fontSize: subSize,
                                             color: Colors.grey.shade700),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              // Room info (roomcate_name + room_number) if available
+                              if (roomLine.isNotEmpty) SizedBox(height: 4),
+                              if (roomLine.isNotEmpty)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.meeting_room_outlined,
+                                      size: 16,
+                                      color: Colors.teal.shade600,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        roomLine,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: subSize,
+                                          color: Colors.grey.shade700,
+                                        ),
                                       ),
                                     ),
                                   ],
