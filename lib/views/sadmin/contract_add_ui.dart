@@ -363,13 +363,15 @@ class _ContractAddUIState extends State<ContractAddUI> {
 
                     // เอกสารสัญญา
                     _buildDocumentSection(),
+                    const SizedBox(height: 16),
+
+                    // ปุ่มบันทึกใต้เอกสารสัญญา
+                    _buildBottomBar(),
                   ],
                 ),
               ),
             ),
           ),
-          // Move Save button into body bottom
-          _buildBottomBar(),
         ],
       ),
     );
