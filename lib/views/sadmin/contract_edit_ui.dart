@@ -101,7 +101,9 @@ class _ContractEditUIState extends State<ContractEditUI> {
       initialDate: isStartDate
           ? (_startDate ?? DateTime.now())
           : (_endDate ?? DateTime.now().add(const Duration(days: 365))),
-      firstDate: DateTime.now(),
+      firstDate: isStartDate
+          ? DateTime(2000)
+          : (_startDate ?? DateTime(2000)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
       locale: Localizations.localeOf(context),
     );
