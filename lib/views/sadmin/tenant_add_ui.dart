@@ -2016,8 +2016,10 @@ class _TenantAddUIState extends State<TenantAddUI>
               dropdownColor: Colors.white,
               value: _paymentDay,
               decoration: InputDecoration(
-                labelText: 'วันที่ชำระประจำเดือน',
-                prefixIcon: const Icon(Icons.calendar_today),
+                labelText: 'วันครบกำหนดชำระ',
+                prefixIcon: const Icon(
+                  Icons.calendar_today,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

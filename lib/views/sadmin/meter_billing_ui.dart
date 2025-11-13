@@ -484,8 +484,7 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                       spacing: 12,
                       runSpacing: 6,
                       children: [
-                        _infoItem(Icons.tag, 'ห้อง: $roomNo'),
-                        _infoItem(Icons.category, 'ประเภท: $roomCate'),
+                        _infoItem(Icons.tag, '$roomCateเลขที่ $roomNo'),
                         _infoItem(Icons.calendar_today,
                             'รอบบิลเดือน$monthName $yearDisplay'),
                       ],

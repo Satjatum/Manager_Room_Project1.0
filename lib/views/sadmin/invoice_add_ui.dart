@@ -689,7 +689,10 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   _buildProgressIndicator(),
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.only(
+                        left: 24,
+                        right: 24,
+                      ),
                       child: Form(
                         key: _formKey,
                         child: PageView(
@@ -859,28 +862,20 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                // ปุ่มลดจำนวน - สีแดงเต็ม พร้อมไอคอนสีขาว
-                                Container(
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: IconButton(
-                                    tooltip: 'ลดจำนวน',
-                                    onPressed: () {
-                                      setState(() {
-                                        final current =
-                                            (rate['quantity'] ?? 1) as int;
-                                        final next = (current - 1) < 1
-                                            ? 1
-                                            : (current - 1);
-                                        rate['quantity'] = next;
-                                        _calculateOtherChargesTotal();
-                                      });
-                                    },
-                                    icon: const Icon(Icons.remove),
-                                    color: Colors.white,
-                                  ),
+                                IconButton(
+                                  tooltip: 'ลดจำนวน',
+                                  onPressed: () {
+                                    setState(() {
+                                      final current =
+                                          (rate['quantity'] ?? 1) as int;
+                                      final next =
+                                          (current - 1) < 1 ? 1 : (current - 1);
+                                      rate['quantity'] = next;
+                                      _calculateOtherChargesTotal();
+                                    });
+                                  },
+                                  icon: const Icon(Icons.remove_circle_outline),
+                                  color: AppTheme.primary,
                                 ),
                                 // จำนวน
                                 Container(
@@ -899,32 +894,25 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                                         fontWeight: FontWeight.w600),
                                   ),
                                 ),
-                                // ปุ่มเพิ่มจำนวน - สีแดงเต็ม พร้อมไอคอนสีขาว
-                                Container(
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: IconButton(
-                                    tooltip: 'เพิ่มจำนวน',
-                                    onPressed: () {
-                                      setState(() {
-                                        final current =
-                                            (rate['quantity'] ?? 1) as int;
-                                        rate['quantity'] = current + 1;
-                                        _calculateOtherChargesTotal();
-                                      });
-                                    },
-                                    icon: const Icon(Icons.add),
-                                    color: Colors.white,
-                                  ),
+                                IconButton(
+                                  tooltip: 'เพิ่มจำนวน',
+                                  onPressed: () {
+                                    setState(() {
+                                      final current =
+                                          (rate['quantity'] ?? 1) as int;
+                                      rate['quantity'] = current + 1;
+                                      _calculateOtherChargesTotal();
+                                    });
+                                  },
+                                  icon: const Icon(Icons.add_circle_outline),
+                                  color: AppTheme.primary,
                                 ),
                               ],
                             ),
                             const SizedBox(height: 4),
                             Text(
                               '${unit.toStringAsFixed(2)} × $qty = ${lineTotal.toStringAsFixed(2)} บาท',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                                 color: AppTheme.primary,
@@ -934,17 +922,11 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                         ),
 
                         // ปุ่มลบ
-                        Container(
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            onPressed: () => _removeFixedRate(index),
-                            icon: const Icon(Icons.close, size: 20),
-                            color: Colors.white,
-                            tooltip: 'ลบ',
-                          ),
+                        IconButton(
+                          onPressed: () => _removeFixedRate(index),
+                          icon: const Icon(Icons.close, size: 20),
+                          color: Colors.red,
+                          tooltip: 'ลบ',
                         ),
                       ],
                     ),
@@ -1004,6 +986,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         title: Row(
           children: [
             Icon(Icons.add_circle, color: AppTheme.primary),
@@ -1029,7 +1012,11 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: Colors.purple.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.purple.withOpacity(0.3),
+                        width: 1,
+                      ),
                     ),
                     child: Icon(
                       _getIconForRate(rate['rate_name']),
@@ -1331,15 +1318,25 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
 
           TextFormField(
             decoration: InputDecoration(
-              labelText: 'วันครบกำหนดชำระ *',
+              labelText: 'วันครบกำหนดชำระ',
+              prefixIcon: const Icon(
+                Icons.calendar_today,
+              ),
               border: const OutlineInputBorder(),
-              enabledBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.grey),
-              ),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: AppTheme.primary),
+                borderSide: const BorderSide(
+                  color: Color(0xff10B981),
+                  width: 2,
+                ),
               ),
-              suffixIcon: const Icon(Icons.calendar_today),
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: Colors.grey[300]!,
+                  width: 2,
+                ),
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade50,
             ),
             readOnly: true,
             controller: TextEditingController(text: _formatDate(_dueDate)),
@@ -1685,30 +1682,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // const Text(
-          //   'ค่าใช้จ่ายเพิ่มเติม',
-          //   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          // ),
-          // const SizedBox(height: 16),
-
-          // แสดงค่าเช่า
-          // _buildAmountCard(
-          //   title: 'ค่าห้อง',
-          //   amount: _rentalAmount,
-          //   color: Colors.green,
-          //   icon: Icons.home,
-          // ),
-
-          // const SizedBox(height: 12),
-
-          // ค่าบริการ
-          // _buildAmountCard(
-          //   title: 'ค่าบริการน้ำ-ไฟ',
-          //   amount: _utilitiesAmount,
-          //   color: Colors.blue,
-          //   icon: Icons.water_drop,
-          // ),
-
           const SizedBox(height: 12),
 
           // ⭐ ใช้ widget ใหม่สำหรับค่าใช้จ่ายอื่นๆ
@@ -1826,8 +1799,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   children: [
                     Text(
                       discountType == 'fixed'
-                          ? 'ส่วนลดก่อนกำหนด (จำนวนเงิน)'
-                          : 'ส่วนลดก่อนกำหนด ($discountPercent%)',
+                          ? 'ส่วนลด'
+                          : 'ส่วนลด ($discountPercent%)',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -1837,8 +1810,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                     const SizedBox(height: 4),
                     Text(
                       discountType == 'fixed'
-                          ? 'นโยบาย: ชำระก่อนครบกำหนด $earlyDays วัน ได้ส่วนลด ${discountAmountFixed.toStringAsFixed(2)} บาท (ปิดการใช้ส่วนลดในขั้นตอนสร้างบิล)'
-                          : 'นโยบาย: ชำระก่อนครบกำหนด $earlyDays วัน ได้ส่วนลด $discountPercent% (ปิดการใช้ส่วนลดในขั้นตอนสร้างบิล)',
+                          ? 'ชำระก่อนครบกำหนด $earlyDays วัน ได้ส่วนลด ${discountAmountFixed.toStringAsFixed(2)} บาท'
+                          : 'ชำระก่อนครบกำหนด $earlyDays วัน ได้ส่วนลด $discountPercent%',
                       style: TextStyle(fontSize: 12, color: Colors.green[700]),
                     ),
                   ],
@@ -1861,8 +1834,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                 Expanded(
                   child: Text(
                     discountType == 'fixed'
-                        ? 'ส่วนลดจำนวนเงิน ${discountAmountFixed.toStringAsFixed(2)} บาท จะถูกพิจารณาตอนชำระเงินเท่านั้น\nตัวอย่าง ณ วันนี้: -${exampleDiscount.toStringAsFixed(2)} บาท'
-                        : 'ยอดรวม ${baseTotal.toStringAsFixed(2)} × $discountPercent% จะถูกพิจารณาตอนชำระเงินเท่านั้น\nตัวอย่าง ณ วันนี้: -${exampleDiscount.toStringAsFixed(2)} บาท',
+                        ? 'ส่วนลดจำนวนเงิน ${discountAmountFixed.toStringAsFixed(2)} บาท'
+                        : 'ยอดรวม ${baseTotal.toStringAsFixed(2)} × $discountPercent%',
                     style: TextStyle(fontSize: 11, color: Colors.grey[700]),
                   ),
                 ),
@@ -1916,17 +1889,17 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     switch (lateFeeType) {
       case 'percentage':
         policyLine =
-            'นโยบาย: เกิน $lateFeeStartDay วัน เพิ่มค่าปรับ $lateFeeAmount% ของยอดรวม'
+            'เกิน $lateFeeStartDay วัน ค่าปรับ $lateFeeAmount% ของยอดรวม'
             '${lateFeeMaxAmount != null ? ' (สูงสุด ${lateFeeMaxAmount.toStringAsFixed(2)} บาท)' : ''}';
         break;
       case 'daily':
         policyLine =
-            'นโยบาย: เกิน $lateFeeStartDay วัน คิด ${lateFeeAmount.toStringAsFixed(2)} บาท/วัน'
+            'เกิน $lateFeeStartDay วัน คิด ${lateFeeAmount.toStringAsFixed(2)} บาท/วัน'
             '${lateFeeMaxAmount != null ? ' (สูงสุด ${lateFeeMaxAmount.toStringAsFixed(2)} บาท)' : ''}';
         break;
       default:
         policyLine =
-            'นโยบาย: เกิน $lateFeeStartDay วัน คิดค่าปรับคงที่ ${lateFeeAmount.toStringAsFixed(2)} บาท'
+            'เกิน $lateFeeStartDay วัน ค่าปรับ ${lateFeeAmount.toStringAsFixed(2)} บาท'
             '${lateFeeMaxAmount != null ? ' (สูงสุด ${lateFeeMaxAmount.toStringAsFixed(2)} บาท)' : ''}';
     }
 
@@ -1990,7 +1963,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '$policyLine\n(จะถูกพิจารณาเฉพาะตอนชำระเงิน)',
+                        policyLine,
                         style: TextStyle(
                             fontSize: 12, color: Colors.blueGrey[700]),
                       ),
@@ -2041,9 +2014,13 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
 
           // ข้อมูลพื้นฐาน
           Card(
-            // ปรับสีพื้นหลังเป็นสีขาว และลบเงา
+            // ปรับสีพื้นหลังเป็นสีขาว และลบเงาพร้อมเส้นขอบ
             color: Colors.white,
             elevation: 0,
+            shape: RoundedRectangleBorder(
+              side: BorderSide(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -2067,9 +2044,13 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
 
           // รายการค่าใช้จ่าย
           Card(
-            // ปรับสีพื้นหลังเป็นสีขาว และลบเงา
+            // ปรับสีพื้นหลังเป็นสีขาว และลบเงาพร้อมเส้นขอบ
             color: Colors.white,
             elevation: 0,
+            shape: RoundedRectangleBorder(
+              side: BorderSide(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -2197,8 +2178,13 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           if (_notesController.text.isNotEmpty) ...[
             const SizedBox(height: 16),
             Card(
-              // ปรับสีพื้นหลังของการ์ดหมายเหตุให้เป็นสีขาว
+              // ปรับสีพื้นหลังของการ์ดหมายเหตุให้เป็นสีขาวและมีเส้นขอบ
               color: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                side: BorderSide(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(8),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -2299,11 +2285,15 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     if (contract.isEmpty) return const SizedBox.shrink();
 
     return Card(
-      // ปรับสีพื้นหลังของการ์ดข้อมูลสัญญาให้เป็นสีขาว และลบเงา
+      // ปรับสีพื้นหลังของการ์ดข้อมูลสัญญาให้เป็นสีขาว ลบเงา และเพิ่มเส้นขอบ
       elevation: 0,
       color: Colors.white,
+      shape: RoundedRectangleBorder(
+        side: BorderSide(color: Colors.grey[300]!),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2367,9 +2357,17 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
               child: OutlinedButton(
                 onPressed: _previousStep,
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                  ),
                 ),
-                child: const Text('ย้อนกลับ'),
+                child: const Text(
+                  'ย้อนกลับ',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             ),
           if (_currentStep > 0) const SizedBox(width: 12),
@@ -2384,7 +2382,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
               ),
               child: _isSubmitting
                   ? const SizedBox(
@@ -2399,7 +2396,11 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                       _currentStep < _totalSteps - 1
                           ? 'ถัดไป'
                           : 'สร้างใบแจ้งหนี้',
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                      ),
                     ),
             ),
           ),
