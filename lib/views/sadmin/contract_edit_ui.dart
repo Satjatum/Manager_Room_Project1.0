@@ -231,114 +231,133 @@ class _ContractEditUIState extends State<ContractEditUI> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(90),
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new,
-                          color: Colors.black87),
-                      onPressed: () {
-                        if (Navigator.of(context).canPop()) {
-                          Navigator.of(context).pop();
-                        }
-                      },
-                      tooltip: 'ย้อนกลับ',
-                    ),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'แก้ไขสัญญาเช่า',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+      body: Column(
+        children: [
+          // Header moved from AppBar to body
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(
+                bottom: BorderSide(color: Colors.grey[300]!, width: 1),
               ),
-            ],
-          ),
-        ),
-      ),
-      body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF10B981),
-              ),
-            )
-          : Form(
-              key: _formKey,
-              child: ListView(
-                padding: EdgeInsets.all(20),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  _buildContractInfoCard(),
-                  SizedBox(height: 16),
-                  _buildContractEditSection(),
-                  SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: _isSaving ? null : _updateContract,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF10B981),
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: Colors.grey[300],
-                      minimumSize: Size(double.infinity, 56),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: _isSaving
-                        ? Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2.5,
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Text(
-                                'กำลังบันทึก...',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.check_circle_outline, size: 22),
-                              SizedBox(width: 10),
-                              Text(
-                                'บันทึกการแก้ไข',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        color: Colors.black87),
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    tooltip: 'ย้อนกลับ',
                   ),
-                  SizedBox(height: 24),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          'แก้ไขสัญญาเช่า',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'สำหรับแก้ไขข้อมูลสัญญา',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
+          ),
+
+          // Content
+          Expanded(
+            child: _isLoading
+                ? Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF10B981),
+                    ),
+                  )
+                : Form(
+                    key: _formKey,
+                    child: ListView(
+                      padding: EdgeInsets.all(20),
+                      children: [
+                        _buildContractInfoCard(),
+                        SizedBox(height: 16),
+                        _buildContractEditSection(),
+                        SizedBox(height: 24),
+                        ElevatedButton(
+                          onPressed: _isSaving ? null : _updateContract,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: Colors.grey[300],
+                            minimumSize: Size(double.infinity, 56),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: _isSaving
+                              ? Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2.5,
+                                      ),
+                                    ),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      'กำลังบันทึก...',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Icon(Icons.check_circle_outline, size: 22),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      'บันทึกการแก้ไข',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                        SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
