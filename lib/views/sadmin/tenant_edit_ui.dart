@@ -418,8 +418,9 @@ class _TenantEditUIState extends State<TenantEditUI>
       context: context,
       initialDate: isStartDate
           ? (_contractStartDate ?? DateTime.now())
-          : (_contractEndDate ?? DateTime.now().add(const Duration(days: 365))),
-      firstDate: DateTime.now(),
+          : (_contractEndDate ?? _contractStartDate ?? DateTime.now()),
+      // Allow historical dates for start date; end date cannot be before start date
+      firstDate: isStartDate ? DateTime(2000) : (_contractStartDate ?? DateTime(2000)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
       locale: Localizations.localeOf(context),
       builder: (BuildContext context, Widget? child) {
