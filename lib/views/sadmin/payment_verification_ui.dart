@@ -625,7 +625,6 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
               MaterialPageRoute(
                 builder: (_) => PaymentVerificationDetailPage(
                   slipId: (s['slip_id'] ?? '').toString(),
-                  initialRow: s,
                 ),
               ),
             );
