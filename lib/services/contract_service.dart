@@ -272,6 +272,8 @@ class ContractService {
         'contract_deposit': contractData['contract_deposit'],
         'payment_day': contractData['payment_day'],
         'contract_note': contractData['contract_note'],
+        // รองรับการอัปเดตสถานะการชำระค่าประกัน (ถ้ามีส่งมา)
+        'contract_paid': contractData['contract_paid'],
       };
 
       // ลบค่า null ออก
