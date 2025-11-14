@@ -1938,53 +1938,8 @@ class _TenantEditUIState extends State<TenantEditUI>
 
   Widget _buildSaveButton() {
     final bool canSave = !_isLoading;
-    final bool isSuperAdmin = _currentUser?.userRole == UserRole.superAdmin;
 
-    // Non-superAdmin: single full-width save button
-    if (!isSuperAdmin) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton.icon(
-            onPressed: canSave ? _saveData : null,
-            icon: _isLoading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
-                  )
-                : const Icon(Icons.save, color: Colors.white, size: 18),
-            label: Text(
-              _isLoading ? 'กำลังบันทึก...' : 'บันทึกข้อมูล',
-              style: const TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: canSave ? const Color(0xFF10B981) : Colors.grey,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-              elevation: canSave ? 2 : 0,
-            ),
-          ),
-        ),
-      );
-    }
-
-    // SuperAdmin: back/next/save navigation like branch_edit
+    // ใช้รูปแบบเดียวกับ branch_edit: แสดงปุ่มย้อนกลับ/ถัดไป/บันทึกตามแท็บเสมอ
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
