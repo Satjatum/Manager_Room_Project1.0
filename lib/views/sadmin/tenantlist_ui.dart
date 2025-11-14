@@ -1470,6 +1470,7 @@ class _TenantListUIState extends State<TenantListUI> {
                   children: [
                     if (canManage)
                       PopupMenuButton<String>(
+                        color: Colors.white,
                         padding: EdgeInsets.zero,
                         icon: Icon(
                           Icons.more_vert_rounded,

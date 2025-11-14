@@ -876,9 +876,6 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Colors.grey[300]!, width: 1),
-        ),
       ),
       child: SafeArea(
         bottom: false,

@@ -219,8 +219,8 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                     Expanded(
                       child: Text(
                         currentStatus
-                            ? 'ผู้เช่านี้จะไม่แสดงในรายการ'
-                            : 'ผู้เช่านี้จะแสดงในรายการ',
+                            ? 'ผู้เช่านี้จะไม่แสดงในรายการผู้ใช้ทั่วไป'
+                            : 'ผู้เช่านี้จะแสดงในรายการผู้ใช้ทั่วไป',
                         style: TextStyle(
                           color: currentStatus
                               ? Colors.orange.shade800
@@ -846,6 +846,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                   ),
                 ),
                 PopupMenuButton<String>(
+                  color: Colors.white,
                   icon: const Icon(Icons.more_vert, color: Colors.grey),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -1311,6 +1312,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                                 ),
                                 const SizedBox(width: 6),
                                 PopupMenuButton<String>(
+                                  color: Colors.white,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -1385,7 +1387,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'สัญญา: ${latest['contract_num'] ?? '-'}  | ${latest['roomcate_name']}${latest['room_number'] ?? '-'}',
+                              'สัญญา: ${latest['contract_num'] ?? '-'}  | ${latest['roomcate_name']}เลขที่ ${latest['room_number'] ?? '-'}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey[700],
