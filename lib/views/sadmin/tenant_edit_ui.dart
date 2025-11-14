@@ -169,7 +169,8 @@ class _TenantEditUIState extends State<TenantEditUI>
           if (result != null) {
             _activeContract = {
               ...result,
-              'roomcate_name': result['rooms']?['room_categories']?['roomcate_name'] ??
+              'roomcate_name': result['rooms']?['room_categories']
+                      ?['roomcate_name'] ??
                   result['roomcate_name'],
             };
           } else {
@@ -819,7 +820,7 @@ class _TenantEditUIState extends State<TenantEditUI>
                       ],
                     ),
             ),
-            // _buildSaveButton(),
+            _buildSaveButton(),
           ],
         ),
       ),
@@ -1233,17 +1234,14 @@ class _TenantEditUIState extends State<TenantEditUI>
           const SizedBox(height: 16),
           _buildInfoRow(
             icon: Icons.home,
-            label: (
-                  _activeContract?['roomcate_name']?.toString() ??
-                  _activeContract?['rooms']?['room_categories']?['roomcate_name']?.toString() ??
-                  _activeContract?['room_category_name']?.toString() ??
-                  'ประเภทห้อง'
-                ),
-            value: (
-                  _activeContract?['rooms']?['room_number']?.toString() ??
-                  _activeContract?['room_number']?.toString() ??
-                  '-'
-                ),
+            label: (_activeContract?['roomcate_name']?.toString() ??
+                _activeContract?['rooms']?['room_categories']?['roomcate_name']
+                    ?.toString() ??
+                _activeContract?['room_category_name']?.toString() ??
+                'ประเภทห้อง'),
+            value: (_activeContract?['rooms']?['room_number']?.toString() ??
+                _activeContract?['room_number']?.toString() ??
+                '-'),
           ),
           const SizedBox(height: 24),
 
@@ -1967,7 +1965,7 @@ class _TenantEditUIState extends State<TenantEditUI>
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
-            offset: const Offset(0, -2),
+            offset: const Offset(0, -5),
           ),
         ],
       ),
@@ -2011,34 +2009,26 @@ class _TenantEditUIState extends State<TenantEditUI>
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
+                      elevation: 2,
                     ),
                   )
                 : ElevatedButton.icon(
-                    onPressed: canSave ? _saveData : null,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white)),
-                          )
-                        : const Icon(Icons.save, color: Colors.white, size: 18),
-                    label: Text(
-                      _isLoading ? 'กำลังบันทึก...' : 'บันทึกข้อมูล',
-                      style: const TextStyle(
+                    onPressed: _isLoading ? null : _saveData,
+                    icon:
+                        const Icon(Icons.save, color: Colors.white, size: 18),
+                    label: const Text(
+                      'บันทึกข้อมูล',
+                      style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: Colors.white),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          canSave ? const Color(0xFF10B981) : Colors.grey,
+                      backgroundColor: const Color(0xFF10B981),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8)),
-                      elevation: canSave ? 2 : 0,
+                      elevation: 2,
                     ),
                   ),
           ),
