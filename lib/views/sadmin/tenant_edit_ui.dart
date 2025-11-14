@@ -80,6 +80,10 @@ class _TenantEditUIState extends State<TenantEditUI>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    // Rebuild when tab index changes so bottom nav reflects Back/Next/Save correctly
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     _loadCurrentUser();
     _loadTenantData();
     _loadActiveContract();
@@ -2014,8 +2018,7 @@ class _TenantEditUIState extends State<TenantEditUI>
                   )
                 : ElevatedButton.icon(
                     onPressed: _isLoading ? null : _saveData,
-                    icon:
-                        const Icon(Icons.save, color: Colors.white, size: 18),
+                    icon: const Icon(Icons.save, color: Colors.white, size: 18),
                     label: const Text(
                       'บันทึกข้อมูล',
                       style: TextStyle(
