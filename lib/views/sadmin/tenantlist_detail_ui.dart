@@ -150,7 +150,9 @@ class _TenantDetailUIState extends State<TenantDetailUI>
               ),
               const SizedBox(height: 20),
               Text(
-                currentStatus ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
+                currentStatus
+                    ? 'คุณต้องการปิดใช้งานหรือไม่'
+                    : 'คุณต้องการเปิดใช้งานหรือไม่',
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -373,7 +375,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
 
               // Title
               const Text(
-                'ยืนยันการลบผู้เช่า',
+                'คุณต้องการลบผู้เช่าหรือไม่',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -439,24 +441,9 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'ข้อมูลที่จะถูกลบ',
-                            style: TextStyle(
-                              color: Colors.black87,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text('• ข้อมูลผู้เช่า'),
-                          Text('• สัญญาเช่าทั้งหมด'),
-                          Text('• ใบแจ้งหนี้'),
-                          Text('• ข้อมูลการชำระเงิน'),
-                          Text('• ข้อมูลมิเตอร์'),
-                          SizedBox(height: 8),
-                          Text(
-                            'การลบนี้ไม่สามารถกู้คืนได้',
+                            'ข้อมูลทั้งหมดจะถูกลบถาวร',
                             style: TextStyle(
                               color: Colors.red,
-                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
@@ -1131,10 +1118,18 @@ class _TenantDetailUIState extends State<TenantDetailUI>
         children: [
           Row(
             children: [
-              Icon(Icons.person_outline, color: AppTheme.primary, size: 22),
-              const SizedBox(width: 10),
-              const Text(
-                'ข้อมูลส่วนตัว',
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.business_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
+              Text(
+                'ข้อมูลพื้นฐานผู้เช่า',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1241,17 +1236,22 @@ class _TenantDetailUIState extends State<TenantDetailUI>
         children: [
           Row(
             children: [
-              Icon(Icons.description_outlined,
-                  color: AppTheme.primary, size: 22),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text(
-                  'ข้อมูลสัญญาเช่า',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.description_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
+              Text(
+                'ข้อมูลพื้นฐานผู้เช่า',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
             ],
@@ -1550,9 +1550,17 @@ class _TenantDetailUIState extends State<TenantDetailUI>
         children: [
           Row(
             children: [
-              Icon(Icons.payment, color: AppTheme.primary, size: 22),
-              const SizedBox(width: 10),
-              const Text(
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.payment_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
+              Text(
                 'ข้อมูลการชำระเงิน',
                 style: TextStyle(
                   fontSize: 18,

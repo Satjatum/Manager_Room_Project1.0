@@ -313,7 +313,9 @@ class _TenantListUIState extends State<TenantListUI> {
 
               // Title
               Text(
-                currentStatus ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
+                currentStatus
+                    ? 'คุณต้องการปิดใช้งานหรือไม่'
+                    : 'คุณต้องการเปิดใช้งานหรือไม่',
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -384,8 +386,8 @@ class _TenantListUIState extends State<TenantListUI> {
                     Expanded(
                       child: Text(
                         currentStatus
-                            ? 'ผู้เช่านี้จะไม่แสดงในรายการ'
-                            : 'ผู้เช่านี้จะแสดงในรายการ',
+                            ? 'ผู้เช่านี้จะไม่แสดงในรายการผู้ใช้ทั่วไป'
+                            : 'ผู้เช่านี้จะแสดงในรายการผู้ใช้ทั่วไป',
                         style: TextStyle(
                           color: currentStatus
                               ? Colors.orange.shade800
@@ -628,7 +630,7 @@ class _TenantListUIState extends State<TenantListUI> {
 
               // Title
               const Text(
-                'ยืนยันการลบผู้เช่า',
+                'คุณต้องการลบผู้เช่าหรือไม่?',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -694,7 +696,7 @@ class _TenantListUIState extends State<TenantListUI> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'การลบนี้ไม่สามารถกู้คืนได้',
+                            'ข้อมูลทั้งหมดจะถูกลบถาวร',
                             style: TextStyle(
                               color: Colors.red,
                             ),

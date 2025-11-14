@@ -99,9 +99,6 @@ class _ContractHistoryUIState extends State<ContractHistoryUI> {
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              border: Border(
-                bottom: BorderSide(color: Colors.grey[300]!, width: 1),
-              ),
             ),
             child: Column(children: [
               // Top bar with back button
@@ -111,7 +108,8 @@ class _ContractHistoryUIState extends State<ContractHistoryUI> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                      icon: const Icon(Icons.arrow_back_ios_new,
+                          color: Colors.black87),
                       onPressed: () {
                         if (Navigator.of(context).canPop()) {
                           Navigator.of(context).pop();
@@ -125,7 +123,7 @@ class _ContractHistoryUIState extends State<ContractHistoryUI> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: const [
                           Text(
-                            'แก้ไขข้อมูลผู้เช่า',
+                            'ประวัติสัญญา',
                             style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
@@ -134,7 +132,7 @@ class _ContractHistoryUIState extends State<ContractHistoryUI> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'สำหรับแก้ไขข้อมูลผู้เช่า',
+                            'สำหรับดูประวัติสัญญา',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.black54,
@@ -183,7 +181,8 @@ class _ContractHistoryUIState extends State<ContractHistoryUI> {
                         : ListView.separated(
                             padding: const EdgeInsets.all(16),
                             itemCount: _contracts.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 12),
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               final c = _contracts[index];
                               return Material(
@@ -205,7 +204,8 @@ class _ContractHistoryUIState extends State<ContractHistoryUI> {
                                   child: Container(
                                     padding: const EdgeInsets.all(14),
                                     decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.grey[300]!),
+                                      border:
+                                          Border.all(color: Colors.grey[300]!),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Row(
@@ -214,15 +214,17 @@ class _ContractHistoryUIState extends State<ContractHistoryUI> {
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 10, vertical: 6),
                                           decoration: BoxDecoration(
-                                            color: _statusColor(c['contract_status'])
+                                            color: _statusColor(
+                                                    c['contract_status'])
                                                 .withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(20),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
                                           ),
                                           child: Text(
                                             _statusText(c['contract_status']),
                                             style: TextStyle(
-                                              color:
-                                                  _statusColor(c['contract_status']),
+                                              color: _statusColor(
+                                                  c['contract_status']),
                                               fontWeight: FontWeight.w600,
                                               fontSize: 12,
                                             ),

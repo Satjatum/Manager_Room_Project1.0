@@ -1191,7 +1191,7 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
               ],
             ),
           ),
-          Divider(height: 1, color: Colors.grey[300]),
+          // Divider(height: 1, color: Colors.grey[300]),
           Padding(
             padding: EdgeInsets.all(16),
             child: Column(

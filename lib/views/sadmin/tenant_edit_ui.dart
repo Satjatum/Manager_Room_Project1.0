@@ -1238,14 +1238,9 @@ class _TenantEditUIState extends State<TenantEditUI>
           const SizedBox(height: 16),
           _buildInfoRow(
             icon: Icons.home,
-            label: (_activeContract?['roomcate_name']?.toString() ??
-                _activeContract?['rooms']?['room_categories']?['roomcate_name']
-                    ?.toString() ??
-                _activeContract?['room_category_name']?.toString() ??
-                'ประเภทห้อง'),
-            value: (_activeContract?['rooms']?['room_number']?.toString() ??
-                _activeContract?['room_number']?.toString() ??
-                '-'),
+            label: 'ประเภท${_activeContract?['roomcate_name'] ?? ''}',
+            value:
+                'เลขที่ ${_activeContract?['rooms']?['room_number']?.toString() ?? _activeContract?['room_number']?.toString() ?? '-'}',
           ),
           const SizedBox(height: 24),
 
@@ -1427,35 +1422,31 @@ class _TenantEditUIState extends State<TenantEditUI>
 
           // ชำระค่าประกันแล้ว
           Container(
-            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(12),
               color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
             ),
-            child: Row(
-              children: [
-                Icon(Icons.payment, color: Colors.grey[600]),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'ชำระค่าประกันแล้ว',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[700],
-                    ),
-                  ),
+            child: SwitchListTile(
+              title: const Text('ชำระค่าประกันแล้ว'),
+              subtitle: Text(
+                _contractPaid
+                    ? 'ผู้เช่าชำระค่าประกันเรียบร้อยแล้ว'
+                    : 'ผู้เช่ายังไม่ได้ชำระค่าประกัน',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _contractPaid
+                      ? Colors.green.shade700
+                      : Colors.orange.shade700,
                 ),
-                Switch(
-                  value: _contractPaid,
-                  onChanged: (value) {
-                    setState(() {
-                      _contractPaid = value;
-                    });
-                  },
-                  activeColor: AppTheme.primary,
-                ),
-              ],
+              ),
+              value: _contractPaid,
+              onChanged: (value) {
+                setState(() {
+                  _contractPaid = value;
+                });
+              },
+              activeColor: AppTheme.primary,
             ),
           ),
           const SizedBox(height: 16),
