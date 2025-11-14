@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:manager_room_project/views/widgets/colors.dart';
 import '../../services/contract_service.dart';
 
 class ContractEditUI extends StatefulWidget {
@@ -100,14 +101,29 @@ class _ContractEditUIState extends State<ContractEditUI> {
       context: context,
       initialDate: isStartDate
           ? (_startDate ?? DateTime.now())
-          : (_endDate ?? DateTime.now().add(const Duration(days: 365))),
-      firstDate: isStartDate
-          ? DateTime(2000)
-          : (_startDate ?? DateTime(2000)),
+          : (_endDate ?? _startDate ?? DateTime.now()),
+      // Allow historical dates for start date; end date cannot be before start date
+      firstDate: isStartDate ? DateTime(2000) : (_startDate ?? DateTime(2000)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
       locale: Localizations.localeOf(context),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppTheme.primary, // สีของ header และวันที่เลือก
+              onPrimary: Colors.white, // สีของตัวอักษรใน header
+              onSurface: Colors.black, // สีของวันที่ในปฏิทิน
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.black, // สีของปุ่ม Cancel และ OK
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
-
     if (picked != null) {
       setState(() {
         if (isStartDate) {
@@ -231,15 +247,13 @@ class _ContractEditUIState extends State<ContractEditUI> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      bottomNavigationBar: _buildBottomBar(),
       body: Column(
         children: [
           // Header moved from AppBar to body
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              border: Border(
-                bottom: BorderSide(color: Colors.grey[300]!, width: 1),
-              ),
             ),
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -262,7 +276,7 @@ class _ContractEditUIState extends State<ContractEditUI> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
                         Text(
-                          'แก้ไขสัญญาเช่า',
+                          'แก้ไขสัญญา',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -298,60 +312,10 @@ class _ContractEditUIState extends State<ContractEditUI> {
                     child: ListView(
                       padding: EdgeInsets.all(20),
                       children: [
-                        _buildContractInfoCard(),
-                        SizedBox(height: 16),
+                        // _buildContractInfoCard(),
+                        // SizedBox(height: 16),
                         _buildContractEditSection(),
-                        SizedBox(height: 24),
-                        ElevatedButton(
-                          onPressed: _isSaving ? null : _updateContract,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF10B981),
-                            foregroundColor: Colors.white,
-                            disabledBackgroundColor: Colors.grey[300],
-                            minimumSize: Size(double.infinity, 56),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: _isSaving
-                              ? Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2.5,
-                                      ),
-                                    ),
-                                    SizedBox(width: 12),
-                                    Text(
-                                      'กำลังบันทึก...',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
-                                    Icon(Icons.check_circle_outline, size: 22),
-                                    SizedBox(width: 10),
-                                    Text(
-                                      'บันทึกการแก้ไข',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                        SizedBox(height: 24),
+                        SizedBox(height: 100),
                       ],
                     ),
                   ),
@@ -451,11 +415,19 @@ class _ContractEditUIState extends State<ContractEditUI> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
-              Icon(Icons.edit, color: Color(0xFF10B981)),
-              SizedBox(width: 8),
+            children: [
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.description_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
-                'แก้ไขข้อมูลสัญญา',
+                'รายละเอียดสัญญา',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -465,13 +437,24 @@ class _ContractEditUIState extends State<ContractEditUI> {
             ],
           ),
           const SizedBox(height: 16),
-
+          _buildInfoRow(
+            icon: Icons.assignment,
+            label: 'เลขที่สัญญา',
+            value: '${_contract?['contract_num'] ?? '-'}',
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow(
+            icon: Icons.home,
+            label: 'ปรเภท${_contract?['roomcate_name'] ?? '-'}',
+            value: 'เลขที่ ${_contract?['room_number'] ?? '-'}',
+          ),
+          const SizedBox(height: 24),
           // วันที่เริ่มสัญญา
           InkWell(
             onTap: () => _selectDate(context, true),
             child: InputDecorator(
               decoration: InputDecoration(
-                labelText: 'วันที่เริ่มสัญญา *',
+                labelText: 'วันที่เริ่มสัญญา',
                 prefixIcon: const Icon(Icons.date_range),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -493,8 +476,7 @@ class _ContractEditUIState extends State<ContractEditUI> {
                     ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year + 543}'
                     : 'เลือกวันที่',
                 style: TextStyle(
-                  color:
-                      _startDate != null ? Colors.black87 : Colors.grey[600],
+                  color: _startDate != null ? Colors.black87 : Colors.grey[600],
                 ),
               ),
             ),
@@ -506,7 +488,7 @@ class _ContractEditUIState extends State<ContractEditUI> {
             onTap: () => _selectDate(context, false),
             child: InputDecorator(
               decoration: InputDecoration(
-                labelText: 'วันที่สิ้นสุดสัญญา *',
+                labelText: 'วันที่สิ้นสุดสัญญา',
                 prefixIcon: const Icon(Icons.event_busy),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -539,7 +521,7 @@ class _ContractEditUIState extends State<ContractEditUI> {
           TextFormField(
             controller: _contractPriceController,
             decoration: InputDecoration(
-              labelText: 'ค่าเช่า (บาท/เดือน) *',
+              labelText: 'ค่าเช่า',
               prefixIcon: const Icon(Icons.attach_money),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -573,7 +555,7 @@ class _ContractEditUIState extends State<ContractEditUI> {
           TextFormField(
             controller: _contractDepositController,
             decoration: InputDecoration(
-              labelText: 'ค่าประกัน (บาท) *',
+              labelText: 'ค่าประกัน',
               prefixIcon: const Icon(Icons.security),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -641,35 +623,31 @@ class _ContractEditUIState extends State<ContractEditUI> {
 
           // ชำระค่าประกันแล้ว
           Container(
-            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(12),
               color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
             ),
-            child: Row(
-              children: [
-                Icon(Icons.payment, color: Colors.grey[600]),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'ชำระค่าประกันแล้ว',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[700],
-                    ),
-                  ),
+            child: SwitchListTile(
+              title: const Text('ชำระค่าประกันแล้ว'),
+              subtitle: Text(
+                _contractPaid
+                    ? 'ผู้เช่าชำระค่าประกันเรียบร้อยแล้ว'
+                    : 'ผู้เช่ายังไม่ได้ชำระค่าประกัน',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _contractPaid
+                      ? Colors.green.shade700
+                      : Colors.orange.shade700,
                 ),
-                Switch(
-                  value: _contractPaid,
-                  onChanged: (value) {
-                    setState(() {
-                      _contractPaid = value;
-                    });
-                  },
-                  activeColor: const Color(0xFF10B981),
-                ),
-              ],
+              ),
+              value: _contractPaid,
+              onChanged: (value) {
+                setState(() {
+                  _contractPaid = value;
+                });
+              },
+              activeColor: AppTheme.primary,
             ),
           ),
           const SizedBox(height: 16),
@@ -679,7 +657,6 @@ class _ContractEditUIState extends State<ContractEditUI> {
             controller: _noteController,
             decoration: InputDecoration(
               labelText: 'หมายเหตุเพิ่มเติม',
-              hintText: 'เพิ่มหมายเหตุเกี่ยวกับสัญญาเช่า (ถ้ามี)',
               prefixIcon: const Icon(Icons.note),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -704,5 +681,55 @@ class _ContractEditUIState extends State<ContractEditUI> {
     );
   }
 
-  
+  Widget _buildBottomBar() {
+    final bool canSave = !_isSaving && !_isLoading;
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton.icon(
+            onPressed: canSave ? _updateContract : null,
+            icon: _isSaving
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Icon(Icons.save, color: Colors.white),
+            label: Text(
+              _isSaving ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: canSave ? AppTheme.primary : Colors.grey,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              elevation: canSave ? 2 : 0,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
