@@ -155,8 +155,9 @@ class _TenantEditUIState extends State<TenantEditUI>
           .from('rental_contracts')
           .select('''
             *,
-            rooms!inner(room_number, room_id, 
-              branches!inner(branch_name))
+            rooms!inner(room_number, room_id,
+              branches!inner(branch_name),
+              room_categories(roomcate_name))
           ''')
           .eq('tenant_id', widget.tenantId)
           .eq('contract_status', 'active')
@@ -164,7 +165,16 @@ class _TenantEditUIState extends State<TenantEditUI>
 
       if (mounted) {
         setState(() {
-          _activeContract = result;
+          // enrich active contract with flattened room category name for easy access
+          if (result != null) {
+            _activeContract = {
+              ...result,
+              'roomcate_name': result['rooms']?['room_categories']?['roomcate_name'] ??
+                  result['roomcate_name'],
+            };
+          } else {
+            _activeContract = null;
+          }
           _isLoadingContract = false;
 
           if (result != null) {
@@ -809,7 +819,7 @@ class _TenantEditUIState extends State<TenantEditUI>
                       ],
                     ),
             ),
-            _buildSaveButton(),
+            // _buildSaveButton(),
           ],
         ),
       ),
@@ -1224,8 +1234,9 @@ class _TenantEditUIState extends State<TenantEditUI>
           _buildInfoRow(
             icon: Icons.home,
             label: (
-                  _activeContract?['room_category_name']?.toString() ??
                   _activeContract?['roomcate_name']?.toString() ??
+                  _activeContract?['rooms']?['room_categories']?['roomcate_name']?.toString() ??
+                  _activeContract?['room_category_name']?.toString() ??
                   'ประเภทห้อง'
                 ),
             value: (
