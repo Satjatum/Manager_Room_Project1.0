@@ -263,7 +263,7 @@ class _RoomListDetailUiUiState extends State<RoomListDetailUi> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
                 Text(
-                  'รายละเอียด',
+                  'รายละเอียดห้องพัก',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -272,7 +272,7 @@ class _RoomListDetailUiUiState extends State<RoomListDetailUi> {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'สำหรับดูรายละเอียดแต่ห้อง',
+                  'สำหรับดูรายละเอียดแต่ห้องพัก',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.black54,
@@ -507,7 +507,7 @@ class _RoomListDetailUiUiState extends State<RoomListDetailUi> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${_roomData!['roomcate_name'] ?? 'ห้อง'} ${_roomData!['room_number']}',
+                        '${_roomData!['room_category_name'] ?? 'ห้อง'}เลขที่ ${_roomData!['room_number']}',
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -630,36 +630,6 @@ class _RoomListDetailUiUiState extends State<RoomListDetailUi> {
                       ],
                     ),
                   ),
-                // Room Category Badge
-                if ((_roomData!['room_category_name'] ??
-                        _roomData!['roomcate_name']) !=
-                    null)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.label, size: 14, color: Colors.orange),
-                        const SizedBox(width: 4),
-                        Text(
-                          (_roomData!['room_category_name'] ??
-                                  _roomData!['roomcate_name'])
-                              .toString(),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.orange,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
               ],
             ),
             // Room Size
@@ -708,14 +678,22 @@ class _RoomListDetailUiUiState extends State<RoomListDetailUi> {
           children: [
             Row(
               children: [
-                Icon(Icons.payments, color: AppTheme.primary),
-                const SizedBox(width: 8),
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF10B981).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.payment_outlined,
+                      color: Color(0xFF10B981), size: 20),
+                ),
+                SizedBox(width: 12),
                 Text(
                   'ข้อมูลราคา',
                   style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.primary,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
                 ),
               ],
@@ -825,7 +803,7 @@ class _RoomListDetailUiUiState extends State<RoomListDetailUi> {
                 Icon(Icons.description, color: AppTheme.primary),
                 const SizedBox(width: 8),
                 Text(
-                  'รายละเอียด',
+                  'รายละเอียดห้องพัก',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -863,14 +841,22 @@ class _RoomListDetailUiUiState extends State<RoomListDetailUi> {
           children: [
             Row(
               children: [
-                Icon(Icons.stars, color: AppTheme.primary),
-                const SizedBox(width: 8),
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF10B981).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.star_outline,
+                      color: Color(0xFF10B981), size: 20),
+                ),
+                SizedBox(width: 12),
                 Text(
                   'สิ่งอำนวยความสะดวก',
                   style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.primary,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
                 ),
               ],

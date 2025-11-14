@@ -420,7 +420,8 @@ class _TenantEditUIState extends State<TenantEditUI>
           ? (_contractStartDate ?? DateTime.now())
           : (_contractEndDate ?? _contractStartDate ?? DateTime.now()),
       // Allow historical dates for start date; end date cannot be before start date
-      firstDate: isStartDate ? DateTime(2000) : (_contractStartDate ?? DateTime(2000)),
+      firstDate:
+          isStartDate ? DateTime(2000) : (_contractStartDate ?? DateTime(2000)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
       locale: Localizations.localeOf(context),
       builder: (BuildContext context, Widget? child) {
@@ -773,25 +774,17 @@ class _TenantEditUIState extends State<TenantEditUI>
         child: Column(
           children: [
             _buildWhiteHeader(),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey[300]!, width: 1),
-                ),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                labelColor: const Color(0xFF10B981),
-                unselectedLabelColor: Colors.grey[600],
-                indicatorColor: const Color(0xFF10B981),
-                indicatorWeight: 3,
-                tabs: const [
-                  Tab(icon: Icon(Icons.person), text: 'ข้อมูลผู้เช่า'),
-                  Tab(icon: Icon(Icons.account_circle), text: 'บัญชีผู้ใช้'),
-                  Tab(icon: Icon(Icons.description), text: 'ข้อมูลสัญญา'),
-                ],
-              ),
+            TabBar(
+              controller: _tabController,
+              labelColor: const Color(0xFF10B981),
+              unselectedLabelColor: Colors.grey[600],
+              indicatorColor: const Color(0xFF10B981),
+              indicatorWeight: 3,
+              tabs: const [
+                Tab(icon: Icon(Icons.person), text: 'ข้อมูลผู้เช่า'),
+                Tab(icon: Icon(Icons.account_circle), text: 'บัญชีผู้ใช้'),
+                Tab(icon: Icon(Icons.description), text: 'ข้อมูลสัญญา'),
+              ],
             ),
             Expanded(
               child: _isLoading
@@ -841,7 +834,6 @@ class _TenantEditUIState extends State<TenantEditUI>
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[300]!, width: 1)),
       ),
       child: Column(
         children: [
@@ -959,8 +951,8 @@ class _TenantEditUIState extends State<TenantEditUI>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildContractInfoCard(),
-          const SizedBox(height: 16),
+          // _buildContractInfoCard(),
+          // const SizedBox(height: 16),
           _buildContractEditSection(),
           const SizedBox(height: 80), // Space for bottom button
         ],
@@ -986,8 +978,16 @@ class _TenantEditUIState extends State<TenantEditUI>
               children: [
                 Row(
                   children: [
-                    Icon(Icons.account_circle, color: Color(0xFF10B981)),
-                    const SizedBox(width: 8),
+                    Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF10B981).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.account_circle_outlined,
+                          color: Color(0xFF10B981), size: 20),
+                    ),
+                    SizedBox(width: 12),
                     Text(
                       'บัญชีผู้ใช้',
                       style: TextStyle(
@@ -1118,30 +1118,30 @@ class _TenantEditUIState extends State<TenantEditUI>
                 const SizedBox(height: 16),
 
                 // Active toggle
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(12),
-                    color: Colors.grey.shade50,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.toggle_on, color: Colors.grey[600]),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Text('เปิดใช้งานบัญชีผู้ใช้'),
-                      ),
-                      Switch(
-                        value: _userIsActive,
-                        onChanged: (_hasLinkedAccount || _createUserAccount)
-                            ? (v) => setState(() => _userIsActive = v)
-                            : null,
-                        activeColor: AppTheme.primary,
-                      ),
-                    ],
-                  ),
-                ),
+                // Container(
+                //   padding: const EdgeInsets.all(12),
+                //   decoration: BoxDecoration(
+                //     border: Border.all(color: Colors.grey.shade300),
+                //     borderRadius: BorderRadius.circular(12),
+                //     color: Colors.grey.shade50,
+                //   ),
+                //   child: Row(
+                //     children: [
+                //       Icon(Icons.toggle_on, color: Colors.grey[600]),
+                //       const SizedBox(width: 8),
+                //       const Expanded(
+                //         child: Text('เปิดใช้งานบัญชีผู้ใช้'),
+                //       ),
+                //       Switch(
+                //         value: _userIsActive,
+                //         onChanged: (_hasLinkedAccount || _createUserAccount)
+                //             ? (v) => setState(() => _userIsActive = v)
+                //             : null,
+                //         activeColor: AppTheme.primary,
+                //       ),
+                //     ],
+                //   ),
+                // ),
               ],
             ),
           ),
@@ -1150,50 +1150,50 @@ class _TenantEditUIState extends State<TenantEditUI>
     );
   }
 
-  Widget _buildContractInfoCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.info_outline, color: Color(0xFF10B981)),
-              const SizedBox(width: 8),
-              Text(
-                'ข้อมูลสัญญาปัจจุบัน',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildInfoRow(
-            icon: Icons.assignment,
-            label: 'เลขที่สัญญา',
-            value: _activeContract?['contract_num']?.toString() ?? '-',
-          ),
-          const Divider(height: 24),
-          _buildInfoRow(
-            icon: Icons.home,
-            label: (_activeContract?['room_category_name']?.toString() ??
-                _activeContract?['roomcate_name']?.toString() ??
-                'ประเภทห้อง'),
-            value: _activeContract?['rooms']?['room_number']?.toString() ?? '-',
-          ),
-          const Divider(height: 24),
-        ],
-      ),
-    );
-  }
+  // Widget _buildContractInfoCard() {
+  //   return Container(
+  //     padding: const EdgeInsets.all(16),
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       borderRadius: BorderRadius.circular(12),
+  //       border: Border.all(color: Colors.grey[300]!),
+  //     ),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         Row(
+  //           children: [
+  //             Icon(Icons.info_outline, color: Color(0xFF10B981)),
+  //             const SizedBox(width: 8),
+  //             Text(
+  //               'ข้อมูลสัญญาปัจจุบัน',
+  //               style: TextStyle(
+  //                 fontSize: 18,
+  //                 fontWeight: FontWeight.bold,
+  //                 color: Colors.black87,
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //         const SizedBox(height: 16),
+  //         _buildInfoRow(
+  //           icon: Icons.assignment,
+  //           label: 'เลขที่สัญญา',
+  //           value: _activeContract?['contract_num']?.toString() ?? '-',
+  //         ),
+  //         const Divider(height: 24),
+  //         _buildInfoRow(
+  //           icon: Icons.home,
+  //           label: (_activeContract?['room_category_name']?.toString() ??
+  //               _activeContract?['roomcate_name']?.toString() ??
+  //               'ประเภทห้อง'),
+  //           value: _activeContract?['rooms']?['room_number']?.toString() ?? '-',
+  //         ),
+  //         const Divider(height: 24),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildContractEditSection() {
     return Container(
@@ -1208,10 +1208,18 @@ class _TenantEditUIState extends State<TenantEditUI>
         children: [
           Row(
             children: [
-              Icon(Icons.edit, color: Color(0xFF10B981)),
-              const SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.description_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
-                'แก้ไขข้อมูลสัญญา',
+                'รายละเอียดสัญญา',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1221,6 +1229,18 @@ class _TenantEditUIState extends State<TenantEditUI>
             ],
           ),
           const SizedBox(height: 16),
+          _buildInfoRow(
+            icon: Icons.assignment,
+            label: 'เลขที่สัญญา',
+            value: _activeContract?['contract_num']?.toString() ?? '-',
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow(
+            icon: Icons.home,
+            label: _activeContract?['room_category_name'].toString() ?? '-',
+            value: _activeContract?['rooms']?['room_number']?.toString() ?? '-',
+          ),
+          const SizedBox(height: 24),
 
           // วันที่เริ่มสัญญา
           InkWell(
@@ -1516,10 +1536,18 @@ class _TenantEditUIState extends State<TenantEditUI>
         children: [
           Row(
             children: [
-              Icon(Icons.person, color: Color(0xFF10B981)),
-              const SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.image_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
-                'รูปภาพโปรไฟล์',
+                'รูปภาพผู้เช่า',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1659,10 +1687,18 @@ class _TenantEditUIState extends State<TenantEditUI>
         children: [
           Row(
             children: [
-              Icon(Icons.person_outline, color: Color(0xFF10B981)),
-              const SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.business_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
-                'ข้อมูลผู้เช่า',
+                'ข้อมูลพื้นฐานผู้เช่า',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1827,10 +1863,18 @@ class _TenantEditUIState extends State<TenantEditUI>
         children: [
           Row(
             children: [
-              Icon(Icons.toggle_on, color: Color(0xFF10B981)),
-              const SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.settings_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
-                'การตั้งค่า',
+                'สถานะผู้เช่า',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1840,25 +1884,66 @@ class _TenantEditUIState extends State<TenantEditUI>
             ],
           ),
           const SizedBox(height: 16),
-          SwitchListTile(
-            title: const Text('เปิดใช้งานผู้เช่า'),
-            subtitle: Text(
-              _isActive
-                  ? 'ผู้เช่าจะปรากฏในระบบและสามารถใช้งานได้'
-                  : 'ผู้เช่าจะถูกปิดการใช้งาน',
-              style: TextStyle(
+          Container(
+            padding: EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: _isActive ? Colors.green.shade50 : Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
                 color:
-                    _isActive ? Colors.green.shade600 : Colors.orange.shade600,
+                    _isActive ? Colors.green.shade200 : Colors.orange.shade200,
               ),
             ),
-            value: _isActive,
-            onChanged: (value) {
-              setState(() {
-                _isActive = value;
-              });
-            },
-            activeColor: AppTheme.primary,
-            contentPadding: EdgeInsets.zero,
+            child: Row(
+              children: [
+                Icon(
+                  _isActive ? Icons.check_circle : Icons.cancel,
+                  color: _isActive
+                      ? Colors.green.shade600
+                      : Colors.orange.shade600,
+                  size: 24,
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                          color: _isActive
+                              ? Colors.green.shade700
+                              : Colors.orange.shade700,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        _isActive
+                            ? 'ผู้เช่านี้จะไม่แสดงในรายการผู้ใช้ทั่วไป'
+                            : 'ผู้เช่านี้จะแสดงในรายการผู้ใช้ทั่วไป',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: _isActive
+                              ? Colors.green.shade600
+                              : Colors.orange.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: _isActive,
+                  onChanged: (value) {
+                    setState(() {
+                      _isActive = value;
+                    });
+                  },
+                  activeColor: Color(0xFF10B981),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1866,42 +1951,91 @@ class _TenantEditUIState extends State<TenantEditUI>
   }
 
   Widget _buildSaveButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: ElevatedButton.icon(
-        onPressed: _isLoading ? null : _saveData,
-        icon: _isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // ปุ่มย้อนกลับ (เฉพาะ tab > 0)
+          if (_tabController.index > 0)
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _isLoading
+                    ? null
+                    : () => _tabController.animateTo(_tabController.index - 1),
+                icon: const Icon(Icons.arrow_back, size: 18),
+                label: const Text('ย้อนกลับ'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF10B981),
+                  side: const BorderSide(color: Color(0xFF10B981)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-              )
-            : const Icon(Icons.save, color: Colors.white),
-        label: Text(
-          _isLoading
-              ? 'กำลังบันทึก...'
-              : _tabController.index == 0
-                  ? 'บันทึกข้อมูลผู้เช่า'
-                  : _tabController.index == 1
-                      ? 'บันทึกข้อมูลสัญญา'
-                      : 'บันทึกบัญชีผู้ใช้',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+              ),
+            ),
+
+          if (_tabController.index > 0) const SizedBox(width: 12),
+
+          // ปุ่ม ถัดไป / บันทึกข้อมูล
+          Expanded(
+            flex: _tabController.index == 0 ? 1 : 2,
+            child: ElevatedButton.icon(
+              onPressed: _isLoading
+                  ? null
+                  : _tabController.index < 2
+                      ? () => _tabController.animateTo(_tabController.index + 1)
+                      : _saveData,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Icon(
+                      _tabController.index < 2
+                          ? Icons.arrow_forward
+                          : Icons.save,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+              label: Text(
+                _isLoading
+                    ? 'กำลังบันทึก...'
+                    : _tabController.index < 2
+                        ? 'ถัดไป'
+                        : 'บันทึกข้อมูล',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    _isLoading ? Colors.grey : const Color(0xFF10B981),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: _isLoading ? 0 : 2,
+              ),
+            ),
           ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: _isLoading ? Colors.grey : AppTheme.primary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: _isLoading ? 0 : 2,
-        ),
+        ],
       ),
     );
   }

@@ -327,7 +327,9 @@ class _RoomListUIState extends State<RoomListUI> {
 
               // Title
               Text(
-                currentActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
+                currentActive
+                    ? 'คุณต้องการปิดใช้งานหรือไม่?'
+                    : 'คุณต้องการเปิดใช้งานหรือไม่?',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -397,8 +399,8 @@ class _RoomListUIState extends State<RoomListUI> {
                     Expanded(
                       child: Text(
                         currentActive
-                            ? '$categoryNameนี้จะไม่แสดงในรายการ'
-                            : '$categoryNameนี้จะแสดงในรายการ',
+                            ? '$categoryNameนี้จะไม่แสดงในรายการผู้ใช้ทั่วไป'
+                            : '$categoryNameนี้จะแสดงในรายการผู้ใช้ทั่วไป',
                         style: TextStyle(
                           color: currentActive
                               ? Colors.orange.shade800
@@ -635,7 +637,7 @@ class _RoomListUIState extends State<RoomListUI> {
               SizedBox(height: 20),
               // Title
               Text(
-                'ลบ$categoryName',
+                'คุณต้องการลบ$categoryNameหรือไม่?',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -997,7 +999,7 @@ class _RoomListUIState extends State<RoomListUI> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
                         Text(
-                          'จัดการห้อง',
+                          'จัดการห้องพัก',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -1006,7 +1008,7 @@ class _RoomListUIState extends State<RoomListUI> {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'สำหรับจัดการห้อง',
+                          'สำหรับจัดการห้องพัก',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.black54,

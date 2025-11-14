@@ -1190,8 +1190,6 @@ class _TenantListUIState extends State<TenantListUI> {
     }
 
     if (crossAxisCount > 1) {
-      // ใช้ GridView สำหรับหน้าจอใหญ่
-      // คำนวณความสูง cell ให้เหมาะกับเนื้อหาของการ์ดแบบ compact (Row)
       const double horizontalPadding = 24;
       const double gridSpacing = 16;
       final double availableWidth = screenWidth -
@@ -1199,10 +1197,6 @@ class _TenantListUIState extends State<TenantListUI> {
           (gridSpacing * (crossAxisCount - 1));
       final double itemWidth = availableWidth / crossAxisCount;
 
-      // Compute the card height as a function of its width. This allows the
-      // card to scale gracefully with screen size, ensuring the content
-      // remains visible without overflowing. A ratio of 0.5 means the
-      // height is half of the tile width.
       double mainExtent = itemWidth * 0.5;
 
       return GridView.builder(
@@ -1223,12 +1217,12 @@ class _TenantListUIState extends State<TenantListUI> {
     } else {
       // ใช้ ListView สำหรับหน้าจอเล็ก
       return ListView.builder(
-        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 16),
         itemCount: _filteredTenants.length,
         itemBuilder: (context, index) {
           final tenant = _filteredTenants[index];
           return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.only(bottom: 12),
             child: _buildCompactTenantCard(tenant),
           );
         },
@@ -1237,25 +1231,19 @@ class _TenantListUIState extends State<TenantListUI> {
   }
 
   Widget _buildCompactTenantCard(Map<String, dynamic> tenant) {
-    // Data preparation (use current available fields)
-    final isActive = tenant['is_active'] ?? false;
-    final tenantName = tenant['tenant_fullname'] ?? 'ไม่ระบุชื่อ';
-    final phone =
-        _formatPhoneNumber(tenant['tenant_phone']?.toString() ?? 'ไม่ระบุ');
-    final branchName = tenant['branch_name'] ?? 'ไม่ระบุสาขา';
-    final profileImageUrl =
+    // 📌 ดึงข้อมูลหลักของผู้เช่า
+    final bool isActive = tenant['is_active'] ?? false;
+    final String tenantName =
+        (tenant['tenant_fullname'] ?? 'ไม่ระบุชื่อ') as String;
+    final String phoneRaw = tenant['tenant_phone']?.toString() ?? 'ไม่ระบุ';
+    final String phone = _formatPhoneNumber(phoneRaw);
+    final String? profileImageUrl =
         (tenant['tenant_profile'] ?? tenant['tenant_profile_image'])
             ?.toString();
     final String? tenantId = tenant['tenant_id']?.toString();
-    final roomInfo = tenantId == null ? null : _tenantRoomInfo[tenantId];
-    final String roomLine = (roomInfo == null)
-        ? ''
-        : [
-            (roomInfo['roomcate_name'] ?? '').trim(),
-            (roomInfo['room_number'] ?? '').trim(),
-          ].where((e) => e.isNotEmpty).join(' ');
 
-    final canManage = !_isAnonymous &&
+    // 🔐 ตรวจสอบสิทธิ์การจัดการ (ใช้ pattern เดียวกับของเดิม)
+    final bool canManage = !_isAnonymous &&
         (_currentUser?.userRole == UserRole.superAdmin ||
             _currentUser?.userRole == UserRole.admin ||
             _currentUser?.hasAnyPermission([
@@ -1264,267 +1252,251 @@ class _TenantListUIState extends State<TenantListUI> {
                 ]) ==
                 true);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () async {
-          if (_isAnonymous) {
-            _showLoginPrompt('ดูรายละเอียด');
-            return;
-          }
-          final String? idStr = tenant['tenant_id']?.toString();
-          if (idStr == null || idStr.isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('ไม่พบรหัสผู้เช่า'),
-                backgroundColor: Colors.red,
-                duration: Duration(seconds: 2),
+    // 📱 Responsive ขนาดการ์ด
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < mobileBreakpoint;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      margin: EdgeInsets.symmetric(
+        horizontal: isMobile ? 8 : 12,
+        vertical: 6,
+      ),
+      child: Material(
+        color: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: Colors.grey.shade300,
+            width: 1.2,
+          ),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          splashColor: AppTheme.primary.withOpacity(0.08),
+          highlightColor: AppTheme.primary.withOpacity(0.04),
+          onTap: () async {
+            // 👀 แตะการ์ด = ดูรายละเอียดผู้เช่า
+            final String? idStr = tenantId;
+            if (idStr == null || idStr.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('ไม่พบรหัสผู้เช่า'),
+                  backgroundColor: Colors.red,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+              return;
+            }
+
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TenantDetailUI(tenantId: idStr),
               ),
             );
-            return;
-          }
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TenantDetailUI(tenantId: idStr),
-            ),
-          );
-          if (result == true && mounted) await _loadTenants();
-        },
-        child: Ink(
-          decoration: BoxDecoration(
-            // Use a light pastel background similar to the provided mockup.
-            color: const Color(0xFFF9FAFB),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              // Determine the available width for this card
-              final double width = constraints.maxWidth;
-              // Scale the avatar size based on the card width with reasonable limits
-              final double avatarSize =
-                  ((width * 0.18).clamp(48.0, 72.0)) as double;
-              // Scale the primary text size (tenant name)
-              final double nameSize =
-                  ((width * 0.045).clamp(15.0, 18.0)) as double;
-              // Scale the secondary text size (phone and other info)
-              final double subSize =
-                  ((width * 0.04).clamp(12.0, 16.0)) as double;
-              // Scale the font size for the status badge
-              final double badgeFontSize =
-                  ((width * 0.035).clamp(11.0, 14.0)) as double;
-              // Dynamically determine padding so that larger cards have slightly more breathing room
-              final double horizontalPadding =
-                  ((width * 0.05).clamp(8.0, 16.0)) as double;
-              final double verticalPadding =
-                  ((width * 0.04).clamp(8.0, 14.0)) as double;
-              // Horizontal spacing between avatar and text column
-              final double contentSpacing =
-                  ((width * 0.03).clamp(8.0, 16.0)) as double;
-
-              // Build a compact card following the mockup design:
-              // Use a Stack so that a popup button can be positioned at the
-              // top right of the card, separate from the main content row.
-              return Padding(
-                // Apply dynamic horizontal and vertical padding based on the
-                // card width to ensure the content scales gracefully on different
-                // screen sizes.
-                padding: EdgeInsets.symmetric(
-                  horizontal: horizontalPadding,
-                  vertical: verticalPadding,
+            if (result == true && mounted) await _loadTenants();
+          },
+          child: Padding(
+            padding: EdgeInsets.all(isMobile ? 14 : 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // 👤 รูปโปรไฟล์แบบวงกลม (แนว Employee Card)
+                Hero(
+                  tag: 'tenant_avatar_$tenantId',
+                  child: Container(
+                    width: isMobile ? 52 : 56,
+                    height: isMobile ? 52 : 56,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.grey.shade200,
+                      border: Border.all(
+                        color: AppTheme.primary,
+                        width: 1,
+                      ),
+                    ),
+                    child: ClipOval(
+                      child:
+                          profileImageUrl != null && profileImageUrl.isNotEmpty
+                              ? Image.network(
+                                  profileImageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return _buildInitialAvatar(tenantName);
+                                  },
+                                )
+                              : _buildInitialAvatar(tenantName),
+                    ),
+                  ),
                 ),
-                child: Stack(
-                  children: [
-                    // Main row with avatar and tenant info
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Avatar + status dot
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            Container(
-                              width: avatarSize,
-                              height: avatarSize,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppTheme.primary.withOpacity(0.08),
-                                border: Border.all(
-                                    color: AppTheme.primary, width: 1),
-                              ),
-                              child: ClipOval(
-                                child: (profileImageUrl != null &&
-                                        profileImageUrl.isNotEmpty)
-                                    ? Image.network(
-                                        profileImageUrl,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Center(
-                                          child: Text(
-                                            _getInitials(tenantName),
-                                            style: TextStyle(
-                                              fontSize: avatarSize * 0.4,
-                                              fontWeight: FontWeight.bold,
-                                              color: AppTheme.primary,
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                    : Center(
-                                        child: Text(
-                                          _getInitials(tenantName),
-                                          style: TextStyle(
-                                            fontSize: avatarSize * 0.4,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppTheme.primary,
-                                          ),
-                                        ),
-                                      ),
-                              ),
-                            ),
-                            Positioned(
-                              right: -2,
-                              bottom: -2,
-                              child: Container(
-                                width: avatarSize * 0.24,
-                                height: avatarSize * 0.24,
-                                decoration: BoxDecoration(
-                                  color: isActive
-                                      ? const Color(0xFF10B981)
-                                      : Colors.grey,
-                                  shape: BoxShape.circle,
-                                  border:
-                                      Border.all(color: Colors.white, width: 2),
-                                ),
-                              ),
-                            ),
-                          ],
+                const SizedBox(width: 12),
+
+                // 🧾 ข้อมูลผู้เช่า (ชื่อ + เบอร์ + สถานะ)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 🏷 ชื่อผู้เช่า
+                      Text(
+                        tenantName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: isMobile ? 16 : 17,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF111827),
                         ),
-                        SizedBox(width: contentSpacing),
-                        // Info area
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Tenant name
-                              Text(
-                                tenantName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: nameSize,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade800,
-                                  letterSpacing: -0.2,
-                                ),
+                      ),
+                      const SizedBox(height: 4),
+
+                      // 📞 เบอร์โทรศัพท์ (อยู่ใต้ชื่อแทนคำบรรยายผู้เช่า)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.phone_rounded,
+                            size: 16,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              phone,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey.shade800,
                               ),
-                              // Spacing between name and phone
-                              if (phone != 'ไม่ระบุ') SizedBox(height: 4),
-                              // Phone row
-                              if (phone != 'ไม่ระบุ')
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.phone_outlined,
-                                      size: 16,
-                                      color: AppTheme.primary,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Flexible(
-                                      child: Text(
-                                        phone,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                            fontSize: subSize,
-                                            color: Colors.grey.shade700),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              // Room info (roomcate_name + room_number) if available
-                              if (roomLine.isNotEmpty) SizedBox(height: 4),
-                              if (roomLine.isNotEmpty)
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.meeting_room_outlined,
-                                      size: 16,
-                                      color: Colors.teal.shade600,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Flexible(
-                                      child: Text(
-                                        roomLine,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: subSize,
-                                          color: Colors.grey.shade700,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              // Branch information removed to match updated compact card design
-                              // Status badge
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: isActive
-                                      ? const Color(0xFF10B981)
-                                      : Colors.grey[400],
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: badgeFontSize,
-                                    fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+
+                      // 🎯 แถบสถานะ + ป้ายผู้เช่า (อยู่ใต้เบอร์โทร)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          // ✅ สถานะผู้เช่า
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? const Color(0xFFDCFCE7)
+                                  : const Color(0xFFFEE2E2),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isActive
+                                        ? const Color(0xFF16A34A)
+                                        : Colors.grey,
                                   ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  isActive ? 'กำลังใช้งาน' : 'ปิดใช้งาน',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: isActive
+                                        ? const Color(0xFF166534)
+                                        : Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    // Popup menu positioned at top right
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: PopupMenuButton<String>(
-                        color: Colors.white,
+
+                          // 🪪 ป้าย "ผู้เช่า"
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.person_outline_rounded,
+                                  size: 14,
+                                  color: AppTheme.primary,
+                                ),
+                                const SizedBox(width: 6),
+                                const Text(
+                                  'ผู้เช่า',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // ⋯ เมนูเพิ่มเติม + ลูกศรขวา (โซน action)
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (canManage)
+                      PopupMenuButton<String>(
                         padding: EdgeInsets.zero,
-                        icon: Icon(Icons.more_vert,
-                            size: 20, color: Colors.grey.shade600),
-                        tooltip: 'ตัวเลือก',
+                        icon: Icon(
+                          Icons.more_vert_rounded,
+                          size: 20,
+                          color: Colors.grey.shade700,
+                        ),
+                        tooltip: 'ตัวเลือกเพิ่มเติม',
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 8,
                         onSelected: (value) async {
+                          final String? idStr = tenantId;
+                          if (idStr == null || idStr.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('ไม่พบรหัสผู้เช่า'),
+                                backgroundColor: Colors.red,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                            return;
+                          }
+
                           switch (value) {
+                            // 👁 ดูรายละเอียด
                             case 'view':
                               if (_isAnonymous) {
-                                _showLoginPrompt('ดูรายละเอียด');
-                                return;
-                              }
-                              final String? idStr =
-                                  tenant['tenant_id']?.toString();
-                              if (idStr == null || idStr.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('ไม่พบรหัสผู้เช่า'),
-                                    backgroundColor: Colors.red,
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
+                                _showLoginPrompt('ดูรายละเอียดผู้เช่า');
                                 return;
                               }
                               final result = await Navigator.push(
@@ -1534,28 +1506,29 @@ class _TenantListUIState extends State<TenantListUI> {
                                       TenantDetailUI(tenantId: idStr),
                                 ),
                               );
-                              if (result == true && mounted)
+                              if (result == true && mounted) {
                                 await _loadTenants();
+                              }
                               break;
+
+                            // ✏ แก้ไขผู้เช่า
                             case 'edit':
                               if (_isAnonymous) {
-                                _showLoginPrompt('แก้ไข');
+                                _showLoginPrompt('แก้ไขผู้เช่า');
                                 return;
                               }
-                              if (!canManage) return;
-                              final String? idStr =
-                                  tenant['tenant_id']?.toString();
-                              if (idStr == null || idStr.isEmpty) {
+                              if (!canManage) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('ไม่พบรหัสผู้เช่า'),
-                                    backgroundColor: Colors.red,
+                                    content:
+                                        Text('คุณไม่มีสิทธิ์จัดการผู้เช่า'),
+                                    backgroundColor: Colors.orange,
                                     duration: Duration(seconds: 2),
                                   ),
                                 );
                                 return;
                               }
-                              final result = await Navigator.push(
+                              final editResult = await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => TenantEditUI(
@@ -1564,23 +1537,24 @@ class _TenantListUIState extends State<TenantListUI> {
                                   ),
                                 ),
                               );
-                              if (result == true && mounted)
+                              if (editResult == true && mounted) {
                                 await _loadTenants();
+                              }
                               break;
+
+                            // 🔄 เปลี่ยนสถานะใช้งาน
                             case 'toggle_status':
                               if (_isAnonymous) {
                                 _showLoginPrompt(
                                     isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน');
                                 return;
                               }
-                              if (!canManage) return;
-                              final String? idStr =
-                                  tenant['tenant_id']?.toString();
-                              if (idStr == null || idStr.isEmpty) {
+                              if (!canManage) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('ไม่พบรหัสผู้เช่า'),
-                                    backgroundColor: Colors.red,
+                                    content: Text(
+                                        'คุณไม่มีสิทธิ์เปลี่ยนสถานะผู้เช่า'),
+                                    backgroundColor: Colors.orange,
                                     duration: Duration(seconds: 2),
                                   ),
                                 );
@@ -1588,22 +1562,23 @@ class _TenantListUIState extends State<TenantListUI> {
                               }
                               _toggleTenantStatus(
                                 idStr,
-                                tenant['tenant_fullname'] ?? '',
+                                tenantName,
                                 isActive,
                               );
                               break;
+
+                            // 🗑 ลบผู้เช่า
                             case 'delete':
                               if (_isAnonymous) {
                                 _showLoginPrompt('ลบผู้เช่า');
                                 return;
                               }
-                              final String? idStr =
-                                  tenant['tenant_id']?.toString();
-                              if (idStr == null || idStr.isEmpty) {
+                              if (!canManage) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('ไม่พบรหัสผู้เช่า'),
-                                    backgroundColor: Colors.red,
+                                    content:
+                                        Text('คุณไม่มีสิทธิ์ลบข้อมูลผู้เช่า'),
+                                    backgroundColor: Colors.orange,
                                     duration: Duration(seconds: 2),
                                   ),
                                 );
@@ -1611,7 +1586,7 @@ class _TenantListUIState extends State<TenantListUI> {
                               }
                               _deleteTenant(
                                 idStr,
-                                tenant['tenant_fullname'] ?? '',
+                                tenantName,
                               );
                               break;
                           }
@@ -1620,7 +1595,7 @@ class _TenantListUIState extends State<TenantListUI> {
                           PopupMenuItem(
                             value: 'view',
                             child: Row(
-                              children: const [
+                              children: [
                                 Icon(Icons.visibility_outlined,
                                     size: 20, color: Color(0xFF14B8A6)),
                                 SizedBox(width: 12),
@@ -1628,68 +1603,81 @@ class _TenantListUIState extends State<TenantListUI> {
                               ],
                             ),
                           ),
-                          if (canManage) ...[
-                            PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: const [
-                                  Icon(Icons.edit_outlined,
-                                      size: 20, color: Color(0xFF14B8A6)),
-                                  SizedBox(width: 12),
-                                  Text('แก้ไข'),
-                                ],
-                              ),
+                          PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_outlined,
+                                    size: 20, color: Color(0xFF14B8A6)),
+                                SizedBox(width: 12),
+                                Text('แก้ไข'),
+                              ],
                             ),
-                            PopupMenuItem(
-                              value: 'toggle_status',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    isActive
-                                        ? Icons.visibility_off_outlined
-                                        : Icons.visibility_outlined,
-                                    size: 20,
+                          ),
+                          PopupMenuItem(
+                            value: 'toggle_status',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isActive
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  size: 20,
+                                  color:
+                                      isActive ? Colors.orange : Colors.green,
+                                ),
+                                SizedBox(width: 12),
+                                Text(
+                                  isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
+                                  style: TextStyle(
                                     color:
                                         isActive ? Colors.orange : Colors.green,
                                   ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
-                                    style: TextStyle(
-                                      color: isActive
-                                          ? Colors.orange
-                                          : Colors.green,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: const [
-                                  Icon(
-                                    Icons.delete_outline,
-                                    size: 20,
-                                    color: Colors.red,
-                                  ),
-                                  SizedBox(width: 12),
-                                  Text(
-                                    'ลบ',
-                                    style: TextStyle(color: Colors.red),
-                                  ),
-                                ],
-                              ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline,
+                                    size: 20, color: Colors.red),
+                                SizedBox(width: 12),
+                                Text('ลบ', style: TextStyle(color: Colors.red)),
+                              ],
                             ),
-                          ],
+                          ),
                         ],
                       ),
+                    SizedBox(height: 8),
+                    // 👉 ลูกศรบอกว่ากดเข้าไปดูต่อได้
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: Colors.grey.shade500,
                     ),
                   ],
                 ),
-              );
-            },
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  // 🎨 Avatar fallback ตอนโหลดรูปไม่ได้ / ไม่มีรูป
+  Widget _buildInitialAvatar(String name) {
+    return Container(
+      color: Colors.grey.shade300,
+      alignment: Alignment.center,
+      child: Text(
+        _getInitials(name),
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 18,
+          color: Colors.white,
         ),
       ),
     );

@@ -1409,7 +1409,7 @@ class _BranchAddUiState extends State<BranchAddUi>
           TextFormField(
             controller: _branchCodeController,
             decoration: InputDecoration(
-              labelText: 'รหัสสาขา *',
+              labelText: 'รหัสสาขา',
               prefixIcon: Icon(Icons.qr_code, size: 20),
               border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -1724,8 +1724,6 @@ class _BranchAddUiState extends State<BranchAddUi>
                     onPressed: _isLoading
                         ? null
                         : () => _tabController.animateTo(_currentTabIndex + 1),
-                    icon: Icon(Icons.arrow_forward,
-                        color: Colors.white, size: 18),
                     label: Text(
                       'ถัดไป',
                       style: TextStyle(

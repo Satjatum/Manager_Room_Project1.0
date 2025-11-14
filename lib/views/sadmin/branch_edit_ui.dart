@@ -765,7 +765,7 @@ class _BranchEditUiState extends State<BranchEditUi>
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text('เกิดข้อผิดพลาด: $e'),
             backgroundColor: Colors.red.shade600,
             duration: Duration(seconds: 4),
             behavior: SnackBarBehavior.floating,
@@ -1557,7 +1557,7 @@ class _BranchEditUiState extends State<BranchEditUi>
           TextFormField(
             controller: _branchCodeController,
             decoration: InputDecoration(
-              labelText: 'รหัสสาขา *',
+              labelText: 'รหัสสาขา',
               prefixIcon: Icon(Icons.qr_code, size: 20),
               border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -1586,7 +1586,7 @@ class _BranchEditUiState extends State<BranchEditUi>
           TextFormField(
             controller: _branchNameController,
             decoration: InputDecoration(
-              labelText: 'ชื่อสาขา *',
+              labelText: 'ชื่อสาขา',
               prefixIcon: Icon(Icons.store, size: 20),
               border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -1630,6 +1630,7 @@ class _BranchEditUiState extends State<BranchEditUi>
               filled: true,
               fillColor: Colors.grey.shade50,
             ),
+            maxLength: 10,
             keyboardType: TextInputType.phone,
             validator: (value) {
               if (value != null && value.trim().isNotEmpty) {
@@ -1895,7 +1896,7 @@ class _BranchEditUiState extends State<BranchEditUi>
                     ? null
                     : () => _tabController.animateTo(_currentTabIndex - 1),
                 icon: Icon(Icons.arrow_back, size: 18),
-                label: Text('ก่อนหน้า'),
+                label: Text('ย้อนกลับ'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Color(0xFF10B981),
                   side: BorderSide(color: Color(0xFF10B981)),
@@ -1913,13 +1914,13 @@ class _BranchEditUiState extends State<BranchEditUi>
                     onPressed: _isLoading
                         ? null
                         : () => _tabController.animateTo(_currentTabIndex + 1),
-                    icon: Icon(Icons.arrow_forward,
-                        color: Colors.white, size: 18),
-                    label: Text('ถัดไป',
-                        style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white)),
+                    label: Text(
+                      'ถัดไป',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF10B981),
                       padding: EdgeInsets.symmetric(vertical: 14),

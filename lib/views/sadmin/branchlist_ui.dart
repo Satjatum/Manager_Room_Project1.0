@@ -354,7 +354,9 @@ class _BranchlistUiState extends State<BranchlistUi> {
 
               // Title
               Text(
-                currentStatus ? 'ปิดใช้งานสาขา?' : 'เปิดใช้งานสาขา?',
+                currentStatus
+                    ? 'คุณต้องการปิดใช้งานสาขานี้หรือไม่?'
+                    : 'คุณต้องการเปิดใช้งานสาขานี้หรือไม่?',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -665,7 +667,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
 
               // Title
               Text(
-                'ยืนยันการลบสาขา',
+                'คุณต้องการลบสาขานี้หรือไม่?',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -689,7 +691,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                     SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        branchName,
+                        'สาขา$branchName',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,

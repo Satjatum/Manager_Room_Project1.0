@@ -160,7 +160,9 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
 
               // Title
               Text(
-                currentStatus ? 'ปิดใช้งานสาขา?' : 'เปิดใช้งานสาขา?',
+                currentStatus
+                    ? 'คุณต้องการปิดใช้งานสาขานี้หรือไม่?'
+                    : 'คุณต้องการเปิดใช้งานสาขานี้หรือไม่?',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -489,7 +491,7 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
                     SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        branchName,
+                        'สาขา$branchName',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -518,7 +520,7 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'การกระทำนี้ไม่สามารถย้อนกลับได้.\nข้อมูลทั้งหมดจะถูกลบอย่างถาวร.',
+                        'ข้อมูลทั้งหมดจะถูกลบอย่างถาวร.',
                         style: TextStyle(
                           color: Colors.red.shade800,
                           fontSize: 13,
@@ -843,7 +845,7 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Text(
-                        'เพิ่มสาขาใหม่',
+                        'รายละเอียดข้อมูลสาขา',
                         style: TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
@@ -852,7 +854,7 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'สำหรับเพิ่มสาขาใหม่ในระบบ',
+                        'สำหรับดูรายละเอียดสาขา',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.black54,

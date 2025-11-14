@@ -1045,14 +1045,22 @@ class _RoomEditUIState extends State<RoomEditUI> {
         children: [
           Row(
             children: [
-              Icon(Icons.image, color: AppTheme.primary),
-              const SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.image_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
                 'รูปภาพห้องพัก',
                 style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primary,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
               const SizedBox(width: 8),
@@ -1221,8 +1229,8 @@ class _RoomEditUIState extends State<RoomEditUI> {
                     const SizedBox(height: 4),
                     Text(
                       kIsWeb
-                          ? 'แตะเพื่อเลือกไฟล์จากคอมพิวเตอร์'
-                          : 'แตะเพื่อเลือกหลายรูปจากแกลเลอรี่หรือถ่ายรูปใหม่',
+                          ? 'คลิกเพื่อเลือกไฟล์จากคอมพิวเตอร์'
+                          : 'คลิกเพื่อเลือกหลายรูปจากแกลเลอรี่หรือถ่ายรูปใหม่',
                       style:
                           TextStyle(fontSize: 12, color: Colors.grey.shade500),
                       textAlign: TextAlign.center,
@@ -1236,7 +1244,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        'รองรับ JPG, PNG, WebP (สูงสุด 5MB ต่อไฟล์)',
+                        'JPG, PNG, WebP (Max 5MB)',
                         style: TextStyle(
                           fontSize: 10,
                           color: Colors.blue.shade600,
@@ -1267,14 +1275,22 @@ class _RoomEditUIState extends State<RoomEditUI> {
         children: [
           Row(
             children: [
-              Icon(Icons.hotel, color: AppTheme.primary),
-              const SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.business_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
-                'ข้อมูลพื้นฐาน',
+                'ข้อมูลพื้นฐานห้องพัก',
                 style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primary,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
             ],
@@ -1283,7 +1299,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
           TextFormField(
             controller: _roomNumberController,
             decoration: InputDecoration(
-              labelText: 'หมายเลขห้อง *',
+              labelText: 'หมายเลขห้องพัก',
               prefixIcon: const Icon(Icons.room),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1312,8 +1328,8 @@ class _RoomEditUIState extends State<RoomEditUI> {
             value: _selectedRoomCategoryId,
             dropdownColor: Colors.white,
             decoration: InputDecoration(
-              labelText: 'หมวดหมู่ห้อง',
-              prefixIcon: const Icon(Icons.label),
+              labelText: 'หมวดหมู่ห้องพัก',
+              prefixIcon: const Icon(Icons.keyboard_arrow_down),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -1346,7 +1362,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
             dropdownColor: Colors.white,
             value: _selectedRoomTypeId,
             decoration: InputDecoration(
-              labelText: 'ประเภทห้อง',
+              labelText: 'ประเภทห้องพัก',
               prefixIcon: const Icon(Icons.category),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1380,7 +1396,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
             controller: _roomSizeController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: 'ขนาดห้อง ',
+              labelText: 'ขนาดห้องพัก ',
               prefixIcon: const Icon(Icons.aspect_ratio),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1416,14 +1432,22 @@ class _RoomEditUIState extends State<RoomEditUI> {
         children: [
           Row(
             children: [
-              Icon(Icons.payments, color: AppTheme.primary),
-              const SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.payment_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
                 'ข้อมูลราคา',
                 style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primary,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
             ],
@@ -1433,7 +1457,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
             controller: _roomPriceController,
             keyboardType: TextInputType.number,
             decoration: InputDecoration(
-              labelText: 'ค่าเช่า *',
+              labelText: 'ค่าเช่า',
               prefixIcon: const Icon(Icons.attach_money),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1510,14 +1534,22 @@ class _RoomEditUIState extends State<RoomEditUI> {
         children: [
           Row(
             children: [
-              Icon(Icons.settings, color: AppTheme.primary),
-              const SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.settings_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
-                'รายละเอียดห้อง',
+                'สถานะห้องพัก',
                 style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primary,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
             ],
@@ -1527,7 +1559,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
             dropdownColor: Colors.white,
             value: _selectedRoomStatus,
             decoration: InputDecoration(
-              labelText: 'สถานะห้อง',
+              labelText: 'สถานะห้องพัก',
               prefixIcon: const Icon(Icons.info),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1574,14 +1606,22 @@ class _RoomEditUIState extends State<RoomEditUI> {
         children: [
           Row(
             children: [
-              Icon(Icons.stars, color: AppTheme.primary),
-              const SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.star_outline,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
                 'สิ่งอำนวยความสะดวก',
                 style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primary,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
             ],
@@ -1698,14 +1738,22 @@ class _RoomEditUIState extends State<RoomEditUI> {
         children: [
           Row(
             children: [
-              Icon(Icons.description, color: AppTheme.primary),
-              const SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.description_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
-                'คำอธิบายเพิ่มเติม',
+                'รายละเอียดเพิ่มเติม',
                 style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primary,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
             ],
@@ -1715,7 +1763,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
             controller: _roomDescController,
             maxLines: 4,
             decoration: InputDecoration(
-              labelText: 'รายละเอียดห้อง',
+              labelText: 'รายละเอียดห้องพัก',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -1751,38 +1799,87 @@ class _RoomEditUIState extends State<RoomEditUI> {
         children: [
           Row(
             children: [
-              Icon(Icons.toggle_on, color: AppTheme.primary),
-              const SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.settings_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
-                'การตั้งค่า',
+                'สถานะห้องพัก',
                 style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primary,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          SwitchListTile(
-            title: const Text('เปิดใช้งานห้องพัก'),
-            subtitle: Text(
-              _isActive
-                  ? 'ห้องพักจะปรากฏในระบบและสามารถใช้งานได้'
-                  : 'ห้องพักจะถูกปิดการใช้งาน',
-              style: TextStyle(
+          Container(
+            padding: EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: _isActive ? Colors.green.shade50 : Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
                 color:
-                    _isActive ? Colors.green.shade600 : Colors.orange.shade600,
+                    _isActive ? Colors.green.shade200 : Colors.orange.shade200,
               ),
             ),
-            value: _isActive,
-            onChanged: (value) {
-              setState(() {
-                _isActive = value;
-              });
-            },
-            activeColor: AppTheme.primary,
-            contentPadding: EdgeInsets.zero,
+            child: Row(
+              children: [
+                Icon(
+                  _isActive ? Icons.check_circle : Icons.cancel,
+                  color: _isActive
+                      ? Colors.green.shade600
+                      : Colors.orange.shade600,
+                  size: 24,
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                          color: _isActive
+                              ? Colors.green.shade700
+                              : Colors.orange.shade700,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        _isActive
+                            ? 'ห้องพักนี้จะไม่แสดงในรายการผู้ใช้ทั่วไป'
+                            : 'ห้องพักนี้จะแสดงในรายการผู้ใช้ทั่วไป',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: _isActive
+                              ? Colors.green.shade600
+                              : Colors.orange.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: _isActive,
+                  onChanged: (value) {
+                    setState(() {
+                      _isActive = value;
+                    });
+                  },
+                  activeColor: Color(0xFF10B981),
+                ),
+              ],
+            ),
           ),
         ],
       ),
