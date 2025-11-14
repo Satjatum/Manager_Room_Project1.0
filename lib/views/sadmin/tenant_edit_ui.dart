@@ -809,21 +809,7 @@ class _TenantEditUIState extends State<TenantEditUI>
                       ],
                     ),
             ),
-            if (!_isLoading)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, -2),
-                    )
-                  ],
-                ),
-                child: _buildSaveButton(),
-              ),
+            _buildSaveButton(),
           ],
         ),
       ),
@@ -1951,6 +1937,54 @@ class _TenantEditUIState extends State<TenantEditUI>
   }
 
   Widget _buildSaveButton() {
+    final bool canSave = !_isLoading;
+    final bool isSuperAdmin = _currentUser?.userRole == UserRole.superAdmin;
+
+    // Non-superAdmin: single full-width save button
+    if (!isSuperAdmin) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton.icon(
+            onPressed: canSave ? _saveData : null,
+            icon: _isLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
+                  )
+                : const Icon(Icons.save, color: Colors.white, size: 18),
+            label: Text(
+              _isLoading ? 'กำลังบันทึก...' : 'บันทึกข้อมูล',
+              style: const TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: canSave ? const Color(0xFF10B981) : Colors.grey,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+              elevation: canSave ? 2 : 0,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // SuperAdmin: back/next/save navigation like branch_edit
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1959,13 +1993,12 @@ class _TenantEditUIState extends State<TenantEditUI>
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
-            offset: const Offset(0, -5),
+            offset: const Offset(0, -2),
           ),
         ],
       ),
       child: Row(
         children: [
-          // ปุ่มย้อนกลับ (เฉพาะ tab > 0)
           if (_tabController.index > 0)
             Expanded(
               child: OutlinedButton.icon(
@@ -1979,61 +2012,61 @@ class _TenantEditUIState extends State<TenantEditUI>
                   side: const BorderSide(color: Color(0xFF10B981)),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                      borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ),
-
           if (_tabController.index > 0) const SizedBox(width: 12),
-
-          // ปุ่ม ถัดไป / บันทึกข้อมูล
           Expanded(
             flex: _tabController.index == 0 ? 1 : 2,
-            child: ElevatedButton.icon(
-              onPressed: _isLoading
-                  ? null
-                  : _tabController.index < 2
-                      ? () => _tabController.animateTo(_tabController.index + 1)
-                      : _saveData,
-              icon: _isLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : Icon(
-                      _tabController.index < 2
-                          ? Icons.arrow_forward
-                          : Icons.save,
-                      color: Colors.white,
-                      size: 18,
+            child: _tabController.index < 2
+                ? ElevatedButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () =>
+                            _tabController.animateTo(_tabController.index + 1),
+                    label: const Text(
+                      'ถัดไป',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white),
                     ),
-              label: Text(
-                _isLoading
-                    ? 'กำลังบันทึก...'
-                    : _tabController.index < 2
-                        ? 'ถัดไป'
-                        : 'บันทึกข้อมูล',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    _isLoading ? Colors.grey : const Color(0xFF10B981),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                elevation: _isLoading ? 0 : 2,
-              ),
-            ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  )
+                : ElevatedButton.icon(
+                    onPressed: canSave ? _saveData : null,
+                    icon: _isLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white)),
+                          )
+                        : const Icon(Icons.save, color: Colors.white, size: 18),
+                    label: Text(
+                      _isLoading ? 'กำลังบันทึก...' : 'บันทึกข้อมูล',
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          canSave ? const Color(0xFF10B981) : Colors.grey,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      elevation: canSave ? 2 : 0,
+                    ),
+                  ),
           ),
         ],
       ),
