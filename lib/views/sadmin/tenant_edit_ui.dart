@@ -80,6 +80,10 @@ class _TenantEditUIState extends State<TenantEditUI>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    // Rebuild when tab index changes so bottom nav reflects Back/Next/Save correctly
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     _loadCurrentUser();
     _loadTenantData();
     _loadActiveContract();
@@ -155,8 +159,9 @@ class _TenantEditUIState extends State<TenantEditUI>
           .from('rental_contracts')
           .select('''
             *,
-            rooms!inner(room_number, room_id, 
-              branches!inner(branch_name))
+            rooms!inner(room_number, room_id,
+              branches!inner(branch_name),
+              room_categories(roomcate_name))
           ''')
           .eq('tenant_id', widget.tenantId)
           .eq('contract_status', 'active')
@@ -164,7 +169,17 @@ class _TenantEditUIState extends State<TenantEditUI>
 
       if (mounted) {
         setState(() {
-          _activeContract = result;
+          // enrich active contract with flattened room category name for easy access
+          if (result != null) {
+            _activeContract = {
+              ...result,
+              'roomcate_name': result['rooms']?['room_categories']
+                      ?['roomcate_name'] ??
+                  result['roomcate_name'],
+            };
+          } else {
+            _activeContract = null;
+          }
           _isLoadingContract = false;
 
           if (result != null) {
@@ -809,21 +824,7 @@ class _TenantEditUIState extends State<TenantEditUI>
                       ],
                     ),
             ),
-            if (!_isLoading)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, -2),
-                    )
-                  ],
-                ),
-                child: _buildSaveButton(),
-              ),
+            _buildSaveButton(),
           ],
         ),
       ),
@@ -1237,8 +1238,14 @@ class _TenantEditUIState extends State<TenantEditUI>
           const SizedBox(height: 16),
           _buildInfoRow(
             icon: Icons.home,
-            label: _activeContract?['room_category_name'].toString() ?? '-',
-            value: _activeContract?['rooms']?['room_number']?.toString() ?? '-',
+            label: (_activeContract?['roomcate_name']?.toString() ??
+                _activeContract?['rooms']?['room_categories']?['roomcate_name']
+                    ?.toString() ??
+                _activeContract?['room_category_name']?.toString() ??
+                'ประเภทห้อง'),
+            value: (_activeContract?['rooms']?['room_number']?.toString() ??
+                _activeContract?['room_number']?.toString() ??
+                '-'),
           ),
           const SizedBox(height: 24),
 
@@ -1951,6 +1958,9 @@ class _TenantEditUIState extends State<TenantEditUI>
   }
 
   Widget _buildSaveButton() {
+    final bool canSave = !_isLoading;
+
+    // ใช้รูปแบบเดียวกับ branch_edit: แสดงปุ่มย้อนกลับ/ถัดไป/บันทึกตามแท็บเสมอ
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1965,7 +1975,6 @@ class _TenantEditUIState extends State<TenantEditUI>
       ),
       child: Row(
         children: [
-          // ปุ่มย้อนกลับ (เฉพาะ tab > 0)
           if (_tabController.index > 0)
             Expanded(
               child: OutlinedButton.icon(
@@ -1979,61 +1988,52 @@ class _TenantEditUIState extends State<TenantEditUI>
                   side: const BorderSide(color: Color(0xFF10B981)),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                      borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ),
-
           if (_tabController.index > 0) const SizedBox(width: 12),
-
-          // ปุ่ม ถัดไป / บันทึกข้อมูล
           Expanded(
             flex: _tabController.index == 0 ? 1 : 2,
-            child: ElevatedButton.icon(
-              onPressed: _isLoading
-                  ? null
-                  : _tabController.index < 2
-                      ? () => _tabController.animateTo(_tabController.index + 1)
-                      : _saveData,
-              icon: _isLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : Icon(
-                      _tabController.index < 2
-                          ? Icons.arrow_forward
-                          : Icons.save,
-                      color: Colors.white,
-                      size: 18,
+            child: _tabController.index < 2
+                ? ElevatedButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () =>
+                            _tabController.animateTo(_tabController.index + 1),
+                    label: const Text(
+                      'ถัดไป',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white),
                     ),
-              label: Text(
-                _isLoading
-                    ? 'กำลังบันทึก...'
-                    : _tabController.index < 2
-                        ? 'ถัดไป'
-                        : 'บันทึกข้อมูล',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    _isLoading ? Colors.grey : const Color(0xFF10B981),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                elevation: _isLoading ? 0 : 2,
-              ),
-            ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      elevation: 2,
+                    ),
+                  )
+                : ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _saveData,
+                    icon: const Icon(Icons.save, color: Colors.white, size: 18),
+                    label: const Text(
+                      'บันทึกข้อมูล',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      elevation: 2,
+                    ),
+                  ),
           ),
         ],
       ),
