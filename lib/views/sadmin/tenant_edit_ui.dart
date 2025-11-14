@@ -1223,8 +1223,16 @@ class _TenantEditUIState extends State<TenantEditUI>
           const SizedBox(height: 16),
           _buildInfoRow(
             icon: Icons.home,
-            label: _activeContract?['room_category_name'].toString() ?? '-',
-            value: _activeContract?['rooms']?['room_number']?.toString() ?? '-',
+            label: (
+                  _activeContract?['room_category_name']?.toString() ??
+                  _activeContract?['roomcate_name']?.toString() ??
+                  'ประเภทห้อง'
+                ),
+            value: (
+                  _activeContract?['rooms']?['room_number']?.toString() ??
+                  _activeContract?['room_number']?.toString() ??
+                  '-'
+                ),
           ),
           const SizedBox(height: 24),
 
