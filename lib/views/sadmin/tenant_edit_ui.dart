@@ -2011,7 +2011,7 @@ class _TenantEditUIState extends State<TenantEditUI>
                     onPressed: _isLoading ? null : _saveData,
                     icon: const Icon(Icons.save, color: Colors.white, size: 18),
                     label: const Text(
-                      'บันทึกข้อมูล',
+                      'บันทึกการแก้ไข',
                       style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,

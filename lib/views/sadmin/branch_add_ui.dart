@@ -1752,7 +1752,7 @@ class _BranchAddUiState extends State<BranchAddUi>
                           )
                         : Icon(Icons.save, color: Colors.white, size: 18),
                     label: Text(
-                      _isLoading ? 'กำลังบันทึก...' : 'สร้างสาขา',
+                      _isLoading ? 'กำลังบันทึก...' : 'บันทึก',
                       style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,

@@ -1063,6 +1063,7 @@ class _MeterListUiState extends State<MeterListUi> {
                   isWater: true,
                   col: 7,
                   child: PopupMenuButton<String>(
+                    color: Colors.white,
                     tooltip: 'ตัวเลือก',
                     icon: const Icon(Icons.more_horiz, size: 20),
                     onSelected: (value) async {
@@ -1582,7 +1583,6 @@ class _MeterListUiState extends State<MeterListUi> {
                             horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
                           color: Colors.blue.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: Colors.blue.withOpacity(0.3),
                             width: 1,
@@ -1624,18 +1624,14 @@ class _MeterListUiState extends State<MeterListUi> {
                     ),
                     decoration: InputDecoration(
                       labelText: 'ค่าน้ำเดือนปัจจุบัน',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      border: OutlineInputBorder(),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
                           color: Color(0xff10B981),
                           width: 2,
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
                           color: Colors.grey[300]!,
                           width: 1,
@@ -1669,7 +1665,6 @@ class _MeterListUiState extends State<MeterListUi> {
                             horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
                           color: Colors.orange.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: Colors.orange.withOpacity(0.3),
                             width: 1,
@@ -1711,18 +1706,14 @@ class _MeterListUiState extends State<MeterListUi> {
                     ),
                     decoration: InputDecoration(
                       labelText: 'ค่าไฟเดือนปัจจุบัน',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      border: OutlineInputBorder(),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
                           color: Color(0xff10B981),
                           width: 2,
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
                           color: Colors.grey[300]!,
                           width: 1,
@@ -1860,18 +1851,14 @@ class _MeterListUiState extends State<MeterListUi> {
                       ),
                       decoration: InputDecoration(
                         labelText: 'ค่าน้ำเดือนก่อน',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        border: OutlineInputBorder(),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
                             color: Color(0xff10B981),
                             width: 2,
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
                             color: Colors.grey[300]!,
                             width: 1,
@@ -1887,18 +1874,14 @@ class _MeterListUiState extends State<MeterListUi> {
                       readOnly: true,
                       decoration: InputDecoration(
                         labelText: 'เดือนก่อน: ${prevW.toStringAsFixed(0)}',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        border: OutlineInputBorder(),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
                             color: Color(0xff10B981),
                             width: 2,
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
                             color: Colors.grey[300]!,
                             width: 1,
@@ -1919,18 +1902,14 @@ class _MeterListUiState extends State<MeterListUi> {
                     ),
                     decoration: InputDecoration(
                       labelText: 'ค่าน้ำเดือนปัจจุบัน',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      border: OutlineInputBorder(),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
                           color: Color(0xff10B981),
                           width: 2,
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
                           color: Colors.grey[300]!,
                           width: 1,
@@ -1958,18 +1937,14 @@ class _MeterListUiState extends State<MeterListUi> {
                       ),
                       decoration: InputDecoration(
                         labelText: 'ค่าไฟเดือนก่อน',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        border: OutlineInputBorder(),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
                             color: Color(0xff10B981),
                             width: 2,
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
                             color: Colors.grey[300]!,
                             width: 1,
@@ -1985,18 +1960,14 @@ class _MeterListUiState extends State<MeterListUi> {
                       readOnly: true,
                       decoration: InputDecoration(
                         labelText: 'เดือนก่อน: ${prevE.toStringAsFixed(0)}',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        border: OutlineInputBorder(),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
                             color: Color(0xff10B981),
                             width: 2,
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
                             color: Colors.grey[300]!,
                             width: 1,
@@ -2017,18 +1988,14 @@ class _MeterListUiState extends State<MeterListUi> {
                     ),
                     decoration: InputDecoration(
                       labelText: 'ค่าไฟเดือนปัจจุบัน',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      border: OutlineInputBorder(),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
                           color: Color(0xff10B981),
                           width: 2,
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
                           color: Colors.grey[300]!,
                           width: 1,

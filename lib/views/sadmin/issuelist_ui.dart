@@ -527,8 +527,10 @@ class _IssueListUiState extends State<IssueListUi>
                             }
 
                             double aspect;
-                            if (cols >= 4) {
-                              aspect = 0.95;
+                            if (cols >= 5) {
+                              aspect = 1.05;
+                            } else if (cols >= 4) {
+                              aspect = 1.50;
                             } else if (cols == 3) {
                               aspect = 1.05;
                             } else {
@@ -834,6 +836,7 @@ class _IssueListUiState extends State<IssueListUi>
     final issueNum = issue['issue_num'] ?? '';
     final title = issue['issue_title'] ?? '';
     final roomNumber = issue['room_number'] ?? '';
+    final roomCate = issue['room_category_name'] ?? '';
     final branchName = issue['branch_name'] ?? '';
     final status = issue['issue_status'] ?? '';
     final type = issue['issue_type'] ?? '';
@@ -930,14 +933,6 @@ class _IssueListUiState extends State<IssueListUi>
 
               // Details (white box with grey border)
               Builder(builder: (context) {
-                final roomCate = (issue['room_category_name'] ??
-                        issue['room_type_name'] ??
-                        issue['roomcate'] ??
-                        '')
-                    .toString();
-                final roomInfo = roomCate.isNotEmpty
-                    ? '$roomCate  $roomNumber'
-                    : roomNumber.toString();
                 final desc = (issue['issue_desc'] ?? '').toString();
                 return Container(
                   width: double.infinity,
@@ -952,12 +947,12 @@ class _IssueListUiState extends State<IssueListUi>
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.meeting_room,
+                          Icon(Icons.business,
                               size: 16, color: Colors.grey[600]),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              roomInfo,
+                              "$roomCate เลขที่ $roomNumber",
                               style: const TextStyle(fontSize: 13),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,

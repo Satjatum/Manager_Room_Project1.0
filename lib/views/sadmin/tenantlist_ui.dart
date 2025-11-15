@@ -1193,7 +1193,7 @@ class _TenantListUIState extends State<TenantListUI> {
 
     if (crossAxisCount > 1) {
       const double horizontalPadding = 24;
-      const double gridSpacing = 16;
+      const double gridSpacing = 12;
       final double availableWidth = screenWidth -
           (horizontalPadding * 2) -
           (gridSpacing * (crossAxisCount - 1));
@@ -1202,12 +1202,12 @@ class _TenantListUIState extends State<TenantListUI> {
       double mainExtent = itemWidth * 0.5;
 
       return GridView.builder(
-        padding: const EdgeInsets.symmetric(
-            horizontal: horizontalPadding, vertical: 8),
+        // padding: const EdgeInsets.symmetric(
+        //     horizontal: horizontalPadding, vertical: 8),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: crossAxisCount,
-          crossAxisSpacing: gridSpacing,
-          mainAxisSpacing: gridSpacing,
+          crossAxisSpacing: 6,
+          mainAxisSpacing: 6,
           mainAxisExtent: mainExtent,
         ),
         itemCount: _filteredTenants.length,
@@ -1224,7 +1224,7 @@ class _TenantListUIState extends State<TenantListUI> {
         itemBuilder: (context, index) {
           final tenant = _filteredTenants[index];
           return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.only(bottom: 6),
             child: _buildCompactTenantCard(tenant),
           );
         },

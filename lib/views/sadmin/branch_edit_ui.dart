@@ -1859,7 +1859,7 @@ class _BranchEditUiState extends State<BranchEditUi>
                   )
                 : Icon(Icons.save, color: Colors.white, size: 18),
             label: Text(
-              _isLoading ? 'กำลังอัปเดต...' : 'อัปเดตสาขา',
+              _isLoading ? 'กำลังบันทึกการแก้ไข...' : 'บันทึกการแก้ไข',
               style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -1941,7 +1941,7 @@ class _BranchEditUiState extends State<BranchEditUi>
                           )
                         : Icon(Icons.save, color: Colors.white, size: 18),
                     label: Text(
-                      _isLoading ? 'กำลังอัปเดต...' : 'อัปเดตสาขา',
+                      _isLoading ? 'กำลังบันทึกการแก้ไข...' : 'บันทึกการแก้ไข',
                       style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,

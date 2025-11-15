@@ -1113,10 +1113,18 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline, color: AppTheme.primary, size: 22),
-              const SizedBox(width: 10),
-              const Text(
-                'รายละเอียดปัญหา',
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.info_outline,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
+              Text(
+                'รายละเอีดยปัญหา',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1139,15 +1147,10 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
           // ),
           const SizedBox(height: 12),
           _buildDetailRow(
-            icon: Icons.meeting_room_outlined,
-            label: _issue!['room_category_name'] ?? 'ไม่ระบุประเภท',
-            value: _issue!['room_number'] ?? 'ไม่ระบุห้อง',
-          ),
-          const SizedBox(height: 12),
-          _buildDetailRow(
             icon: Icons.person_outline,
             label: 'ผู้แจ้ง',
-            value: _issue!['created_user_name'] ?? 'ไม่ระบุ',
+            value:
+                'คุณ${_issue!['created_user_name']} ${_issue!['room_category_name']}เลขที่ ${_issue!['room_number'] ?? 'ไม่ระบุ'}',
           ),
           const SizedBox(height: 12),
           _buildDetailRow(
@@ -1301,9 +1304,17 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
         children: [
           Row(
             children: [
-              Icon(Icons.settings_outlined, color: AppTheme.primary, size: 22),
-              const SizedBox(width: 10),
-              const Text(
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.settings_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
+              Text(
                 'การดำเนินการ',
                 style: TextStyle(
                   fontSize: 18,
@@ -1419,9 +1430,17 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
         children: [
           Row(
             children: [
-              Icon(Icons.timeline_outlined, color: AppTheme.primary, size: 22),
-              const SizedBox(width: 10),
-              const Text(
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.timeline_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
+              Text(
                 'ประวัติการดำเนินงาน',
                 style: TextStyle(
                   fontSize: 18,

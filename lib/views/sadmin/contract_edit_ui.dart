@@ -699,7 +699,6 @@ class _ContractEditUIState extends State<ContractEditUI> {
         ),
         child: SizedBox(
           width: double.infinity,
-          height: 50,
           child: ElevatedButton.icon(
             onPressed: canSave ? _updateContract : null,
             icon: _isSaving
@@ -713,7 +712,7 @@ class _ContractEditUIState extends State<ContractEditUI> {
                   )
                 : const Icon(Icons.save, color: Colors.white),
             label: Text(
-              _isSaving ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข',
+              _isSaving ? 'กำลังบันทึกการแก้ไข...' : 'บันทึกการแก้ไข',
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,

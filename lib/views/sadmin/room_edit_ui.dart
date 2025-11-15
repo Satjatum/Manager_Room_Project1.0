@@ -998,7 +998,6 @@ class _RoomEditUIState extends State<RoomEditUI> {
       ),
       child: SizedBox(
         width: double.infinity,
-        height: 50,
         child: ElevatedButton.icon(
           onPressed: canSave ? _updateRoom : null,
           icon: _isLoading
@@ -1012,7 +1011,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
                 )
               : const Icon(Icons.save, color: Colors.white),
           label: Text(
-            _isLoading ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข',
+            _isLoading ? 'กำลังบันทึกการแก้ไข...' : 'บันทึกการแก้ไข',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,

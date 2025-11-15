@@ -2308,7 +2308,7 @@ class _TenantAddUIState extends State<TenantAddUI>
             child: ElevatedButton.icon(
               onPressed: _currentTabIndex < 2 ? _nextTab : _saveTenant,
               label: Text(
-                _currentTabIndex < 2 ? 'ถัดไป' : 'บันทึกข้อมูล',
+                _currentTabIndex < 2 ? 'ถัดไป' : 'บันทึก',
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,

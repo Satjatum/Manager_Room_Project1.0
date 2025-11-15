@@ -927,7 +927,6 @@ class _ContractAddUIState extends State<ContractAddUI> {
         ),
         child: SizedBox(
           width: double.infinity,
-          height: 50,
           child: ElevatedButton.icon(
             onPressed: canSave ? _save : null,
             icon: _saving
@@ -941,7 +940,7 @@ class _ContractAddUIState extends State<ContractAddUI> {
                   )
                 : const Icon(Icons.save, color: Colors.white),
             label: Text(
-              _saving ? 'กำลังบันทึก...' : 'บันทึกสัญญา',
+              _saving ? 'กำลังบันทึก...' : 'บันทึก',
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,

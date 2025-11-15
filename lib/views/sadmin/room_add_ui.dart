@@ -878,7 +878,6 @@ class _RoomAddUIState extends State<RoomAddUI> {
       ),
       child: SizedBox(
         width: double.infinity,
-        height: 50,
         child: ElevatedButton.icon(
           onPressed: canSave ? _saveRoom : null,
           icon: _isLoading
@@ -892,7 +891,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
                 )
               : const Icon(Icons.save, color: Colors.white),
           label: Text(
-            _isLoading ? 'กำลังบันทึก...' : 'บันทึกห้องพัก',
+            _isLoading ? 'กำลังบันทึก...' : 'บันทึก',
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
