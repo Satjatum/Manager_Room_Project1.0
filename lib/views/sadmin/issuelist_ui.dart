@@ -506,7 +506,13 @@ class _IssueListUiState extends State<IssueListUi>
                           builder: (context, constraints) {
                             final width = constraints.maxWidth;
                             int cols = 1;
-                            if (width >= 1200) {
+                            if (width >= 2560) {
+                              cols = 5;
+                            } else if (width >= 1920) {
+                              cols = 4;
+                            } else if (width >= 1440) {
+                              cols = 4;
+                            } else if (width >= 1200) {
                               cols = 4;
                             } else if (width >= 992) {
                               cols = 3;
@@ -527,14 +533,18 @@ class _IssueListUiState extends State<IssueListUi>
                             }
 
                             double aspect;
-                            if (cols >= 5) {
-                              aspect = 1.05;
-                            } else if (cols >= 4) {
+                            if (width >= 2560) {
+                              aspect = 1.70;
+                            } else if (width >= 1920) {
                               aspect = 1.50;
-                            } else if (cols == 3) {
+                            } else if (width >= 1440) {
+                              aspect = 1.10;
+                            } else if (width >= 1200) {
+                              aspect = 1.50;
+                            } else if (width >= 992) {
                               aspect = 1.05;
                             } else {
-                              aspect = 1.1;
+                              aspect = 1.20;
                             }
 
                             return GridView.builder(
