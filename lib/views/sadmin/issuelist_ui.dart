@@ -957,12 +957,29 @@ class _IssueListUiState extends State<IssueListUi>
                               size: 16, color: Colors.grey[600]),
                           const SizedBox(width: 6),
                           Expanded(
-                            child: Text(
-                              "$roomCate เลขที่ $roomNumber",
-                              style: const TextStyle(fontSize: 13),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            child: Builder(builder: (context) {
+                              final roomCateStr =
+                                  (roomCate ?? '').toString().trim();
+                              final roomNumStr =
+                                  (roomNumber ?? '').toString().trim();
+                              final parts = <String>[];
+                              if (roomCateStr.isNotEmpty) parts.add(roomCateStr);
+                              if (roomNumStr.isNotEmpty) {
+                                parts.add('เลขที่ $roomNumStr');
+                              }
+                              final display = parts.isEmpty ? '-' : parts.join(' ');
+
+                              return Tooltip(
+                                message: display,
+                                preferBelow: false,
+                                child: Text(
+                                  display,
+                                  style: const TextStyle(fontSize: 13),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }),
                           ),
                         ],
                       ),
