@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:manager_room_project/views/sadmin/branchlist_ui.dart';
 import '../services/auth_service.dart';
 import '../middleware/auth_middleware.dart';
 import '../models/user_models.dart';
-import 'sadmin/superadmindash_ui.dart';
 import 'tenant/tenantdash_ui.dart';
 
 class LoginUi extends StatefulWidget {
@@ -180,10 +180,10 @@ class _LoginUiState extends State<LoginUi> {
 
       switch (user.userRole) {
         case UserRole.superAdmin:
-          targetPage = const SuperadmindashUi();
+          targetPage = const BranchlistUi();
           break;
         case UserRole.admin:
-          targetPage = const SuperadmindashUi();
+          targetPage = const BranchlistUi();
           break;
         case UserRole.tenant:
           targetPage = const TenantdashUi();

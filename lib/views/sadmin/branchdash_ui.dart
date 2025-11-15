@@ -9,7 +9,30 @@ import 'meterlist_ui.dart';
 import 'payment_verification_ui.dart';
 import 'settingbranch_ui.dart';
 //--------
-import 'package:manager_room_project/views/widgets/colors.dart';
+import 'package:manager_room_project/services/branch_service.dart';
+import 'package:manager_room_project/services/issue_service.dart';
+import 'package:manager_room_project/services/invoice_service.dart';
+
+// Local page palette (only for this screen)
+class _PageTheme {
+  // สีเขียวหลัก 0xFF10B981 ใช้กับ icon / badge / จุดเน้น
+  static const Color primary = Color(0xFF10B981);
+
+  // Background ทั้งหน้า
+  static const Color pageBackground = Colors.white;
+
+  // สี container/card
+  static const Color surface = Colors.white;
+
+  // เส้นขอบบาง ๆ
+  static const Color border = Color(0xFFE5E7EB);
+
+  // สีพื้นอ่อน ๆ สำหรับ icon circle
+  static const Color soft = Color(0xFFF3F4F6);
+
+  // ใช้ในกรณีต้องการเงาบางมาก (ส่วนใหญ่จะไม่ใช้)
+  static const Color cardShadow = Color(0x00000000);
+}
 
 class BranchDashboardPage extends StatelessWidget {
   final String? branchId;
@@ -41,9 +64,7 @@ class BranchDashboardPage extends StatelessWidget {
       return ok == true;
     }
 
-    // Define the list of dashboard actions. Each card in the grid is built
-    // using these descriptors. Keeping this list near the top of the build
-    // method makes it easier to add or remove items later on.
+    // Dashboard items (logic เดิม)
     final items = <_DashItem>[
       _DashItem(
         icon: Icons.meeting_room_outlined,
@@ -146,18 +167,13 @@ class BranchDashboardPage extends StatelessWidget {
     return WillPopScope(
       onWillPop: _confirmExit,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: _PageTheme.pageBackground,
         body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              // Capture the full screen width. We'll compute our responsive
-              // breakpoints based on the entire available width rather than
-              // constraining the content to a fixed maximum. This allows the
-              // dashboard to stretch across the screen on larger displays.
               final double screenW = constraints.maxWidth;
-              // Compose the header with a back button and title. On larger screens
-              // the header remains aligned to the left, while on phones it
-              // stretches across the width.
+
+              // Header ด้านบน (พื้นหลังขาว)
               final header = Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -165,8 +181,10 @@ class BranchDashboardPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new,
-                          color: Colors.black87),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.black87,
+                      ),
                       onPressed: () async {
                         if (await _confirmExit()) {
                           if (Navigator.of(context).canPop()) {
@@ -181,11 +199,11 @@ class BranchDashboardPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'แดชบอร์ดสาขา',
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
                               color: Colors.black87,
                             ),
                           ),
@@ -193,7 +211,7 @@ class BranchDashboardPage extends StatelessWidget {
                           Text(
                             'เลือกเมนูการทำงานของสาขา',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 13,
                               color: Colors.grey[600],
                             ),
                           ),
@@ -204,41 +222,49 @@ class BranchDashboardPage extends StatelessWidget {
                 ),
               );
 
-              // Determine the number of columns based on available width. The grid
-              // uses a fixed cross axis count so the cards fill the entire row
-              // before wrapping to the next line. Adjust these breakpoints to
-              // your liking to achieve a consistent look across devices.
-              int crossAxisCount;
-              if (screenW < 480) {
-                crossAxisCount = 2; // small phones
-              } else if (screenW < 800) {
-                crossAxisCount = 3; // large phones / small tablets
-              } else if (screenW < 1100) {
-                crossAxisCount = 4; // tablets / small laptops
-              } else if (screenW < 1400) {
-                crossAxisCount = 5; // medium desktops
-              } else {
-                crossAxisCount = 6; // large desktops / wide screens
-              }
+              // === Auto-wrap Grid สำหรับปุ่มเมนู ===
+              const double gridHorizontalPadding = 12;
+              const double dashMinWidth = 120; // ความกว้างขั้นต่ำของการ์ดปุ่ม
+              const double dashDesiredHeight = 90;
+              const double dashSpacing = 16;
 
-              // Build the list containing the branch name card (if provided) and the
-              // responsive grid. Using a fixed cross axis count ensures the
-              // buttons span the entire width of the content area before
-              // starting a new line.
+              final double contentWidth = screenW - (gridHorizontalPadding * 2);
+
+              int dashCrossAxisCount =
+                  ((contentWidth + dashSpacing) / (dashMinWidth + dashSpacing))
+                      .floor();
+
+              // อย่างน้อย 2 คอลัมน์
+              if (dashCrossAxisCount < 2) dashCrossAxisCount = 2;
+              // กันไม่ให้ถี่เกิน (เช่น จอใหญ่มาก)
+              if (dashCrossAxisCount > 6) dashCrossAxisCount = 6;
+
+              final double dashChildAspectRatio =
+                  dashMinWidth / dashDesiredHeight;
+
               final contentList = ListView(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                padding: const EdgeInsets.fromLTRB(
+                    gridHorizontalPadding, 0, gridHorizontalPadding, 24),
                 children: [
-                  if ((branchName ?? '').isNotEmpty)
-                    _BranchNameCard(name: branchName!),
+                  if ((branchId ?? '').isNotEmpty)
+                    _BranchHeaderCard(
+                      branchId: branchId!,
+                      fallbackName: branchName,
+                    ),
+                  if ((branchId ?? '').isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: _BranchStats(branchId: branchId!),
+                    ),
                   const SizedBox(height: 12),
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 20,
-                      childAspectRatio: 0.9,
+                      crossAxisCount: dashCrossAxisCount,
+                      crossAxisSpacing: dashSpacing,
+                      mainAxisSpacing: 18,
+                      childAspectRatio: dashChildAspectRatio,
                     ),
                     itemCount: items.length,
                     itemBuilder: (context, i) => _DashCard(item: items[i]),
@@ -246,14 +272,7 @@ class BranchDashboardPage extends StatelessWidget {
                 ],
               );
 
-              // Assemble the final layout. On mobile devices we center the content
-              // horizontally within the viewport; on larger screens we left align
-              // the content within the maximum width to provide a more desktop‑like
-              // experience.
               if (isMobileApp) {
-                // On mobile devices, stretch the content across the full width of the
-                // screen. We no longer use ConstrainedBox so the grid fills
-                // horizontally before wrapping.
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -262,9 +281,7 @@ class BranchDashboardPage extends StatelessWidget {
                   ],
                 );
               }
-              // Desktop/web: likewise stretch the dashboard to fill the available
-              // width. The crossAxisCount calculation above handles responsive
-              // column counts.
+
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -280,10 +297,7 @@ class BranchDashboardPage extends StatelessWidget {
   }
 }
 
-// Responsive content widths (Mobile S/M/L, Tablet, Laptop, Laptop L, 4K)
-// Previously the layout limited its width using _maxContentWidth, but now
-// the dashboard stretches to fill the available space. The helper is kept
-// for legacy compatibility but returns the input unchanged.
+// helper เดิม (เผื่อ project ส่วนอื่นยังอ้างถึง)
 double _maxContentWidth(double screenWidth) => screenWidth;
 
 class _DashItem {
@@ -293,68 +307,77 @@ class _DashItem {
   _DashItem({required this.icon, required this.label, required this.onTap});
 }
 
-class _DashCard extends StatelessWidget {
+class _DashCard extends StatefulWidget {
   final _DashItem item;
   const _DashCard({required this.item});
 
   @override
+  State<_DashCard> createState() => _DashCardState();
+}
+
+class _DashCardState extends State<_DashCard> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    // Each dashboard card uses a subtle elevation and increased padding to
-    // create a modern, touch‑friendly appearance. The circular icon
-    // container scales up slightly and the font size is increased to aid
-    // readability on larger screens.
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: item.onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey[300]!),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
+    final borderRadius = BorderRadius.circular(14);
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 140),
+        scale: _hovered ? 1.02 : 1.0,
+        curve: Curves.easeOut,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.item.onTap,
+            borderRadius: borderRadius,
+            child: Ink(
+              decoration: BoxDecoration(
+                color: _PageTheme.surface,
+                borderRadius: borderRadius,
+                border: Border.all(
+                  color: _hovered
+                      ? _PageTheme.primary.withOpacity(0.8)
+                      : _PageTheme.border,
+                  width: 1,
+                ),
               ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Icon(
-                      item.icon,
-                      color: AppTheme.primary,
-                      size: 30,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: _PageTheme.primary.withOpacity(0.10),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        widget.item.icon,
+                        size: 22,
+                        color: _PageTheme.primary,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.item.label,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  item.label,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -363,58 +386,411 @@ class _DashCard extends StatelessWidget {
   }
 }
 
-// ชิปแสดงข้อมูล (กรอบ + ไอคอน) สำหรับชื่อสาขา/รหัสสาขา
-class _BranchNameCard extends StatelessWidget {
-  final String name;
-  const _BranchNameCard({required this.name});
+// การ์ดหัวสาขา: background ขาว, container ขาว, icon/badge ใช้สีเขียวหลัก
+class _BranchHeaderCard extends StatelessWidget {
+  final String branchId;
+  final String? fallbackName;
+  const _BranchHeaderCard({required this.branchId, this.fallbackName});
 
   @override
   Widget build(BuildContext context) {
-    // Display the branch name in its own card with a larger icon and
-    // comfortable padding. This card sits above the grid and is only
-    // shown when a branch name is provided.
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: BranchService.getBranchById(branchId),
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        final String branchName =
+            (data != null ? (data['branch_name']?.toString() ?? '') : '')
+                    .trim()
+                    .isNotEmpty
+                ? data!['branch_name'].toString()
+                : (fallbackName ?? '');
+        final String branchCode =
+            (data != null ? (data['branch_code']?.toString() ?? '') : '')
+                .trim();
+        final bool isActive =
+            (data != null ? (data['is_active'] as bool?) ?? false : false);
+        final String? imageUrl =
+            data != null ? (data['branch_image'] as String?) : null;
+
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: _PageTheme.border),
+          ),
+          color: _PageTheme.surface,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // รูปสาขา/ไอคอนสาขา (พื้นหลังขาว)
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: _PageTheme.soft,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: imageUrl != null && imageUrl.isNotEmpty
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                        )
+                      : Icon(
+                          Icons.apartment_rounded,
+                          color: _PageTheme.primary,
+                          size: 28,
+                        ),
+                ),
+                const SizedBox(width: 14),
+                // ชื่อสาขา + code
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (branchCode.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _PageTheme.primary.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            branchCode,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _PageTheme.primary,
+                            ),
+                          ),
+                        ),
+                      if (branchCode.isNotEmpty) const SizedBox(height: 4),
+                      Text(
+                        branchName.isNotEmpty ? branchName : 'สาขา',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'ข้อมูลภาพรวมของสาขานี้',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // badge สถานะ
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? _PageTheme.primary.withOpacity(0.08)
+                        : _PageTheme.soft,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: isActive ? _PageTheme.primary : Colors.grey[400]!,
+                    ),
+                  ),
+                  child: Text(
+                    isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isActive ? _PageTheme.primary : Colors.grey[700],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ====================== สถิติภาพรวมของสาขา ======================
+
+class _BranchStats extends StatelessWidget {
+  final String branchId;
+  const _BranchStats({required this.branchId});
+
+  Future<Map<String, dynamic>> _load() async {
+    final now = DateTime.now();
+    final stats = await Future.wait([
+      BranchService.getBranchStatistics(branchId),
+      IssueService.getIssueStatistics(branchId: branchId),
+      InvoiceService.getInvoiceStats(
+        branchId: branchId,
+        month: now.month,
+        year: now.year,
+      ),
+    ]);
+
+    final branch = stats[0];
+    final issues = stats[1];
+    final invoices = stats[2];
+
+    final int issuePending =
+        (issues['pending'] ?? 0) + (issues['in_progress'] ?? 0);
+    final int invoicePending = (invoices['pending'] ?? 0) +
+        (invoices['partial'] ?? 0) +
+        (invoices['overdue'] ?? 0);
+
+    return {
+      'total_rooms': branch['total_rooms'] ?? 0,
+      'occupied_rooms': branch['occupied_rooms'] ?? 0,
+      'available_rooms': branch['available_rooms'] ?? 0,
+      'maintenance_rooms': branch['maintenance_rooms'] ?? 0,
+      'occupancy_rate': branch['occupancy_rate'] ?? 0,
+      'issue_pending': issuePending,
+      'invoice_pending': invoicePending,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _load(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const _StatsSkeleton();
+        }
+        if (snapshot.hasError || !snapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+
+        final data = snapshot.data!;
+
+        final tiles = <Widget>[
+          _StatTile(
+            label: 'ห้องทั้งหมด',
+            value: data['total_rooms'].toString(),
+            icon: Icons.meeting_room_outlined,
+          ),
+          _StatTile(
+            label: 'มีผู้เช่า',
+            value: data['occupied_rooms'].toString(),
+            icon: Icons.person_pin_circle_rounded,
+          ),
+          _StatTile(
+            label: 'ว่าง',
+            value: data['available_rooms'].toString(),
+            icon: Icons.event_available_outlined,
+          ),
+          _StatTile(
+            label: 'ซ่อมบำรุง',
+            value: data['maintenance_rooms'].toString(),
+            icon: Icons.build_circle_outlined,
+          ),
+          _StatTile(
+            label: 'อัตราเข้าพัก',
+            value: '${data['occupancy_rate']}%',
+            icon: Icons.pie_chart_outline,
+          ),
+          _StatTile(
+            label: 'ปัญหาค้าง',
+            value: data['issue_pending'].toString(),
+            icon: Icons.report_gmailerrorred_outlined,
+          ),
+          _StatTile(
+            label: 'บิลค้าง',
+            value: data['invoice_pending'].toString(),
+            icon: Icons.receipt_long_outlined,
+          ),
+        ];
+
+        return LayoutBuilder(
+          builder: (context, c) {
+            final w = c.maxWidth;
+
+            const double minTileWidth = 180;
+            const double spacing = 12;
+
+            final double contentWidth = w;
+            int crossAxisCount =
+                ((contentWidth + spacing) / (minTileWidth + spacing)).floor();
+
+            if (crossAxisCount < 2) crossAxisCount = 2;
+            if (crossAxisCount > 6) crossAxisCount = 6;
+
+            const double desiredHeight = 80;
+            final double aspectRatio = minTileWidth / desiredHeight;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // หัวข้อ section สถิติ
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: _PageTheme.primary.withOpacity(0.10),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.insights_outlined,
+                          size: 16,
+                          color: _PageTheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'สถิติภาพรวมของสาขา',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GridView.count(
+                  crossAxisCount: crossAxisCount,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: spacing,
+                  mainAxisSpacing: spacing,
+                  childAspectRatio: aspectRatio,
+                  children: tiles,
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _StatTile({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Card(
+      elevation: 0,
+      color: _PageTheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey[300]!),
+        side: const BorderSide(color: _PageTheme.border),
       ),
-      elevation: 0,
-      color: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 28,
+              height: 28,
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.15),
+                color: _PageTheme.primary.withOpacity(0.10),
                 shape: BoxShape.circle,
               ),
-              child: const Center(
-                child: Icon(
-                  Icons.business,
-                  color: AppTheme.primary,
-                  size: 24,
-                ),
+              child: Icon(
+                icon,
+                color: _PageTheme.primary,
+                size: 16,
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StatsSkeleton extends StatelessWidget {
+  const _StatsSkeleton();
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, c) {
+        final w = c.maxWidth;
+
+        const double minTileWidth = 180;
+        const double spacing = 12;
+
+        final double contentWidth = w;
+        int crossAxisCount =
+            ((contentWidth + spacing) / (minTileWidth + spacing)).floor();
+        if (crossAxisCount < 2) crossAxisCount = 2;
+        if (crossAxisCount > 6) crossAxisCount = 6;
+
+        const double desiredHeight = 80;
+        final double aspectRatio = minTileWidth / desiredHeight;
+
+        return GridView.count(
+          crossAxisCount: crossAxisCount,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: spacing,
+          mainAxisSpacing: spacing,
+          childAspectRatio: aspectRatio,
+          children: List.generate(
+            6,
+            (i) => Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

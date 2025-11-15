@@ -1127,7 +1127,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
               elevation: 4,
             )
           : null,
-      bottomNavigationBar: const Mainnavbar(currentIndex: 1),
+      bottomNavigationBar: const Mainnavbar(currentIndex: 0),
     );
   }
 
