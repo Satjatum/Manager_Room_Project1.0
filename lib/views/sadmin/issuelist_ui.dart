@@ -847,7 +847,6 @@ class _IssueListUiState extends State<IssueListUi>
     final title = issue['issue_title'] ?? '';
     final roomNumber = issue['room_number'] ?? '';
     final roomCate = issue['room_category_name'] ?? '';
-    final branchName = issue['branch_name'] ?? '';
     final status = issue['issue_status'] ?? '';
     final type = issue['issue_type'] ?? '';
     final createdAt = issue['created_at'] != null
@@ -886,8 +885,14 @@ class _IssueListUiState extends State<IssueListUi>
               // Title first
               Row(
                 children: [
-                  Icon(_getIssueTypeIcon(type),
-                      size: 20, color: Colors.grey[700]),
+                  Text(
+                    'เรื่อง',
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -962,7 +967,7 @@ class _IssueListUiState extends State<IssueListUi>
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              "$roomCate เลขที่ $roomNumber",
+                              "$roomCateเลขที่ $roomNumber",
                               style: const TextStyle(fontSize: 13),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
