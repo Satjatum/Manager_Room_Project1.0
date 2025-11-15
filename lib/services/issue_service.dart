@@ -23,7 +23,8 @@ class IssueService {
         rooms!inner(
           room_id,
           room_number,
-          branches!inner(branch_id, branch_name, branch_code)
+          branches!inner(branch_id, branch_name, branch_code),
+          room_categories!inner(roomcate_name)
         ),
         tenants(tenant_id, tenant_fullname, tenant_phone),
         assigned_user:assigned_to(user_id, user_name, user_email),
@@ -59,6 +60,7 @@ class IssueService {
         return {
           ...issue,
           'room_number': issue['rooms']?['room_number'],
+          'room_category_name': issue['rooms']?['room_categories']?['roomcate_name'],
           'branch_id': issue['rooms']?['branches']?['branch_id'],
           'branch_name': issue['rooms']?['branches']?['branch_name'],
           'branch_code': issue['rooms']?['branches']?['branch_code'],
@@ -122,7 +124,8 @@ class IssueService {
           rooms!inner(
             room_id,
             room_number,
-            branches!inner(branch_id, branch_name, branch_code)
+            branches!inner(branch_id, branch_name, branch_code),
+            room_categories!inner(roomcate_name)
           ),
           tenants(tenant_id, tenant_fullname, tenant_phone),
           assigned_user:assigned_to(user_id, user_name, user_email)
@@ -138,6 +141,7 @@ class IssueService {
           return {
             ...issue,
             'room_number': issue['rooms']?['room_number'],
+            'room_category_name': issue['rooms']?['room_categories']?['roomcate_name'],
             'branch_name': issue['rooms']?['branches']?['branch_name'],
             'assigned_user_name': issue['assigned_user']?['user_name'],
           };
