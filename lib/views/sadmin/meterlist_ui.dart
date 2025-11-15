@@ -881,6 +881,7 @@ class _MeterListUiState extends State<MeterListUi> {
   // --- Row tap helpers to ensure selection toggles on ANY cell tap ---
   Future<void> _onTapWaterRow(String roomId, Map<String, dynamic> room,
       bool isNew, bool canCreate) async {
+    // แสดง active highlight เมื่อแตะ (ทุกแพลตฟอร์ม)
     setState(() {
       _selectedWaterRowId = (_selectedWaterRowId == roomId) ? null : roomId;
     });
@@ -893,6 +894,7 @@ class _MeterListUiState extends State<MeterListUi> {
 
   Future<void> _onTapElectricRow(String roomId, Map<String, dynamic> room,
       bool isNew, bool canCreate) async {
+    // แสดง active highlight เมื่อแตะ (ทุกแพลตฟอร์ม)
     setState(() {
       _selectedElectricRowId =
           (_selectedElectricRowId == roomId) ? null : roomId;
@@ -1075,12 +1077,7 @@ class _MeterListUiState extends State<MeterListUi> {
 
         return DataRow(
             selected: _selectedWaterRowId == roomId,
-            onSelectChanged: (sel) {
-              setState(() {
-                _selectedWaterRowId =
-                    (_selectedWaterRowId == roomId) ? null : roomId;
-              });
-            },
+            onSelectChanged: null,
             cells: [
               DataCell(
                 _wrapHoverCell(
@@ -1379,7 +1376,10 @@ class _MeterListUiState extends State<MeterListUi> {
         final canCreate =
             _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
 
-        return DataRow(cells: [
+        return DataRow(
+          selected: _selectedElectricRowId == roomId,
+          onSelectChanged: null,
+          cells: [
           DataCell(
             _wrapHoverCell(
               isWater: false,
