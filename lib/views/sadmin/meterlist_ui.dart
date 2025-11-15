@@ -363,10 +363,32 @@ class _MeterListUiState extends State<MeterListUi> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          'รอบเดือน: ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
-                          style: const TextStyle(
-                              fontSize: 14, color: Colors.black54),
+                        Row(
+                          children: [
+                            Icon(Icons.date_range,
+                                size: 16, color: Colors.black54),
+                            const SizedBox(width: 6),
+                            Text(
+                              'รอบเดือน: ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
+                              style: const TextStyle(
+                                  fontSize: 14, color: Colors.black54),
+                            ),
+                            if ((widget.branchName ?? '').isNotEmpty) ...[
+                              const SizedBox(width: 12),
+                              const Text('•',
+                                  style: TextStyle(
+                                      color: Colors.black26, fontSize: 14)),
+                              const SizedBox(width: 12),
+                              Icon(Icons.apartment,
+                                  size: 16, color: Colors.black54),
+                              const SizedBox(width: 6),
+                              Text(
+                                widget.branchName!,
+                                style: const TextStyle(
+                                    fontSize: 14, color: Colors.black54),
+                              )
+                            ],
+                          ],
                         ),
                       ],
                     ),
@@ -679,31 +701,86 @@ class _MeterListUiState extends State<MeterListUi> {
       );
     }
 
-    // DataTable view with tabs: น้ำ และ ไฟ แยก Tab และให้ตารางเต็มหน้าจอ
+    // สรุปจำนวนรายการ
+    final savedCount = filtered
+        .where((r) => _existingByRoom.containsKey((r['room_id'] ?? '').toString()))
+        .length;
+    final totalCount = filtered.length;
+    final pendingCount = totalCount - savedCount;
+
+    // DataTable view with tabs: น้ำ และ ไฟ
     return DefaultTabController(
       length: 2,
       child: Column(
         children: [
+          // Summary bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: TabBar(
-                isScrollable: true,
-                labelColor: Colors.black87,
-                indicatorColor: AppTheme.primary,
-                tabs: const [
-                  Tab(
-                      icon: Icon(Icons.water_drop, color: Colors.blue),
-                      text: 'ค่าน้ำ'),
-                  Tab(
-                      icon: Icon(Icons.electric_bolt, color: Colors.orange),
-                      text: 'ค่าไฟ'),
+            child: Row(
+              children: [
+                _buildCountChip(Icons.list_alt, 'ทั้งหมด', totalCount,
+                    color: Colors.blueGrey),
+                const SizedBox(width: 8),
+                _buildCountChip(Icons.check_circle, 'บันทึกแล้ว', savedCount,
+                    color: AppTheme.second),
+                const SizedBox(width: 8),
+                _buildCountChip(Icons.edit_note, 'รอกรอก', pendingCount,
+                    color: Colors.orange),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Card container for tabs + tables
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Card(
+              elevation: 1.5,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8, right: 8, top: 6),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: TabBar(
+                        isScrollable: true,
+                        labelColor: Colors.black87,
+                        indicatorColor: AppTheme.primary,
+                        tabs: const [
+                          Tab(
+                              icon:
+                                  Icon(Icons.water_drop, color: Colors.blue),
+                              text: 'ค่าน้ำ'),
+                          Tab(
+                              icon: Icon(Icons.electric_bolt,
+                                  color: Colors.orange),
+                              text: 'ค่าไฟ'),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  const SizedBox(height: 6),
+                  // Tables
+                  SizedBox(
+                    height: 0,
+                  ),
+                  // Expanded inside Card wrapper
+                  SizedBox(
+                    height: 8,
+                  ),
+                  SizedBox(
+                    height: 0,
+                  ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          // Real tables area separate Expanded to fill remaining height
           Expanded(
             child: RefreshIndicator(
               onRefresh: _loadRoomsAndPrevious,
@@ -1054,7 +1131,7 @@ class _MeterListUiState extends State<MeterListUi> {
                 _wrapHoverCell(
                   isWater: true,
                   col: 6,
-                  child: Text(statusStr),
+                  child: _buildStatusChip(statusStr),
                 ),
                 onTap: () => _onTapWaterRow(roomId, room, isNew, canCreate),
               ),
@@ -1387,7 +1464,7 @@ class _MeterListUiState extends State<MeterListUi> {
             _wrapHoverCell(
               isWater: false,
               col: 6,
-              child: Text(status),
+              child: _buildStatusChip(status),
             ),
             onTap: () async {
               if (isNew) {
@@ -2056,6 +2133,93 @@ class _MeterListUiState extends State<MeterListUi> {
           ],
         );
       },
+    );
+  }
+
+  // --- UI helpers (chips) ---
+  Widget _buildCountChip(IconData icon, String label, int count,
+      {required Color color}) {
+    final c = color;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: c.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: c.withOpacity(0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: c),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 13, color: Colors.black87),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: c.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              count.toString(),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: c,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(String status) {
+    Color fg;
+    Color bg;
+    switch (status) {
+      case 'ยืนยันแล้ว':
+        fg = AppTheme.second; // deep green
+        bg = AppTheme.primary.withOpacity(0.10);
+        break;
+      case 'ออกบิลแล้ว':
+        fg = Colors.orange.shade700;
+        bg = Colors.orange.withOpacity(0.12);
+        break;
+      default: // 'ยังไม่บันทึก' or others
+        fg = Colors.blueGrey.shade700;
+        bg = Colors.blueGrey.withOpacity(0.10);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: fg.withOpacity(0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: fg, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            status,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: fg,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
