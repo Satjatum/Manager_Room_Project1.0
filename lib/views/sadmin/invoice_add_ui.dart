@@ -688,23 +688,17 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   const SizedBox(height: 16),
                   _buildProgressIndicator(),
                   Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        left: 24,
-                        right: 24,
-                      ),
-                      child: Form(
-                        key: _formKey,
-                        child: PageView(
-                          controller: _pageController,
-                          physics: const NeverScrollableScrollPhysics(),
-                          children: [
-                            _buildBasicInfoStep(),
-                            _buildUtilitiesStep(),
-                            _buildChargesDiscountsStep(),
-                            _buildSummaryStep(),
-                          ],
-                        ),
+                    child: Form(
+                      key: _formKey,
+                      child: PageView(
+                        controller: _pageController,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          _buildBasicInfoStep(),
+                          _buildUtilitiesStep(),
+                          _buildChargesDiscountsStep(),
+                          _buildSummaryStep(),
+                        ],
                       ),
                     ),
                   ),
@@ -2346,33 +2340,40 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
   Widget _buildBottomActions() {
     return Container(
       padding: const EdgeInsets.all(16),
-      // ปรับลบเงา (boxShadow) เพื่อให้กล่องแสดงด้านล่างเรียบ
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
       child: Row(
         children: [
           if (_currentStep > 0)
             Expanded(
-              child: OutlinedButton(
+              child: OutlinedButton.icon(
                 onPressed: _previousStep,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 16,
-                  ),
+                icon: const Icon(
+                  Icons.arrow_back,
+                  size: 18,
                 ),
-                child: const Text(
-                  'ย้อนกลับ',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w500,
+                label: const Text('ย้อนกลับ'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF10B981),
+                  side: const BorderSide(color: Color(0xFF10B981)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
             ),
           if (_currentStep > 0) const SizedBox(width: 12),
           Expanded(
-            flex: 2,
+            flex: _currentStep == 0 ? 1 : 2,
             child: ElevatedButton(
               onPressed: _isSubmitting
                   ? null
@@ -2380,8 +2381,12 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                       ? _nextStep
                       : _submitInvoice),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFF10B981),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 2,
               ),
               child: _isSubmitting
                   ? const SizedBox(
@@ -2393,13 +2398,11 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                       ),
                     )
                   : Text(
-                      _currentStep < _totalSteps - 1
-                          ? 'ถัดไป'
-                          : 'สร้างใบแจ้งหนี้',
+                      _currentStep < _totalSteps - 1 ? 'ถัดไป' : 'บันทึก',
                       style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
                         color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 16,
                       ),
                     ),
             ),

@@ -373,21 +373,6 @@ class _MeterListUiState extends State<MeterListUi> {
                               style: const TextStyle(
                                   fontSize: 14, color: Colors.black54),
                             ),
-                            if ((widget.branchName ?? '').isNotEmpty) ...[
-                              const SizedBox(width: 12),
-                              const Text('•',
-                                  style: TextStyle(
-                                      color: Colors.black26, fontSize: 14)),
-                              const SizedBox(width: 12),
-                              Icon(Icons.apartment,
-                                  size: 16, color: Colors.black54),
-                              const SizedBox(width: 6),
-                              Text(
-                                widget.branchName!,
-                                style: const TextStyle(
-                                    fontSize: 14, color: Colors.black54),
-                              )
-                            ],
                           ],
                         ),
                       ],
@@ -703,7 +688,8 @@ class _MeterListUiState extends State<MeterListUi> {
 
     // สรุปจำนวนรายการ
     final savedCount = filtered
-        .where((r) => _existingByRoom.containsKey((r['room_id'] ?? '').toString()))
+        .where(
+            (r) => _existingByRoom.containsKey((r['room_id'] ?? '').toString()))
         .length;
     final totalCount = filtered.length;
     final pendingCount = totalCount - savedCount;
@@ -715,7 +701,7 @@ class _MeterListUiState extends State<MeterListUi> {
         children: [
           // Summary bar
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Row(
               children: [
                 _buildCountChip(Icons.list_alt, 'ทั้งหมด', totalCount,
@@ -734,50 +720,42 @@ class _MeterListUiState extends State<MeterListUi> {
           // Card container for tabs + tables
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Card(
-              elevation: 1.5,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.grey.shade200),
-              ),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8, right: 8, top: 6),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: TabBar(
-                        isScrollable: true,
-                        labelColor: Colors.black87,
-                        indicatorColor: AppTheme.primary,
-                        tabs: const [
-                          Tab(
-                              icon:
-                                  Icon(Icons.water_drop, color: Colors.blue),
-                              text: 'ค่าน้ำ'),
-                          Tab(
-                              icon: Icon(Icons.electric_bolt,
-                                  color: Colors.orange),
-                              text: 'ค่าไฟ'),
-                        ],
-                      ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 8, right: 8, top: 6),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TabBar(
+                      isScrollable: true,
+                      labelColor: Colors.black87,
+                      indicatorColor: AppTheme.primary,
+                      tabs: const [
+                        Tab(
+                            icon: Icon(Icons.water_drop, color: Colors.blue),
+                            text: 'ค่าน้ำ'),
+                        Tab(
+                            icon:
+                                Icon(Icons.electric_bolt, color: Colors.orange),
+                            text: 'ค่าไฟ'),
+                      ],
                     ),
                   ),
-                  const Divider(height: 1),
-                  const SizedBox(height: 6),
-                  // Tables
-                  SizedBox(
-                    height: 0,
-                  ),
-                  // Expanded inside Card wrapper
-                  SizedBox(
-                    height: 8,
-                  ),
-                  SizedBox(
-                    height: 0,
-                  ),
-                ],
-              ),
+                ),
+                const Divider(height: 1),
+                const SizedBox(height: 6),
+                // Tables
+                SizedBox(
+                  height: 0,
+                ),
+                // Expanded inside Card wrapper
+                SizedBox(
+                  height: 8,
+                ),
+                SizedBox(
+                  height: 0,
+                ),
+              ],
             ),
           ),
           // Real tables area separate Expanded to fill remaining height
@@ -1377,200 +1355,202 @@ class _MeterListUiState extends State<MeterListUi> {
             _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
 
         return DataRow(
-          selected: _selectedElectricRowId == roomId,
-          onSelectChanged: null,
-          cells: [
-          DataCell(
-            _wrapHoverCell(
-              isWater: false,
-              col: 0,
-              child: Text(tenant, overflow: TextOverflow.ellipsis),
-            ),
-            onTap: () async {
-              if (isNew) {
-                if (canCreate) await _showCreateDialog(room);
-              } else {
-                await _showEditDialog(roomId);
-              }
-            },
-          ),
-          DataCell(
-            _wrapHoverCell(isWater: false, col: 1, child: Text(roomNo)),
-            onTap: () async {
-              if (isNew) {
-                if (canCreate) await _showCreateDialog(room);
-              } else {
-                await _showEditDialog(roomId);
-              }
-            },
-          ),
-          DataCell(
-            _wrapHoverCell(
-              isWater: false,
-              col: 2,
-              child: Text(room['room_category_name']?.toString() ?? '-'),
-            ),
-            onTap: () async {
-              if (isNew) {
-                if (canCreate) await _showCreateDialog(room);
-              } else {
-                await _showEditDialog(roomId);
-              }
-            },
-          ),
-          DataCell(
-            _wrapHoverCell(
-              isWater: false,
-              col: 3,
-              child: Text(prev.toStringAsFixed(0)),
-            ),
-            onTap: () async {
-              if (isNew) {
-                if (canCreate) await _showCreateDialog(room);
-              } else {
-                await _showEditDialog(roomId);
-              }
-            },
-          ),
-          DataCell(
-            _wrapHoverCell(
-              isWater: false,
-              col: 4,
-              child: Text(current != null ? current.toStringAsFixed(0) : '-'),
-            ),
-            onTap: () async {
-              if (isNew) {
-                if (canCreate) await _showCreateDialog(room);
-              } else {
-                await _showEditDialog(roomId);
-              }
-            },
-          ),
-          DataCell(
-            _wrapHoverCell(
-              isWater: false,
-              col: 5,
-              child: Text(usage != null ? usage.toStringAsFixed(2) : '-'),
-            ),
-            onTap: () async {
-              if (isNew) {
-                if (canCreate) await _showCreateDialog(room);
-              } else {
-                await _showEditDialog(roomId);
-              }
-            },
-          ),
-          DataCell(
-            _wrapHoverCell(
-              isWater: false,
-              col: 6,
-              child: _buildStatusChip(status),
-            ),
-            onTap: () async {
-              if (isNew) {
-                if (canCreate) await _showCreateDialog(room);
-              } else {
-                await _showEditDialog(roomId);
-              }
-            },
-          ),
-          DataCell(
-            _wrapHoverCell(
-              isWater: false,
-              col: 7,
-              child: PopupMenuButton<String>(
-                tooltip: 'ตัวเลือก',
-                icon: const Icon(Icons.more_horiz, size: 20),
-                onSelected: (value) async {
-                  if (value == 'create') {
+            selected: _selectedElectricRowId == roomId,
+            onSelectChanged: null,
+            cells: [
+              DataCell(
+                _wrapHoverCell(
+                  isWater: false,
+                  col: 0,
+                  child: Text(tenant, overflow: TextOverflow.ellipsis),
+                ),
+                onTap: () async {
+                  if (isNew) {
                     if (canCreate) await _showCreateDialog(room);
-                  } else if (value == 'edit') {
+                  } else {
                     await _showEditDialog(roomId);
-                  } else if (value == 'delete') {
-                    final readingId =
-                        (existing?['reading_id'] ?? '').toString();
-                    if (readingId.isNotEmpty) {
-                      await _confirmDelete(readingId, roomId);
-                    }
-                  } else if (value == 'delete_billed') {
-                    final readingId =
-                        (existing?['reading_id'] ?? '').toString();
-                    final invoiceId = (_invoiceIdByRoom[roomId] ?? '');
-                    if (readingId.isNotEmpty) {
-                      await _confirmDeleteBilled(readingId, invoiceId, roomId);
-                    }
                   }
-                },
-                itemBuilder: (context) {
-                  final billed =
-                      ((existing?['reading_status'] ?? '').toString() ==
-                          'billed');
-                  final items = <PopupMenuEntry<String>>[];
-                  if (isNew && canCreate) {
-                    items.add(
-                      const PopupMenuItem(
-                        value: 'create',
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.edit_outlined,
-                              size: 20,
-                              color: Color(0xFF14B8A6),
-                            ),
-                            SizedBox(width: 12),
-                            Text('กรอก'),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  if (!isNew && _isCurrentPeriod && !billed) {
-                    items.add(
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.edit_outlined,
-                              size: 20,
-                              color: Color(0xFF14B8A6),
-                            ),
-                            SizedBox(width: 12),
-                            Text('แก้ไข'),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  if (!isNew && _isCurrentPeriod) {
-                    items.add(
-                      PopupMenuItem(
-                        value: billed ? 'delete_billed' : 'delete',
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.delete_outline,
-                              size: 20,
-                              color: Colors.red,
-                            ),
-                            SizedBox(width: 12),
-                            Text(
-                              billed ? 'ลบ' : 'ลบ',
-                              style: TextStyle(
-                                color: Colors.red,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  return items;
                 },
               ),
-            ),
-          ),
-        ]);
+              DataCell(
+                _wrapHoverCell(isWater: false, col: 1, child: Text(roomNo)),
+                onTap: () async {
+                  if (isNew) {
+                    if (canCreate) await _showCreateDialog(room);
+                  } else {
+                    await _showEditDialog(roomId);
+                  }
+                },
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: false,
+                  col: 2,
+                  child: Text(room['room_category_name']?.toString() ?? '-'),
+                ),
+                onTap: () async {
+                  if (isNew) {
+                    if (canCreate) await _showCreateDialog(room);
+                  } else {
+                    await _showEditDialog(roomId);
+                  }
+                },
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: false,
+                  col: 3,
+                  child: Text(prev.toStringAsFixed(0)),
+                ),
+                onTap: () async {
+                  if (isNew) {
+                    if (canCreate) await _showCreateDialog(room);
+                  } else {
+                    await _showEditDialog(roomId);
+                  }
+                },
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: false,
+                  col: 4,
+                  child:
+                      Text(current != null ? current.toStringAsFixed(0) : '-'),
+                ),
+                onTap: () async {
+                  if (isNew) {
+                    if (canCreate) await _showCreateDialog(room);
+                  } else {
+                    await _showEditDialog(roomId);
+                  }
+                },
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: false,
+                  col: 5,
+                  child: Text(usage != null ? usage.toStringAsFixed(2) : '-'),
+                ),
+                onTap: () async {
+                  if (isNew) {
+                    if (canCreate) await _showCreateDialog(room);
+                  } else {
+                    await _showEditDialog(roomId);
+                  }
+                },
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: false,
+                  col: 6,
+                  child: _buildStatusChip(status),
+                ),
+                onTap: () async {
+                  if (isNew) {
+                    if (canCreate) await _showCreateDialog(room);
+                  } else {
+                    await _showEditDialog(roomId);
+                  }
+                },
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: false,
+                  col: 7,
+                  child: PopupMenuButton<String>(
+                    tooltip: 'ตัวเลือก',
+                    icon: const Icon(Icons.more_horiz, size: 20),
+                    onSelected: (value) async {
+                      if (value == 'create') {
+                        if (canCreate) await _showCreateDialog(room);
+                      } else if (value == 'edit') {
+                        await _showEditDialog(roomId);
+                      } else if (value == 'delete') {
+                        final readingId =
+                            (existing?['reading_id'] ?? '').toString();
+                        if (readingId.isNotEmpty) {
+                          await _confirmDelete(readingId, roomId);
+                        }
+                      } else if (value == 'delete_billed') {
+                        final readingId =
+                            (existing?['reading_id'] ?? '').toString();
+                        final invoiceId = (_invoiceIdByRoom[roomId] ?? '');
+                        if (readingId.isNotEmpty) {
+                          await _confirmDeleteBilled(
+                              readingId, invoiceId, roomId);
+                        }
+                      }
+                    },
+                    itemBuilder: (context) {
+                      final billed =
+                          ((existing?['reading_status'] ?? '').toString() ==
+                              'billed');
+                      final items = <PopupMenuEntry<String>>[];
+                      if (isNew && canCreate) {
+                        items.add(
+                          const PopupMenuItem(
+                            value: 'create',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.edit_outlined,
+                                  size: 20,
+                                  color: Color(0xFF14B8A6),
+                                ),
+                                SizedBox(width: 12),
+                                Text('กรอก'),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      if (!isNew && _isCurrentPeriod && !billed) {
+                        items.add(
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.edit_outlined,
+                                  size: 20,
+                                  color: Color(0xFF14B8A6),
+                                ),
+                                SizedBox(width: 12),
+                                Text('แก้ไข'),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      if (!isNew && _isCurrentPeriod) {
+                        items.add(
+                          PopupMenuItem(
+                            value: billed ? 'delete_billed' : 'delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline,
+                                  size: 20,
+                                  color: Colors.red,
+                                ),
+                                SizedBox(width: 12),
+                                Text(
+                                  billed ? 'ลบ' : 'ลบ',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      return items;
+                    },
+                  ),
+                ),
+              ),
+            ]);
       }).toList(),
       headingRowColor:
           MaterialStateProperty.all(Colors.orange.withOpacity(0.06)),
