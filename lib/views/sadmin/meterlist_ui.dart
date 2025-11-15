@@ -804,15 +804,10 @@ class _MeterListUiState extends State<MeterListUi> {
   // --- Row tap helpers to ensure selection toggles on ANY cell tap ---
   Future<void> _onTapWaterRow(String roomId, Map<String, dynamic> room,
       bool isNew, bool canCreate) async {
-    // Mobile: แสดง active highlight เมื่อแตะ
-    final platform = Theme.of(context).platform;
-    final bool isMobileApp = !kIsWeb &&
-        (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
-    if (isMobileApp) {
-      setState(() {
-        _selectedWaterRowId = (_selectedWaterRowId == roomId) ? null : roomId;
-      });
-    }
+    // แสดง active highlight เมื่อแตะ (ทุกแพลตฟอร์ม)
+    setState(() {
+      _selectedWaterRowId = (_selectedWaterRowId == roomId) ? null : roomId;
+    });
     if (isNew) {
       if (canCreate) await _showCreateDialog(room);
     } else {
@@ -822,16 +817,11 @@ class _MeterListUiState extends State<MeterListUi> {
 
   Future<void> _onTapElectricRow(String roomId, Map<String, dynamic> room,
       bool isNew, bool canCreate) async {
-    // Mobile: แสดง active highlight เมื่อแตะ
-    final platform = Theme.of(context).platform;
-    final bool isMobileApp = !kIsWeb &&
-        (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
-    if (isMobileApp) {
-      setState(() {
-        _selectedElectricRowId =
-            (_selectedElectricRowId == roomId) ? null : roomId;
-      });
-    }
+    // แสดง active highlight เมื่อแตะ (ทุกแพลตฟอร์ม)
+    setState(() {
+      _selectedElectricRowId =
+          (_selectedElectricRowId == roomId) ? null : roomId;
+    });
     if (isNew) {
       if (canCreate) await _showCreateDialog(room);
     } else {
@@ -1008,20 +998,9 @@ class _MeterListUiState extends State<MeterListUi> {
         final canCreate =
             _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
 
-        final platform = Theme.of(context).platform;
-        final bool isMobileApp = !kIsWeb &&
-            (platform == TargetPlatform.android ||
-                platform == TargetPlatform.iOS);
         return DataRow(
-            selected: isMobileApp && _selectedWaterRowId == roomId,
-            onSelectChanged: isMobileApp
-                ? (sel) {
-                    setState(() {
-                      _selectedWaterRowId =
-                          (_selectedWaterRowId == roomId) ? null : roomId;
-                    });
-                  }
-                : null,
+            selected: _selectedWaterRowId == roomId,
+            onSelectChanged: null,
             cells: [
               DataCell(
                 _wrapHoverCell(
@@ -1320,20 +1299,9 @@ class _MeterListUiState extends State<MeterListUi> {
         final canCreate =
             _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
 
-        final platform = Theme.of(context).platform;
-        final bool isMobileApp = !kIsWeb &&
-            (platform == TargetPlatform.android ||
-                platform == TargetPlatform.iOS);
         return DataRow(
-          selected: isMobileApp && _selectedElectricRowId == roomId,
-          onSelectChanged: isMobileApp
-              ? (sel) {
-                  setState(() {
-                    _selectedElectricRowId =
-                        (_selectedElectricRowId == roomId) ? null : roomId;
-                  });
-                }
-              : null,
+          selected: _selectedElectricRowId == roomId,
+          onSelectChanged: null,
           cells: [
           DataCell(
             _wrapHoverCell(
