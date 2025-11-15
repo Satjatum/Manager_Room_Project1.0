@@ -506,12 +506,16 @@ class _IssueListUiState extends State<IssueListUi>
                           builder: (context, constraints) {
                             final width = constraints.maxWidth;
                             int cols = 1;
-                            if (width >= 1200) {
-                              cols = 4;
+                            if (width >= 2560) {
+                              cols = 5; // Ultra-wide screens
+                            } else if (width >= 1440) {
+                              cols = 4; // Large desktop
+                            } else if (width >= 1200) {
+                              cols = 4; // Desktop
                             } else if (width >= 992) {
-                              cols = 3;
+                              cols = 3; // Small desktop / large tablet
                             } else if (width >= 768) {
-                              cols = 2;
+                              cols = 2; // Tablet
                             }
 
                             if (cols == 1) {
