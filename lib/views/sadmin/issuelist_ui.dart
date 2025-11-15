@@ -507,15 +507,17 @@ class _IssueListUiState extends State<IssueListUi>
                             final width = constraints.maxWidth;
                             int cols = 1;
                             if (width >= 2560) {
-                              cols = 5; // Ultra-wide screens
+                              cols = 5;
+                            } else if (width >= 1920) {
+                              cols = 4;
                             } else if (width >= 1440) {
-                              cols = 4; // Large desktop
+                              cols = 4;
                             } else if (width >= 1200) {
-                              cols = 4; // Desktop
+                              cols = 4;
                             } else if (width >= 992) {
-                              cols = 3; // Small desktop / large tablet
+                              cols = 3;
                             } else if (width >= 768) {
-                              cols = 2; // Tablet
+                              cols = 2;
                             }
 
                             if (cols == 1) {
@@ -533,6 +535,8 @@ class _IssueListUiState extends State<IssueListUi>
                             double aspect;
                             if (width >= 2560) {
                               aspect = 1.70;
+                            } else if (width >= 1920) {
+                              aspect = 1.50;
                             } else if (width >= 1440) {
                               aspect = 1.10;
                             } else if (width >= 1200) {
