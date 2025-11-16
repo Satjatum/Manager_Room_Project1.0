@@ -214,15 +214,7 @@ class BranchDashboardPage extends StatelessWidget {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final maxW = _maxContentWidth(constraints.maxWidth);
-                    // Determine columns by available width
-                    int cross = 4;
-                    if (maxW < 360) {
-                      cross = 2; // Mobile S
-                    } else if (maxW < 480) {
-                      cross = 3; // Mobile M/L
-                    } else {
-                      cross = 4; // Tablet and above
-                    }
+                    // กำหนดความกว้างสูงสุดของคอนเทนต์แล้วจัดวางภายในตามส่วนต่าง ๆ
 
                     final content = ListView(
                       padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
