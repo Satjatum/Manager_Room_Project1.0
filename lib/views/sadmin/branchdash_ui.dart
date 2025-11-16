@@ -8,6 +8,9 @@ import 'package:manager_room_project/views/sadmin/meter_billing_ui.dart';
 import 'package:manager_room_project/views/sadmin/payment_verification_ui.dart';
 import 'package:manager_room_project/views/sadmin/settingbranch_ui.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
+import 'package:manager_room_project/services/branch_service.dart';
+import 'package:manager_room_project/services/issue_service.dart';
+import 'package:manager_room_project/services/invoice_service.dart';
 
 class BranchDashboardPage extends StatelessWidget {
   final String? branchId;
@@ -37,6 +40,35 @@ class BranchDashboardPage extends StatelessWidget {
         ),
       );
       return ok == true;
+    }
+
+    Future<Map<String, dynamic>> _loadStats() async {
+      final String? bId = branchId;
+      if (bId == null || bId.isEmpty) {
+        return {
+          'total_rooms': 0,
+          'occupied_rooms': 0,
+          'available_rooms': 0,
+          'maintenance_rooms': 0,
+          'occupancy_rate': 0,
+          'issue_pending': 0,
+          'invoice_pending': 0,
+        };
+      }
+
+      final branchStats = await BranchService.getBranchStatistics(bId);
+      final issueStats = await IssueService.getIssueStatistics(branchId: bId);
+      final invoiceStats = await InvoiceService.getInvoiceStats(branchId: bId);
+
+      return {
+        'total_rooms': branchStats['total_rooms'] ?? 0,
+        'occupied_rooms': branchStats['occupied_rooms'] ?? 0,
+        'available_rooms': branchStats['available_rooms'] ?? 0,
+        'maintenance_rooms': branchStats['maintenance_rooms'] ?? 0,
+        'occupancy_rate': branchStats['occupancy_rate'] ?? 0,
+        'issue_pending': issueStats['pending'] ?? 0,
+        'invoice_pending': invoiceStats['pending'] ?? 0,
+      };
     }
 
     // Quick actions (ตามที่กำหนด)
@@ -135,29 +167,100 @@ class BranchDashboardPage extends StatelessWidget {
       ),
     ];
 
-    // ตัวอย่างข้อมูลสถิติสำหรับ "Today's Performance"
-    // สามารถเชื่อมต่อข้อมูลจริงภายหลังได้
-    /* final stats = <_StatItem>[
-      _StatItem(title: 'Total Sales', value: '', trendText: '+5.2%', isUp: true, 
-          leading: Icons.attach_money),
-      _StatItem(title: 'Customer Footfall', value: '86', trendText: '-1.5%', isUp: false, 
-          leading: Icons.reduce_capacity_outlined),
-      _StatItem(title: 'New Orders', value: '12', trendText: '+10%', isUp: true, 
-          leading: Icons.shopping_bag_outlined),
-      _StatItem(title: 'Completed Tasks', value: '25', trendText: '+3%', isUp: true, 
-          leading: Icons.task_alt_outlined),
-    ];
-*/
+    Widget _statsFuture({required bool isCompact}) {
+      return FutureBuilder<Map<String, dynamic>>(
+        future: _loadStats(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4.0),
+              child: LinearProgressIndicator(minHeight: 2),
+            );
+          }
+          if (snapshot.hasError) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: Text(
+                'เกิดข้อผิดพลาดในการโหลดสถิติ: ${snapshot.error}',
+                style: const TextStyle(color: Colors.red),
+              ),
+            );
+          }
 
-    final stats = <_StatItem>[
-      _StatItem(title: 'ห้องทั้งหมด', value: '120', trendText: '', isUp: true, leading: Icons.meeting_room_outlined, progress: 1.0),
-      _StatItem(title: 'มีผู้เช่า', value: '102', trendText: '', isUp: true, leading: Icons.people_alt_outlined, progress: 0.85),
-      _StatItem(title: 'ว่าง', value: '14', trendText: '', isUp: false, leading: Icons.hotel_class_outlined, progress: 0.15),
-      _StatItem(title: 'ซ่อมบำรุง', value: '4', trendText: '', isUp: false, leading: Icons.build_outlined, progress: 0.03),
-      _StatItem(title: 'อัตราเข้าพัก', value: '85%', trendText: '', isUp: true, leading: Icons.pie_chart_outline, progress: 0.85),
-      _StatItem(title: 'ปัญหาค้าง', value: '7', trendText: '', isUp: false, leading: Icons.report_problem_outlined, progress: 0.14),
-      _StatItem(title: 'บิลค้าง', value: '9', trendText: '', isUp: false, leading: Icons.receipt_long_outlined, progress: 0.18),
-    ];
+          final data = snapshot.data ?? {};
+          final int totalRooms = (data['total_rooms'] ?? 0) as int;
+          final int occupied = (data['occupied_rooms'] ?? 0) as int;
+          final int available = (data['available_rooms'] ?? 0) as int;
+          final int maintenance = (data['maintenance_rooms'] ?? 0) as int;
+          final int occRate = (data['occupancy_rate'] ?? 0) as int;
+          final int issuePending = (data['issue_pending'] ?? 0) as int;
+          final int invoicePending = (data['invoice_pending'] ?? 0) as int;
+
+          double _ratio(int part) => totalRooms > 0 ? part / totalRooms : 0.0;
+
+          final stats = <_StatItem>[
+            _StatItem(
+              title: 'ห้องทั้งหมด',
+              value: '$totalRooms',
+              trendText: '',
+              isUp: true,
+              leading: Icons.meeting_room_outlined,
+              progress: totalRooms == 0 ? 0.0 : 1.0,
+            ),
+            _StatItem(
+              title: 'มีผู้เช่า',
+              value: '$occupied',
+              trendText: '',
+              isUp: true,
+              leading: Icons.people_alt_outlined,
+              progress: _ratio(occupied),
+            ),
+            _StatItem(
+              title: 'ว่าง',
+              value: '$available',
+              trendText: '',
+              isUp: false,
+              leading: Icons.hotel_class_outlined,
+              progress: _ratio(available),
+            ),
+            _StatItem(
+              title: 'ซ่อมบำรุง',
+              value: '$maintenance',
+              trendText: '',
+              isUp: false,
+              leading: Icons.build_outlined,
+              progress: _ratio(maintenance),
+            ),
+            _StatItem(
+              title: 'อัตราเข้าพัก',
+              value: '${occRate.toString()}%',
+              trendText: '',
+              isUp: true,
+              leading: Icons.pie_chart_outline,
+              progress: (occRate.clamp(0, 100)) / 100.0,
+            ),
+            _StatItem(
+              title: 'ปัญหาค้าง',
+              value: '$issuePending',
+              trendText: '',
+              isUp: false,
+              leading: Icons.report_problem_outlined,
+              progress: null,
+            ),
+            _StatItem(
+              title: 'บิลค้าง',
+              value: '$invoicePending',
+              trendText: '',
+              isUp: false,
+              leading: Icons.receipt_long_outlined,
+              progress: null,
+            ),
+          ];
+
+          return _StatsSection(stats: stats, isCompact: isCompact);
+        },
+      );
+    }
 
     final platform = Theme.of(context).platform;
     final bool isMobileApp = !kIsWeb &&
@@ -233,7 +336,7 @@ class BranchDashboardPage extends StatelessWidget {
                         if ((branchName ?? '').isNotEmpty)
                           _BranchNameCard(name: branchName!),
                         const SizedBox(height: 12),
-                        _StatsSection(stats: stats, isCompact: maxW < 600),
+                        _statsFuture(isCompact: maxW < 600),
                         const SizedBox(height: 16),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4.0),
