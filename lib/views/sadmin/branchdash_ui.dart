@@ -39,6 +39,7 @@ class BranchDashboardPage extends StatelessWidget {
       return ok == true;
     }
 
+    // Quick actions (ตามที่กำหนด)
     final items = [
       _DashItem(
         icon: Icons.meeting_room_outlined,
@@ -134,6 +135,19 @@ class BranchDashboardPage extends StatelessWidget {
       ),
     ];
 
+    // ตัวอย่างข้อมูลสถิติสำหรับ "Today's Performance"
+    // สามารถเชื่อมต่อข้อมูลจริงภายหลังได้
+    final stats = <_StatItem>[
+      _StatItem(title: 'Total Sales', value: '', trendText: '+5.2%', isUp: true, 
+          leading: Icons.attach_money),
+      _StatItem(title: 'Customer Footfall', value: '86', trendText: '-1.5%', isUp: false, 
+          leading: Icons.reduce_capacity_outlined),
+      _StatItem(title: 'New Orders', value: '12', trendText: '+10%', isUp: true, 
+          leading: Icons.shopping_bag_outlined),
+      _StatItem(title: 'Completed Tasks', value: '25', trendText: '+3%', isUp: true, 
+          leading: Icons.task_alt_outlined),
+    ];
+
     final platform = Theme.of(context).platform;
     final bool isMobileApp = !kIsWeb &&
         (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
@@ -215,20 +229,22 @@ class BranchDashboardPage extends StatelessWidget {
                       children: [
                         if ((branchName ?? '').isNotEmpty)
                           _BranchNameCard(name: branchName!),
-                        const SizedBox(height: 8),
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: cross,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 0.9,
+                        const SizedBox(height: 12),
+                        _StatsSection(stats: stats, isCompact: maxW < 600),
+                        const SizedBox(height: 16),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                          child: Text(
+                            'Quick Actions',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black87,
+                            ),
                           ),
-                          itemCount: items.length,
-                          itemBuilder: (context, i) => _DashCard(item: items[i]),
                         ),
+                        const SizedBox(height: 8),
+                        _QuickActionsWrap(items: items),
                       ],
                     );
 
@@ -257,6 +273,188 @@ class BranchDashboardPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ---------------------- Today's Performance ----------------------
+class _StatItem {
+  final String title;
+  final String value;
+  final String trendText; // e.g. +5.2%
+  final bool isUp;
+  final IconData leading;
+
+  _StatItem({
+    required this.title,
+    required this.value,
+    required this.trendText,
+    required this.isUp,
+    required this.leading,
+  });
+}
+
+class _StatsSection extends StatelessWidget {
+  final List<_StatItem> stats;
+  final bool isCompact; // ใช้สำหรับ mobile layout
+  const _StatsSection({required this.stats, required this.isCompact});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4.0),
+          child: Text(
+            "Today's Performance",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.black87,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // ถ้าข้อมูลเยอะบนจอเล็ก ให้เลื่อนแนวนอนตาม requirement
+            if (isCompact && stats.length > 4) {
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final s in stats)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 12.0),
+                        child: SizedBox(
+                          width: 180,
+                          child: _StatCard(item: s),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }
+
+            // โหมด autowrap (2 คอลัมน์บนมือถือ)
+            final double spacing = 12;
+            final int columns = isCompact ? 2 : 4;
+            final double itemW = (constraints.maxWidth - spacing * (columns - 1)) / columns;
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                for (final s in stats)
+                  SizedBox(width: itemW, child: _StatCard(item: s)),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final _StatItem item;
+  const _StatCard({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final Color trendColor = item.isUp ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+    final IconData trendIcon = item.isUp ? Icons.trending_up : Icons.trending_down;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withOpacity(0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(item.leading, size: 18, color: AppTheme.primary),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  item.title,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            item.value,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: Colors.black,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(trendIcon, size: 16, color: trendColor),
+              const SizedBox(width: 6),
+              Text(
+                item.trendText,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: trendColor,
+                ),
+              ),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------- Quick Actions Wrap ----------------------
+class _QuickActionsWrap extends StatelessWidget {
+  final List<_DashItem> items;
+  const _QuickActionsWrap({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isCompact = constraints.maxWidth < 600;
+        final double spacing = 12;
+        final int columns = isCompact ? 3 : 4;
+        final double itemW = (constraints.maxWidth - spacing * (columns - 1)) / columns;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final it in items)
+              SizedBox(
+                width: itemW,
+                child: _DashCard(item: it),
+              )
+          ],
+        );
+      },
     );
   }
 }
