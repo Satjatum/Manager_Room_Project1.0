@@ -150,13 +150,13 @@ class BranchDashboardPage extends StatelessWidget {
 */
 
     final stats = <_StatItem>[
-      _StatItem(title: 'ห้องทั้งหมด', value: '120', trendText: '', isUp: true, leading: Icons.meeting_room_outlined),
-      _StatItem(title: 'มีผู้เช่า', value: '102', trendText: '', isUp: true, leading: Icons.people_alt_outlined),
-      _StatItem(title: 'ว่าง', value: '14', trendText: '', isUp: false, leading: Icons.hotel_class_outlined),
-      _StatItem(title: 'ซ่อมบำรุง', value: '4', trendText: '', isUp: false, leading: Icons.build_outlined),
-      _StatItem(title: 'อัตราเข้าพัก', value: '85%', trendText: '+2%', isUp: true, leading: Icons.pie_chart_outline),
-      _StatItem(title: 'ปัญหาค้าง', value: '7', trendText: '', isUp: false, leading: Icons.report_problem_outlined),
-      _StatItem(title: 'บิลค้าง', value: '9', trendText: '', isUp: false, leading: Icons.receipt_long_outlined),
+      _StatItem(title: 'ห้องทั้งหมด', value: '120', trendText: '', isUp: true, leading: Icons.meeting_room_outlined, progress: 1.0),
+      _StatItem(title: 'มีผู้เช่า', value: '102', trendText: '', isUp: true, leading: Icons.people_alt_outlined, progress: 0.85),
+      _StatItem(title: 'ว่าง', value: '14', trendText: '', isUp: false, leading: Icons.hotel_class_outlined, progress: 0.15),
+      _StatItem(title: 'ซ่อมบำรุง', value: '4', trendText: '', isUp: false, leading: Icons.build_outlined, progress: 0.03),
+      _StatItem(title: 'อัตราเข้าพัก', value: '85%', trendText: '', isUp: true, leading: Icons.pie_chart_outline, progress: 0.85),
+      _StatItem(title: 'ปัญหาค้าง', value: '7', trendText: '', isUp: false, leading: Icons.report_problem_outlined, progress: 0.14),
+      _StatItem(title: 'บิลค้าง', value: '9', trendText: '', isUp: false, leading: Icons.receipt_long_outlined, progress: 0.18),
     ];
 
     final platform = Theme.of(context).platform;
@@ -287,6 +287,7 @@ class _StatItem {
   final String trendText; // e.g. +5.2%
   final bool isUp;
   final IconData leading;
+  final double? progress; // 0..1 สำหรับแสดงแถบความคืบหน้า
 
   _StatItem({
     required this.title,
@@ -294,6 +295,7 @@ class _StatItem {
     required this.trendText,
     required this.isUp,
     required this.leading,
+    this.progress,
   });
 }
 
@@ -321,28 +323,41 @@ class _StatsSection extends StatelessWidget {
         const SizedBox(height: 8),
         LayoutBuilder(
           builder: (context, constraints) {
-            // ถ้าข้อมูลเยอะบนจอเล็ก ให้เลื่อนแนวนอนตาม requirement
-            if (isCompact && stats.length > 4) {
-              return SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final s in stats)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 12.0),
-                        child: SizedBox(
-                          width: 180,
-                          child: _StatCard(item: s),
-                        ),
-                      ),
-                  ],
+            // Mobile/จอเล็ก: แสดงเป็นหน้าละ 4 สถิติ (2x2) แบบปัดหน้าได้
+            if (isCompact) {
+              final pages = <Widget>[];
+              for (int i = 0; i < stats.length; i += 4) {
+                final slice = stats.sublist(i, (i + 4).clamp(0, stats.length));
+                pages.add(
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: GridView.count(
+                      crossAxisCount: 2,
+                      childAspectRatio: 1.6,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      children: [
+                        for (final s in slice) _StatCard(item: s),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              // ความสูงแต่ละหน้าให้พอสำหรับ 2 แถว
+              final double gridHeight = 250;
+              return SizedBox(
+                height: gridHeight,
+                child: PageView(
+                  children: pages,
                 ),
               );
             }
 
-            // โหมด autowrap (2 คอลัมน์บนมือถือ)
+            // จอใหญ่: autowrap 4 คอลัมน์
             final double spacing = 12;
-            final int columns = isCompact ? 2 : 4;
+            const int columns = 4;
             final double itemW = (constraints.maxWidth - spacing * (columns - 1)) / columns;
             return Wrap(
               spacing: spacing,
@@ -413,7 +428,28 @@ class _StatCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          if (item.trendText.isNotEmpty)
+          if (item.progress != null)
+            Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(9999),
+                    child: LinearProgressIndicator(
+                      value: item.progress!.clamp(0.0, 1.0),
+                      minHeight: 6,
+                      backgroundColor: Colors.grey[200],
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  "${(item.progress! * 100).round()}%",
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87),
+                ),
+              ],
+            ),
+          if (item.progress == null && item.trendText.isNotEmpty)
             Row(
               children: [
                 Icon(trendIcon, size: 16, color: trendColor),
