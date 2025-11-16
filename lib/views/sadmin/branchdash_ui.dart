@@ -137,7 +137,7 @@ class BranchDashboardPage extends StatelessWidget {
 
     // ตัวอย่างข้อมูลสถิติสำหรับ "Today's Performance"
     // สามารถเชื่อมต่อข้อมูลจริงภายหลังได้
-    final stats = <_StatItem>[
+    /* final stats = <_StatItem>[
       _StatItem(title: 'Total Sales', value: '', trendText: '+5.2%', isUp: true, 
           leading: Icons.attach_money),
       _StatItem(title: 'Customer Footfall', value: '86', trendText: '-1.5%', isUp: false, 
@@ -146,6 +146,17 @@ class BranchDashboardPage extends StatelessWidget {
           leading: Icons.shopping_bag_outlined),
       _StatItem(title: 'Completed Tasks', value: '25', trendText: '+3%', isUp: true, 
           leading: Icons.task_alt_outlined),
+    ];
+*/
+
+    final stats = <_StatItem>[
+      _StatItem(title: 'ห้องทั้งหมด', value: '120', trendText: '', isUp: true, leading: Icons.meeting_room_outlined),
+      _StatItem(title: 'มีผู้เช่า', value: '102', trendText: '', isUp: true, leading: Icons.people_alt_outlined),
+      _StatItem(title: 'ว่าง', value: '14', trendText: '', isUp: false, leading: Icons.hotel_class_outlined),
+      _StatItem(title: 'ซ่อมบำรุง', value: '4', trendText: '', isUp: false, leading: Icons.build_outlined),
+      _StatItem(title: 'อัตราเข้าพัก', value: '85%', trendText: '+2%', isUp: true, leading: Icons.pie_chart_outline),
+      _StatItem(title: 'ปัญหาค้าง', value: '7', trendText: '', isUp: false, leading: Icons.report_problem_outlined),
+      _StatItem(title: 'บิลค้าง', value: '9', trendText: '', isUp: false, leading: Icons.receipt_long_outlined),
     ];
 
     final platform = Theme.of(context).platform;
@@ -402,20 +413,21 @@ class _StatCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Row(
-            children: [
-              Icon(trendIcon, size: 16, color: trendColor),
-              const SizedBox(width: 6),
-              Text(
-                item.trendText,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: trendColor,
+          if (item.trendText.isNotEmpty)
+            Row(
+              children: [
+                Icon(trendIcon, size: 16, color: trendColor),
+                const SizedBox(width: 6),
+                Text(
+                  item.trendText,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: trendColor,
+                  ),
                 ),
-              ),
-            ],
-          )
+              ],
+            )
         ],
       ),
     );
@@ -432,8 +444,9 @@ class _QuickActionsWrap extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final bool isCompact = constraints.maxWidth < 600;
-        final double spacing = 12;
-        final int columns = isCompact ? 3 : 4;
+        final double spacing = 10;
+        final double minTileW = isCompact ? 100 : 130; // ทำปุ่มเล็กลงให้ wrap ได้แน่นขึ้น
+        final int columns = (constraints.maxWidth / (minTileW)).floor().clamp(2, 6);
         final double itemW = (constraints.maxWidth - spacing * (columns - 1)) / columns;
         return Wrap(
           spacing: spacing,
@@ -486,24 +499,24 @@ class _DashCard extends StatelessWidget {
             border: Border.all(color: Colors.grey[300]!),
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: AppTheme.primary.withOpacity(0.08),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(item.icon, color: AppTheme.primary, size: 24),
+                  child: Icon(item.icon, color: AppTheme.primary, size: 22),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   item.label,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
                   ),
