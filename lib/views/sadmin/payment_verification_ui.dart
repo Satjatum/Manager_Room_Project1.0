@@ -23,7 +23,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   bool _loading = true;
   List<Map<String, dynamic>> _slips = [];
   List<Map<String, dynamic>> _invoices = [];
-  late TabController _tabController; // ตัวกรองตามสถานะบิล: pending/partial/paid/overdue/cancelled
+  late TabController
+      _tabController; // ตัวกรองตามสถานะบิล: pending/partial/paid/overdue/cancelled
   UserModel? _currentUser;
   List<Map<String, dynamic>> _branches = [];
   String? _selectedBranchId; // null = all (for superadmin)
@@ -103,7 +104,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
           .where((id) => id.isNotEmpty)
           .toSet();
       final invoicesNoSlip = invList
-          .where((inv) => !slipInvIds.contains((inv['invoice_id'] ?? '').toString()))
+          .where((inv) =>
+              !slipInvIds.contains((inv['invoice_id'] ?? '').toString()))
           .toList();
 
       setState(() {
@@ -310,8 +312,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   IconButton(
-                    icon:
-                        const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        color: Colors.black87),
                     onPressed: () {
                       if (Navigator.of(context).canPop()) {
                         Navigator.of(context).pop();
@@ -499,137 +501,137 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   }
 
   Widget _slipCard(Map<String, dynamic> s) {
-    final amount = _asDouble(s['paid_amount']);
-    final payDate = (s['payment_date'] ?? s['created_at'] ?? '').toString();
+    final invoiceId = (s['invoice_id'] ?? '').toString();
+    final slipId = (s['slip_id'] ?? '').toString();
+    final tenantName = (s['tenant_name'] ?? '-').toString();
+    final roomcate = (s['roomcate_name'] ?? '-').toString();
+    final roomNumber = (s['room_number'] ?? '-').toString();
+    final invoiceNumber = (s['invoice_number'] ?? '-').toString();
+    final status = (s['invoice_status'] ?? '').toString();
+    final dateStr =
+        _formatThaiDate((s['payment_date'] ?? s['created_at'] ?? '').toString());
+    final amount =
+        _asDouble(s['invoice_total'] ?? s['total_amount'] ?? s['paid_amount']);
 
-    return LayoutBuilder(builder: (context, constraints) {
-      final double width = constraints.maxWidth;
-      final bool isSmall = width < 320;
-      final double titleSize = isSmall ? 15 : 16;
-      final double bodySize = isSmall ? 12 : 13;
-      final double iconSize = isSmall ? 16 : 18;
-      final double mediaHeight = (width * 0.35).clamp(96.0, 140.0);
+    Color statusColor;
+    String statusLabel;
+    switch (status) {
+      case 'paid':
+        statusColor = const Color(0xFF22C55E);
+        statusLabel = 'ชำระแล้ว';
+        break;
+      case 'overdue':
+        statusColor = const Color(0xFFEF4444);
+        statusLabel = 'เกินกำหนด';
+        break;
+      case 'partial':
+        statusColor = const Color(0xFFF59E0B);
+        statusLabel = 'ชำระบางส่วน';
+        break;
+      case 'cancelled':
+        statusColor = Colors.grey;
+        statusLabel = 'ยกเลิก';
+        break;
+      case 'pending':
+      default:
+        statusColor = const Color(0xFF3B82F6);
+        statusLabel = 'รอดำเนินการ';
+    }
 
-      return Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () async {
-            await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => PaymentVerificationDetailPage(
-                  slipId: (s['slip_id'] ?? '').toString(),
-                ),
-              ),
-            );
-            if (mounted) await _load();
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Ink(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Icon(Icons.receipt_long,
-                          size: iconSize, color: AppTheme.primary),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          (s['invoice_number'] ?? '-').toString(),
-                          style: TextStyle(
-                            fontSize: titleSize,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _invoiceStatusChip((s['invoice_status'] ?? '').toString()),
-                    ],
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // Info
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if ((s['tenant_name'] ?? '').toString().isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Row(
-                            children: [
-                              Icon(Icons.person_outline,
-                                  size: iconSize, color: AppTheme.primary),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  (s['tenant_name'] ?? '-').toString(),
-                                  style: TextStyle(
-                                      fontSize: bodySize,
-                                      color: Colors.grey[700]),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      Row(
-                        children: [
-                          Icon(Icons.meeting_room_outlined,
-                              size: iconSize, color: AppTheme.primary),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              '${(s['roomcate_name'] ?? '-').toString()} เลขที่ ${(s['room_number'] ?? '-').toString()}',
-                              style: TextStyle(fontSize: bodySize, color: Colors.grey[700]),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.payments,
-                              size: iconSize, color: AppTheme.primary),
-                          const SizedBox(width: 6),
-                          Text('${amount.toStringAsFixed(2)} บาท',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green)),
-                          const Spacer(),
-                          const Icon(Icons.schedule,
-                              size: 16, color: Colors.grey),
-                          const SizedBox(width: 4),
-                          Text(_formatThaiDate(payDate),
-                              style: TextStyle(
-                                  fontSize: bodySize, color: Colors.grey[700])),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  // no action buttons on list page per requirements
-                ],
-              ),
-            ),
+    return InkWell(
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => slipId.isNotEmpty
+                ? PaymentVerificationDetailPage(slipId: slipId)
+                : PaymentVerificationDetailPage(invoiceId: invoiceId),
           ),
+        );
+        if (mounted) await _load();
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-      );
-    });
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Status row (dot + label) — match _invoiceCard
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration:
+                      BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 6),
+                Text(statusLabel,
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor)),
+                const Spacer(),
+                const Icon(Icons.chevron_right, color: Colors.black38),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            // Title: ชื่อผู้เช่า - ประเภทห้อง เลขที่ห้อง
+            Text(
+              '$tenantName - $roomcate เลขที่ $roomNumber',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+
+            const SizedBox(height: 4),
+            // Sub: Bill #... • วันที่ พ.ศ.
+            Text(
+              'Bill #$invoiceNumber • $dateStr',
+              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+
+            const SizedBox(height: 10),
+            // Amount block
+            Row(
+              children: [
+                const Text('ยอดรวม',
+                    style: TextStyle(fontSize: 12, color: Colors.black54)),
+                const Spacer(),
+                Text(
+                  '${_formatMoney(amount)} บาท',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _printSlip(Map<String, dynamic> slip) async {
@@ -720,12 +722,15 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                 Container(
                   width: 8,
                   height: 8,
-                  decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                  decoration:
+                      BoxDecoration(color: statusColor, shape: BoxShape.circle),
                 ),
                 const SizedBox(width: 6),
                 Text(statusLabel,
                     style: TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w600, color: statusColor)),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor)),
                 const Spacer(),
                 const Icon(Icons.chevron_right, color: Colors.black38),
               ],
@@ -851,8 +856,18 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     dt ??= DateTime.now();
     const thMonths = [
       '',
-      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
-      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+      'ม.ค.',
+      'ก.พ.',
+      'มี.ค.',
+      'เม.ย.',
+      'พ.ค.',
+      'มิ.ย.',
+      'ก.ค.',
+      'ส.ค.',
+      'ก.ย.',
+      'ต.ค.',
+      'พ.ย.',
+      'ธ.ค.'
     ];
     final y = dt.year + 543;
     final m = thMonths[dt.month];
