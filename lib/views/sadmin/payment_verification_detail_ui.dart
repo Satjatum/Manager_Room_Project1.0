@@ -66,8 +66,18 @@ class _PaymentVerificationDetailPageState
     }
   }
 
+  String _firstFileUrl() {
+    final files = (_slip?['files'] as List?)?.cast<Map<String, dynamic>>() ??
+        const [];
+    if (files.isNotEmpty) {
+      final u = (files.first['file_url'] ?? '').toString();
+      if (u.isNotEmpty) return u;
+    }
+    return (_slip?['slip_image'] ?? '').toString();
+  }
+
   Future<void> _openSlip() async {
-    final urlStr = (_slip?['slip_image'] ?? '').toString();
+    final urlStr = _firstFileUrl();
     if (urlStr.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('ไม่พบลิงก์สลิป')),
@@ -257,7 +267,7 @@ class _PaymentVerificationDetailPageState
                           if (widget.slipId != null) ...[
                             _buildHeaderCard(),
                             const SizedBox(height: 12),
-                            _buildSlipImage(),
+                          _buildSlipFiles(),
                             const SizedBox(height: 16),
                             _buildActionBar(),
                           ] else ...[
@@ -422,8 +432,11 @@ class _PaymentVerificationDetailPageState
     );
   }
 
-  Widget _buildSlipImage() {
-    final url = (_slip?['slip_image'] ?? '').toString();
+  Widget _buildSlipFiles() {
+    final files = (_slip?['files'] as List?)?.cast<Map<String, dynamic>>() ??
+        const [];
+    final hasAny = files.isNotEmpty ||
+        ((_slip?['slip_image'] ?? '').toString().isNotEmpty);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -443,7 +456,7 @@ class _PaymentVerificationDetailPageState
               ],
             ),
             const SizedBox(height: 8),
-            if (url.isEmpty)
+            if (!hasAny)
               Container(
                 height: 220,
                 decoration: BoxDecoration(
@@ -451,15 +464,53 @@ class _PaymentVerificationDetailPageState
                     borderRadius: BorderRadius.circular(8)),
                 child: const Center(child: Text('ไม่มีรูปสลิป')),
               )
-            else
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  url,
-                  height: 300,
-                  fit: BoxFit.contain,
+            else ...[
+              if (files.isNotEmpty)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: files.map((f) {
+                    final fu = (f['file_url'] ?? '').toString();
+                    if (fu.isEmpty) return const SizedBox.shrink();
+                    return GestureDetector(
+                      onTap: () async {
+                        final uri = Uri.tryParse(fu);
+                        if (uri != null) {
+                          final ok = fnd.kIsWeb
+                              ? await launchUrl(uri, webOnlyWindowName: '_blank')
+                              : await launchUrl(uri,
+                                  mode: LaunchMode.externalApplication);
+                          if (!ok && mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('เปิดลิงก์ไม่สำเร็จ')),
+                            );
+                          }
+                        }
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          fu,
+                          height: 160,
+                          width: 160,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                )
+              else ...[
+                // Fallback to legacy single slip_image
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    (_slip?['slip_image'] ?? '').toString(),
+                    height: 300,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-              ),
+              ]
+            ],
           ],
         ),
       ),

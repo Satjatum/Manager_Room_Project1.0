@@ -144,8 +144,25 @@ class PaymentService {
         'slip_type': 'manual',
       };
 
-      final result =
-          await _supabase.from('payment_slips').insert(data).select().single();
+      final result = await _supabase
+          .from('payment_slips')
+          .insert(data)
+          .select()
+          .single();
+
+      // Also store the uploaded file into payment_slip_files for multi-file support
+      try {
+        final slipId = (result['slip_id'] ?? '').toString();
+        final fileUrl = (slipImageUrl).toString();
+        if (slipId.isNotEmpty && fileUrl.isNotEmpty) {
+          await _supabase.from('payment_slip_files').insert({
+            'slip_id': slipId,
+            'file_url': fileUrl,
+          });
+        }
+      } catch (_) {
+        // Non-fatal: keep slip record even if file table insert fails
+      }
 
       return {
         'success': true,
@@ -624,9 +641,21 @@ class PaymentService {
             .maybeSingle();
       }
 
-      // 5) Build enriched response (flat fields + optional nested for compatibility)
+      // 5) Load slip files (multi-file support)
+      List<Map<String, dynamic>> files = const [];
+      try {
+        final rows = await _supabase
+            .from('payment_slip_files')
+            .select('slip_file_id, file_url, created_at, updated_at')
+            .eq('slip_id', slipId)
+            .order('created_at', ascending: true);
+        files = List<Map<String, dynamic>>.from(rows);
+      } catch (_) {}
+
+      // 6) Build enriched response (flat fields + optional nested for compatibility)
       final Map<String, dynamic> data = {
         ...slip,
+        'files': files,
       };
 
       if (inv != null) {
