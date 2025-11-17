@@ -754,18 +754,20 @@ class PaymentService {
     String? tenantId,
   }) async {
     try {
+      // สร้าง query แบบ FilterBuilder ก่อน แล้วค่อยแปลงเป็น Transform ด้วย order/limit ตอนท้าย
       var q = _supabase
           .from('payment_slips')
           .select('*')
-          .eq('invoice_id', invoiceId)
-          .order('created_at', ascending: false)
-          .limit(1);
+          .eq('invoice_id', invoiceId);
 
       if (tenantId != null && tenantId.isNotEmpty) {
         q = q.eq('tenant_id', tenantId);
       }
 
-      final row = await q.maybeSingle();
+      final row = await q
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
       if (row == null) return null;
       return Map<String, dynamic>.from(row);
     } catch (e) {
