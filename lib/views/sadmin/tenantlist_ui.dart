@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:manager_room_project/views/sadmin/roomcate_ui.dart';
 // -----
 import '../../models/user_models.dart';
 // -----
@@ -1218,8 +1219,8 @@ class _TenantListUIState extends State<TenantListUI> {
       statusLabel = 'ค้างชำระ';
       statusColor = Colors.orange.shade700;
     } else {
-      statusLabel = isActive ? 'เช่าอยู่' : 'ย้ายออกแล้ว';
-      statusColor = isActive ? const Color(0xFF10B981) : Colors.redAccent;
+      statusLabel = isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน';
+      statusColor = isActive ? const Color(0xFF10B981) : Colors.grey;
     }
 
     // Card UI
@@ -1262,7 +1263,8 @@ class _TenantListUIState extends State<TenantListUI> {
                       ? Image.network(
                           profileImageUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildInitialAvatar(tenantName),
+                          errorBuilder: (_, __, ___) =>
+                              _buildInitialAvatar(tenantName),
                         )
                       : _buildInitialAvatar(tenantName),
                 ),
@@ -1293,7 +1295,8 @@ class _TenantListUIState extends State<TenantListUI> {
                         PopupMenuButton<String>(
                           color: Colors.white,
                           padding: EdgeInsets.zero,
-                          icon: Icon(Icons.more_vert, size: 20, color: Colors.grey.shade700),
+                          icon: Icon(Icons.more_vert,
+                              size: 20, color: Colors.grey.shade700),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -1302,17 +1305,25 @@ class _TenantListUIState extends State<TenantListUI> {
                             if (idStr == null || idStr.isEmpty) return;
                             switch (value) {
                               case 'view':
-                                if (_isAnonymous) { _showLoginPrompt('ดูรายละเอียดผู้เช่า'); return; }
+                                if (_isAnonymous) {
+                                  _showLoginPrompt('ดูรายละเอียดผู้เช่า');
+                                  return;
+                                }
                                 final res = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => TenantDetailUI(tenantId: idStr),
+                                    builder: (context) =>
+                                        TenantDetailUI(tenantId: idStr),
                                   ),
                                 );
-                                if (res == true && mounted) await _loadTenants();
+                                if (res == true && mounted)
+                                  await _loadTenants();
                                 break;
                               case 'edit':
-                                if (_isAnonymous) { _showLoginPrompt('แก้ไขผู้เช่า'); return; }
+                                if (_isAnonymous) {
+                                  _showLoginPrompt('แก้ไขผู้เช่า');
+                                  return;
+                                }
                                 if (!canManage) return;
                                 final res = await Navigator.push(
                                   context,
@@ -1323,15 +1334,24 @@ class _TenantListUIState extends State<TenantListUI> {
                                     ),
                                   ),
                                 );
-                                if (res == true && mounted) await _loadTenants();
+                                if (res == true && mounted)
+                                  await _loadTenants();
                                 break;
                               case 'toggle_status':
-                                if (_isAnonymous) { _showLoginPrompt(isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'); return; }
+                                if (_isAnonymous) {
+                                  _showLoginPrompt(
+                                      isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน');
+                                  return;
+                                }
                                 if (!canManage) return;
-                                _toggleTenantStatus(idStr, tenantName, isActive);
+                                _toggleTenantStatus(
+                                    idStr, tenantName, isActive);
                                 break;
                               case 'delete':
-                                if (_isAnonymous) { _showLoginPrompt('ลบผู้เช่า'); return; }
+                                if (_isAnonymous) {
+                                  _showLoginPrompt('ลบผู้เช่า');
+                                  return;
+                                }
                                 if (!canManage) return;
                                 _deleteTenant(idStr, tenantName);
                                 break;
@@ -1343,7 +1363,8 @@ class _TenantListUIState extends State<TenantListUI> {
                               child: ListTile(
                                 dense: true,
                                 contentPadding: EdgeInsets.zero,
-                                leading: Icon(Icons.visibility_outlined, size: 20, color: Color(0xFF14B8A6)),
+                                leading: Icon(Icons.visibility_outlined,
+                                    size: 20, color: Color(0xFF14B8A6)),
                                 title: Text('ดูรายละเอียด'),
                               ),
                             ),
@@ -1353,7 +1374,8 @@ class _TenantListUIState extends State<TenantListUI> {
                                 child: ListTile(
                                   dense: true,
                                   contentPadding: EdgeInsets.zero,
-                                  leading: Icon(Icons.edit_outlined, size: 20, color: Color(0xFF14B8A6)),
+                                  leading: Icon(Icons.edit_outlined,
+                                      size: 20, color: Color(0xFF14B8A6)),
                                   title: Text('แก้ไข'),
                                 ),
                               ),
@@ -1363,13 +1385,19 @@ class _TenantListUIState extends State<TenantListUI> {
                                   dense: true,
                                   contentPadding: EdgeInsets.zero,
                                   leading: Icon(
-                                    isActive ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                    isActive
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
                                     size: 20,
-                                    color: isActive ? Colors.orange : Colors.green,
+                                    color:
+                                        isActive ? Colors.orange : Colors.green,
                                   ),
                                   title: Text(
                                     isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
-                                    style: TextStyle(color: isActive ? Colors.orange : Colors.green),
+                                    style: TextStyle(
+                                        color: isActive
+                                            ? Colors.orange
+                                            : Colors.green),
                                   ),
                                 ),
                               ),
@@ -1378,8 +1406,10 @@ class _TenantListUIState extends State<TenantListUI> {
                                 child: ListTile(
                                   dense: true,
                                   contentPadding: EdgeInsets.zero,
-                                  leading: Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                                  title: Text('ลบ', style: TextStyle(color: Colors.red)),
+                                  leading: Icon(Icons.delete_outline,
+                                      size: 20, color: Colors.red),
+                                  title: Text('ลบ',
+                                      style: TextStyle(color: Colors.red)),
                                 ),
                               ),
                             ],
@@ -1390,7 +1420,7 @@ class _TenantListUIState extends State<TenantListUI> {
 
                     const SizedBox(height: 2),
                     Text(
-                      'Room: ' + roomNumber,
+                      'ประเภทเลขที่ $roomNumber',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 13, color: Colors.grey[600]),
@@ -1403,23 +1433,27 @@ class _TenantListUIState extends State<TenantListUI> {
                     // Bottom: phone + status pill
                     Row(
                       children: [
-                        Icon(Icons.phone_outlined, size: 16, color: AppTheme.primary),
+                        Icon(Icons.phone_outlined,
+                            size: 16, color: AppTheme.primary),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             phone,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 13, color: Colors.black87),
+                            style: const TextStyle(
+                                fontSize: 13, color: Colors.black87),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
                             color: statusColor.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: statusColor.withOpacity(0.35)),
+                            border: Border.all(
+                                color: statusColor.withOpacity(0.35)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,

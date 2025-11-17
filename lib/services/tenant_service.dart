@@ -857,17 +857,13 @@ class TenantService {
     try {
       if (tenantIds.isEmpty) return {};
 
-      final result = await _supabase
-          .from('rental_contracts')
-          .select('''
+      final result = await _supabase.from('rental_contracts').select('''
             tenant_id,
             rooms!inner(
               room_number,
               room_categories(roomcate_name)
             )
-          ''')
-          .inFilter('tenant_id', tenantIds)
-          .eq('contract_status', 'active');
+          ''').inFilter('tenant_id', tenantIds).eq('contract_status', 'active');
 
       final List<dynamic> rows = List<dynamic>.from(result);
       final Map<String, Map<String, String>> map = {};
@@ -915,7 +911,10 @@ class TenantService {
         final String status = row['invoice_status']?.toString() ?? '';
         final String? dueStr = row['due_date']?.toString();
         bool isOverdue = status == 'overdue';
-        if (!isOverdue && status == 'pending' && dueStr != null && dueStr.isNotEmpty) {
+        if (!isOverdue &&
+            status == 'pending' &&
+            dueStr != null &&
+            dueStr.isNotEmpty) {
           try {
             final due = DateTime.parse(dueStr);
             if (due.isBefore(now)) {
