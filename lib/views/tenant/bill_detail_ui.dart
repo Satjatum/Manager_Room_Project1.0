@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:manager_room_project/services/invoice_service.dart';
+import 'package:manager_room_project/services/payment_service.dart';
 import 'package:manager_room_project/views/tenant/tenant_pay_bill_ui.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 
@@ -15,7 +16,14 @@ class TenantBillDetailUi extends StatelessWidget {
   const TenantBillDetailUi({super.key, required this.invoiceId});
 
   Future<Map<String, dynamic>?> _load() async {
-    return InvoiceService.getInvoiceById(invoiceId);
+    final inv = await InvoiceService.getInvoiceById(invoiceId);
+    if (inv != null) {
+      try {
+        final slip = await PaymentService.getLatestSlipForInvoice(invoiceId);
+        if (slip != null) inv['latest_slip'] = slip;
+      } catch (_) {}
+    }
+    return inv;
   }
 
   String _thaiMonth(int month) {
@@ -73,6 +81,11 @@ class TenantBillDetailUi extends StatelessWidget {
           }
 
           final status = (data['invoice_status'] ?? '').toString();
+          final latestSlip =
+              (data['latest_slip'] as Map<String, dynamic>?) ?? const {};
+          final slipStatus = (latestSlip['slip_status'] ?? '').toString();
+          final hasPendingSlip = slipStatus == 'pending';
+          final isRejectedSlip = slipStatus == 'rejected';
           final rental = _asDouble(data['rental_amount']);
           final utilities = _asDouble(data['utilities_amount']);
           final others = _asDouble(data['other_charges']);
@@ -186,12 +199,31 @@ class TenantBillDetailUi extends StatelessWidget {
                           ],
                         ),
                       ),
-                      _StatusChip(status: status),
+                      _StatusChip(
+                        status: status,
+                        overrideLabel: hasPendingSlip ? 'รอตรวจสอบ' : null,
+                        overrideColor: hasPendingSlip ? Colors.orange : null,
+                      ),
                     ],
                   ),
                 ),
 
                 const SizedBox(height: 16),
+
+                if (isRejectedSlip)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.withOpacity(0.3)),
+                    ),
+                    child: const Text(
+                      'สลิปล่าสุดถูกปฏิเสธ กรุณาอัปโหลดใหม่',
+                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                    ),
+                  ),
 
                 // Charges Card
                 Container(
@@ -310,7 +342,7 @@ class TenantBillDetailUi extends StatelessWidget {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    if (status != 'paid')
+                    if (status != 'paid' && !hasPendingSlip)
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () async {
@@ -401,9 +433,12 @@ class _SectionHeader extends StatelessWidget {
 
 class _StatusChip extends StatelessWidget {
   final String status;
-  const _StatusChip({required this.status});
+  final String? overrideLabel;
+  final Color? overrideColor;
+  const _StatusChip({required this.status, this.overrideLabel, this.overrideColor});
 
   Color _color() {
+    if (overrideColor != null) return overrideColor!;
     switch (status) {
       case 'paid':
         return Colors.green;
@@ -419,6 +454,9 @@ class _StatusChip extends StatelessWidget {
   }
 
   String _label() {
+    if (overrideLabel != null && overrideLabel!.isNotEmpty) {
+      return overrideLabel!;
+    }
     switch (status) {
       case 'paid':
         return 'ชำระแล้ว';
