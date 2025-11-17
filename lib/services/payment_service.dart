@@ -752,6 +752,7 @@ class PaymentService {
         'slip_id': slipId,
         'action': 'verify',
         'action_by': currentUser.userId,
+        'new_status': 'verified',
         'notes': adminNotes,
       });
 
@@ -796,6 +797,7 @@ class PaymentService {
         'slip_id': slipId,
         'action': 'reject',
         'action_by': currentUser.userId,
+        'new_status': 'rejected',
         'notes': reason,
       });
 
