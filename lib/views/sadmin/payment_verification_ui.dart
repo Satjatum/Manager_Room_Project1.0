@@ -21,7 +21,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   bool _loading = true;
   List<Map<String, dynamic>> _slips = [];
   List<Map<String, dynamic>> _invoices = [];
-  late TabController _tabController; // ตัวควบคุมแท็บตัวกรองสถานะสลิป (รอดำเนินการ/ชำระแล้ว/ปฏิเสธ)
+  late TabController _tabController; // ตัวกรองตามสถานะบิล: pending/partial/paid/overdue/cancelled
   UserModel? _currentUser;
   List<Map<String, dynamic>> _branches = [];
   String? _selectedBranchId; // null = all (for superadmin)
@@ -29,8 +29,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   @override
   void initState() {
     super.initState();
-    // มี 3 แท็บ: รอดำเนินการ, ชำระแล้ว, ปฏิเสธ (ใช้กับสลิปเท่านั้น)
-    _tabController = TabController(length: 3, vsync: this);
+    // มี 5 แท็บตามสถานะใน Database ของบิล: pending, partial, paid, overdue, cancelled
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
       _load();
@@ -74,18 +74,22 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      // โหลดเฉพาะ "สลิป" ตามสถานะในแท็บ (รอดำเนินการ / ชำระแล้ว / ปฏิเสธ)
-      final status = _slipTabStatus();
+      // โหลดสลิปทั้งหมด แล้วค่อยกรองตามสถานะบิล (pending/partial/paid/overdue/cancelled)
+      final invStatus = _invoiceTabStatus();
       final res = await PaymentService.listPaymentSlips(
-        status: status,
+        status: 'all',
         branchId: _currentBranchFilter(),
       );
       // แสดงเฉพาะวิธีโอนธนาคารเท่านั้น (PromptPay ถูกถอดออก)
       final filtered = res
           .where((e) => (e['payment_method'] ?? 'transfer') == 'transfer')
           .toList();
+      // กรองตามสถานะของบิล
+      final byInvoiceStatus = filtered
+          .where((e) => (e['invoice_status'] ?? '').toString() == invStatus)
+          .toList();
       setState(() {
-        _slips = filtered;
+        _slips = byInvoiceStatus;
         _invoices = [];
         _loading = false;
       });
@@ -113,15 +117,19 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     return null;
   }
 
-  // แปลง index แท็บ ไปเป็นสถานะสลิปที่ต้องการ
-  String _slipTabStatus() {
+  // แปลง index แท็บ ไปเป็นสถานะบิลที่ต้องการ
+  String _invoiceTabStatus() {
     switch (_tabController.index) {
       case 0:
-        return 'pending';   // รอดำเนินการ
+        return 'pending';
       case 1:
-        return 'verified';  // ชำระแล้ว
+        return 'partial';
       case 2:
-        return 'rejected';  // ปฏิเสธ
+        return 'paid';
+      case 3:
+        return 'overdue';
+      case 4:
+        return 'cancelled';
       default:
         return 'pending';
     }
@@ -326,7 +334,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                       ),
                     ),
 
-                    // แท็บตัวกรองสถานะสลิป (รอดำเนินการ/ชำระแล้ว/ปฏิเสธ)
+                    // แท็บตัวกรองตามสถานะบิลจาก Database
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Align(
@@ -339,9 +347,11 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                           indicatorColor: AppTheme.primary,
                           indicatorWeight: 3,
                           tabs: const [
-                            Tab(text: 'รอดำเนินการ'),
-                            Tab(text: 'ชำระแล้ว'),
-                            Tab(text: 'ปฏิเสธ'),
+                            Tab(text: 'pending'),
+                            Tab(text: 'partial'),
+                            Tab(text: 'paid'),
+                            Tab(text: 'overdue'),
+                            Tab(text: 'cancelled'),
                           ],
                         ),
                       ),
@@ -523,7 +533,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                         ),
                       ),
                       const SizedBox(width: 8),
-                      _statusChip(status),
+                      _invoiceStatusChip((s['invoice_status'] ?? '').toString()),
                     ],
                   ),
 
@@ -857,20 +867,35 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   }
 
   Widget _statusChip(String status) {
+    // เดิมใช้กับสถานะสลิป — คงไว้เผื่อใช้ภายหลัง
+    return _invoiceStatusChip(status);
+  }
+
+  // ป้ายแสดงสถานะบิลตาม Database
+  Widget _invoiceStatusChip(String status) {
     Color c;
     String t;
     switch (status) {
-      case 'verified':
-        c = Colors.green;
-        t = 'อนุมัติแล้ว';
+      case 'paid':
+        c = const Color(0xFF22C55E);
+        t = 'ชำระแล้ว';
         break;
-      case 'rejected':
-        c = Colors.red;
-        t = 'ถูกปฏิเสธ';
+      case 'overdue':
+        c = const Color(0xFFEF4444);
+        t = 'เกินกำหนด';
         break;
+      case 'partial':
+        c = const Color(0xFFF59E0B);
+        t = 'ชำระบางส่วน';
+        break;
+      case 'cancelled':
+        c = Colors.grey;
+        t = 'ยกเลิก';
+        break;
+      case 'pending':
       default:
-        c = Colors.orange;
-        t = 'รอตรวจสอบ';
+        c = const Color(0xFF3B82F6);
+        t = 'รอดำเนินการ';
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

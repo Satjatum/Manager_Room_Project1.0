@@ -210,7 +210,7 @@ class PaymentService {
 
         final invRows = await _supabase
             .from('invoices')
-            .select('invoice_id, invoice_number, total_amount, paid_amount, room_id, tenant_id, due_date')
+            .select('invoice_id, invoice_number, total_amount, paid_amount, invoice_status, room_id, tenant_id, due_date')
             .inFilter('room_id', roomIds);
         final invList = List<Map<String, dynamic>>.from(invRows);
         invoiceIdFilter = invList.map((r) => r['invoice_id'].toString()).toList();
@@ -291,7 +291,7 @@ class PaymentService {
         if (invIds.isNotEmpty) {
           final invRows = await _supabase
               .from('invoices')
-              .select('invoice_id, invoice_number, total_amount, paid_amount, room_id, tenant_id, due_date')
+              .select('invoice_id, invoice_number, total_amount, paid_amount, invoice_status, room_id, tenant_id, due_date')
               .inFilter('invoice_id', invIds);
           invoicesById = {
             for (final r in List<Map<String, dynamic>>.from(invRows))
@@ -384,6 +384,7 @@ class PaymentService {
           'invoice_number': inv['invoice_number'],
           'invoice_total': inv['total_amount'],
           'invoice_paid': inv['paid_amount'],
+          'invoice_status': inv['invoice_status'],
           'room_number': room['room_number'],
           'branch_id': room['branch_id'],
           'branch_name': br['branch_name'],

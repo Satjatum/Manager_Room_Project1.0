@@ -262,6 +262,8 @@ class _PaymentVerificationDetailPageState
     final tenantPhone = (s['tenant_phone'] ?? tenant['tenant_phone'] ?? '-').toString();
     final roomNumber = (s['room_number'] ?? room['room_number'] ?? '-').toString();
     final branchName = (s['branch_name'] ?? br['branch_name'] ?? '-').toString();
+    final invoiceStatus = (inv['invoice_status'] ?? '-').toString();
+    final slipStatus = (s['slip_status'] ?? 'pending').toString();
 
     return Card(
       child: Padding(
@@ -273,12 +275,17 @@ class _PaymentVerificationDetailPageState
               children: [
                 const Icon(Icons.receipt_long, size: 18),
                 const SizedBox(width: 6),
-                Text(
-                  invoiceNumber,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                Expanded(
+                  child: Text(
+                    invoiceNumber,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                const Spacer(),
-                _statusChip((s['slip_status'] ?? 'pending').toString()),
+                const SizedBox(width: 8),
+                _invoiceStatusChip(invoiceStatus),
+                const SizedBox(width: 6),
+                _slipStatusChip(slipStatus),
               ],
             ),
             const SizedBox(height: 8),
@@ -385,7 +392,48 @@ class _PaymentVerificationDetailPageState
     );
   }
 
-  Widget _statusChip(String status) {
+  // ป้ายสถานะของบิลตาม Database
+  Widget _invoiceStatusChip(String status) {
+    Color c;
+    String t;
+    switch (status) {
+      case 'paid':
+        c = const Color(0xFF22C55E);
+        t = 'ชำระแล้ว';
+        break;
+      case 'overdue':
+        c = const Color(0xFFEF4444);
+        t = 'เกินกำหนด';
+        break;
+      case 'partial':
+        c = const Color(0xFFF59E0B);
+        t = 'ชำระบางส่วน';
+        break;
+      case 'cancelled':
+        c = Colors.grey;
+        t = 'ยกเลิก';
+        break;
+      case 'pending':
+      default:
+        c = const Color(0xFF3B82F6);
+        t = 'รอดำเนินการ';
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: c.withOpacity(0.1),
+        border: Border.all(color: c.withOpacity(0.4)),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        t,
+        style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  // ป้ายสถานะของสลิป (pending/verified/rejected)
+  Widget _slipStatusChip(String status) {
     Color c;
     String t;
     switch (status) {
