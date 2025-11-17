@@ -359,11 +359,11 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                   indicatorColor: AppTheme.primary,
                   indicatorWeight: 3,
                   tabs: const [
-                    Tab(text: 'pending'),
-                    Tab(text: 'partial'),
-                    Tab(text: 'paid'),
-                    Tab(text: 'overdue'),
-                    Tab(text: 'cancelled'),
+                    Tab(text: 'ค้างชำระ'),
+                    Tab(text: 'ชำระบางส่วน'),
+                    Tab(text: 'ชำระแล้ว'),
+                    Tab(text: 'เกินกำหนด'),
+                    Tab(text: 'ยกเลิก'),
                   ],
                 ),
               ),
@@ -508,8 +508,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     final roomNumber = (s['room_number'] ?? '-').toString();
     final invoiceNumber = (s['invoice_number'] ?? '-').toString();
     final status = (s['invoice_status'] ?? '').toString();
-    final dateStr =
-        _formatThaiDate((s['payment_date'] ?? s['created_at'] ?? '').toString());
+    final dateStr = _formatThaiDate(
+        (s['payment_date'] ?? s['created_at'] ?? '').toString());
     final amount =
         _asDouble(s['invoice_total'] ?? s['total_amount'] ?? s['paid_amount']);
 
@@ -535,7 +535,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
       case 'pending':
       default:
         statusColor = const Color(0xFF3B82F6);
-        statusLabel = 'รอดำเนินการ';
+        statusLabel = 'ค้างชำระ';
     }
 
     return InkWell(
@@ -685,7 +685,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
       case 'pending':
       default:
         statusColor = const Color(0xFF3B82F6);
-        statusLabel = 'รอดำเนินการ';
+        statusLabel = 'ค้างชำระ';
     }
 
     return InkWell(

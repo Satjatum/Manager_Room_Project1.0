@@ -114,33 +114,7 @@ class _MainnavbarState extends State<Mainnavbar> {
   }
 
   void _setupUserNavigation() {
-    _navigationItems = [
-      NavItem(
-        icon: Icons.dashboard_outlined,
-        activeIcon: Icons.dashboard,
-        label: 'แดชบอร์ด',
-      ),
-      NavItem(
-        icon: Icons.hotel_outlined,
-        activeIcon: Icons.hotel,
-        label: 'ห้องพัก',
-      ),
-      NavItem(
-        icon: Icons.people_outline,
-        activeIcon: Icons.people,
-        label: 'ผู้เช่า',
-      ),
-      NavItem(
-        icon: Icons.report_problem_outlined,
-        activeIcon: Icons.report_problem,
-        label: 'ปัญหา',
-      ),
-      NavItem(
-        icon: Icons.settings_outlined,
-        activeIcon: Icons.settings,
-        label: 'ตั้งค่า',
-      ),
-    ];
+    _navigationItems = [];
 
     _pages = [];
   }

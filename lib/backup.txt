@@ -190,7 +190,6 @@ CREATE TABLE public.meter_readings (
   electric_usage numeric NOT NULL DEFAULT 0,
   reading_status character varying NOT NULL DEFAULT 'draft'::character varying CHECK (reading_status::text = ANY (ARRAY['draft'::character varying::text, 'confirmed'::character varying::text, 'billed'::character varying::text, 'cancelled'::character varying::text])),
   reading_date date NOT NULL DEFAULT CURRENT_DATE,
-  reading_notes text,
   invoice_id uuid,
   created_by uuid,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
@@ -227,6 +226,15 @@ CREATE TABLE public.payment_settings (
   CONSTRAINT payment_settings_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branches(branch_id),
   CONSTRAINT payment_settings_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(user_id)
 );
+CREATE TABLE public.payment_slip_files (
+  slip_file_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  slip_id uuid NOT NULL,
+  file_url text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT payment_slip_files_pkey PRIMARY KEY (slip_file_id),
+  CONSTRAINT payment_slip_files_slip_id_fkey FOREIGN KEY (slip_id) REFERENCES public.payment_slips(slip_id)
+);
 CREATE TABLE public.payment_slips (
   slip_id uuid NOT NULL DEFAULT gen_random_uuid(),
   invoice_id uuid NOT NULL,
@@ -237,12 +245,7 @@ CREATE TABLE public.payment_slips (
   paid_amount numeric NOT NULL,
   payment_date timestamp with time zone NOT NULL,
   payment_time time without time zone,
-  transfer_from_bank character varying,
-  transfer_from_account character varying,
-  transfer_to_account character varying,
-  slip_status character varying NOT NULL DEFAULT 'pending'::character varying CHECK (slip_status::text = ANY (ARRAY['pending'::character varying::text, 'verified'::character varying::text, 'rejected'::character varying::text, 'duplicate'::character varying::text])),
   slip_type character varying DEFAULT 'manual'::character varying CHECK (slip_type::text = ANY (ARRAY['manual'::character varying::text, 'auto_detected'::character varying::text])),
-  ocr_data jsonb,
   tenant_notes text,
   rejection_reason text,
   verified_by uuid,
@@ -255,7 +258,8 @@ CREATE TABLE public.payment_slips (
   CONSTRAINT payment_slips_tenant_id_fkey FOREIGN KEY (tenant_id) REFERENCES public.tenants(tenant_id),
   CONSTRAINT payment_slips_qr_id_fkey FOREIGN KEY (qr_id) REFERENCES public.branch_payment_qr(qr_id),
   CONSTRAINT payment_slips_verified_by_fkey FOREIGN KEY (verified_by) REFERENCES public.users(user_id),
-  CONSTRAINT payment_slips_payment_id_fkey FOREIGN KEY (payment_id) REFERENCES public.payments(payment_id)
+  CONSTRAINT payment_slips_payment_id_fkey FOREIGN KEY (payment_id) REFERENCES public.payments(payment_id),
+  CONSTRAINT payment_slips_invoice_id_fkey FOREIGN KEY (invoice_id) REFERENCES public.invoices(invoice_id)
 );
 CREATE TABLE public.payments (
   payment_id uuid NOT NULL DEFAULT gen_random_uuid(),
