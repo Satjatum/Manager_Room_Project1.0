@@ -743,4 +743,62 @@ class PaymentService {
       return {'success': false, 'message': 'ไม่สามารถปฏิเสธสลิปได้: $e'};
     }
   }
+
+  // ======================
+  // TENANT/COMMON HELPERS
+  // ======================
+
+  // ดึงสลิปล่าสุดของบิล (สำหรับเทนแนนท์/หน้ารายละเอียดบิล)
+  static Future<Map<String, dynamic>?> getLatestSlipForInvoice(
+    String invoiceId, {
+    String? tenantId,
+  }) async {
+    try {
+      var q = _supabase
+          .from('payment_slips')
+          .select('*')
+          .eq('invoice_id', invoiceId)
+          .order('created_at', ascending: false)
+          .limit(1);
+
+      if (tenantId != null && tenantId.isNotEmpty) {
+        q = q.eq('tenant_id', tenantId);
+      }
+
+      final row = await q.maybeSingle();
+      if (row == null) return null;
+      return Map<String, dynamic>.from(row);
+    } catch (e) {
+      throw Exception('โหลดสลิปล่าสุดไม่สำเร็จ: $e');
+    }
+  }
+
+  // คืนชุด invoice_id ที่มีสลิปสถานะ pending (ใช้เพื่อแสดงป้าย "รอตรวจสอบ")
+  static Future<Set<String>> getInvoicesWithPendingSlip({
+    List<String>? invoiceIds,
+    String? tenantId,
+  }) async {
+    try {
+      var q = _supabase
+          .from('payment_slips')
+          .select('invoice_id')
+          .eq('slip_status', 'pending');
+
+      if (tenantId != null && tenantId.isNotEmpty) {
+        q = q.eq('tenant_id', tenantId);
+      }
+      if (invoiceIds != null && invoiceIds.isNotEmpty) {
+        q = q.inFilter('invoice_id', invoiceIds);
+      }
+
+      final rows = await q;
+      final list = List<Map<String, dynamic>>.from(rows);
+      return list
+          .map((r) => (r['invoice_id'] ?? '').toString())
+          .where((id) => id.isNotEmpty)
+          .toSet();
+    } catch (e) {
+      throw Exception('โหลดสถานะสลิปที่รอตรวจสอบไม่สำเร็จ: $e');
+    }
+  }
 }
