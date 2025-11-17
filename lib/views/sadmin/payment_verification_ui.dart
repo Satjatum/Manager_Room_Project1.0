@@ -369,23 +369,9 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
 
                     const SizedBox(height: 8),
                     Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          // On mobile app, always show list for simplicity
-                          if (isMobileApp || constraints.maxWidth <= 600) {
-                            return (_tabController.index == 0)
-                                ? _buildInvoiceListView()
-                                : _buildSlipListView();
-                          }
-
-                          // Web/Desktop: grid for wider screens
-                          if (_tabController.index == 0) {
-                            return _buildInvoiceGridView(constraints.maxWidth);
-                          } else {
-                            return _buildSlipGridView(constraints.maxWidth);
-                          }
-                        },
-                      ),
+                      child: (_tabController.index == 0)
+                          ? _buildInvoiceListView()
+                          : _buildSlipListView(),
                     ),
                   ],
                 ),
@@ -427,94 +413,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     );
   }
 
-  // Grid builders (web/desktop)
-  Widget _buildSlipGridView(double screenWidth) {
-    if (_slips.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: const Text('ไม่พบข้อมูล'),
-        ),
-      );
-    }
-
-    int crossAxisCount = 2;
-    if (screenWidth > 1200) {
-      crossAxisCount = 4;
-    } else if (screenWidth > 900) {
-      crossAxisCount = 3;
-    }
-
-    const double horizontalPadding = 24;
-    const double crossSpacing = 16;
-    final double availableWidth = screenWidth -
-        (horizontalPadding * 2) -
-        (crossSpacing * (crossAxisCount - 1));
-    final double tileWidth = availableWidth / crossAxisCount;
-
-    final double estHeader = tileWidth < 300 ? 140 : 120; // title/rows
-    final double estMedia = 96; // image height in card
-    final double estButtons = 56; // actions row
-    final double estimatedTileHeight =
-        estHeader + estMedia + estButtons + 24; // paddings
-    double dynamicAspect = tileWidth / estimatedTileHeight;
-    dynamicAspect = dynamicAspect.clamp(0.70, 1.20);
-
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: dynamicAspect,
-      ),
-      itemCount: _slips.length,
-      itemBuilder: (context, index) => _slipCard(_slips[index]),
-    );
-  }
-
-  Widget _buildInvoiceGridView(double screenWidth) {
-    if (_invoices.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: const Text('ไม่พบข้อมูล'),
-        ),
-      );
-    }
-
-    int crossAxisCount = 2;
-    if (screenWidth > 1200) {
-      crossAxisCount = 4;
-    } else if (screenWidth > 900) {
-      crossAxisCount = 3;
-    }
-
-    const double horizontalPadding = 24;
-    const double crossSpacing = 16;
-    final double availableWidth = screenWidth -
-        (horizontalPadding * 2) -
-        (crossSpacing * (crossAxisCount - 1));
-    final double tileWidth = availableWidth / crossAxisCount;
-
-    final double estHeader = tileWidth < 300 ? 120 : 100;
-    final double estInfo = tileWidth < 300 ? 100 : 80;
-    final double estimatedTileHeight = estHeader + estInfo + 24;
-    double dynamicAspect = tileWidth / estimatedTileHeight;
-    dynamicAspect = dynamicAspect.clamp(0.80, 1.40);
-
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: dynamicAspect,
-      ),
-      itemCount: _invoices.length,
-      itemBuilder: (context, index) => _invoiceCard(_invoices[index]),
-    );
-  }
+  // Grid builders removed — enforce ListView everywhere
 
   Future<bool> _confirmExitBranch() async {
     final result = await showDialog<bool>(
@@ -663,8 +562,6 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                       ),
                       const SizedBox(width: 8),
                       _statusChip(status),
-                      const SizedBox(width: 6),
-                      _methodChip('transfer'),
                     ],
                   ),
 
@@ -857,88 +754,121 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     }
 
     final total = _asDouble(inv['total_amount']);
-    final paid = _asDouble(inv['paid_amount']);
-    final remain = total - paid;
     final status = (inv['invoice_status'] ?? '').toString();
     final due = (inv['due_date'] ?? '').toString();
+    final paidAt = (inv['paid_at'] ?? '').toString();
 
-    Color sc;
-    String st;
-    switch (status) {
-      case 'overdue':
-        sc = Colors.red;
-        st = 'เกินกำหนด';
-        break;
-      case 'partial':
-        sc = Colors.orange;
-        st = 'ชำระบางส่วน';
-        break;
-      case 'pending':
-      default:
-        sc = Colors.blueGrey;
-        st = 'ค้างชำระ';
+    // Status icon + color + label (match sample card)
+    IconData icon;
+    Color color;
+    String caption;
+    if (status == 'paid') {
+      icon = Icons.check_circle_outline;
+      color = const Color(0xFF22C55E); // green
+      caption = 'Paid: ' + (paidAt.isNotEmpty ? paidAt.split('T').first : '-');
+    } else if (status == 'overdue') {
+      icon = Icons.error_outline;
+      color = const Color(0xFFEF4444); // red
+      caption = 'Overdue: ' + (due.isNotEmpty ? due.split('T').first : '-');
+    } else {
+      icon = Icons.hourglass_bottom_outlined;
+      color = const Color(0xFFF59E0B); // amber
+      caption = 'Due: ' + (due.isNotEmpty ? due.split('T').first : '-');
     }
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    final tenantName = (inv['tenant_name'] ?? '-').toString();
+    final unit = (inv['room_number'] ?? '-').toString();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          )
+        ],
+      ),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Left status icon
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+
+          // Middle info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.receipt_long, size: 16),
-                const SizedBox(width: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        tenantName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      _formatMoney(total),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
                 Text(
-                  (inv['invoice_number'] ?? '-').toString(),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 16),
+                  'Unit ' + unit,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: sc.withOpacity(0.1),
-                    border: Border.all(color: sc.withOpacity(0.4)),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    st,
-                    style: TextStyle(
-                        color: sc, fontSize: 11, fontWeight: FontWeight.w600),
-                  ),
-                ),
-                const Spacer(),
-                if (due.isNotEmpty) ...[
-                  const Icon(Icons.event, size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  Text(due.split('T').first),
-                ],
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration:
+                          BoxDecoration(color: color, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      caption,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: color,
+                      ),
+                    ),
+                  ],
+                )
               ],
             ),
-            const SizedBox(height: 6),
-            Text('ผู้เช่า: ${(inv['tenant_name'] ?? '-')}'),
-            Text(
-                'ห้อง: ${(inv['room_number'] ?? '-')} • สาขา: ${(inv['branch_name'] ?? '-')}'),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                const Icon(Icons.attach_money, size: 16),
-                const SizedBox(width: 6),
-                Text('รวม ${total.toStringAsFixed(2)} บาท',
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(width: 12),
-                Text('ชำระแล้ว ${paid.toStringAsFixed(2)}'),
-                const Spacer(),
-                Text('คงเหลือ ${remain.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.red)),
-              ],
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -973,21 +903,21 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     );
   }
 
-  Widget _methodChip(String method) {
-    final isPP = method == 'promptpay';
-    final c = isPP ? Colors.indigo : Colors.teal;
-    final t = isPP ? 'PromptPay' : 'โอนธนาคาร';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: c.withOpacity(0.1),
-        border: Border.all(color: c.withOpacity(0.4)),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        t,
-        style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.w600),
-      ),
-    );
+  // PromptPay method chip removed (no PromptPay UI)
+
+  String _formatMoney(double v) {
+    final s = v.toStringAsFixed(2);
+    // simple thousand separator
+    final parts = s.split('.');
+    final intPart = parts[0];
+    final dec = parts[1];
+    final buf = StringBuffer();
+    for (int i = 0; i < intPart.length; i++) {
+      final idx = intPart.length - i;
+      buf.write(intPart[i]);
+      final left = intPart.length - i - 1;
+      if (left > 0 && left % 3 == 0) buf.write(',');
+    }
+    return buf.toString() + '.' + dec;
   }
 }
