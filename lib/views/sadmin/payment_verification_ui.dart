@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:manager_room_project/services/payment_service.dart';
-import 'package:manager_room_project/services/invoice_service.dart';
 import 'package:manager_room_project/services/auth_service.dart';
 import 'package:manager_room_project/services/branch_service.dart';
 import 'package:manager_room_project/models/user_models.dart';
@@ -23,7 +21,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   bool _loading = true;
   List<Map<String, dynamic>> _slips = [];
   List<Map<String, dynamic>> _invoices = [];
-  late TabController _tabController;
+  late TabController _tabController; // ตัวควบคุมแท็บตัวกรองสถานะสลิป (รอดำเนินการ/ชำระแล้ว/ปฏิเสธ)
   UserModel? _currentUser;
   List<Map<String, dynamic>> _branches = [];
   String? _selectedBranchId; // null = all (for superadmin)
@@ -31,7 +29,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    // มี 3 แท็บ: รอดำเนินการ, ชำระแล้ว, ปฏิเสธ (ใช้กับสลิปเท่านั้น)
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
       _load();
@@ -75,37 +74,21 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      if (_tabController.index == 0) {
-        // ค้างชำระ: แสดงบิลที่ยังไม่ชำระ (pending/partial/overdue)
-        final all = await InvoiceService.getAllInvoices(
-          branchId: _currentBranchFilter(),
-          limit: 500,
-        );
-        final unpaid = all.where((inv) {
-          final st = (inv['invoice_status'] ?? '').toString();
-          return st != 'paid' && st != 'cancelled';
-        }).toList();
-        setState(() {
-          _invoices = unpaid;
-          _slips = [];
-          _loading = false;
-        });
-      } else {
-        final status = _slipTabStatus();
-        final res = await PaymentService.listPaymentSlips(
-          status: status,
-          branchId: _currentBranchFilter(),
-        );
-        // แสดงเฉพาะการชำระแบบโอนธนาคารเท่านั้น (ตัด PromptPay ออกทั้งหมด)
-        final filtered = res
-            .where((e) => (e['payment_method'] ?? 'transfer') == 'transfer')
-            .toList();
-        setState(() {
-          _slips = filtered;
-          _invoices = [];
-          _loading = false;
-        });
-      }
+      // โหลดเฉพาะ "สลิป" ตามสถานะในแท็บ (รอดำเนินการ / ชำระแล้ว / ปฏิเสธ)
+      final status = _slipTabStatus();
+      final res = await PaymentService.listPaymentSlips(
+        status: status,
+        branchId: _currentBranchFilter(),
+      );
+      // แสดงเฉพาะวิธีโอนธนาคารเท่านั้น (PromptPay ถูกถอดออก)
+      final filtered = res
+          .where((e) => (e['payment_method'] ?? 'transfer') == 'transfer')
+          .toList();
+      setState(() {
+        _slips = filtered;
+        _invoices = [];
+        _loading = false;
+      });
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
@@ -130,15 +113,15 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     return null;
   }
 
+  // แปลง index แท็บ ไปเป็นสถานะสลิปที่ต้องการ
   String _slipTabStatus() {
-    // index 1..3 => slips
     switch (_tabController.index) {
+      case 0:
+        return 'pending';   // รอดำเนินการ
       case 1:
-        return 'pending'; // รอดำเนินการ: มีสลิปรออนุมัติ
+        return 'verified';  // ชำระแล้ว
       case 2:
-        return 'verified'; // ชำระแล้ว: อนุมัติแล้ว
-      case 3:
-        return 'rejected'; // ปฏิเสธ
+        return 'rejected';  // ปฏิเสธ
       default:
         return 'pending';
     }
@@ -287,9 +270,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
 
   @override
   Widget build(BuildContext context) {
-    final platform = Theme.of(context).platform;
-    final bool isMobileApp = !kIsWeb &&
-        (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
+    // หมายเหตุ: ตัดการใช้ตัวแปรตรวจแพลตฟอร์มที่ไม่จำเป็น เพื่อลด warning และความซ้ำซ้อน
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -345,7 +326,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                       ),
                     ),
 
-                    // Tabs (neutral like meterlist)
+                    // แท็บตัวกรองสถานะสลิป (รอดำเนินการ/ชำระแล้ว/ปฏิเสธ)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Align(
@@ -358,7 +339,6 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                           indicatorColor: AppTheme.primary,
                           indicatorWeight: 3,
                           tabs: const [
-                            Tab(text: 'ค้างชำระ'),
                             Tab(text: 'รอดำเนินการ'),
                             Tab(text: 'ชำระแล้ว'),
                             Tab(text: 'ปฏิเสธ'),
@@ -368,11 +348,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                     ),
 
                     const SizedBox(height: 8),
-                    Expanded(
-                      child: (_tabController.index == 0)
-                          ? _buildInvoiceListView()
-                          : _buildSlipListView(),
-                    ),
+                    Expanded(child: _buildSlipListView()),
                   ],
                 ),
               ),
@@ -397,21 +373,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     );
   }
 
-  Widget _buildInvoiceListView() {
-    if (_invoices.isEmpty) {
-      return ListView(
-        children: const [
-          SizedBox(height: 120),
-          Center(child: Text('ไม่พบข้อมูล')),
-        ],
-      );
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-      itemCount: _invoices.length,
-      itemBuilder: (context, index) => _invoiceCard(_invoices[index]),
-    );
-  }
+  // ไม่ใช้รายการ Invoice ในหน้านี้อีกต่อไป (ใช้เฉพาะสลิปตามตัวกรองแท็บ)
 
   // Grid builders removed — enforce ListView everywhere
 
@@ -745,6 +707,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     }
   }
 
+  // การ์ดแสดงใบแจ้งหนี้ (คงไว้ใช้ซ้ำที่อื่นได้) — แตะเพื่อไปหน้ารายละเอียดสลิปถ้ามี
   Widget _invoiceCard(Map<String, dynamic> inv) {
     double _asDouble(dynamic v) {
       if (v == null) return 0;
@@ -765,21 +728,40 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     if (status == 'paid') {
       icon = Icons.check_circle_outline;
       color = const Color(0xFF22C55E); // green
-      caption = 'Paid: ' + (paidAt.isNotEmpty ? paidAt.split('T').first : '-');
+      caption = 'Paid: ' + _formatThaiDate(paidAt);
     } else if (status == 'overdue') {
       icon = Icons.error_outline;
       color = const Color(0xFFEF4444); // red
-      caption = 'Overdue: ' + (due.isNotEmpty ? due.split('T').first : '-');
+      caption = 'Overdue: ' + _formatThaiDate(due);
     } else {
       icon = Icons.hourglass_bottom_outlined;
       color = const Color(0xFFF59E0B); // amber
-      caption = 'Due: ' + (due.isNotEmpty ? due.split('T').first : '-');
+      caption = 'Due: ' + _formatThaiDate(due);
     }
 
     final tenantName = (inv['tenant_name'] ?? '-').toString();
     final unit = (inv['room_number'] ?? '-').toString();
 
-    return Container(
+    return InkWell(
+      onTap: () async {
+        // พยายามหา slipId จากข้อมูลใบแจ้งหนี้ (ถ้าไม่มีให้แจ้งเตือน)
+        final slipId = (inv['slip_id'] ?? inv['latest_slip_id'] ?? inv['last_slip_id'])?.toString();
+        if (slipId == null || slipId.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('ไม่มีสลิปสำหรับบิลนี้')),
+            );
+          }
+          return;
+        }
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentVerificationDetailPage(slipId: slipId),
+          ),
+        );
+      },
+      child: Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -829,7 +811,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                       ),
                     ),
                     Text(
-                      _formatMoney(total),
+                      _formatMoney(total) + ' บาท',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
@@ -840,7 +822,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Unit ' + unit,
+                  'roomcate เลขที่ ' + unit,
                   style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -870,6 +852,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -913,11 +896,29 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     final dec = parts[1];
     final buf = StringBuffer();
     for (int i = 0; i < intPart.length; i++) {
-      final idx = intPart.length - i;
       buf.write(intPart[i]);
       final left = intPart.length - i - 1;
       if (left > 0 && left % 3 == 0) buf.write(',');
     }
     return buf.toString() + '.' + dec;
+  }
+
+  // แปลง ISO date เป็นรูปแบบไทย (พ.ศ.) "วัน-เดือน-ปี"
+  String _formatThaiDate(String iso) {
+    if (iso.isEmpty) return '-';
+    DateTime? dt;
+    try {
+      dt = DateTime.tryParse(iso);
+    } catch (_) {}
+    dt ??= DateTime.now();
+    const thMonths = [
+      '',
+      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+    ];
+    final y = dt.year + 543;
+    final m = thMonths[dt.month];
+    final d = dt.day.toString();
+    return '$d $m $y';
   }
 }
