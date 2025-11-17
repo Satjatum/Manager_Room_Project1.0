@@ -27,8 +27,13 @@ class InvoiceService {
     try {
       var query = _supabase.from('invoices').select('''
         *,
-        rooms!inner(room_id, room_number, branch_id,
-          branches!inner(branch_name, branch_code)),
+        rooms!inner(
+          room_id,
+          room_number,
+          branch_id,
+          branches!inner(branch_name, branch_code),
+          room_categories!inner(roomcate_name)
+        ),
         tenants!inner(tenant_id, tenant_fullname, tenant_phone),
         rental_contracts!inner(contract_id, contract_num)
       ''');
@@ -74,6 +79,7 @@ class InvoiceService {
           'tenant_phone': invoice['tenants']?['tenant_phone'] ?? '-',
           'room_number': invoice['rooms']?['room_number'] ?? '-',
           'branch_name': invoice['rooms']?['branches']?['branch_name'] ?? '-',
+          'roomcate_name': invoice['rooms']?['room_categories']?['roomcate_name'] ?? '-',
           'contract_num': invoice['rental_contracts']?['contract_num'] ?? '-',
         };
       }).toList();

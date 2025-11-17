@@ -7,6 +7,7 @@ import 'package:manager_room_project/models/user_models.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/views/sadmin/payment_verification_detail_ui.dart';
 import 'package:manager_room_project/services/receipt_print_service.dart';
+import 'package:manager_room_project/views/tenant/bill_detail_ui.dart';
 
 class PaymentVerificationPage extends StatefulWidget {
   final String? branchId;
@@ -775,23 +776,16 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
 
     final tenantName = (inv['tenant_name'] ?? '-').toString();
     final unit = (inv['room_number'] ?? '-').toString();
+    final roomcate = (inv['roomcate_name'] ?? 'ประเภทห้อง').toString();
 
     return InkWell(
       onTap: () async {
-        // พยายามหา slipId จากข้อมูลใบแจ้งหนี้ (ถ้าไม่มีให้แจ้งเตือน)
-        final slipId = (inv['slip_id'] ?? inv['latest_slip_id'] ?? inv['last_slip_id'])?.toString();
-        if (slipId == null || slipId.isEmpty) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('ไม่มีสลิปสำหรับบิลนี้')),
-            );
-          }
-          return;
-        }
+        final invoiceId = (inv['invoice_id'] ?? '').toString();
+        if (invoiceId.isEmpty) return;
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => PaymentVerificationDetailPage(slipId: slipId),
+            builder: (_) => TenantBillDetailUi(invoiceId: invoiceId),
           ),
         );
       },
@@ -856,7 +850,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'roomcate เลขที่ ' + unit,
+                  '$roomcate เลขที่ $unit',
                   style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
