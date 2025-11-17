@@ -5,8 +5,6 @@ CREATE TABLE IF NOT EXISTS public.payment_slip_files (
   slip_file_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   slip_id uuid NOT NULL,
   file_url text NOT NULL,
-  is_primary boolean NOT NULL DEFAULT false,
-  display_order integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -28,13 +26,7 @@ END $$;
 -- Helpful indexes
 CREATE INDEX IF NOT EXISTS idx_payment_slip_files_slip
   ON public.payment_slip_files (slip_id);
-CREATE INDEX IF NOT EXISTS idx_payment_slip_files_order
-  ON public.payment_slip_files (slip_id, display_order ASC);
-
--- Ensure only one primary file per slip (optional uniqueness)
-CREATE UNIQUE INDEX IF NOT EXISTS uniq_payment_slip_files_primary
-  ON public.payment_slip_files (slip_id)
-  WHERE is_primary IS TRUE;
+-- (no order/primary constraints as requested)
 
 -- Timestamp trigger (reuse or define)
 CREATE OR REPLACE FUNCTION public.tg_set_timestamp()
