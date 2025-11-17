@@ -74,8 +74,18 @@ class _PaymentVerificationDetailPageState
     }
   }
 
+  String _firstFileUrl() {
+    final files = (_slip?['files'] as List?)?.cast<Map<String, dynamic>>() ??
+        const [];
+    if (files.isNotEmpty) {
+      final u = (files.first['file_url'] ?? '').toString();
+      if (u.isNotEmpty) return u;
+    }
+    return (_slip?['slip_image'] ?? '').toString();
+  }
+
   Future<void> _openSlip() async {
-    final urlStr = (_slip?['slip_image'] ?? '').toString();
+    final urlStr = _firstFileUrl();
     if (urlStr.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('ไม่พบลิงก์สลิป')),
@@ -265,21 +275,17 @@ class _PaymentVerificationDetailPageState
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 900),
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(20),
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _buildSummaryHeader(),
-                            const SizedBox(height: 14),
-                            _buildDetailsContainer(),
-                            if (widget.slipId != null) ...[
-                              const SizedBox(height: 14),
-                              _buildSlipImage(),
-                              const SizedBox(height: 16),
-                              _buildActionBar(),
-                            ],
+                      child: ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          if (widget.slipId != null) ...[
+                            _buildHeaderCard(),
+                            const SizedBox(height: 12),
+                          _buildSlipFiles(),
+                            const SizedBox(height: 16),
+                            _buildActionBar(),
+                          ] else ...[
+                            _buildInvoiceHeaderCard(),
                           ],
                         ),
                       ),
@@ -338,14 +344,19 @@ class _PaymentVerificationDetailPageState
     final room = inv.isNotEmpty ? (inv['rooms'] ?? {}) : {};
     final tenant = inv.isNotEmpty ? (inv['tenants'] ?? {}) : {};
 
+    // ฟิลด์แบบ flat (กรณี PromptPay pseudo)
+    final invoiceNumber =
+        (s['invoice_number'] ?? inv['invoice_number'] ?? '-').toString();
     final tenantName =
-        (s?['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
-    final roomNumber = (s?['room_number'] ?? room['room_number'] ?? '-')
-        .toString();
-    final roomcateName = (inv['roomcate_name'] ??
-            room['room_categories']?['roomcate_name'] ??
-            '-')
-        .toString();
+        (s['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
+    final tenantPhone =
+        (s['tenant_phone'] ?? tenant['tenant_phone'] ?? '-').toString();
+    final roomNumber =
+        (s['room_number'] ?? room['room_number'] ?? '-').toString();
+    final branchName =
+        (s['branch_name'] ?? br['branch_name'] ?? '-').toString();
+    final invoiceStatus =
+        (s['invoice_status'] ?? inv['invoice_status'] ?? '-').toString();
 
     final utilities = (_invoice?['utilities'] as List?) ?? const [];
     final otherLines =
@@ -391,8 +402,10 @@ class _PaymentVerificationDetailPageState
                   name,
                   '${unit.toStringAsFixed(2)} x ${qty.toStringAsFixed(2)} = ${total.toStringAsFixed(2)} บาท',
                 ),
-              );
-            }),
+                const SizedBox(width: 8),
+                _invoiceStatusChip(invoiceStatus),
+              ],
+            ),
             const SizedBox(height: 8),
           ],
 
@@ -440,11 +453,18 @@ class _PaymentVerificationDetailPageState
     final tenant = inv['tenants'] ?? {};
 
     final invoiceNumber = (inv['invoice_number'] ?? '-').toString();
-    final tenantName = (inv['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
-    final tenantPhone = (inv['tenant_phone'] ?? tenant['tenant_phone'] ?? '-').toString();
-    final roomNumber = (inv['room_number'] ?? room['room_number'] ?? '-').toString();
-    final branchName = (inv['branch_name'] ?? br['branch_name'] ?? '-').toString();
-    final roomcate = (inv['roomcate_name'] ?? room['room_categories']?['roomcate_name'] ?? '-').toString();
+    final tenantName =
+        (inv['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
+    final tenantPhone =
+        (inv['tenant_phone'] ?? tenant['tenant_phone'] ?? '-').toString();
+    final roomNumber =
+        (inv['room_number'] ?? room['room_number'] ?? '-').toString();
+    final branchName =
+        (inv['branch_name'] ?? br['branch_name'] ?? '-').toString();
+    final roomcate = (inv['roomcate_name'] ??
+            room['room_categories']?['roomcate_name'] ??
+            '-')
+        .toString();
     final invoiceStatus = (inv['invoice_status'] ?? '-').toString();
     final total = _asDouble(inv['total_amount']);
     final dueDate = (inv['due_date'] ?? '').toString();
@@ -503,14 +523,12 @@ class _PaymentVerificationDetailPageState
     );
   }
 
-  Widget _buildSlipImage() {
-    final url = (_slip?['slip_image'] ?? '').toString();
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
+  Widget _buildSlipFiles() {
+    final files = (_slip?['files'] as List?)?.cast<Map<String, dynamic>>() ??
+        const [];
+    final hasAny = files.isNotEmpty ||
+        ((_slip?['slip_image'] ?? '').toString().isNotEmpty);
+    return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -530,7 +548,7 @@ class _PaymentVerificationDetailPageState
               ],
             ),
             const SizedBox(height: 8),
-            if (url.isEmpty)
+            if (!hasAny)
               Container(
                 height: 220,
                 decoration: BoxDecoration(
@@ -538,15 +556,53 @@ class _PaymentVerificationDetailPageState
                     borderRadius: BorderRadius.circular(8)),
                 child: const Center(child: Text('ไม่มีรูปสลิป')),
               )
-            else
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  url,
-                  height: 300,
-                  fit: BoxFit.contain,
+            else ...[
+              if (files.isNotEmpty)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: files.map((f) {
+                    final fu = (f['file_url'] ?? '').toString();
+                    if (fu.isEmpty) return const SizedBox.shrink();
+                    return GestureDetector(
+                      onTap: () async {
+                        final uri = Uri.tryParse(fu);
+                        if (uri != null) {
+                          final ok = fnd.kIsWeb
+                              ? await launchUrl(uri, webOnlyWindowName: '_blank')
+                              : await launchUrl(uri,
+                                  mode: LaunchMode.externalApplication);
+                          if (!ok && mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('เปิดลิงก์ไม่สำเร็จ')),
+                            );
+                          }
+                        }
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          fu,
+                          height: 160,
+                          width: 160,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                )
+              else ...[
+                // Fallback to legacy single slip_image
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    (_slip?['slip_image'] ?? '').toString(),
+                    height: 300,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-              ),
+              ]
+            ],
           ],
         ),
       ),
@@ -554,8 +610,9 @@ class _PaymentVerificationDetailPageState
   }
 
   Widget _buildActionBar() {
-    final status = (_slip?['slip_status'] ?? 'pending').toString();
-    final canAction = status == 'pending';
+    final inv = _slip?['invoices'] ?? {};
+    final invoiceStatus = (_slip?['invoice_status'] ?? inv['invoice_status'] ?? 'pending').toString();
+    final canAction = invoiceStatus != 'paid' && invoiceStatus != 'cancelled';
     return Row(
       children: [
         Expanded(
@@ -618,88 +675,5 @@ class _PaymentVerificationDetailPageState
     );
   }
 
-  // ป้ายสถานะของสลิป (pending/verified/rejected)
-  Widget _slipStatusChip(String status) {
-    Color c;
-    String t;
-    switch (status) {
-      case 'verified':
-        c = Colors.green;
-        t = 'อนุมัติแล้ว';
-        break;
-      case 'rejected':
-        c = Colors.red;
-        t = 'ถูกปฏิเสธ';
-        break;
-      default:
-        c = Colors.orange;
-        t = 'รอตรวจสอบ';
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: c.withOpacity(0.1),
-        border: Border.all(color: c.withOpacity(0.4)),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        t,
-        style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.w600),
-      ),
-    );
-  }
-
-  // Helpers
-  String _formatThaiDate(String? iso) {
-    if (iso == null || iso.isEmpty) return '-';
-    try {
-      final dt = DateTime.parse(iso);
-      final buddhistYear = dt.year + 543;
-      final mm = dt.month.toString().padLeft(2, '0');
-      final dd = dt.day.toString().padLeft(2, '0');
-      return '$dd/$mm/$buddhistYear';
-    } catch (_) {
-      final d = iso.split('T').first;
-      if (d.isEmpty) return '-';
-      try {
-        final dt = DateTime.parse(d);
-        final buddhistYear = dt.year + 543;
-        final mm = dt.month.toString().padLeft(2, '0');
-        final dd = dt.day.toString().padLeft(2, '0');
-        return '$dd/$mm/$buddhistYear';
-      } catch (_) {
-        return d;
-      }
-    }
-  }
-
-  Widget _infoRow(String label, String value, {TextStyle? valueStyle}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 160,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
-                fontSize: 14,
-              ),
-            ),
-          ),
-          const Text(': ',
-              style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black54)),
-          Expanded(
-            child: Text(
-              value,
-              style: valueStyle ?? const TextStyle(color: Colors.black87, fontSize: 14),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // slip status chip removed (invoice-level verification only)
 }

@@ -23,7 +23,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   bool _loading = true;
   List<Map<String, dynamic>> _slips = [];
   List<Map<String, dynamic>> _invoices = [];
-  late TabController _tabController; // ตัวกรองตามสถานะบิล: pending/partial/paid/overdue/cancelled
+  late TabController
+      _tabController; // ตัวกรองตามสถานะบิล: pending/partial/paid/overdue/cancelled
   UserModel? _currentUser;
   List<Map<String, dynamic>> _branches = [];
   String? _selectedBranchId; // null = all (for superadmin)
@@ -103,7 +104,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
           .where((id) => id.isNotEmpty)
           .toSet();
       final invoicesNoSlip = invList
-          .where((inv) => !slipInvIds.contains((inv['invoice_id'] ?? '').toString()))
+          .where((inv) =>
+              !slipInvIds.contains((inv['invoice_id'] ?? '').toString()))
           .toList();
 
       setState(() {
@@ -296,90 +298,90 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
 
   @override
   Widget build(BuildContext context) {
-    // หมายเหตุ: ตัดการใช้ตัวแปรตรวจแพลตฟอร์มที่ไม่จำเป็น เพื่อลด warning และความซ้ำซ้อน
-
+    // แสดง Header/Tab คงที่ แล้วให้โหลดเฉพาะส่วนรายการ (body)
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppTheme.primary),
-              )
-            : RefreshIndicator(
-                onRefresh: _load,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header (meterlist style)
-                    Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.arrow_back_ios_new,
-                                color: Colors.black87),
-                            onPressed: () {
-                              if (Navigator.of(context).canPop()) {
-                                Navigator.of(context).pop();
-                              }
-                            },
-                            tooltip: 'ย้อนกลับ',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header (meterlist style)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        color: Colors.black87),
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    tooltip: 'ย้อนกลับ',
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ตรวจสอบสลิปชำระเงิน',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
                           ),
-                          const SizedBox(width: 8),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'ตรวจสอบสลิปชำระเงิน',
-                                  style: TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'ตรวจสอบ อนุมัติ/ปฏิเสธ และติดตามสถานะการชำระ',
-                                  style: TextStyle(
-                                      fontSize: 14, color: Colors.black54),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // แท็บตัวกรองตามสถานะบิลจาก Database
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: TabBar(
-                          controller: _tabController,
-                          isScrollable: true,
-                          labelColor: Colors.black87,
-                          unselectedLabelColor: Colors.black54,
-                          indicatorColor: AppTheme.primary,
-                          indicatorWeight: 3,
-                          tabs: const [
-                            Tab(text: 'pending'),
-                            Tab(text: 'partial'),
-                            Tab(text: 'paid'),
-                            Tab(text: 'overdue'),
-                            Tab(text: 'cancelled'),
-                          ],
                         ),
-                      ),
+                        SizedBox(height: 4),
+                        Text(
+                          'ตรวจสอบ อนุมัติ/ปฏิเสธ และติดตามสถานะการชำระ',
+                          style: TextStyle(fontSize: 14, color: Colors.black54),
+                        ),
+                      ],
                     ),
+                  ),
+                ],
+              ),
+            ),
 
-                    const SizedBox(height: 8),
-                    Expanded(child: _buildSlipListView()),
+            // แท็บตัวกรองตามสถานะบิลจาก Database
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  labelColor: Colors.black87,
+                  unselectedLabelColor: Colors.black54,
+                  indicatorColor: AppTheme.primary,
+                  indicatorWeight: 3,
+                  tabs: const [
+                    Tab(text: 'pending'),
+                    Tab(text: 'partial'),
+                    Tab(text: 'paid'),
+                    Tab(text: 'overdue'),
+                    Tab(text: 'cancelled'),
                   ],
                 ),
               ),
+            ),
+
+            const SizedBox(height: 8),
+            Expanded(
+              child: _loading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: AppTheme.primary),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: _buildSlipListView(),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -499,238 +501,137 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   }
 
   Widget _slipCard(Map<String, dynamic> s) {
-    final amount = _asDouble(s['paid_amount']);
-    final status = (s['slip_status'] ?? 'pending').toString();
-    final createdAt = (s['created_at'] ?? '').toString();
-    final canAction = status == 'pending';
+    final invoiceId = (s['invoice_id'] ?? '').toString();
+    final slipId = (s['slip_id'] ?? '').toString();
+    final tenantName = (s['tenant_name'] ?? '-').toString();
+    final roomcate = (s['roomcate_name'] ?? '-').toString();
+    final roomNumber = (s['room_number'] ?? '-').toString();
+    final invoiceNumber = (s['invoice_number'] ?? '-').toString();
+    final status = (s['invoice_status'] ?? '').toString();
+    final dateStr =
+        _formatThaiDate((s['payment_date'] ?? s['created_at'] ?? '').toString());
+    final amount =
+        _asDouble(s['invoice_total'] ?? s['total_amount'] ?? s['paid_amount']);
 
-    return LayoutBuilder(builder: (context, constraints) {
-      final double width = constraints.maxWidth;
-      final bool isSmall = width < 320;
-      final double titleSize = isSmall ? 15 : 16;
-      final double bodySize = isSmall ? 12 : 13;
-      final double iconSize = isSmall ? 16 : 18;
-      final double mediaHeight = (width * 0.35).clamp(96.0, 140.0);
+    Color statusColor;
+    String statusLabel;
+    switch (status) {
+      case 'paid':
+        statusColor = const Color(0xFF22C55E);
+        statusLabel = 'ชำระแล้ว';
+        break;
+      case 'overdue':
+        statusColor = const Color(0xFFEF4444);
+        statusLabel = 'เกินกำหนด';
+        break;
+      case 'partial':
+        statusColor = const Color(0xFFF59E0B);
+        statusLabel = 'ชำระบางส่วน';
+        break;
+      case 'cancelled':
+        statusColor = Colors.grey;
+        statusLabel = 'ยกเลิก';
+        break;
+      case 'pending':
+      default:
+        statusColor = const Color(0xFF3B82F6);
+        statusLabel = 'รอดำเนินการ';
+    }
 
-      return Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () async {
-            await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => PaymentVerificationDetailPage(
-                  slipId: (s['slip_id'] ?? '').toString(),
-                ),
-              ),
-            );
-            if (mounted) await _load();
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Ink(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Icon(Icons.receipt_long,
-                          size: iconSize, color: AppTheme.primary),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          (s['invoice_number'] ?? '-').toString(),
-                          style: TextStyle(
-                            fontSize: titleSize,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _invoiceStatusChip((s['invoice_status'] ?? '').toString()),
-                      const SizedBox(width: 6),
-                      _slipStatusChip(status),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Media
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: ((s['slip_image'] ?? '').toString().isNotEmpty)
-                        ? Image.network(
-                            s['slip_image'],
-                            height: mediaHeight,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          )
-                        : Container(
-                            height: mediaHeight,
-                            width: double.infinity,
-                            color: Colors.grey[200],
-                            child: Icon(Icons.image,
-                                color: Colors.grey[400], size: 36),
-                          ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Info
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if ((s['tenant_name'] ?? '').toString().isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 6),
-                          child: Row(
-                            children: [
-                              Icon(Icons.person_outline,
-                                  size: iconSize, color: AppTheme.primary),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  (s['tenant_name'] ?? '-').toString(),
-                                  style: TextStyle(
-                                      fontSize: bodySize,
-                                      color: Colors.grey[700]),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 6,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.meeting_room_outlined,
-                                  size: iconSize, color: AppTheme.primary),
-                              const SizedBox(width: 6),
-                              Text((s['room_number'] ?? '-').toString(),
-                                  style: TextStyle(
-                                      fontSize: bodySize,
-                                      color: Colors.grey[700])),
-                            ],
-                          ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.business_outlined,
-                                  size: iconSize, color: AppTheme.primary),
-                              const SizedBox(width: 6),
-                              Text((s['branch_name'] ?? '-').toString(),
-                                  style: TextStyle(
-                                      fontSize: bodySize,
-                                      color: Colors.grey[700])),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.payments,
-                              size: iconSize, color: AppTheme.primary),
-                          const SizedBox(width: 6),
-                          Text('${amount.toStringAsFixed(2)} บาท',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green)),
-                          const Spacer(),
-                          const Icon(Icons.schedule,
-                              size: 16, color: Colors.grey),
-                          const SizedBox(width: 4),
-                          Text(createdAt.split('T').first,
-                              style: TextStyle(
-                                  fontSize: bodySize, color: Colors.grey[700])),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Actions
-                  Row(
-                    children: [
-                      if (canAction) ...[
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => _rejectSlip(s),
-                            icon: const Icon(Icons.close, color: Colors.red),
-                            label: const Text('ปฏิเสธ',
-                                style: TextStyle(color: Colors.red)),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () => _approveSlip(s),
-                            icon: const Icon(Icons.check, color: Colors.white),
-                            label: const Text('อนุมัติ',
-                                style: TextStyle(color: Colors.white)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primary,
-                            ),
-                          ),
-                        ),
-                      ] else ...[
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => PaymentVerificationDetailPage(
-                                    slipId: (s['slip_id'] ?? '').toString(),
-                                  ),
-                                ),
-                              );
-                              if (mounted) await _load();
-                            },
-                            icon: const Icon(Icons.info_outline),
-                            label: const Text('รายละเอียด'),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        if (status == 'verified')
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () async => _printSlip(s),
-                              icon:
-                                  const Icon(Icons.print, color: Colors.white),
-                              label: const Text('พิมพ์สลิป',
-                                  style: TextStyle(color: Colors.white)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primary,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
+    return InkWell(
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => slipId.isNotEmpty
+                ? PaymentVerificationDetailPage(slipId: slipId)
+                : PaymentVerificationDetailPage(invoiceId: invoiceId),
           ),
+        );
+        if (mounted) await _load();
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-      );
-    });
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Status row (dot + label) — match _invoiceCard
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration:
+                      BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 6),
+                Text(statusLabel,
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor)),
+                const Spacer(),
+                const Icon(Icons.chevron_right, color: Colors.black38),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            // Title: ชื่อผู้เช่า - ประเภทห้อง เลขที่ห้อง
+            Text(
+              '$tenantName - $roomcate เลขที่ $roomNumber',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+
+            const SizedBox(height: 4),
+            // Sub: Bill #... • วันที่ พ.ศ.
+            Text(
+              'Bill #$invoiceNumber • $dateStr',
+              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+
+            const SizedBox(height: 10),
+            // Amount block
+            Row(
+              children: [
+                const Text('ยอดรวม',
+                    style: TextStyle(fontSize: 12, color: Colors.black54)),
+                const Spacer(),
+                Text(
+                  '${_formatMoney(amount)} บาท',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _printSlip(Map<String, dynamic> slip) async {
@@ -753,36 +654,42 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
       return 0;
     }
 
+    final invoiceId = (inv['invoice_id'] ?? '').toString();
     final total = _asDouble(inv['total_amount']);
     final status = (inv['invoice_status'] ?? '').toString();
     final due = (inv['due_date'] ?? '').toString();
-    final paidAt = (inv['paid_at'] ?? '').toString();
-
-    // Status icon + color + label (match sample card)
-    IconData icon;
-    Color color;
-    String caption;
-    if (status == 'paid') {
-      icon = Icons.check_circle_outline;
-      color = const Color(0xFF22C55E); // green
-      caption = 'Paid: ' + _formatThaiDate(paidAt);
-    } else if (status == 'overdue') {
-      icon = Icons.error_outline;
-      color = const Color(0xFFEF4444); // red
-      caption = 'Overdue: ' + _formatThaiDate(due);
-    } else {
-      icon = Icons.hourglass_bottom_outlined;
-      color = const Color(0xFFF59E0B); // amber
-      caption = 'Due: ' + _formatThaiDate(due);
-    }
-
     final tenantName = (inv['tenant_name'] ?? '-').toString();
-    final unit = (inv['room_number'] ?? '-').toString();
-    final roomcate = (inv['roomcate_name'] ?? 'ประเภทห้อง').toString();
+    final roomNumber = (inv['room_number'] ?? '-').toString();
+    final roomcate = (inv['roomcate_name'] ?? '-').toString();
+    final invoiceNumber = (inv['invoice_number'] ?? '-').toString();
+
+    Color statusColor;
+    String statusLabel;
+    switch (status) {
+      case 'paid':
+        statusColor = const Color(0xFF22C55E);
+        statusLabel = 'ชำระแล้ว';
+        break;
+      case 'overdue':
+        statusColor = const Color(0xFFEF4444);
+        statusLabel = 'เกินกำหนด';
+        break;
+      case 'partial':
+        statusColor = const Color(0xFFF59E0B);
+        statusLabel = 'ชำระบางส่วน';
+        break;
+      case 'cancelled':
+        statusColor = Colors.grey;
+        statusLabel = 'ยกเลิก';
+        break;
+      case 'pending':
+      default:
+        statusColor = const Color(0xFF3B82F6);
+        statusLabel = 'รอดำเนินการ';
+    }
 
     return InkWell(
       onTap: () async {
-        final invoiceId = (inv['invoice_id'] ?? '').toString();
         if (invoiceId.isEmpty) return;
         await Navigator.push(
           context,
@@ -792,102 +699,91 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
         );
       },
       child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          )
-        ],
-      ),
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Left status icon
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              shape: BoxShape.circle,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 12),
-
-          // Middle info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Status row (dot + label)
+            Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        tenantName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      _formatMoney(total) + ' บาท',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ],
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration:
+                      BoxDecoration(color: statusColor, shape: BoxShape.circle),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '$roomcate เลขที่ $unit',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration:
-                          BoxDecoration(color: color, shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      caption,
-                      style: TextStyle(
+                const SizedBox(width: 6),
+                Text(statusLabel,
+                    style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
-                    ),
-                  ],
-                )
+                        color: statusColor)),
+                const Spacer(),
+                const Icon(Icons.chevron_right, color: Colors.black38),
               ],
             ),
-          ),
-        ],
+
+            const SizedBox(height: 8),
+
+            // Title: ชื่อผู้เช่า - ประเภทห้อง เลขที่ห้อง
+            Text(
+              '$tenantName - $roomcate เลขที่ $roomNumber',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+
+            const SizedBox(height: 4),
+            // Sub: Bill #... • วันที่ พ.ศ.
+            Text(
+              'Bill #$invoiceNumber • ${_formatThaiDate(due)}',
+              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+
+            const SizedBox(height: 10),
+            // Amount block bottom-right similar to sample
+            Row(
+              children: [
+                const Text('ยอดรวม',
+                    style: TextStyle(fontSize: 12, color: Colors.black54)),
+                const Spacer(),
+                Text(
+                  '${_formatMoney(total)} บาท',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 
   Widget _statusChip(String status) {
-    // เดิมใช้กับสถานะสลิป — คงไว้เผื่อใช้ภายหลัง
+    // Deprecated: slip status removed; reuse invoice status chip if needed
     return _invoiceStatusChip(status);
   }
 
@@ -931,36 +827,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     );
   }
 
-  // ป้ายสถานะของสลิป (pending/verified/rejected)
-  Widget _slipStatusChip(String status) {
-    Color c;
-    String t;
-    switch (status) {
-      case 'verified':
-        c = const Color(0xFF22C55E);
-        t = 'อนุมัติแล้ว';
-        break;
-      case 'rejected':
-        c = const Color(0xFFEF4444);
-        t = 'ถูกปฏิเสธ';
-        break;
-      default:
-        c = const Color(0xFFF59E0B);
-        t = 'รอตรวจสอบ';
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: c.withOpacity(0.1),
-        border: Border.all(color: c.withOpacity(0.4)),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        t,
-        style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.w600),
-      ),
-    );
-  }
+  // slip status chip removed (invoice-level verification only)
 
   // PromptPay method chip removed (no PromptPay UI)
 
@@ -989,8 +856,18 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     dt ??= DateTime.now();
     const thMonths = [
       '',
-      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
-      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+      'ม.ค.',
+      'ก.พ.',
+      'มี.ค.',
+      'เม.ย.',
+      'พ.ค.',
+      'มิ.ย.',
+      'ก.ค.',
+      'ส.ค.',
+      'ก.ย.',
+      'ต.ค.',
+      'พ.ย.',
+      'ธ.ค.'
     ];
     final y = dt.year + 543;
     final m = thMonths[dt.month];

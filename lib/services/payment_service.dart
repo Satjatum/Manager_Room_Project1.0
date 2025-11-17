@@ -113,9 +113,6 @@ class PaymentService {
     required DateTime paymentDateTime,
     required String slipImageUrl,
     String? slipNumber,
-    String? transferFromBank,
-    String? transferFromAccount,
-    String? transferToAccount,
     String? tenantNotes,
   }) async {
     try {
@@ -132,7 +129,7 @@ class PaymentService {
         return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
       }
 
-      // Insert payment_slips as pending
+      // Insert payment_slips (no slip_status; invoice-level verification)
       final data = {
         'invoice_id': invoiceId,
         'tenant_id': tenantId,
@@ -143,16 +140,29 @@ class PaymentService {
         'payment_date': paymentDateTime.toIso8601String(),
         'payment_time':
             '${paymentDateTime.hour.toString().padLeft(2, '0')}:${paymentDateTime.minute.toString().padLeft(2, '0')}:00',
-        'transfer_from_bank': transferFromBank,
-        'transfer_from_account': transferFromAccount,
-        'transfer_to_account': transferToAccount,
         'tenant_notes': tenantNotes,
-        'slip_status': 'pending',
         'slip_type': 'manual',
       };
 
-      final result =
-          await _supabase.from('payment_slips').insert(data).select().single();
+      final result = await _supabase
+          .from('payment_slips')
+          .insert(data)
+          .select()
+          .single();
+
+      // Also store the uploaded file into payment_slip_files for multi-file support
+      try {
+        final slipId = (result['slip_id'] ?? '').toString();
+        final fileUrl = (slipImageUrl).toString();
+        if (slipId.isNotEmpty && fileUrl.isNotEmpty) {
+          await _supabase.from('payment_slip_files').insert({
+            'slip_id': slipId,
+            'file_url': fileUrl,
+          });
+        }
+      } catch (_) {
+        // Non-fatal: keep slip record even if file table insert fails
+      }
 
       return {
         'success': true,
@@ -160,6 +170,13 @@ class PaymentService {
         'data': result,
       };
     } on PostgrestException catch (e) {
+      final msg = (e.message ?? '').toString();
+      if (msg.contains('ERR_MAX_5_SLIPS')) {
+        return {
+          'success': false,
+          'message': 'บิลนี้แนบสลิปได้ไม่เกิน 5 ใบ',
+        };
+      }
       return {
         'success': false,
         'message': 'เกิดข้อผิดพลาด: ${e.message}',
@@ -178,7 +195,7 @@ class PaymentService {
 
   // List payment slips for admin review (no DB joins to avoid schema-cache relationship issues)
   static Future<List<Map<String, dynamic>>> listPaymentSlips({
-    String status = 'pending',
+    String status = 'all',
     String? branchId,
     DateTime? startDate,
     DateTime? endDate,
@@ -197,7 +214,7 @@ class PaymentService {
       if (branchId != null && branchId.isNotEmpty) {
         final roomRows = await _supabase
             .from('rooms')
-            .select('room_id,branch_id')
+            .select('room_id, room_number, branch_id, room_categories ( roomcate_name )')
             .eq('branch_id', branchId);
         final roomIds = List<Map<String, dynamic>>.from(roomRows)
             .map((r) => r['room_id'])
@@ -257,9 +274,7 @@ class PaymentService {
 
       var query = _supabase.from('payment_slips').select('*');
 
-      if (status.isNotEmpty && status != 'all') {
-        query = query.eq('slip_status', status);
-      }
+      // status filter removed (slip_status dropped); rely on invoice_status in enrichment
       if (invoiceIdFilter != null) {
         query = query.inFilter('invoice_id', invoiceIdFilter);
       }
@@ -307,7 +322,7 @@ class PaymentService {
           if (roomIds.isNotEmpty) {
             final roomRows2 = await _supabase
                 .from('rooms')
-                .select('room_id, room_number, branch_id')
+                .select('room_id, room_number, branch_id, room_categories ( roomcate_name )')
                 .inFilter('room_id', roomIds);
             roomsById = {
               for (final r in List<Map<String, dynamic>>.from(roomRows2))
@@ -386,6 +401,9 @@ class PaymentService {
           'invoice_paid': inv['paid_amount'],
           'invoice_status': inv['invoice_status'],
           'room_number': room['room_number'],
+          'roomcate_name': (room['room_categories'] is Map
+                  ? (room['room_categories']['roomcate_name'])
+                  : room['roomcate_name']) ?? null,
           'branch_id': room['branch_id'],
           'branch_name': br['branch_name'],
           'tenant_name': tenant['tenant_fullname'],
@@ -542,7 +560,6 @@ class PaymentService {
         return {
           // pseudo slip row
           'slip_id': null,
-          'slip_status': 'verified',
           'slip_image': '',
           'paid_amount': p['payment_amount'],
           'payment_date': p['payment_date'],
@@ -572,16 +589,112 @@ class PaymentService {
 
   static Future<Map<String, dynamic>?> getSlipById(String slipId) async {
     try {
-      final res = await _supabase.from('payment_slips').select('''
-            *,
-            invoices!inner(*,
-              rooms!inner(room_id, room_number, branch_id,
-                branches!inner(branch_name, branch_code)
-              ),
-              tenants!inner(tenant_id, tenant_fullname, tenant_phone)
-            )
-          ''').eq('slip_id', slipId).maybeSingle();
-      return res;
+      // 1) Load slip only — avoid deep joins (schema cache relationships may be missing)
+      final slip = await _supabase
+          .from('payment_slips')
+          .select('*')
+          .eq('slip_id', slipId)
+          .maybeSingle();
+      if (slip == null) return null;
+
+      Map<String, dynamic>? inv;
+      Map<String, dynamic>? room;
+      Map<String, dynamic>? br;
+      Map<String, dynamic>? tenant;
+
+      // 2) Load invoice (flat)
+      final invoiceId = (slip['invoice_id'] ?? '').toString();
+      if (invoiceId.isNotEmpty) {
+        inv = await _supabase
+            .from('invoices')
+            .select(
+                'invoice_id, invoice_number, total_amount, paid_amount, invoice_status, room_id, tenant_id, due_date')
+            .eq('invoice_id', invoiceId)
+            .maybeSingle();
+      }
+
+      // 3) Load room + branch
+      final roomId = inv?['room_id']?.toString();
+      if (roomId != null && roomId.isNotEmpty) {
+        room = await _supabase
+            .from('rooms')
+            .select('room_id, room_number, branch_id')
+            .eq('room_id', roomId)
+            .maybeSingle();
+        final branchId = room?['branch_id']?.toString();
+        if (branchId != null && branchId.isNotEmpty) {
+          br = await _supabase
+              .from('branches')
+              .select('branch_id, branch_name, branch_code')
+              .eq('branch_id', branchId)
+              .maybeSingle();
+        }
+      }
+
+      // 4) Load tenant
+      final tenantId = inv?['tenant_id']?.toString();
+      if (tenantId != null && tenantId.isNotEmpty) {
+        tenant = await _supabase
+            .from('tenants')
+            .select('tenant_id, tenant_fullname, tenant_phone')
+            .eq('tenant_id', tenantId)
+            .maybeSingle();
+      }
+
+      // 5) Load slip files (multi-file support)
+      List<Map<String, dynamic>> files = const [];
+      try {
+        final rows = await _supabase
+            .from('payment_slip_files')
+            .select('slip_file_id, file_url, created_at, updated_at')
+            .eq('slip_id', slipId)
+            .order('created_at', ascending: true);
+        files = List<Map<String, dynamic>>.from(rows);
+      } catch (_) {}
+
+      // 6) Build enriched response (flat fields + optional nested for compatibility)
+      final Map<String, dynamic> data = {
+        ...slip,
+        'files': files,
+      };
+
+      if (inv != null) {
+        data.addAll({
+          'invoice_number': inv['invoice_number'],
+          'invoice_total': inv['total_amount'],
+          'invoice_paid': inv['paid_amount'],
+          'invoice_status': inv['invoice_status'],
+        });
+      }
+      if (room != null) {
+        data.addAll({
+          'room_number': room['room_number'],
+          'branch_id': room['branch_id'],
+        });
+      }
+      if (br != null) {
+        data['branch_name'] = br['branch_name'];
+      }
+      if (tenant != null) {
+        data.addAll({
+          'tenant_name': tenant['tenant_fullname'],
+          'tenant_phone': tenant['tenant_phone'],
+        });
+      }
+
+      // Optional nested block to preserve existing UI access paths
+      if (inv != null) {
+        final invNested = Map<String, dynamic>.from(inv);
+        if (room != null) {
+          final roomNested = Map<String, dynamic>.from(room);
+          if (br != null) roomNested['branches'] = br;
+          invNested['rooms'] = roomNested;
+        }
+        if (tenant != null) invNested['tenants'] = tenant;
+        data['invoices'] = invNested;
+      }
+
+      return data;
     } catch (e) {
       throw Exception('ไม่พบสลิป: $e');
     }
@@ -627,9 +740,7 @@ class PaymentService {
       if (slip == null) {
         return {'success': false, 'message': 'ไม่พบสลิป'};
       }
-      if (slip['slip_status'] != 'pending') {
-        return {'success': false, 'message': 'สลิปนี้ถูกตรวจสอบแล้ว'};
-      }
+      // No slip_status anymore; proceed based on invoice-level rules
 
       final invoiceId = slip['invoice_id'] as String;
       final tenantId = slip['tenant_id'] as String;
@@ -657,9 +768,8 @@ class PaymentService {
           .select()
           .single();
 
-      // Mark slip as verified and link payment
+      // Link slip to payment and audit (no slip_status update)
       await _supabase.from('payment_slips').update({
-        'slip_status': 'verified',
         'verified_by': currentUser.userId,
         'verified_at': DateTime.now().toIso8601String(),
         'admin_notes': adminNotes,
@@ -678,7 +788,6 @@ class PaymentService {
         'slip_id': slipId,
         'action': 'verify',
         'action_by': currentUser.userId,
-        'previous_status': 'pending',
         'new_status': 'verified',
         'notes': adminNotes,
       });
@@ -713,15 +822,8 @@ class PaymentService {
       if (slip == null) {
         return {'success': false, 'message': 'ไม่พบสลิป'};
       }
-      if (slip['slip_status'] != 'pending') {
-        return {
-          'success': false,
-          'message': 'สลิปนี้ถูกตรวจสอบแล้ว ไม่สามารถปฏิเสธได้'
-        };
-      }
-
+      // Update audit fields only (no slip_status)
       await _supabase.from('payment_slips').update({
-        'slip_status': 'rejected',
         'rejection_reason': reason,
         'verified_by': currentUser.userId,
         'verified_at': DateTime.now().toIso8601String(),
@@ -731,7 +833,6 @@ class PaymentService {
         'slip_id': slipId,
         'action': 'reject',
         'action_by': currentUser.userId,
-        'previous_status': 'pending',
         'new_status': 'rejected',
         'notes': reason,
       });
