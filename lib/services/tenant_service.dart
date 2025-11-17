@@ -892,4 +892,47 @@ class TenantService {
       throw Exception('เกิดข้อผิดพลาดในการโหลดข้อมูลห้องของผู้เช่า: $e');
     }
   }
+
+  /// Batch fetch: count overdue invoices per tenant
+  /// Returns: { tenant_id: overdue_count }
+  static Future<Map<String, int>> getOverdueInvoiceCountsForTenants(
+      List<String> tenantIds) async {
+    try {
+      if (tenantIds.isEmpty) return {};
+
+      final result = await _supabase
+          .from('invoices')
+          .select('tenant_id, invoice_status, due_date')
+          .inFilter('tenant_id', tenantIds)
+          .inFilter('invoice_status', ['pending', 'overdue']);
+
+      final now = DateTime.now();
+      final Map<String, int> counts = {};
+
+      for (final row in List<dynamic>.from(result)) {
+        final String? tenantId = row['tenant_id']?.toString();
+        if (tenantId == null || tenantId.isEmpty) continue;
+        final String status = row['invoice_status']?.toString() ?? '';
+        final String? dueStr = row['due_date']?.toString();
+        bool isOverdue = status == 'overdue';
+        if (!isOverdue && status == 'pending' && dueStr != null && dueStr.isNotEmpty) {
+          try {
+            final due = DateTime.parse(dueStr);
+            if (due.isBefore(now)) {
+              isOverdue = true;
+            }
+          } catch (_) {
+            // ignore parse errors
+          }
+        }
+        if (isOverdue) {
+          counts[tenantId] = (counts[tenantId] ?? 0) + 1;
+        }
+      }
+
+      return counts;
+    } catch (e) {
+      throw Exception('เกิดข้อผิดพลาดในการตรวจสอบบิลค้างจ่ายของผู้เช่า: $e');
+    }
+  }
 }
