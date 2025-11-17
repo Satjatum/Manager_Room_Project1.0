@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:manager_room_project/views/sadmin/roomlist_ui.dart';
 import 'package:manager_room_project/views/sadmin/tenantlist_ui.dart';
 import 'package:manager_room_project/views/sadmin/issuelist_ui.dart';
@@ -262,10 +261,6 @@ class BranchDashboardPage extends StatelessWidget {
       );
     }
 
-    final platform = Theme.of(context).platform;
-    final bool isMobileApp = !kIsWeb &&
-        (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
-
     return WillPopScope(
       onWillPop: _confirmExit,
       child: Scaffold(
@@ -327,16 +322,16 @@ class BranchDashboardPage extends StatelessWidget {
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    final maxW = _maxContentWidth(constraints.maxWidth);
-                    // กำหนดความกว้างสูงสุดของคอนเทนต์แล้วจัดวางภายในตามส่วนต่าง ๆ
+                    // แสดงเต็มความกว้างหน้าจอ และปรับย่ออัตโนมัติตามขนาดหน้าจอ
+                    final bool isCompact = constraints.maxWidth < 600;
 
-                    final content = ListView(
+                    return ListView(
                       padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
                       children: [
                         if ((branchName ?? '').isNotEmpty)
                           _BranchNameCard(name: branchName!),
                         const SizedBox(height: 12),
-                        _statsFuture(isCompact: maxW < 600),
+                        _statsFuture(isCompact: isCompact),
                         const SizedBox(height: 12),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4.0),
@@ -352,25 +347,6 @@ class BranchDashboardPage extends StatelessWidget {
                         const SizedBox(height: 8),
                         _QuickActionsWrap(items: items),
                       ],
-                    );
-
-                    if (isMobileApp) {
-                      // Center on native phones
-                      return Align(
-                        alignment: Alignment.topCenter,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(maxWidth: maxW),
-                          child: content,
-                        ),
-                      );
-                    }
-                    // Desktop/Web: left align within responsive max width
-                    return Align(
-                      alignment: Alignment.topLeft,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: maxW),
-                        child: content,
-                      ),
                     );
                   },
                 ),
@@ -576,15 +552,6 @@ class _QuickActionsWrap extends StatelessWidget {
   }
 }
 
-// Responsive content widths (Mobile S/M/L, Tablet, Laptop, Laptop L, 4K)
-double _maxContentWidth(double screenWidth) {
-  if (screenWidth >= 2560) return 1280; // 4K
-  if (screenWidth >= 1440) return 1100; // Laptop L
-  if (screenWidth >= 1200) return 1000; // Laptop
-  if (screenWidth >= 900) return 860; // Tablet landscape / small desktop
-  if (screenWidth >= 600) return 560; // Mobile L / Tablet portrait
-  return screenWidth; // Mobile S/M
-}
 
 class _DashItem {
   final IconData icon;
