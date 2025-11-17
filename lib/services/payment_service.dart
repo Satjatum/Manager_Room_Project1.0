@@ -153,6 +153,13 @@ class PaymentService {
         'data': result,
       };
     } on PostgrestException catch (e) {
+      final msg = (e.message ?? '').toString();
+      if (msg.contains('ERR_MAX_5_SLIPS')) {
+        return {
+          'success': false,
+          'message': 'บิลนี้แนบสลิปได้ไม่เกิน 5 ใบ',
+        };
+      }
       return {
         'success': false,
         'message': 'เกิดข้อผิดพลาด: ${e.message}',
