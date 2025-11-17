@@ -575,16 +575,100 @@ class PaymentService {
 
   static Future<Map<String, dynamic>?> getSlipById(String slipId) async {
     try {
-      final res = await _supabase.from('payment_slips').select('''
-            *,
-            invoices!inner(*,
-              rooms!inner(room_id, room_number, branch_id,
-                branches!inner(branch_name, branch_code)
-              ),
-              tenants!inner(tenant_id, tenant_fullname, tenant_phone)
-            )
-          ''').eq('slip_id', slipId).maybeSingle();
-      return res;
+      // 1) Load slip only — avoid deep joins (schema cache relationships may be missing)
+      final slip = await _supabase
+          .from('payment_slips')
+          .select('*')
+          .eq('slip_id', slipId)
+          .maybeSingle();
+      if (slip == null) return null;
+
+      Map<String, dynamic>? inv;
+      Map<String, dynamic>? room;
+      Map<String, dynamic>? br;
+      Map<String, dynamic>? tenant;
+
+      // 2) Load invoice (flat)
+      final invoiceId = (slip['invoice_id'] ?? '').toString();
+      if (invoiceId.isNotEmpty) {
+        inv = await _supabase
+            .from('invoices')
+            .select(
+                'invoice_id, invoice_number, total_amount, paid_amount, invoice_status, room_id, tenant_id, due_date')
+            .eq('invoice_id', invoiceId)
+            .maybeSingle();
+      }
+
+      // 3) Load room + branch
+      final roomId = inv?['room_id']?.toString();
+      if (roomId != null && roomId.isNotEmpty) {
+        room = await _supabase
+            .from('rooms')
+            .select('room_id, room_number, branch_id')
+            .eq('room_id', roomId)
+            .maybeSingle();
+        final branchId = room?['branch_id']?.toString();
+        if (branchId != null && branchId.isNotEmpty) {
+          br = await _supabase
+              .from('branches')
+              .select('branch_id, branch_name, branch_code')
+              .eq('branch_id', branchId)
+              .maybeSingle();
+        }
+      }
+
+      // 4) Load tenant
+      final tenantId = inv?['tenant_id']?.toString();
+      if (tenantId != null && tenantId.isNotEmpty) {
+        tenant = await _supabase
+            .from('tenants')
+            .select('tenant_id, tenant_fullname, tenant_phone')
+            .eq('tenant_id', tenantId)
+            .maybeSingle();
+      }
+
+      // 5) Build enriched response (flat fields + optional nested for compatibility)
+      final Map<String, dynamic> data = {
+        ...slip,
+      };
+
+      if (inv != null) {
+        data.addAll({
+          'invoice_number': inv['invoice_number'],
+          'invoice_total': inv['total_amount'],
+          'invoice_paid': inv['paid_amount'],
+          'invoice_status': inv['invoice_status'],
+        });
+      }
+      if (room != null) {
+        data.addAll({
+          'room_number': room['room_number'],
+          'branch_id': room['branch_id'],
+        });
+      }
+      if (br != null) {
+        data['branch_name'] = br['branch_name'];
+      }
+      if (tenant != null) {
+        data.addAll({
+          'tenant_name': tenant['tenant_fullname'],
+          'tenant_phone': tenant['tenant_phone'],
+        });
+      }
+
+      // Optional nested block to preserve existing UI access paths
+      if (inv != null) {
+        final invNested = Map<String, dynamic>.from(inv);
+        if (room != null) {
+          final roomNested = Map<String, dynamic>.from(room);
+          if (br != null) roomNested['branches'] = br;
+          invNested['rooms'] = roomNested;
+        }
+        if (tenant != null) invNested['tenants'] = tenant;
+        data['invoices'] = invNested;
+      }
+
+      return data;
     } catch (e) {
       throw Exception('ไม่พบสลิป: $e');
     }

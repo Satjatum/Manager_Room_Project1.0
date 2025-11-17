@@ -284,7 +284,7 @@ class _PaymentVerificationDetailPageState
     final tenantPhone = (s['tenant_phone'] ?? tenant['tenant_phone'] ?? '-').toString();
     final roomNumber = (s['room_number'] ?? room['room_number'] ?? '-').toString();
     final branchName = (s['branch_name'] ?? br['branch_name'] ?? '-').toString();
-    final invoiceStatus = (inv['invoice_status'] ?? '-').toString();
+    final invoiceStatus = (s['invoice_status'] ?? inv['invoice_status'] ?? '-').toString();
     final slipStatus = (s['slip_status'] ?? 'pending').toString();
 
     return Card(
