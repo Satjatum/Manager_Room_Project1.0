@@ -4,12 +4,17 @@ import 'package:manager_room_project/services/payment_service.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:manager_room_project/services/invoice_service.dart';
+
 class PaymentVerificationDetailPage extends StatefulWidget {
-  final String slipId;
+  final String? slipId;
+  final String? invoiceId;
   const PaymentVerificationDetailPage({
     super.key,
-    required this.slipId,
-  });
+    this.slipId,
+    this.invoiceId,
+  }) : assert(slipId != null || invoiceId != null,
+            'Either slipId or invoiceId must be provided');
 
   @override
   State<PaymentVerificationDetailPage> createState() =>
@@ -20,6 +25,7 @@ class _PaymentVerificationDetailPageState
     extends State<PaymentVerificationDetailPage> {
   bool _loading = true;
   Map<String, dynamic>? _slip;
+  Map<String, dynamic>? _invoice;
 
   @override
   void initState() {
@@ -37,11 +43,19 @@ class _PaymentVerificationDetailPageState
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final res = await PaymentService.getSlipById(widget.slipId);
-      setState(() {
-        _slip = res;
-        _loading = false;
-      });
+      if (widget.slipId != null) {
+        final res = await PaymentService.getSlipById(widget.slipId!);
+        setState(() {
+          _slip = res;
+          _loading = false;
+        });
+      } else if (widget.invoiceId != null) {
+        final inv = await InvoiceService.getInvoiceById(widget.invoiceId!);
+        setState(() {
+          _invoice = inv;
+          _loading = false;
+        });
+      }
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
@@ -211,22 +225,26 @@ class _PaymentVerificationDetailPageState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('รายละเอียดสลิปชำระเงิน'),
+        title: Text(widget.slipId != null
+            ? 'รายละเอียดสลิปชำระเงิน'
+            : 'รายละเอียดใบแจ้งหนี้'),
         backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            onPressed: _openSlip,
-            icon: const Icon(Icons.download),
-            tooltip: 'เปิด/ดาวน์โหลดสลิป',
-          )
+          if (widget.slipId != null)
+            IconButton(
+              onPressed: _openSlip,
+              icon: const Icon(Icons.download),
+              tooltip: 'เปิด/ดาวน์โหลดสลิป',
+            )
         ],
       ),
       body: _loading
           ? const Center(
               child: CircularProgressIndicator(color: AppTheme.primary),
             )
-          : _slip == null
+          : (widget.slipId != null && _slip == null) ||
+                  (widget.invoiceId != null && _invoice == null)
               ? const Center(child: Text('ไม่พบข้อมูล'))
               : RefreshIndicator(
                   onRefresh: _load,
@@ -236,11 +254,15 @@ class _PaymentVerificationDetailPageState
                       child: ListView(
                         padding: const EdgeInsets.all(16),
                         children: [
-                          _buildHeaderCard(),
-                          const SizedBox(height: 12),
-                          _buildSlipImage(),
-                          const SizedBox(height: 16),
-                          _buildActionBar(),
+                          if (widget.slipId != null) ...[
+                            _buildHeaderCard(),
+                            const SizedBox(height: 12),
+                            _buildSlipImage(),
+                            const SizedBox(height: 16),
+                            _buildActionBar(),
+                          ] else ...[
+                            _buildInvoiceHeaderCard(),
+                          ],
                         ],
                       ),
                     ),
@@ -317,6 +339,73 @@ class _PaymentVerificationDetailPageState
               const SizedBox(height: 8),
               Text('หมายเหตุผู้เช่า: ${s['tenant_notes']}'),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInvoiceHeaderCard() {
+    final inv = _invoice!;
+    final room = inv['rooms'] ?? {};
+    final br = room['branches'] ?? {};
+    final tenant = inv['tenants'] ?? {};
+
+    final invoiceNumber = (inv['invoice_number'] ?? '-').toString();
+    final tenantName = (inv['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
+    final tenantPhone = (inv['tenant_phone'] ?? tenant['tenant_phone'] ?? '-').toString();
+    final roomNumber = (inv['room_number'] ?? room['room_number'] ?? '-').toString();
+    final branchName = (inv['branch_name'] ?? br['branch_name'] ?? '-').toString();
+    final roomcate = (inv['roomcate_name'] ?? room['room_categories']?['roomcate_name'] ?? '-').toString();
+    final invoiceStatus = (inv['invoice_status'] ?? '-').toString();
+    final total = _asDouble(inv['total_amount']);
+    final dueDate = (inv['due_date'] ?? '').toString();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.receipt_long, size: 18),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    invoiceNumber,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _invoiceStatusChip(invoiceStatus),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text('ผู้เช่า: $tenantName'),
+            Text('เบอร์: $tenantPhone'),
+            Text('$roomcate เลขที่ $roomNumber'),
+            Text('สาขา: $branchName'),
+            const Divider(height: 20),
+            Row(
+              children: [
+                const Icon(Icons.payments, size: 18, color: Colors.green),
+                const SizedBox(width: 6),
+                Text(
+                  '${total.toStringAsFixed(2)} บาท',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.green),
+                ),
+                const Spacer(),
+                const Icon(Icons.schedule, size: 18, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(dueDate.toString().split('T').first),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text('ยังไม่มีสลิปการชำระเงินสำหรับบิลนี้',
+                style: TextStyle(color: Colors.orange)),
           ],
         ),
       ),

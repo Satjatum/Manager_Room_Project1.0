@@ -785,7 +785,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => TenantBillDetailUi(invoiceId: invoiceId),
+            builder: (_) => PaymentVerificationDetailPage(invoiceId: invoiceId),
           ),
         );
       },
