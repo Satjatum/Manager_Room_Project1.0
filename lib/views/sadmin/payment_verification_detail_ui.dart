@@ -279,13 +279,18 @@ class _PaymentVerificationDetailPageState
     final tenant = inv.isNotEmpty ? (inv['tenants'] ?? {}) : {};
 
     // ฟิลด์แบบ flat (กรณี PromptPay pseudo)
-    final invoiceNumber = (s['invoice_number'] ?? inv['invoice_number'] ?? '-').toString();
-    final tenantName = (s['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
-    final tenantPhone = (s['tenant_phone'] ?? tenant['tenant_phone'] ?? '-').toString();
-    final roomNumber = (s['room_number'] ?? room['room_number'] ?? '-').toString();
-    final branchName = (s['branch_name'] ?? br['branch_name'] ?? '-').toString();
-    final invoiceStatus = (s['invoice_status'] ?? inv['invoice_status'] ?? '-').toString();
-    final slipStatus = (s['slip_status'] ?? 'pending').toString();
+    final invoiceNumber =
+        (s['invoice_number'] ?? inv['invoice_number'] ?? '-').toString();
+    final tenantName =
+        (s['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
+    final tenantPhone =
+        (s['tenant_phone'] ?? tenant['tenant_phone'] ?? '-').toString();
+    final roomNumber =
+        (s['room_number'] ?? room['room_number'] ?? '-').toString();
+    final branchName =
+        (s['branch_name'] ?? br['branch_name'] ?? '-').toString();
+    final invoiceStatus =
+        (s['invoice_status'] ?? inv['invoice_status'] ?? '-').toString();
 
     return Card(
       child: Padding(
@@ -306,8 +311,6 @@ class _PaymentVerificationDetailPageState
                 ),
                 const SizedBox(width: 8),
                 _invoiceStatusChip(invoiceStatus),
-                const SizedBox(width: 6),
-                _slipStatusChip(slipStatus),
               ],
             ),
             const SizedBox(height: 8),
@@ -352,11 +355,18 @@ class _PaymentVerificationDetailPageState
     final tenant = inv['tenants'] ?? {};
 
     final invoiceNumber = (inv['invoice_number'] ?? '-').toString();
-    final tenantName = (inv['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
-    final tenantPhone = (inv['tenant_phone'] ?? tenant['tenant_phone'] ?? '-').toString();
-    final roomNumber = (inv['room_number'] ?? room['room_number'] ?? '-').toString();
-    final branchName = (inv['branch_name'] ?? br['branch_name'] ?? '-').toString();
-    final roomcate = (inv['roomcate_name'] ?? room['room_categories']?['roomcate_name'] ?? '-').toString();
+    final tenantName =
+        (inv['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
+    final tenantPhone =
+        (inv['tenant_phone'] ?? tenant['tenant_phone'] ?? '-').toString();
+    final roomNumber =
+        (inv['room_number'] ?? room['room_number'] ?? '-').toString();
+    final branchName =
+        (inv['branch_name'] ?? br['branch_name'] ?? '-').toString();
+    final roomcate = (inv['roomcate_name'] ??
+            room['room_categories']?['roomcate_name'] ??
+            '-')
+        .toString();
     final invoiceStatus = (inv['invoice_status'] ?? '-').toString();
     final total = _asDouble(inv['total_amount']);
     final dueDate = (inv['due_date'] ?? '').toString();
@@ -457,8 +467,9 @@ class _PaymentVerificationDetailPageState
   }
 
   Widget _buildActionBar() {
-    final status = (_slip?['slip_status'] ?? 'pending').toString();
-    final canAction = status == 'pending';
+    final inv = _slip?['invoices'] ?? {};
+    final invoiceStatus = (_slip?['invoice_status'] ?? inv['invoice_status'] ?? 'pending').toString();
+    final canAction = invoiceStatus != 'paid' && invoiceStatus != 'cancelled';
     return Row(
       children: [
         Expanded(
@@ -521,34 +532,5 @@ class _PaymentVerificationDetailPageState
     );
   }
 
-  // ป้ายสถานะของสลิป (pending/verified/rejected)
-  Widget _slipStatusChip(String status) {
-    Color c;
-    String t;
-    switch (status) {
-      case 'verified':
-        c = Colors.green;
-        t = 'อนุมัติแล้ว';
-        break;
-      case 'rejected':
-        c = Colors.red;
-        t = 'ถูกปฏิเสธ';
-        break;
-      default:
-        c = Colors.orange;
-        t = 'รอตรวจสอบ';
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: c.withOpacity(0.1),
-        border: Border.all(color: c.withOpacity(0.4)),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        t,
-        style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.w600),
-      ),
-    );
-  }
+  // slip status chip removed (invoice-level verification only)
 }

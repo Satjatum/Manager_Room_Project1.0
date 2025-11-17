@@ -113,9 +113,6 @@ class PaymentService {
     required DateTime paymentDateTime,
     required String slipImageUrl,
     String? slipNumber,
-    String? transferFromBank,
-    String? transferFromAccount,
-    String? transferToAccount,
     String? tenantNotes,
   }) async {
     try {
@@ -132,7 +129,7 @@ class PaymentService {
         return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
       }
 
-      // Insert payment_slips as pending
+      // Insert payment_slips (no slip_status; invoice-level verification)
       final data = {
         'invoice_id': invoiceId,
         'tenant_id': tenantId,
@@ -143,11 +140,7 @@ class PaymentService {
         'payment_date': paymentDateTime.toIso8601String(),
         'payment_time':
             '${paymentDateTime.hour.toString().padLeft(2, '0')}:${paymentDateTime.minute.toString().padLeft(2, '0')}:00',
-        'transfer_from_bank': transferFromBank,
-        'transfer_from_account': transferFromAccount,
-        'transfer_to_account': transferToAccount,
         'tenant_notes': tenantNotes,
-        'slip_status': 'pending',
         'slip_type': 'manual',
       };
 
@@ -178,7 +171,7 @@ class PaymentService {
 
   // List payment slips for admin review (no DB joins to avoid schema-cache relationship issues)
   static Future<List<Map<String, dynamic>>> listPaymentSlips({
-    String status = 'pending',
+    String status = 'all',
     String? branchId,
     DateTime? startDate,
     DateTime? endDate,
@@ -257,9 +250,7 @@ class PaymentService {
 
       var query = _supabase.from('payment_slips').select('*');
 
-      if (status.isNotEmpty && status != 'all') {
-        query = query.eq('slip_status', status);
-      }
+      // status filter removed (slip_status dropped); rely on invoice_status in enrichment
       if (invoiceIdFilter != null) {
         query = query.inFilter('invoice_id', invoiceIdFilter);
       }
@@ -545,7 +536,6 @@ class PaymentService {
         return {
           // pseudo slip row
           'slip_id': null,
-          'slip_status': 'verified',
           'slip_image': '',
           'paid_amount': p['payment_amount'],
           'payment_date': p['payment_date'],
@@ -714,9 +704,7 @@ class PaymentService {
       if (slip == null) {
         return {'success': false, 'message': 'ไม่พบสลิป'};
       }
-      if (slip['slip_status'] != 'pending') {
-        return {'success': false, 'message': 'สลิปนี้ถูกตรวจสอบแล้ว'};
-      }
+      // No slip_status anymore; proceed based on invoice-level rules
 
       final invoiceId = slip['invoice_id'] as String;
       final tenantId = slip['tenant_id'] as String;
@@ -744,9 +732,8 @@ class PaymentService {
           .select()
           .single();
 
-      // Mark slip as verified and link payment
+      // Link slip to payment and audit (no slip_status update)
       await _supabase.from('payment_slips').update({
-        'slip_status': 'verified',
         'verified_by': currentUser.userId,
         'verified_at': DateTime.now().toIso8601String(),
         'admin_notes': adminNotes,
@@ -765,8 +752,6 @@ class PaymentService {
         'slip_id': slipId,
         'action': 'verify',
         'action_by': currentUser.userId,
-        'previous_status': 'pending',
-        'new_status': 'verified',
         'notes': adminNotes,
       });
 
@@ -800,15 +785,8 @@ class PaymentService {
       if (slip == null) {
         return {'success': false, 'message': 'ไม่พบสลิป'};
       }
-      if (slip['slip_status'] != 'pending') {
-        return {
-          'success': false,
-          'message': 'สลิปนี้ถูกตรวจสอบแล้ว ไม่สามารถปฏิเสธได้'
-        };
-      }
-
+      // Update audit fields only (no slip_status)
       await _supabase.from('payment_slips').update({
-        'slip_status': 'rejected',
         'rejection_reason': reason,
         'verified_by': currentUser.userId,
         'verified_at': DateTime.now().toIso8601String(),
@@ -818,8 +796,6 @@ class PaymentService {
         'slip_id': slipId,
         'action': 'reject',
         'action_by': currentUser.userId,
-        'previous_status': 'pending',
-        'new_status': 'rejected',
         'notes': reason,
       });
 

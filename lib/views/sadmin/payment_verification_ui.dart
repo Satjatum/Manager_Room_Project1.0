@@ -500,7 +500,6 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
 
   Widget _slipCard(Map<String, dynamic> s) {
     final amount = _asDouble(s['paid_amount']);
-    final status = (s['slip_status'] ?? 'pending').toString();
     final payDate = (s['payment_date'] ?? s['created_at'] ?? '').toString();
 
     return LayoutBuilder(builder: (context, constraints) {
@@ -558,8 +557,6 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                       ),
                       const SizedBox(width: 8),
                       _invoiceStatusChip((s['invoice_status'] ?? '').toString()),
-                      const SizedBox(width: 6),
-                      _slipStatusChip(status),
                     ],
                   ),
 
@@ -789,7 +786,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   }
 
   Widget _statusChip(String status) {
-    // เดิมใช้กับสถานะสลิป — คงไว้เผื่อใช้ภายหลัง
+    // Deprecated: slip status removed; reuse invoice status chip if needed
     return _invoiceStatusChip(status);
   }
 
@@ -833,36 +830,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     );
   }
 
-  // ป้ายสถานะของสลิป (pending/verified/rejected) ให้สอดคล้องโทนสี/สไตล์กับ _invoiceStatusChip
-  Widget _slipStatusChip(String status) {
-    Color c;
-    String t;
-    switch (status) {
-      case 'verified':
-        c = const Color(0xFF22C55E);
-        t = 'อนุมัติแล้ว';
-        break;
-      case 'rejected':
-        c = const Color(0xFFEF4444);
-        t = 'ถูกปฏิเสธ';
-        break;
-      default:
-        c = const Color(0xFFF59E0B);
-        t = 'รอตรวจสอบ';
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: c.withOpacity(0.1),
-        border: Border.all(color: c.withOpacity(0.4)),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        t,
-        style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.w600),
-      ),
-    );
-  }
+  // slip status chip removed (invoice-level verification only)
 
   // PromptPay method chip removed (no PromptPay UI)
 
