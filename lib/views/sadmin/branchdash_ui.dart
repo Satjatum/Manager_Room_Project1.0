@@ -378,6 +378,102 @@ class BranchDashboardPage extends StatelessWidget {
             ],
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final _StatItem item;
+  const _StatCard({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final Color trendColor = item.isUp ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+    final IconData trendIcon = item.isUp ? Icons.trending_up : Icons.trending_down;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withOpacity(0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(item.leading, size: 18, color: AppTheme.primary),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  item.title,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            item.value,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: Colors.black,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 6),
+          if (item.progress != null)
+            Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(9999),
+                    child: LinearProgressIndicator(
+                      value: item.progress!.clamp(0.0, 1.0),
+                      minHeight: 6,
+                      backgroundColor: Colors.grey[200],
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  "${(item.progress! * 100).round()}%",
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87),
+                ),
+              ],
+            ),
+          if (item.progress == null && item.trendText.isNotEmpty)
+            Row(
+              children: [
+                Icon(trendIcon, size: 16, color: trendColor),
+                const SizedBox(width: 6),
+                Text(
+                  item.trendText,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: trendColor,
+                  ),
+                ),
+              ],
+            )
+        ],
       ),
     );
   }
