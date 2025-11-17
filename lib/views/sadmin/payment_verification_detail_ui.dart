@@ -333,14 +333,14 @@ class _PaymentVerificationDetailPageState
 
   // Details container — white bg + grey border like branchlist_detail_ui
   Widget _buildDetailsContainer() {
-    final s = _slip!;
-    final inv = _invoice ?? (s['invoices'] ?? {});
+    final s = _slip; // may be null when opened by invoiceId only
+    final inv = _invoice ?? (s?['invoices'] ?? {});
     final room = inv.isNotEmpty ? (inv['rooms'] ?? {}) : {};
     final tenant = inv.isNotEmpty ? (inv['tenants'] ?? {}) : {};
 
     final tenantName =
-        (s['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
-    final roomNumber = (s['room_number'] ?? room['room_number'] ?? '-')
+        (s?['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
+    final roomNumber = (s?['room_number'] ?? room['room_number'] ?? '-')
         .toString();
     final roomcateName = (inv['roomcate_name'] ??
             room['room_categories']?['roomcate_name'] ??
@@ -352,11 +352,11 @@ class _PaymentVerificationDetailPageState
         (_invoice?['other_charge_lines'] as List?) ?? const [];
 
     final amount = widget.slipId != null
-        ? _asDouble(s['paid_amount'])
+        ? _asDouble(s?['paid_amount'])
         : _asDouble(inv['total_amount']);
 
     final rawDate = widget.slipId != null
-        ? (s['payment_date'] ?? '').toString()
+        ? (s?['payment_date'] ?? '').toString()
         : (inv['due_date'] ?? inv['issue_date'] ?? '').toString();
 
     return Container(
@@ -423,9 +423,9 @@ class _PaymentVerificationDetailPageState
                   fontWeight: FontWeight.w700, color: Colors.green)),
           _infoRow('วันที่', _formatThaiDate(rawDate)),
 
-          if ((s['tenant_notes'] ?? '').toString().isNotEmpty) ...[
+          if ((s?['tenant_notes'] ?? '').toString().isNotEmpty) ...[
             const SizedBox(height: 10),
-            _infoRow('หมายเหตุผู้เช่า', s['tenant_notes'].toString()),
+            _infoRow('หมายเหตุผู้เช่า', s?['tenant_notes'].toString() ?? ''),
           ],
         ],
       ),
