@@ -42,6 +42,72 @@ class BranchService {
     }
   }
 
+  // ============== Global/Test Flags on Branch JSON (branch_desc) ==============
+  /// อ่านสถานะโหมดทดสอบ PromptPay จากสาขา (เก็บใน branches.branch_desc -> { pp_test_mode: bool })
+  static Future<bool> getPromptPayTestMode(String branchId) async {
+    try {
+      final row = await _supabase
+          .from('branches')
+          .select('branch_desc')
+          .eq('branch_id', branchId)
+          .maybeSingle();
+      if (row == null) return false;
+      final desc = row['branch_desc'];
+      if (desc is Map && desc['pp_test_mode'] == true) return true;
+      if (desc is Map<String, dynamic> && desc['pp_test_mode'] == true) return true;
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// ตั้งค่าสถานะโหมดทดสอบ PromptPay โดยให้สิทธิ์เฉพาะ Admin เท่านั้น
+  /// มีผลทั้งแอป (อ่านได้ทุกบทบาท) ผ่าน branch_desc.pp_test_mode
+  static Future<Map<String, dynamic>> setPromptPayTestMode({
+    required String branchId,
+    required bool enabled,
+  }) async {
+    try {
+      final currentUser = await AuthService.getCurrentUser();
+      if (currentUser == null) {
+        return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
+      }
+      // อนุญาตให้ admin และ superadmin สามารถสลับโหมดได้
+      if (currentUser.userRole != UserRole.admin &&
+          currentUser.userRole != UserRole.superAdmin) {
+        return {'success': false, 'message': 'อนุญาตเฉพาะผู้ดูแล (Admin)'};
+      }
+
+      // อ่าน desc เดิมแล้ว merge ค่าลงไป
+      final current = await _supabase
+          .from('branches')
+          .select('branch_desc')
+          .eq('branch_id', branchId)
+          .maybeSingle();
+      Map<String, dynamic> desc = {};
+      if (current != null && current['branch_desc'] is Map<String, dynamic>) {
+        desc = Map<String, dynamic>.from(current['branch_desc']);
+      }
+      desc['pp_test_mode'] = enabled;
+
+      final res = await _supabase
+          .from('branches')
+          .update({'branch_desc': desc, 'updated_at': DateTime.now().toIso8601String()})
+          .eq('branch_id', branchId)
+          .select()
+          .single();
+      return {
+        'success': true,
+        'message': enabled ? 'เปิดโหมดทดสอบ PromptPay แล้ว' : 'ปิดโหมดทดสอบ PromptPay แล้ว',
+        'data': res,
+      };
+    } on PostgrestException catch (e) {
+      return {'success': false, 'message': 'เกิดข้อผิดพลาด: ${e.message}'};
+    } catch (e) {
+      return {'success': false, 'message': 'ไม่สามารถอัปเดตโหมดทดสอบได้: $e'};
+    }
+  }
+
   // Get branches by user - updated for new schema
   static Future<List<Map<String, dynamic>>> getBranchesByUser() async {
     try {
@@ -587,22 +653,297 @@ class BranchService {
           'message': 'ไม่พบสาขาที่ต้องการลบ',
         };
       }
+      // ==========================
+      // Begin code-level cascading
+      // ==========================
+      final List<Map<String, dynamic>> roomRows = List<Map<String, dynamic>>.from(
+          await _supabase
+              .from('rooms')
+              .select('room_id')
+              .eq('branch_id', branchId));
+      final roomIds = roomRows
+          .map((r) => r['room_id'])
+          .where((v) => v != null)
+          .map<String>((v) => v.toString())
+          .toList();
 
-      // ตรวจสอบว่ามีห้องเช่าหรือข้อมูลที่เกี่ยวข้องหรือไม่
-      final allRooms = await _supabase
-          .from('rooms')
-          .select('room_id, room_number')
-          .eq('branch_id', branchId);
+      final List<Map<String, dynamic>> tenantRows = List<Map<String, dynamic>>.from(
+          await _supabase
+              .from('tenants')
+              .select('tenant_id, user_id')
+              .eq('branch_id', branchId));
+      final tenantIds = tenantRows
+          .map((r) => r['tenant_id'])
+          .where((v) => v != null)
+          .map<String>((v) => v.toString())
+          .toList();
 
-      if (allRooms.isNotEmpty) {
-        return {
-          'success': false,
-          'message':
-              'ไม่สามารถลบสาขาถาวรได้ เนื่องจากยังมีห้องเช่า ${allRooms.length} ห้อง กรุณาลบห้องเช่าทั้งหมดก่อน',
-        };
-      }
+      // Collect contract ids (by rooms or tenants)
+      List<String> contractIds = [];
+      try {
+        final List<Map<String, dynamic>> contractsByRoom = roomIds.isEmpty
+            ? []
+            : List<Map<String, dynamic>>.from(await _supabase
+                .from('rental_contracts')
+                .select('contract_id')
+                .inFilter('room_id', roomIds));
+        final List<Map<String, dynamic>> contractsByTenant = tenantIds.isEmpty
+            ? []
+            : List<Map<String, dynamic>>.from(await _supabase
+                .from('rental_contracts')
+                .select('contract_id')
+                .inFilter('tenant_id', tenantIds));
+        contractIds = [
+          ...contractsByRoom.map((r) => r['contract_id']).where((v) => v != null).map<String>((v) => v.toString()),
+          ...contractsByTenant.map((r) => r['contract_id']).where((v) => v != null).map<String>((v) => v.toString()),
+        ].toSet().toList();
+      } catch (_) {}
 
-      // ลบถาวร
+      // 1) Invoices under this branch (via rooms)
+      List<String> invoiceIds = [];
+      try {
+        if (roomIds.isNotEmpty) {
+          final invRows = await _supabase
+              .from('invoices')
+              .select('invoice_id')
+              .inFilter('room_id', roomIds);
+          invoiceIds = List<Map<String, dynamic>>.from(invRows)
+              .map((r) => r['invoice_id'])
+              .where((v) => v != null)
+              .map<String>((v) => v.toString())
+              .toList();
+        }
+      } catch (_) {}
+
+      // 1.1) Payments for those invoices (and additionally by tenants just in case)
+      try {
+        if (invoiceIds.isNotEmpty) {
+          await _supabase
+              .from('payments')
+              .delete()
+              .inFilter('invoice_id', invoiceIds);
+        }
+        if (tenantIds.isNotEmpty) {
+          await _supabase
+              .from('payments')
+              .delete()
+              .inFilter('tenant_id', tenantIds);
+        }
+      } catch (_) {}
+
+      // 1.2) Unlink meter_readings from those invoices
+      try {
+        if (invoiceIds.isNotEmpty) {
+          await _supabase
+              .from('meter_readings')
+              .update({'invoice_id': null, 'reading_status': 'confirmed'})
+              .inFilter('invoice_id', invoiceIds);
+        }
+      } catch (_) {}
+
+      // 1.3) Delete invoice detail tables then invoices
+      try {
+        if (invoiceIds.isNotEmpty) {
+          await _supabase
+              .from('invoice_utilities')
+              .delete()
+              .inFilter('invoice_id', invoiceIds);
+          await _supabase
+              .from('invoice_other_charges')
+              .delete()
+              .inFilter('invoice_id', invoiceIds);
+          await _supabase
+              .from('invoices')
+              .delete()
+              .inFilter('invoice_id', invoiceIds);
+        }
+      } catch (_) {}
+
+      // 2) Payment slips and verification history (by invoices/tenants)
+      try {
+        List<String> slipIds = [];
+        if (invoiceIds.isNotEmpty || tenantIds.isNotEmpty) {
+          var q = _supabase.from('payment_slips').select('slip_id');
+          if (invoiceIds.isNotEmpty) {
+            q = q.inFilter('invoice_id', invoiceIds);
+          }
+          if (tenantIds.isNotEmpty) {
+            q = q.or('tenant_id.in.({${tenantIds.join(',')}})');
+          }
+          final rows = await q;
+          slipIds = List<Map<String, dynamic>>.from(rows)
+              .map((r) => r['slip_id'])
+              .where((v) => v != null)
+              .map<String>((v) => v.toString())
+              .toList();
+        }
+        if (slipIds.isNotEmpty) {
+          // delete histories first, then slips
+          await _supabase
+              .from('slip_verification_history')
+              .delete()
+              .inFilter('slip_id', slipIds);
+          await _supabase
+              .from('payment_slips')
+              .delete()
+              .inFilter('slip_id', slipIds);
+        }
+      } catch (_) {}
+
+      // 3) Meter readings by contracts
+      try {
+        if (contractIds.isNotEmpty) {
+          await _supabase
+              .from('meter_readings')
+              .delete()
+              .inFilter('contract_id', contractIds);
+        }
+      } catch (_) {}
+
+      // 4) Issues (images then issues) by rooms
+      try {
+        if (roomIds.isNotEmpty) {
+          final issueRows = await _supabase
+              .from('issue_reports')
+              .select('issue_id')
+              .inFilter('room_id', roomIds);
+          final issueIds = List<Map<String, dynamic>>.from(issueRows)
+              .map((r) => r['issue_id'])
+              .where((v) => v != null)
+              .map<String>((v) => v.toString())
+              .toList();
+          if (issueIds.isNotEmpty) {
+            await _supabase
+                .from('issue_images')
+                .delete()
+                .inFilter('issue_id', issueIds);
+            await _supabase
+                .from('issue_reports')
+                .delete()
+                .inFilter('issue_id', issueIds);
+          }
+        }
+      } catch (_) {}
+
+      // 5) Rental contracts
+      try {
+        if (contractIds.isNotEmpty) {
+          await _supabase
+              .from('rental_contracts')
+              .delete()
+              .inFilter('contract_id', contractIds);
+        }
+      } catch (_) {}
+
+      // 6) Room auxiliary data then rooms
+      try {
+        if (roomIds.isNotEmpty) {
+          await _supabase
+              .from('room_images')
+              .delete()
+              .inFilter('room_id', roomIds);
+          await _supabase
+              .from('room_amenities')
+              .delete()
+              .inFilter('room_id', roomIds);
+          await _supabase
+              .from('rooms')
+              .delete()
+              .inFilter('room_id', roomIds);
+        }
+      } catch (_) {}
+
+      // 7) Branch QR/accounts
+      try {
+        await _supabase
+            .from('branch_payment_qr')
+            .delete()
+            .eq('branch_id', branchId);
+      } catch (_) {}
+
+      // 8) Payment settings and Utility rates
+      try {
+        await _supabase
+            .from('payment_settings')
+            .delete()
+            .eq('branch_id', branchId);
+      } catch (_) {}
+      try {
+        await _supabase
+            .from('utility_rates')
+            .delete()
+            .eq('branch_id', branchId);
+      } catch (_) {}
+
+      // 9) Branch manager links (keep manager users)
+      try {
+        await _supabase
+            .from('branch_managers')
+            .delete()
+            .eq('branch_id', branchId);
+      } catch (_) {}
+
+      // 10) Delete tenants of this branch
+      try {
+        if (tenantIds.isNotEmpty) {
+          await _supabase
+              .from('tenants')
+              .delete()
+              .inFilter('tenant_id', tenantIds);
+        }
+      } catch (_) {}
+
+      // 11) Delete tenant user accounts (role=tenant) that are not branch managers anywhere
+      try {
+        // collect user_ids from tenants
+        final tenantUserIds = tenantRows
+            .map((r) => r['user_id'])
+            .where((v) => v != null)
+            .map<String>((v) => v.toString())
+            .toSet()
+            .toList();
+        if (tenantUserIds.isNotEmpty) {
+          // filter to role=tenant
+          final userRows = await _supabase
+              .from('users')
+              .select('user_id')
+              .inFilter('user_id', tenantUserIds)
+              .eq('role', 'tenant');
+          final candidateUserIds = List<Map<String, dynamic>>.from(userRows)
+              .map((r) => r['user_id'])
+              .where((v) => v != null)
+              .map<String>((v) => v.toString())
+              .toSet()
+              .toList();
+          if (candidateUserIds.isNotEmpty) {
+            // exclude any that appear in branch_managers (any branch)
+            final bmRows = await _supabase
+                .from('branch_managers')
+                .select('user_id')
+                .inFilter('user_id', candidateUserIds);
+            final bmUserIds = List<Map<String, dynamic>>.from(bmRows)
+                .map((r) => r['user_id'])
+                .where((v) => v != null)
+                .map<String>((v) => v.toString())
+                .toSet();
+            final deleteUserIds = candidateUserIds
+                .where((id) => !bmUserIds.contains(id))
+                .toList();
+            if (deleteUserIds.isNotEmpty) {
+              await _supabase
+                  .from('user_sessions')
+                  .delete()
+                  .inFilter('user_id', deleteUserIds);
+              await _supabase
+                  .from('users')
+                  .delete()
+                  .inFilter('user_id', deleteUserIds);
+            }
+          }
+        }
+      } catch (_) {}
+
+      // 12) Finally delete the branch itself
       await _supabase.from('branches').delete().eq('branch_id', branchId);
 
       return {

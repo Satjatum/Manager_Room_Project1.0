@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+// -----
+import '../../models/user_models.dart';
+// -----
+import '../../middleware/auth_middleware.dart';
+// -----
+import '../../services/tenant_service.dart';
+// -----
 import 'package:manager_room_project/views/sadmin/tenant_add_ui.dart';
 import 'package:manager_room_project/views/sadmin/tenant_edit_ui.dart';
 import 'package:manager_room_project/views/sadmin/tenantlist_detail_ui.dart';
-import 'package:manager_room_project/views/widgets/mainnavbar.dart';
-import '../../models/user_models.dart';
-import '../../middleware/auth_middleware.dart';
-import '../../services/tenant_service.dart';
+// -----
 import '../widgets/colors.dart';
 
 class TenantListUI extends StatefulWidget {
@@ -35,6 +39,8 @@ class _TenantListUIState extends State<TenantListUI> {
   UserModel? _currentUser;
   bool _isAnonymous = false;
   final TextEditingController _searchController = TextEditingController();
+  // tenant_id -> { 'room_number': '...', 'roomcate_name': '...' }
+  Map<String, Map<String, String>> _tenantRoomInfo = {};
 
   // Screen breakpoints
   static const double mobileBreakpoint = 600;
@@ -84,7 +90,7 @@ class _TenantListUIState extends State<TenantListUI> {
         });
       }
     } catch (e) {
-      print('Error loading branches: $e');
+      print('เกิดข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
     }
     _loadTenants();
   }
@@ -114,8 +120,10 @@ class _TenantListUIState extends State<TenantListUI> {
         setState(() {
           _tenants = tenants;
           _filteredTenants = _tenants;
-          _isLoading = false;
         });
+        // Load room info in batch (active contracts only)
+        await _loadTenantRooms();
+        if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
       if (mounted) {
@@ -138,6 +146,29 @@ class _TenantListUIState extends State<TenantListUI> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _loadTenantRooms() async {
+    try {
+      final ids = _tenants
+          .map((t) => t['tenant_id']?.toString())
+          .whereType<String>()
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList();
+      if (ids.isEmpty) {
+        if (mounted) setState(() => _tenantRoomInfo = {});
+        return;
+      }
+      final map = await TenantService.getActiveRoomsForTenants(ids);
+      if (mounted) {
+        setState(() {
+          _tenantRoomInfo = map;
+        });
+      }
+    } catch (e) {
+      // Non-blocking; simply keep room info empty on error
     }
   }
 
@@ -251,36 +282,270 @@ class _TenantListUIState extends State<TenantListUI> {
 
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('เปลี่ยนสถานะผู้เช่า $tenantName'),
-        content: Text(currentStatus
-            ? 'คุณต้องการปิดใช้งานผู้เช่านี้ใช่หรือไม่?'
-            : 'คุณต้องการเปิดใช้งานผู้เช่านี้ใช่หรือไม่?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('ยกเลิก'),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: currentStatus
+                      ? Colors.orange.shade50
+                      : Colors.green.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  currentStatus
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
+                  color: currentStatus
+                      ? Colors.orange.shade600
+                      : Colors.green.shade600,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title
+              Text(
+                currentStatus
+                    ? 'คุณต้องการปิดใช้งานหรือไม่'
+                    : 'คุณต้องการเปิดใช้งานหรือไม่',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Tenant label
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.person, size: 18, color: Colors.grey[700]),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        tenantName.isEmpty ? '-' : tenantName,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Info Box
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: currentStatus
+                      ? Colors.orange.shade50
+                      : Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: currentStatus
+                        ? Colors.orange.shade100
+                        : Colors.green.shade100,
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      currentStatus
+                          ? Icons.warning_rounded
+                          : Icons.info_rounded,
+                      color: currentStatus
+                          ? Colors.orange.shade600
+                          : Colors.green.shade600,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        currentStatus
+                            ? 'ผู้เช่านี้จะไม่แสดงในรายการผู้ใช้ทั่วไป'
+                            : 'ผู้เช่านี้จะแสดงในรายการผู้ใช้ทั่วไป',
+                        style: TextStyle(
+                          color: currentStatus
+                              ? Colors.orange.shade800
+                              : Colors.green.shade800,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: currentStatus
+                            ? Colors.orange.shade600
+                            : Colors.green.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            currentStatus
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            currentStatus ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('ยืนยัน'),
-          ),
-        ],
+        ),
       ),
     );
 
     if (confirm == true) {
       try {
+        // Styled loading dialog
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => Center(
-            child: CircularProgressIndicator(color: AppTheme.primary),
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: currentStatus
+                          ? Colors.orange.shade50
+                          : Colors.green.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: CircularProgressIndicator(
+                            color: currentStatus
+                                ? Colors.orange.shade600
+                                : Colors.green.shade600,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                        Icon(
+                          currentStatus
+                              ? Icons.visibility_off_rounded
+                              : Icons.visibility_rounded,
+                          color: currentStatus
+                              ? Colors.orange.shade600
+                              : Colors.green.shade600,
+                          size: 28,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    currentStatus
+                        ? 'กำลังปิดใช้งานผู้เช่า'
+                        : 'กำลังเปิดใช้งานผู้เช่า',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'กรุณารอสักครู่...',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
 
@@ -310,7 +575,7 @@ class _TenantListUIState extends State<TenantListUI> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
+              content: Text(e.toString().replaceAll('ข้อยกเว้น: ', '')),
               backgroundColor: Colors.red,
               duration: const Duration(seconds: 3),
             ),
@@ -340,79 +605,167 @@ class _TenantListUIState extends State<TenantListUI> {
 
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: const [
-            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'ยืนยันการลบผู้เช่า',
-                style: TextStyle(color: Colors.red),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.delete_outline,
+                  color: Colors.red.shade600,
+                  size: 40,
+                ),
               ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'คุณต้องการลบผู้เช่า "$tenantName" และข้อมูลที่เกี่ยวข้องทั้งหมดหรือไม่?',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.shade200),
+              const SizedBox(height: 20),
+
+              // Title
+              const Text(
+                'คุณต้องการลบผู้เช่าหรือไม่?',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    '⚠️ ข้อมูลที่จะถูกลบ:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
+              const SizedBox(height: 12),
+
+              // Tenant label
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.person, size: 18, color: Colors.grey[700]),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        tenantName.isEmpty ? '-' : tenantName,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Info Box
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.red.shade100,
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.warning_rounded,
+                      color: Colors.red.shade600,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'ข้อมูลทั้งหมดจะถูกลบถาวร',
+                            style: TextStyle(
+                              color: Colors.red,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
-                  SizedBox(height: 8),
-                  Text('• ข้อมูลผู้เช่า'),
-                  Text('• สัญญาเช่าทั้งหมด'),
-                  Text('• ใบแจ้งหนี้'),
-                  Text('• ข้อมูลการชำระเงิน'),
-                  Text('• ข้อมูลมิเตอร์'),
-                  SizedBox(height: 8),
-                  Text(
-                    '※ การลบนี้ไม่สามารถกู้คืนได้',
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.delete_outline, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'ยืนยันการลบ',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('ยกเลิก'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('ยืนยันการลบ'),
-          ),
-        ],
       ),
     );
 
@@ -421,24 +774,66 @@ class _TenantListUIState extends State<TenantListUI> {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(color: Colors.red),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
-                  child: const Text(
-                    'กำลังลบข้อมูล...',
-                    style: TextStyle(fontSize: 16),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        const SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: CircularProgressIndicator(
+                            color: Colors.red,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                        Icon(
+                          Icons.delete_outline,
+                          color: Colors.red.shade600,
+                          size: 28,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 20),
+                  const Text(
+                    'กำลังลบข้อมูลผู้เช่า',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'กรุณารอสักครู่...',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -545,7 +940,7 @@ class _TenantListUIState extends State<TenantListUI> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Tenant Management',
+                          'จัดการผู้เช่า',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -554,7 +949,7 @@ class _TenantListUIState extends State<TenantListUI> {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'Manage your tenants and details',
+                          'สำหรับจัดการผู้เช่า',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.black54,
@@ -583,7 +978,7 @@ class _TenantListUIState extends State<TenantListUI> {
                       controller: _searchController,
                       onChanged: _onSearchChanged,
                       decoration: InputDecoration(
-                        hintText: 'Search tenants by name, phone or id card',
+                        hintText: 'ค้นหา',
                         hintStyle:
                             TextStyle(color: Colors.grey[500], fontSize: 14),
                         prefixIcon: Icon(Icons.search,
@@ -622,6 +1017,7 @@ class _TenantListUIState extends State<TenantListUI> {
                         Expanded(
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
+                              dropdownColor: Colors.white,
                               value: _selectedStatus,
                               isExpanded: true,
                               icon: const Icon(Icons.keyboard_arrow_down,
@@ -631,11 +1027,12 @@ class _TenantListUIState extends State<TenantListUI> {
                               onChanged: _onStatusChanged,
                               items: const [
                                 DropdownMenuItem(
-                                    value: 'all', child: Text('All')),
+                                    value: 'all', child: Text('ทั้งหมด')),
                                 DropdownMenuItem(
-                                    value: 'active', child: Text('Active')),
+                                    value: 'active', child: Text('เปิดใช้งาน')),
                                 DropdownMenuItem(
-                                    value: 'inactive', child: Text('Inactive')),
+                                    value: 'inactive',
+                                    child: Text('ปิดใช้งาน')),
                               ],
                             ),
                           ),
@@ -734,195 +1131,6 @@ class _TenantListUIState extends State<TenantListUI> {
     );
   }
 
-  Widget _buildSearchHeader(double screenWidth, bool isMobile) {
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 12 : 16),
-      decoration: BoxDecoration(
-        color: AppTheme.primary,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Search Bar
-          TextField(
-            controller: _searchController,
-            onChanged: _onSearchChanged,
-            decoration: InputDecoration(
-              hintText: 'ค้นหาผู้เช่า (ชื่อ, เบอร์โทร, บัตรประชาชน)',
-              hintStyle: TextStyle(
-                color: Colors.grey[500],
-                fontSize: isMobile ? 13 : 14,
-              ),
-              prefixIcon: Icon(Icons.search, color: Colors.grey[700]),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: Icon(Icons.clear, color: Colors.grey[700]),
-                      onPressed: () {
-                        _searchController.clear();
-                        _onSearchChanged('');
-                      },
-                    )
-                  : null,
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: isMobile ? 12 : 16,
-                vertical: isMobile ? 10 : 12,
-              ),
-            ),
-          ),
-
-          // Branch Filter
-          if (_branches.isNotEmpty && widget.branchId == null) ...[
-            SizedBox(height: isMobile ? 8 : 12),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 10 : 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: DropdownButton<String>(
-                value: _selectedBranchId ?? 'all',
-                isExpanded: true,
-                underline: const SizedBox(),
-                items: [
-                  const DropdownMenuItem<String>(
-                    value: 'all',
-                    child: Text('ทุกสาขา'),
-                  ),
-                  const DropdownMenuItem<String>(
-                    value: 'null',
-                    child: Text('ยังไม่ระบุสาขา'),
-                  ),
-                  ..._branches.map((branch) {
-                    return DropdownMenuItem<String>(
-                      value: branch['branch_id'] as String,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              branch['branch_name'] ?? '',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (branch['manager_count'] != null &&
-                              branch['manager_count'] > 0)
-                            Container(
-                              margin: const EdgeInsets.only(left: 8),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade100,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.people,
-                                    size: 10,
-                                    color: Colors.blue.shade700,
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    '${branch['manager_count']}',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.blue.shade700,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ],
-                onChanged: (value) {
-                  _onBranchChanged(value == 'all' ? null : value);
-                },
-              ),
-            ),
-          ],
-
-          // Active Filters Display
-          if (_selectedBranchId != null ||
-              _selectedStatus != 'all' ||
-              _searchQuery.isNotEmpty) ...[
-            SizedBox(height: isMobile ? 8 : 12),
-            Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: isMobile ? 10 : 12,
-                vertical: isMobile ? 6 : 8,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.filter_list_alt,
-                      size: 16, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _getActiveFiltersText(),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: isMobile ? 12 : 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () {
-                      setState(() {
-                        _selectedBranchId = widget.branchId;
-                        _selectedStatus = 'all';
-                        _searchQuery = '';
-                        _searchController.clear();
-                      });
-                      _loadTenants();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.3),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        size: 14,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
   Widget _buildLoadingState() {
     return Center(
       child: Column(
@@ -984,35 +1192,22 @@ class _TenantListUIState extends State<TenantListUI> {
     }
 
     if (crossAxisCount > 1) {
-      // ใช้ GridView สำหรับหน้าจอใหญ่
-      // คำนวณความสูง cell ให้เหมาะกับเนื้อหาของการ์ดแบบ compact (Row)
       const double horizontalPadding = 24;
-      const double gridSpacing = 16;
+      const double gridSpacing = 12;
       final double availableWidth = screenWidth -
           (horizontalPadding * 2) -
           (gridSpacing * (crossAxisCount - 1));
       final double itemWidth = availableWidth / crossAxisCount;
 
-      double mainExtent;
-      if (itemWidth >= 420) {
-        mainExtent = 160; // กว้างมาก (4K/2.5K) เพิ่มพื้นที่ให้โปร่งและกันล้น
-      } else if (itemWidth >= 360) {
-        mainExtent = 155; // ~360–419px (เช่น Tablet 768 สองคอลัมน์)
-      } else if (itemWidth >= 300) {
-        mainExtent = 150; // ~300–359px (เช่น 1024/1440/2560 ตามคอลัมน์ที่คำนวณ)
-      } else if (itemWidth >= 260) {
-        mainExtent = 128;
-      } else {
-        mainExtent = 120; // ขั้นต่ำสำหรับช่วงแคบมาก
-      }
+      double mainExtent = itemWidth * 0.5;
 
       return GridView.builder(
-        padding: const EdgeInsets.symmetric(
-            horizontal: horizontalPadding, vertical: 8),
+        // padding: const EdgeInsets.symmetric(
+        //     horizontal: horizontalPadding, vertical: 8),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: crossAxisCount,
-          crossAxisSpacing: gridSpacing,
-          mainAxisSpacing: gridSpacing,
+          crossAxisSpacing: 6,
+          mainAxisSpacing: 6,
           mainAxisExtent: mainExtent,
         ),
         itemCount: _filteredTenants.length,
@@ -1024,12 +1219,12 @@ class _TenantListUIState extends State<TenantListUI> {
     } else {
       // ใช้ ListView สำหรับหน้าจอเล็ก
       return ListView.builder(
-        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 16),
         itemCount: _filteredTenants.length,
         itemBuilder: (context, index) {
           final tenant = _filteredTenants[index];
           return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.only(bottom: 6),
             child: _buildCompactTenantCard(tenant),
           );
         },
@@ -1038,18 +1233,19 @@ class _TenantListUIState extends State<TenantListUI> {
   }
 
   Widget _buildCompactTenantCard(Map<String, dynamic> tenant) {
-    // Data preparation (use current available fields)
-    final isActive = tenant['is_active'] ?? false;
-    final tenantId = tenant['tenant_id'];
-    final tenantName = tenant['tenant_fullname'] ?? 'ไม่ระบุชื่อ';
-    final phone =
-        _formatPhoneNumber(tenant['tenant_phone']?.toString() ?? 'ไม่ระบุ');
-    final branchName = tenant['branch_name'] ?? 'ไม่ระบุสาขา';
-    final profileImageUrl =
+    // 📌 ดึงข้อมูลหลักของผู้เช่า
+    final bool isActive = tenant['is_active'] ?? false;
+    final String tenantName =
+        (tenant['tenant_fullname'] ?? 'ไม่ระบุชื่อ') as String;
+    final String phoneRaw = tenant['tenant_phone']?.toString() ?? 'ไม่ระบุ';
+    final String phone = _formatPhoneNumber(phoneRaw);
+    final String? profileImageUrl =
         (tenant['tenant_profile'] ?? tenant['tenant_profile_image'])
             ?.toString();
+    final String? tenantId = tenant['tenant_id']?.toString();
 
-    final canManage = !_isAnonymous &&
+    // 🔐 ตรวจสอบสิทธิ์การจัดการ (ใช้ pattern เดียวกับของเดิม)
+    final bool canManage = !_isAnonymous &&
         (_currentUser?.userRole == UserRole.superAdmin ||
             _currentUser?.userRole == UserRole.admin ||
             _currentUser?.hasAnyPermission([
@@ -1058,424 +1254,434 @@ class _TenantListUIState extends State<TenantListUI> {
                 ]) ==
                 true);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () async {
-          if (_isAnonymous) {
-            _showLoginPrompt('ดูรายละเอียด');
-            return;
-          }
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TenantDetailUI(tenantId: tenantId),
-            ),
-          );
-          if (result == true && mounted) await _loadTenants();
-        },
-        child: Ink(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
+    // 📱 Responsive ขนาดการ์ด
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < mobileBreakpoint;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      margin: EdgeInsets.symmetric(
+        horizontal: isMobile ? 8 : 12,
+        vertical: 6,
+      ),
+      child: Material(
+        color: Colors.white,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: Colors.grey.shade300,
+            width: 1.2,
           ),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final w = constraints.maxWidth;
-              final isCompact = w < 360;
-              final avatarSize = isCompact ? 48.0 : 56.0;
-              final nameSize = isCompact ? 15.0 : 16.0;
-              final subSize = isCompact ? 12.0 : 13.0;
-              final badgeFontSize = isCompact ? 11.0 : 12.0;
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          splashColor: AppTheme.primary.withOpacity(0.08),
+          highlightColor: AppTheme.primary.withOpacity(0.04),
+          onTap: () async {
+            // 👀 แตะการ์ด = ดูรายละเอียดผู้เช่า
+            final String? idStr = tenantId;
+            if (idStr == null || idStr.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('ไม่พบรหัสผู้เช่า'),
+                  backgroundColor: Colors.red,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+              return;
+            }
 
-              return Padding(
-                padding: EdgeInsets.all(isCompact ? 12 : 14),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Avatar + status dot
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Container(
-                          width: avatarSize,
-                          height: avatarSize,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppTheme.primary.withOpacity(0.08),
-                            border:
-                                Border.all(color: AppTheme.primary, width: 1),
-                          ),
-                          child: ClipOval(
-                            child: (profileImageUrl != null &&
-                                    profileImageUrl.isNotEmpty)
-                                ? Image.network(
-                                    profileImageUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Center(
-                                      child: Text(
-                                        _getInitials(tenantName),
-                                        style: TextStyle(
-                                          fontSize: avatarSize * 0.4,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppTheme.primary,
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                : Center(
-                                    child: Text(
-                                      _getInitials(tenantName),
-                                      style: TextStyle(
-                                        fontSize: avatarSize * 0.4,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.primary,
-                                      ),
-                                    ),
-                                  ),
-                          ),
-                        ),
-                        Positioned(
-                          right: -2,
-                          bottom: -2,
-                          child: Container(
-                            width: avatarSize * 0.24,
-                            height: avatarSize * 0.24,
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? const Color(0xFF10B981)
-                                  : Colors.grey,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                          ),
-                        ),
-                      ],
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TenantDetailUI(tenantId: idStr),
+              ),
+            );
+            if (result == true && mounted) await _loadTenants();
+          },
+          child: Padding(
+            padding: EdgeInsets.all(isMobile ? 14 : 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // 👤 รูปโปรไฟล์แบบวงกลม (แนว Employee Card)
+                Hero(
+                  tag: 'tenant_avatar_$tenantId',
+                  child: Container(
+                    width: isMobile ? 52 : 56,
+                    height: isMobile ? 52 : 56,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.grey.shade200,
+                      border: Border.all(
+                        color: AppTheme.primary,
+                        width: 1,
+                      ),
                     ),
+                    child: ClipOval(
+                      child:
+                          profileImageUrl != null && profileImageUrl.isNotEmpty
+                              ? Image.network(
+                                  profileImageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return _buildInitialAvatar(tenantName);
+                                  },
+                                )
+                              : _buildInitialAvatar(tenantName),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
 
-                    SizedBox(width: isCompact ? 10 : 14),
+                // 🧾 ข้อมูลผู้เช่า (ชื่อ + เบอร์ + สถานะ)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 🏷 ชื่อผู้เช่า
+                      Text(
+                        tenantName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: isMobile ? 16 : 17,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF111827),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
 
-                    // Info area
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      // 📞 เบอร์โทรศัพท์ (อยู่ใต้ชื่อแทนคำบรรยายผู้เช่า)
+                      Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.person_outline,
-                                size: 16,
-                                color: AppTheme.primary,
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  tenantName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: nameSize,
-                                    color: Colors.grey.shade700,
-                                    letterSpacing: -0.2,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              // Action menu
-                              PopupMenuButton<String>(
-                                padding: EdgeInsets.zero,
-                                icon: Icon(Icons.more_vert,
-                                    size: 18, color: Colors.grey.shade600),
-                                tooltip: 'ตัวเลือก',
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                                onSelected: (value) async {
-                                  switch (value) {
-                                    case 'view':
-                                      if (_isAnonymous) {
-                                        _showLoginPrompt('ดูรายละเอียด');
-                                        return;
-                                      }
-                                      final result = await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => TenantDetailUI(
-                                              tenantId: tenantId),
-                                        ),
-                                      );
-                                      if (result == true && mounted)
-                                        await _loadTenants();
-                                      break;
-                                    case 'edit':
-                                      if (_isAnonymous) {
-                                        _showLoginPrompt('แก้ไข');
-                                        return;
-                                      }
-                                      if (!canManage) return;
-                                      final result = await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => TenantEditUI(
-                                            tenantId: tenantId,
-                                            tenantData: tenant,
-                                          ),
-                                        ),
-                                      );
-                                      if (result == true && mounted)
-                                        await _loadTenants();
-                                      break;
-                                    case 'toggle':
-                                      if (_isAnonymous) {
-                                        _showLoginPrompt(isActive
-                                            ? 'ปิดใช้งาน'
-                                            : 'เปิดใช้งาน');
-                                        return;
-                                      }
-                                      if (!canManage) return;
-                                      _toggleTenantStatus(
-                                        tenant['tenant_id'],
-                                        tenant['tenant_fullname'] ?? '',
-                                        isActive,
-                                      );
-                                      break;
-                                    case 'delete':
-                                      if (_isAnonymous) {
-                                        _showLoginPrompt('ลบผู้เช่า');
-                                        return;
-                                      }
-                                      _deleteTenant(
-                                        tenant['tenant_id'],
-                                        tenant['tenant_fullname'] ?? '',
-                                      );
-                                      break;
-                                  }
-                                },
-                                itemBuilder: (context) => [
-                                  PopupMenuItem(
-                                    value: 'view',
-                                    child: Row(
-                                      children: const [
-                                        Icon(Icons.visibility_outlined,
-                                            size: 20, color: Color(0xFF14B8A6)),
-                                        SizedBox(width: 12),
-                                        Text('ดูรายละเอียด'),
-                                      ],
-                                    ),
-                                  ),
-                                  if (canManage) ...[
-                                    if (canManage)
-                                      PopupMenuItem(
-                                        value: 'edit',
-                                        child: Row(
-                                          children: const [
-                                            Icon(Icons.edit_outlined,
-                                                size: 20,
-                                                color: Color(0xFF14B8A6)),
-                                            SizedBox(width: 12),
-                                            Text('แก้ไข'),
-                                          ],
-                                        ),
-                                      ),
-                                    PopupMenuItem(
-                                      value: 'toggle_status',
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            isActive
-                                                ? Icons.visibility_off_outlined
-                                                : Icons.visibility_outlined,
-                                            size: 20,
-                                            color: isActive
-                                                ? Colors.orange
-                                                : Colors.green,
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Text(
-                                            isActive
-                                                ? 'ปิดใช้งาน'
-                                                : 'เปิดใช้งาน',
-                                            style: TextStyle(
-                                              color: isActive
-                                                  ? Colors.orange
-                                                  : Colors.green,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    PopupMenuItem(
-                                      value: 'delete',
-                                      child: Row(
-                                        children: const [
-                                          Icon(
-                                            Icons.delete_outline,
-                                            size: 20,
-                                            color: Colors.red,
-                                          ),
-                                          SizedBox(width: 12),
-                                          Text('ลบ',
-                                              style: TextStyle(
-                                                color: Colors.red,
-                                              )),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ],
+                          Icon(
+                            Icons.phone_rounded,
+                            size: 16,
+                            color: Colors.grey.shade600,
                           ),
-                          // Phone
-                          if (phone != 'ไม่ระบุ')
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.phone_outlined,
-                                  size: 16,
-                                  color: AppTheme.primary,
-                                ),
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    phone,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        fontSize: subSize,
-                                        color: Colors.grey.shade700),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                          if (phone != 'ไม่ระบุ') const SizedBox(height: 4),
-
-                          // Branch
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.apartment_rounded,
-                                size: 16,
-                                color: AppTheme.primary,
-                              ),
-                              const SizedBox(width: 6),
-                              Flexible(
-                                child: Text(
-                                  branchName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                      fontSize: subSize,
-                                      color: Colors.grey.shade700),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 6),
-
-                          // Status badge (pill)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: isActive
-                                  ? const Color(0xFF10B981)
-                                  : Colors.grey[400],
-                              borderRadius: BorderRadius.circular(6),
-                            ),
+                          const SizedBox(width: 6),
+                          Flexible(
                             child: Text(
-                              isActive ? 'Active' : 'Inactive',
+                              phone,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: Colors.white,
-                                fontSize: badgeFontSize,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey.shade800,
                               ),
                             ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 6),
+
+                      // 🎯 แถบสถานะ + ป้ายผู้เช่า (อยู่ใต้เบอร์โทร)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          // ✅ สถานะผู้เช่า
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? const Color(0xFFDCFCE7)
+                                  : const Color(0xFFFEE2E2),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isActive
+                                        ? const Color(0xFF16A34A)
+                                        : Colors.grey,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  isActive ? 'กำลังใช้งาน' : 'ปิดใช้งาน',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: isActive
+                                        ? const Color(0xFF166534)
+                                        : Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // 🪪 ป้าย "ผู้เช่า"
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.person_outline_rounded,
+                                  size: 14,
+                                  color: AppTheme.primary,
+                                ),
+                                const SizedBox(width: 6),
+                                const Text(
+                                  'ผู้เช่า',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                // ⋯ เมนูเพิ่มเติม + ลูกศรขวา (โซน action)
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (canManage)
+                      PopupMenuButton<String>(
+                        color: Colors.white,
+                        padding: EdgeInsets.zero,
+                        icon: Icon(
+                          Icons.more_vert_rounded,
+                          size: 20,
+                          color: Colors.grey.shade700,
+                        ),
+                        tooltip: 'ตัวเลือกเพิ่มเติม',
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 8,
+                        onSelected: (value) async {
+                          final String? idStr = tenantId;
+                          if (idStr == null || idStr.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('ไม่พบรหัสผู้เช่า'),
+                                backgroundColor: Colors.red,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                            return;
+                          }
+
+                          switch (value) {
+                            // 👁 ดูรายละเอียด
+                            case 'view':
+                              if (_isAnonymous) {
+                                _showLoginPrompt('ดูรายละเอียดผู้เช่า');
+                                return;
+                              }
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      TenantDetailUI(tenantId: idStr),
+                                ),
+                              );
+                              if (result == true && mounted) {
+                                await _loadTenants();
+                              }
+                              break;
+
+                            // ✏ แก้ไขผู้เช่า
+                            case 'edit':
+                              if (_isAnonymous) {
+                                _showLoginPrompt('แก้ไขผู้เช่า');
+                                return;
+                              }
+                              if (!canManage) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content:
+                                        Text('คุณไม่มีสิทธิ์จัดการผู้เช่า'),
+                                    backgroundColor: Colors.orange,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                                return;
+                              }
+                              final editResult = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TenantEditUI(
+                                    tenantId: idStr,
+                                    tenantData: tenant,
+                                  ),
+                                ),
+                              );
+                              if (editResult == true && mounted) {
+                                await _loadTenants();
+                              }
+                              break;
+
+                            // 🔄 เปลี่ยนสถานะใช้งาน
+                            case 'toggle_status':
+                              if (_isAnonymous) {
+                                _showLoginPrompt(
+                                    isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน');
+                                return;
+                              }
+                              if (!canManage) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                        'คุณไม่มีสิทธิ์เปลี่ยนสถานะผู้เช่า'),
+                                    backgroundColor: Colors.orange,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                                return;
+                              }
+                              _toggleTenantStatus(
+                                idStr,
+                                tenantName,
+                                isActive,
+                              );
+                              break;
+
+                            // 🗑 ลบผู้เช่า
+                            case 'delete':
+                              if (_isAnonymous) {
+                                _showLoginPrompt('ลบผู้เช่า');
+                                return;
+                              }
+                              if (!canManage) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content:
+                                        Text('คุณไม่มีสิทธิ์ลบข้อมูลผู้เช่า'),
+                                    backgroundColor: Colors.orange,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                                return;
+                              }
+                              _deleteTenant(
+                                idStr,
+                                tenantName,
+                              );
+                              break;
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'view',
+                            child: Row(
+                              children: [
+                                Icon(Icons.visibility_outlined,
+                                    size: 20, color: Color(0xFF14B8A6)),
+                                SizedBox(width: 12),
+                                Text('ดูรายละเอียด'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_outlined,
+                                    size: 20, color: Color(0xFF14B8A6)),
+                                SizedBox(width: 12),
+                                Text('แก้ไข'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'toggle_status',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isActive
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  size: 20,
+                                  color:
+                                      isActive ? Colors.orange : Colors.green,
+                                ),
+                                SizedBox(width: 12),
+                                Text(
+                                  isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
+                                  style: TextStyle(
+                                    color:
+                                        isActive ? Colors.orange : Colors.green,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline,
+                                    size: 20, color: Colors.red),
+                                SizedBox(width: 12),
+                                Text('ลบ', style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    SizedBox(height: 8),
+                    // 👉 ลูกศรบอกว่ากดเข้าไปดูต่อได้
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: Colors.grey.shade500,
                     ),
                   ],
                 ),
-              );
-            },
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildImagePlaceholderCompact(String tenantName) {
+  // 🎨 Avatar fallback ตอนโหลดรูปไม่ได้ / ไม่มีรูป
+  Widget _buildInitialAvatar(String name) {
     return Container(
-      color: Colors.grey[200],
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Text(
-                _getInitials(tenantName),
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primary,
-                ),
-              ),
-            ),
-          ],
+      color: Colors.grey.shade300,
+      alignment: Alignment.center,
+      child: Text(
+        _getInitials(name),
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 18,
+          color: Colors.white,
         ),
-      ),
-    );
-  }
-
-  Widget _buildGenderBadgeCompact(String gender) {
-    final genderData = _getGenderData(gender);
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            genderData['color'].withOpacity(0.1),
-            genderData['color'].withOpacity(0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: genderData['color'].withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            genderData['icon'],
-            size: 14,
-            color: genderData['color'],
-          ),
-          SizedBox(width: 6),
-          Text(
-            genderData['label'],
-            style: TextStyle(
-              fontSize: 12,
-              color: genderData['color'],
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1542,917 +1748,12 @@ class _TenantListUIState extends State<TenantListUI> {
     );
   }
 
-  Widget _buildTenantCard(Map<String, dynamic> tenant, double screenWidth) {
-    final isActive = tenant['is_active'] ?? false;
-    final profileImageUrl = tenant['tenant_profile'];
-    final tenantId = tenant['tenant_id'];
-    final branchName = tenant['branch_name'] ?? 'ไม่ระบุสาขา';
-    final hasBranch = tenant['branch_id'] != null;
-
-    // MediaQuery-based responsive design
-    final mediaQuery = MediaQuery.of(context);
-    final screenHeight = mediaQuery.size.height;
-    final orientation = mediaQuery.orientation;
-
-    // Breakpoints
-    final isCompact = screenWidth < 380;
-    final isMobile = screenWidth < mobileBreakpoint;
-    final isTablet =
-        screenWidth >= mobileBreakpoint && screenWidth < tabletBreakpoint;
-    final isDesktop = screenWidth >= desktopBreakpoint;
-    final isLargeDesktop = screenWidth >= 1600;
-
-    // Landscape detection
-    final isLandscape = orientation == Orientation.landscape;
-
-    // Dynamic sizing based on screen size and orientation
-    final cardPadding = isCompact
-        ? 14.0
-        : isMobile
-            ? (isLandscape ? 16.0 : 18.0)
-            : isTablet
-                ? 20.0
-                : isDesktop
-                    ? 24.0
-                    : 28.0;
-
-    final profileSize = isCompact
-        ? 56.0
-        : isMobile
-            ? (isLandscape ? 60.0 : 68.0)
-            : isTablet
-                ? 72.0
-                : isDesktop
-                    ? 80.0
-                    : 88.0;
-
-    final titleSize = isCompact
-        ? 15.5
-        : isMobile
-            ? (isLandscape ? 16.0 : 17.5)
-            : isTablet
-                ? 18.0
-                : isDesktop
-                    ? 19.0
-                    : 20.0;
-
-    final subtitleSize = isCompact
-        ? 12.5
-        : isMobile
-            ? 13.5
-            : isTablet
-                ? 14.0
-                : 14.5;
-
-    final labelSize = isCompact
-        ? 11.0
-        : isMobile
-            ? 11.5
-            : 12.0;
-
-    final iconSize = isCompact
-        ? 18.0
-        : isMobile
-            ? 19.0
-            : isTablet
-                ? 20.0
-                : 21.0;
-
-    // Card elevation and border radius based on screen size
-    final cardBorderRadius = isCompact
-        ? 16.0
-        : isMobile
-            ? 18.0
-            : 20.0;
-    final contentBorderRadius = isCompact
-        ? 12.0
-        : isMobile
-            ? 14.0
-            : 16.0;
-
-    // Spacing adjustments
-    final verticalSpacing = isCompact
-        ? 14.0
-        : isMobile
-            ? 16.0
-            : isTablet
-                ? 18.0
-                : 20.0;
-    final horizontalSpacing = isCompact
-        ? 10.0
-        : isMobile
-            ? 12.0
-            : isTablet
-                ? 14.0
-                : 16.0;
-
-    return Container(
-      margin: EdgeInsets.only(
-        bottom: isCompact
-            ? 10
-            : isMobile
-                ? 12
-                : 16,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(cardBorderRadius),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDesktop ? 0.06 : 0.04),
-            blurRadius: isDesktop ? 20 : 16,
-            offset: Offset(0, isDesktop ? 6 : 4),
-          ),
-        ],
-        border: Border.all(
-          color: Colors.grey.withOpacity(0.08),
-          width: 1,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(cardBorderRadius),
-          onTap: () async {
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => TenantDetailUI(tenantId: tenantId),
-              ),
-            );
-            if (result == true && mounted) {
-              await _loadTenants();
-            }
-          },
-          child: Padding(
-            padding: EdgeInsets.all(cardPadding),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header Section - Profile + Name + Actions
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Profile Avatar with Status Indicator
-                    Flexible(
-                      flex: 0,
-                      child: Stack(
-                        children: [
-                          _buildProfileImage(
-                            profileImageUrl: profileImageUrl,
-                            tenantName: tenant['tenant_fullname'] ?? '',
-                            size: profileSize,
-                          ),
-                          // Status Dot Indicator
-                          Positioned(
-                            right: isCompact ? 0 : 2,
-                            bottom: isCompact ? 0 : 2,
-                            child: Container(
-                              width: profileSize * 0.22,
-                              height: profileSize * 0.22,
-                              decoration: BoxDecoration(
-                                color: isActive ? Colors.green : Colors.orange,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: isCompact ? 2.0 : 2.5,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: (isActive
-                                            ? Colors.green
-                                            : Colors.orange)
-                                        .withOpacity(0.3),
-                                    blurRadius: isCompact ? 4 : 6,
-                                    spreadRadius: 1,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: horizontalSpacing),
-
-                    // Name and Status Section
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Name
-                          Text(
-                            tenant['tenant_fullname'] ?? 'ไม่ระบุ',
-                            style: TextStyle(
-                              fontSize: titleSize,
-                              fontWeight: FontWeight.w700,
-                              height: 1.3,
-                              color: Colors.grey[900],
-                              letterSpacing: -0.3,
-                            ),
-                            maxLines: isLandscape && isMobile ? 1 : 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          SizedBox(height: isCompact ? 4 : 6),
-
-                          // Status Badge
-                          Wrap(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: isCompact
-                                      ? 8
-                                      : isMobile
-                                          ? 10
-                                          : 12,
-                                  vertical: isCompact ? 4 : 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: isActive
-                                        ? [
-                                            Colors.green.shade50,
-                                            Colors.green.shade100
-                                          ]
-                                        : [
-                                            Colors.orange.shade50,
-                                            Colors.orange.shade100
-                                          ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(
-                                    isCompact ? 16 : 20,
-                                  ),
-                                  border: Border.all(
-                                    color: isActive
-                                        ? Colors.green.withOpacity(0.2)
-                                        : Colors.orange.withOpacity(0.2),
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: isCompact ? 5 : 6,
-                                      height: isCompact ? 5 : 6,
-                                      decoration: BoxDecoration(
-                                        color: isActive
-                                            ? Colors.green
-                                            : Colors.orange,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    SizedBox(width: isCompact ? 4 : 6),
-                                    Text(
-                                      isActive ? 'ใช้งานอยู่' : 'ปิดการใช้งาน',
-                                      style: TextStyle(
-                                        fontSize: isCompact ? 10 : 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: isActive
-                                            ? Colors.green.shade700
-                                            : Colors.orange.shade700,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Actions Menu
-                    SizedBox(width: isCompact ? 4 : 8),
-                    Flexible(
-                      flex: 0,
-                      child: _buildActionsMenu(tenant, _canManage, isActive),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: verticalSpacing),
-
-                // Info Cards Grid
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    return Container(
-                      width: constraints.maxWidth,
-                      padding: EdgeInsets.all(
-                        isCompact
-                            ? 10
-                            : isMobile
-                                ? 14
-                                : isTablet
-                                    ? 16
-                                    : 18,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.grey.shade50,
-                            Colors.grey.shade100.withOpacity(0.5),
-                          ],
-                        ),
-                        borderRadius:
-                            BorderRadius.circular(contentBorderRadius),
-                        border: Border.all(
-                          color: Colors.grey.withOpacity(0.1),
-                          width: 1,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // ID Card Row
-                          _buildInfoRow(
-                            icon: Icons.badge_rounded,
-                            iconColor: Colors.indigo,
-                            label: 'เลขบัตรประชาชน',
-                            value: _formatIdCard(
-                                tenant['tenant_idcard'] ?? 'ไม่ระบุ'),
-                            labelSize: labelSize,
-                            valueSize: subtitleSize,
-                            iconSize: iconSize,
-                            isCompact: isCompact,
-                            isMobile: isMobile,
-                            isDesktop: isDesktop,
-                          ),
-
-                          SizedBox(
-                              height: isCompact
-                                  ? 8
-                                  : isMobile
-                                      ? 10
-                                      : 12),
-
-                          // Phone Row
-                          _buildInfoRow(
-                            icon: Icons.phone_rounded,
-                            iconColor: Colors.blue,
-                            label: 'เบอร์โทรศัพท์',
-                            value: _formatPhoneNumber(
-                                tenant['tenant_phone'] ?? 'ไม่ระบุ'),
-                            labelSize: labelSize,
-                            valueSize: subtitleSize,
-                            iconSize: iconSize,
-                            isCompact: isCompact,
-                            isMobile: isMobile,
-                            isDesktop: isDesktop,
-                          ),
-
-                          SizedBox(
-                              height: isCompact
-                                  ? 8
-                                  : isMobile
-                                      ? 10
-                                      : 12),
-
-                          // Branch Row with Manager Count
-                          _buildBranchInfoRow(
-                            hasBranch: hasBranch,
-                            branchName: branchName,
-                            managerCount: tenant['branch_manager_count'],
-                            labelSize: labelSize,
-                            valueSize: subtitleSize,
-                            iconSize: iconSize,
-                            isCompact: isCompact,
-                            isMobile: isMobile,
-                            isDesktop: isDesktop,
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-
-                // Gender Badge (if available)
-                if (tenant['gender'] != null) ...[
-                  SizedBox(
-                      height: isCompact
-                          ? 8
-                          : isMobile
-                              ? 10
-                              : 12),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: _buildGenderBadge(
-                      tenant['gender'],
-                      isCompact,
-                      isMobile,
-                      isDesktop,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
 // Helper method for info rows
-  Widget _buildInfoRow({
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    required String value,
-    required double labelSize,
-    required double valueSize,
-    required double iconSize,
-    required bool isCompact,
-    required bool isMobile,
-    required bool isDesktop,
-  }) {
-    final iconPadding = isCompact
-        ? 7.0
-        : isMobile
-            ? 9.0
-            : 10.0;
-    final iconContainerSize = iconSize + (iconPadding * 2);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Flexible(
-          flex: 0,
-          child: Container(
-            width: iconContainerSize,
-            height: iconContainerSize,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  iconColor.withOpacity(0.1),
-                  iconColor.withOpacity(0.05),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(isCompact ? 10 : 12),
-            ),
-            child: Icon(
-              icon,
-              size: iconSize,
-              color: iconColor,
-            ),
-          ),
-        ),
-        SizedBox(width: isCompact ? 10 : 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: labelSize,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                  height: 1.2,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: valueSize,
-                  color: Colors.grey[900],
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.2,
-                  height: 1.3,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-// Helper method for branch info row
-  Widget _buildBranchInfoRow({
-    required bool hasBranch,
-    required String branchName,
-    required dynamic managerCount,
-    required double labelSize,
-    required double valueSize,
-    required double iconSize,
-    required bool isCompact,
-    required bool isMobile,
-    required bool isDesktop,
-  }) {
-    final iconPadding = isCompact
-        ? 7.0
-        : isMobile
-            ? 9.0
-            : 10.0;
-    final iconContainerSize = iconSize + (iconPadding * 2);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Flexible(
-          flex: 0,
-          child: Container(
-            width: iconContainerSize,
-            height: iconContainerSize,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: hasBranch
-                    ? [
-                        Colors.purple.withOpacity(0.1),
-                        Colors.purple.withOpacity(0.05),
-                      ]
-                    : [
-                        Colors.orange.withOpacity(0.1),
-                        Colors.orange.withOpacity(0.05),
-                      ],
-              ),
-              borderRadius: BorderRadius.circular(isCompact ? 10 : 12),
-            ),
-            child: Icon(
-              Icons.business_rounded,
-              size: iconSize,
-              color:
-                  hasBranch ? Colors.purple.shade700 : Colors.orange.shade700,
-            ),
-          ),
-        ),
-        SizedBox(width: isCompact ? 10 : 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'สาขา',
-                style: TextStyle(
-                  fontSize: labelSize,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                  height: 1.2,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 2),
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      branchName,
-                      style: TextStyle(
-                        fontSize: valueSize,
-                        color:
-                            hasBranch ? Colors.grey[900] : Colors.orange[700],
-                        fontWeight: FontWeight.w600,
-                        fontStyle:
-                            hasBranch ? FontStyle.normal : FontStyle.italic,
-                        letterSpacing: -0.2,
-                        height: 1.3,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (hasBranch &&
-                      managerCount != null &&
-                      managerCount > 0) ...[
-                    SizedBox(width: isCompact ? 6 : 8),
-                    Flexible(
-                      flex: 0,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isCompact ? 6 : 8,
-                          vertical: isCompact ? 2 : 3,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.blue.shade100,
-                              Colors.blue.shade50,
-                            ],
-                          ),
-                          borderRadius:
-                              BorderRadius.circular(isCompact ? 10 : 12),
-                          border: Border.all(
-                            color: Colors.blue.withOpacity(0.2),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.people_rounded,
-                              size: isCompact ? 10 : 12,
-                              color: Colors.blue.shade700,
-                            ),
-                            SizedBox(width: isCompact ? 3 : 4),
-                            Text(
-                              '$managerCount',
-                              style: TextStyle(
-                                fontSize: isCompact ? 10 : 11,
-                                color: Colors.blue.shade700,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-// Gender Badge
-  Widget _buildGenderBadge(
-    String gender,
-    bool isCompact,
-    bool isMobile,
-    bool isDesktop,
-  ) {
-    final genderData = _getGenderData(gender);
-    final badgeIconSize = isCompact
-        ? 12.0
-        : isMobile
-            ? 13.0
-            : 14.0;
-    final badgeFontSize = isCompact
-        ? 11.0
-        : isMobile
-            ? 11.5
-            : 12.0;
-
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isCompact
-            ? 8
-            : isMobile
-                ? 10
-                : 12,
-        vertical: isCompact ? 5 : 6,
-      ),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            genderData['color'].withOpacity(0.1),
-            genderData['color'].withOpacity(0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(isCompact ? 10 : 12),
-        border: Border.all(
-          color: genderData['color'].withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            genderData['icon'],
-            size: badgeIconSize,
-            color: genderData['color'],
-          ),
-          SizedBox(width: isCompact ? 5 : 6),
-          Text(
-            genderData['label'],
-            style: TextStyle(
-              fontSize: badgeFontSize,
-              color: genderData['color'],
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-// Format ID Card
-  String _formatIdCard(String idCard) {
-    if (idCard == 'ไม่ระบุ' || idCard.length != 13) return idCard;
-    return '${idCard.substring(0, 1)}-${idCard.substring(1, 5)}-${idCard.substring(5, 10)}-${idCard.substring(10, 12)}-${idCard.substring(12)}';
-  }
 
 // Format Phone Number
   String _formatPhoneNumber(String phone) {
     if (phone == 'ไม่ระบุ' || phone.length != 10) return phone;
     return '${phone.substring(0, 3)}-${phone.substring(3, 6)}-${phone.substring(6)}';
-  }
-
-// Get Gender Data
-  Map<String, dynamic> _getGenderData(String gender) {
-    switch (gender) {
-      case 'male':
-        return {
-          'label': 'ชาย',
-          'icon': Icons.male_rounded,
-          'color': Colors.blue.shade600,
-        };
-      case 'female':
-        return {
-          'label': 'หญิง',
-          'icon': Icons.female_rounded,
-          'color': Colors.pink.shade600,
-        };
-      default:
-        return {
-          'label': 'อื่นๆ',
-          'icon': Icons.transgender_rounded,
-          'color': Colors.purple.shade600,
-        };
-    }
-  }
-
-  Widget _buildActionsMenu(
-      Map<String, dynamic> tenant, bool canManage, bool isActive) {
-    final tenantId = tenant['tenant_id'];
-    final isSuperAdmin = _currentUser?.userRole == UserRole.superAdmin;
-    return PopupMenuButton<String>(
-      icon: Icon(Icons.more_vert, color: Colors.grey[700], size: 20),
-      tooltip: 'การทำงาน',
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onSelected: (value) async {
-        switch (value) {
-          case 'view':
-            if (_isAnonymous) {
-              _showLoginPrompt('ดูรายละเอียด');
-              return;
-            }
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => TenantDetailUI(tenantId: tenantId),
-              ),
-            );
-            if (result == true && mounted) {
-              await _loadTenants();
-            }
-            break;
-          case 'edit':
-            if (_isAnonymous) {
-              _showLoginPrompt('แก้ไข');
-              return;
-            }
-            if (!canManage) return;
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => TenantEditUI(
-                  tenantId: tenantId,
-                  tenantData: tenant,
-                ),
-              ),
-            );
-            if (result == true && mounted) {
-              await _loadTenants();
-            }
-            break;
-          case 'toggle':
-            if (_isAnonymous) {
-              _showLoginPrompt(isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน');
-              return;
-            }
-            if (!canManage) return;
-            _toggleTenantStatus(
-              tenant['tenant_id'],
-              tenant['tenant_fullname'] ?? '',
-              isActive,
-            );
-            break;
-        }
-      },
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'view',
-          child: Row(
-            children: const [
-              Icon(Icons.visibility_outlined, size: 18, color: Colors.blue),
-              SizedBox(width: 12),
-              Text('ดูรายละเอียด'),
-            ],
-          ),
-        ),
-        if (canManage) ...[
-          const PopupMenuDivider(),
-          PopupMenuItem(
-            value: 'edit',
-            child: Row(
-              children: const [
-                Icon(Icons.edit_outlined, size: 18, color: Colors.orange),
-                SizedBox(width: 12),
-                Text('แก้ไข'),
-              ],
-            ),
-          ),
-          PopupMenuItem(
-            value: 'toggle',
-            child: Row(
-              children: [
-                Icon(
-                  isActive
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                  size: 18,
-                  color: isActive ? Colors.red : Colors.green,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
-                  style: TextStyle(
-                    color: isActive ? Colors.red : Colors.green,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildProfileImage({
-    required String? profileImageUrl,
-    required String tenantName,
-    required double size,
-  }) {
-    return Hero(
-      tag: 'tenant_profile_$tenantName',
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          color: AppTheme.primary.withOpacity(0.1),
-          border: Border.all(
-            color: Colors.grey.shade200,
-            width: 2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: profileImageUrl != null && profileImageUrl.isNotEmpty
-              ? Image.network(
-                  profileImageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return _buildProfileFallback(tenantName, size);
-                  },
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Center(
-                      child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                            : null,
-                        strokeWidth: 2,
-                        color: AppTheme.primary,
-                      ),
-                    );
-                  },
-                )
-              : _buildProfileFallback(tenantName, size),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfileFallback(String tenantName, double size) {
-    return Container(
-      color: AppTheme.primary.withOpacity(0.1),
-      child: Center(
-        child: Text(
-          _getInitials(tenantName),
-          style: TextStyle(
-            fontSize: size * 0.35,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.primary,
-          ),
-        ),
-      ),
-    );
   }
 
   String _getInitials(String name) {

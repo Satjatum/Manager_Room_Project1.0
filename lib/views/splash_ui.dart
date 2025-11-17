@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:manager_room_project/views/sadmin/tenant_add_ui.dart';
+import 'package:manager_room_project/views/sadmin/branchlist_ui.dart';
 import 'package:manager_room_project/views/tenant/tenantdash_ui.dart';
 import '../services/auth_service.dart';
 import '../middleware/auth_middleware.dart';
 import '../models/user_models.dart';
 import 'login_ui.dart';
-import 'sadmin/superadmindash_ui.dart';
 
 class SplashUi extends StatefulWidget {
   const SplashUi({Key? key}) : super(key: key);
@@ -190,7 +189,8 @@ class _SplashUiState extends State<SplashUi> with TickerProviderStateMixin {
 
       if (mounted) {
         await _updateProgress(0.0, 'เกิดข้อผิดพลาด กำลังรีเซ็ต...');
-        await AuthService.clearUserSession();
+        // Sign out to ensure server-side session cleanup as well
+        await AuthService.signOut();
         await Future.delayed(const Duration(seconds: 1));
         _navigateToLogin();
       }
@@ -218,11 +218,11 @@ class _SplashUiState extends State<SplashUi> with TickerProviderStateMixin {
     late Widget targetPage;
     switch (user.userRole) {
       case UserRole.superAdmin:
-        targetPage = const SuperadmindashUi();
+        targetPage = const BranchlistUi();
         break;
       case UserRole.admin:
         // Keep consistent with LoginUi behavior
-        targetPage = const SuperadmindashUi();
+        targetPage = const BranchlistUi();
         break;
       case UserRole.tenant:
         targetPage = const TenantdashUi();

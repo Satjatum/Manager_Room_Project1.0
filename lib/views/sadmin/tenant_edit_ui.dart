@@ -72,7 +72,7 @@ class _TenantEditUIState extends State<TenantEditUI>
   DateTime? _contractStartDate;
   DateTime? _contractEndDate;
   int _paymentDay = 1;
-  bool _contractPaid = false;
+  bool _contractPaid = true;
 
   UserModel? _currentUser;
 
@@ -80,6 +80,10 @@ class _TenantEditUIState extends State<TenantEditUI>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    // Rebuild when tab index changes so bottom nav reflects Back/Next/Save correctly
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     _loadCurrentUser();
     _loadTenantData();
     _loadActiveContract();
@@ -155,8 +159,9 @@ class _TenantEditUIState extends State<TenantEditUI>
           .from('rental_contracts')
           .select('''
             *,
-            rooms!inner(room_number, room_id, 
-              branches!inner(branch_name))
+            rooms!inner(room_number, room_id,
+              branches!inner(branch_name),
+              room_categories(roomcate_name))
           ''')
           .eq('tenant_id', widget.tenantId)
           .eq('contract_status', 'active')
@@ -164,7 +169,17 @@ class _TenantEditUIState extends State<TenantEditUI>
 
       if (mounted) {
         setState(() {
-          _activeContract = result;
+          // enrich active contract with flattened room category name for easy access
+          if (result != null) {
+            _activeContract = {
+              ...result,
+              'roomcate_name': result['rooms']?['room_categories']
+                      ?['roomcate_name'] ??
+                  result['roomcate_name'],
+            };
+          } else {
+            _activeContract = null;
+          }
           _isLoadingContract = false;
 
           if (result != null) {
@@ -418,10 +433,29 @@ class _TenantEditUIState extends State<TenantEditUI>
       context: context,
       initialDate: isStartDate
           ? (_contractStartDate ?? DateTime.now())
-          : (_contractEndDate ?? DateTime.now().add(const Duration(days: 365))),
-      firstDate: DateTime(2020),
+          : (_contractEndDate ?? _contractStartDate ?? DateTime.now()),
+      // Allow historical dates for start date; end date cannot be before start date
+      firstDate:
+          isStartDate ? DateTime(2000) : (_contractStartDate ?? DateTime(2000)),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
       locale: Localizations.localeOf(context),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppTheme.primary, // สีของ header และวันที่เลือก
+              onPrimary: Colors.white, // สีของตัวอักษรใน header
+              onSurface: Colors.black, // สีของวันที่ในปฏิทิน
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.black, // สีของปุ่ม Cancel และ OK
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
@@ -755,25 +789,17 @@ class _TenantEditUIState extends State<TenantEditUI>
         child: Column(
           children: [
             _buildWhiteHeader(),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey[300]!, width: 1),
-                ),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                labelColor: const Color(0xFF10B981),
-                unselectedLabelColor: Colors.grey[600],
-                indicatorColor: const Color(0xFF10B981),
-                indicatorWeight: 3,
-                tabs: const [
-                  Tab(icon: Icon(Icons.person), text: 'ข้อมูลผู้เช่า'),
-                  Tab(icon: Icon(Icons.description), text: 'ข้อมูลสัญญา'),
-                  Tab(icon: Icon(Icons.account_circle), text: 'บัญชีผู้ใช้'),
-                ],
-              ),
+            TabBar(
+              controller: _tabController,
+              labelColor: const Color(0xFF10B981),
+              unselectedLabelColor: Colors.grey[600],
+              indicatorColor: const Color(0xFF10B981),
+              indicatorWeight: 3,
+              tabs: const [
+                Tab(icon: Icon(Icons.person), text: 'ข้อมูลผู้เช่า'),
+                Tab(icon: Icon(Icons.account_circle), text: 'บัญชีผู้ใช้'),
+                Tab(icon: Icon(Icons.description), text: 'ข้อมูลสัญญา'),
+              ],
             ),
             Expanded(
               child: _isLoading
@@ -798,21 +824,7 @@ class _TenantEditUIState extends State<TenantEditUI>
                       ],
                     ),
             ),
-            if (!_isLoading)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, -2),
-                    )
-                  ],
-                ),
-                child: _buildSaveButton(),
-              ),
+            _buildSaveButton(),
           ],
         ),
       ),
@@ -820,36 +832,51 @@ class _TenantEditUIState extends State<TenantEditUI>
   }
 
   Widget _buildWhiteHeader() {
-    final name = _tenantFullNameController.text.trim();
     return Container(
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[300]!, width: 1)),
       ),
-      child: Row(
+      child: Column(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
-            onPressed: () => Navigator.pop(context),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // Top bar with back button
+          Padding(
+            padding: EdgeInsets.all(24),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Text(
-                  'แก้ไขข้อมูลผู้เช่า',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new,
+                      color: Colors.black87),
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  tooltip: 'ย้อนกลับ',
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  name.isNotEmpty ? name : 'อัปเดตข้อมูลผู้เช่า',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'แก้ไขข้อมูลผู้เช่า',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'สำหรับแก้ไขข้อมูลผู้เช่า',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -925,8 +952,8 @@ class _TenantEditUIState extends State<TenantEditUI>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildContractInfoCard(),
-          const SizedBox(height: 16),
+          // _buildContractInfoCard(),
+          // const SizedBox(height: 16),
           _buildContractEditSection(),
           const SizedBox(height: 80), // Space for bottom button
         ],
@@ -952,8 +979,16 @@ class _TenantEditUIState extends State<TenantEditUI>
               children: [
                 Row(
                   children: [
-                    Icon(Icons.account_circle, color: Color(0xFF10B981)),
-                    const SizedBox(width: 8),
+                    Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF10B981).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.account_circle_outlined,
+                          color: Color(0xFF10B981), size: 20),
+                    ),
+                    SizedBox(width: 12),
                     Text(
                       'บัญชีผู้ใช้',
                       style: TextStyle(
@@ -1084,30 +1119,30 @@ class _TenantEditUIState extends State<TenantEditUI>
                 const SizedBox(height: 16),
 
                 // Active toggle
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(12),
-                    color: Colors.grey.shade50,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.toggle_on, color: Colors.grey[600]),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Text('เปิดใช้งานบัญชีผู้ใช้'),
-                      ),
-                      Switch(
-                        value: _userIsActive,
-                        onChanged: (_hasLinkedAccount || _createUserAccount)
-                            ? (v) => setState(() => _userIsActive = v)
-                            : null,
-                        activeColor: AppTheme.primary,
-                      ),
-                    ],
-                  ),
-                ),
+                // Container(
+                //   padding: const EdgeInsets.all(12),
+                //   decoration: BoxDecoration(
+                //     border: Border.all(color: Colors.grey.shade300),
+                //     borderRadius: BorderRadius.circular(12),
+                //     color: Colors.grey.shade50,
+                //   ),
+                //   child: Row(
+                //     children: [
+                //       Icon(Icons.toggle_on, color: Colors.grey[600]),
+                //       const SizedBox(width: 8),
+                //       const Expanded(
+                //         child: Text('เปิดใช้งานบัญชีผู้ใช้'),
+                //       ),
+                //       Switch(
+                //         value: _userIsActive,
+                //         onChanged: (_hasLinkedAccount || _createUserAccount)
+                //             ? (v) => setState(() => _userIsActive = v)
+                //             : null,
+                //         activeColor: AppTheme.primary,
+                //       ),
+                //     ],
+                //   ),
+                // ),
               ],
             ),
           ),
@@ -1116,54 +1151,50 @@ class _TenantEditUIState extends State<TenantEditUI>
     );
   }
 
-  Widget _buildContractInfoCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.info_outline, color: Color(0xFF10B981)),
-              const SizedBox(width: 8),
-              Text(
-                'ข้อมูลสัญญาปัจจุบัน',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildInfoRow(
-            icon: Icons.assignment,
-            label: 'เลขที่สัญญา',
-            value: _activeContract!['contract_num'] ?? '-',
-          ),
-          const Divider(height: 24),
-          _buildInfoRow(
-            icon: Icons.home,
-            label: 'ห้องพัก',
-            value: _activeContract!['rooms']?['room_number'] ?? '-',
-          ),
-          const Divider(height: 24),
-          _buildInfoRow(
-            icon: Icons.business,
-            label: 'สาขา',
-            value:
-                _activeContract!['rooms']?['branches']?['branch_name'] ?? '-',
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildContractInfoCard() {
+  //   return Container(
+  //     padding: const EdgeInsets.all(16),
+  //     decoration: BoxDecoration(
+  //       color: Colors.white,
+  //       borderRadius: BorderRadius.circular(12),
+  //       border: Border.all(color: Colors.grey[300]!),
+  //     ),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         Row(
+  //           children: [
+  //             Icon(Icons.info_outline, color: Color(0xFF10B981)),
+  //             const SizedBox(width: 8),
+  //             Text(
+  //               'ข้อมูลสัญญาปัจจุบัน',
+  //               style: TextStyle(
+  //                 fontSize: 18,
+  //                 fontWeight: FontWeight.bold,
+  //                 color: Colors.black87,
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //         const SizedBox(height: 16),
+  //         _buildInfoRow(
+  //           icon: Icons.assignment,
+  //           label: 'เลขที่สัญญา',
+  //           value: _activeContract?['contract_num']?.toString() ?? '-',
+  //         ),
+  //         const Divider(height: 24),
+  //         _buildInfoRow(
+  //           icon: Icons.home,
+  //           label: (_activeContract?['room_category_name']?.toString() ??
+  //               _activeContract?['roomcate_name']?.toString() ??
+  //               'ประเภทห้อง'),
+  //           value: _activeContract?['rooms']?['room_number']?.toString() ?? '-',
+  //         ),
+  //         const Divider(height: 24),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildContractEditSection() {
     return Container(
@@ -1178,10 +1209,18 @@ class _TenantEditUIState extends State<TenantEditUI>
         children: [
           Row(
             children: [
-              Icon(Icons.edit, color: Color(0xFF10B981)),
-              const SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.description_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
-                'แก้ไขข้อมูลสัญญา',
+                'รายละเอียดสัญญา',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1191,6 +1230,19 @@ class _TenantEditUIState extends State<TenantEditUI>
             ],
           ),
           const SizedBox(height: 16),
+          _buildInfoRow(
+            icon: Icons.assignment,
+            label: 'เลขที่สัญญา',
+            value: _activeContract?['contract_num']?.toString() ?? '-',
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow(
+            icon: Icons.home,
+            label: 'ประเภท${_activeContract?['roomcate_name'] ?? ''}',
+            value:
+                'เลขที่ ${_activeContract?['rooms']?['room_number']?.toString() ?? _activeContract?['room_number']?.toString() ?? '-'}',
+          ),
+          const SizedBox(height: 24),
 
           // วันที่เริ่มสัญญา
           InkWell(
@@ -1334,6 +1386,7 @@ class _TenantEditUIState extends State<TenantEditUI>
 
           // วันที่ชำระประจำเดือน
           DropdownButtonFormField<int>(
+            dropdownColor: Colors.white,
             value: _paymentDay,
             decoration: InputDecoration(
               labelText: 'วันที่ชำระประจำเดือน',
@@ -1369,35 +1422,31 @@ class _TenantEditUIState extends State<TenantEditUI>
 
           // ชำระค่าประกันแล้ว
           Container(
-            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(12),
               color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
             ),
-            child: Row(
-              children: [
-                Icon(Icons.payment, color: Colors.grey[600]),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'ชำระค่าประกันแล้ว',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[700],
-                    ),
-                  ),
+            child: SwitchListTile(
+              title: const Text('ชำระค่าประกันแล้ว'),
+              subtitle: Text(
+                _contractPaid
+                    ? 'ผู้เช่าชำระค่าประกันเรียบร้อยแล้ว'
+                    : 'ผู้เช่ายังไม่ได้ชำระค่าประกัน',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: _contractPaid
+                      ? Colors.green.shade700
+                      : Colors.orange.shade700,
                 ),
-                Switch(
-                  value: _contractPaid,
-                  onChanged: (value) {
-                    setState(() {
-                      _contractPaid = value;
-                    });
-                  },
-                  activeColor: AppTheme.primary,
-                ),
-              ],
+              ),
+              value: _contractPaid,
+              onChanged: (value) {
+                setState(() {
+                  _contractPaid = value;
+                });
+              },
+              activeColor: AppTheme.primary,
             ),
           ),
           const SizedBox(height: 16),
@@ -1485,10 +1534,18 @@ class _TenantEditUIState extends State<TenantEditUI>
         children: [
           Row(
             children: [
-              Icon(Icons.person, color: Color(0xFF10B981)),
-              const SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.image_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
-                'รูปภาพโปรไฟล์',
+                'รูปภาพผู้เช่า',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1628,10 +1685,18 @@ class _TenantEditUIState extends State<TenantEditUI>
         children: [
           Row(
             children: [
-              Icon(Icons.person_outline, color: Color(0xFF10B981)),
-              const SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.business_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
-                'ข้อมูลผู้เช่า',
+                'ข้อมูลพื้นฐานผู้เช่า',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1747,6 +1812,7 @@ class _TenantEditUIState extends State<TenantEditUI>
 
           // เพศ
           DropdownButtonFormField<String>(
+            dropdownColor: Colors.white,
             value: _selectedGender,
             decoration: InputDecoration(
               labelText: 'เพศ',
@@ -1795,10 +1861,18 @@ class _TenantEditUIState extends State<TenantEditUI>
         children: [
           Row(
             children: [
-              Icon(Icons.toggle_on, color: Color(0xFF10B981)),
-              const SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.settings_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
               Text(
-                'การตั้งค่า',
+                'สถานะผู้เช่า',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -1808,25 +1882,66 @@ class _TenantEditUIState extends State<TenantEditUI>
             ],
           ),
           const SizedBox(height: 16),
-          SwitchListTile(
-            title: const Text('เปิดใช้งานผู้เช่า'),
-            subtitle: Text(
-              _isActive
-                  ? 'ผู้เช่าจะปรากฏในระบบและสามารถใช้งานได้'
-                  : 'ผู้เช่าจะถูกปิดการใช้งาน',
-              style: TextStyle(
+          Container(
+            padding: EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: _isActive ? Colors.green.shade50 : Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
                 color:
-                    _isActive ? Colors.green.shade600 : Colors.orange.shade600,
+                    _isActive ? Colors.green.shade200 : Colors.orange.shade200,
               ),
             ),
-            value: _isActive,
-            onChanged: (value) {
-              setState(() {
-                _isActive = value;
-              });
-            },
-            activeColor: AppTheme.primary,
-            contentPadding: EdgeInsets.zero,
+            child: Row(
+              children: [
+                Icon(
+                  _isActive ? Icons.check_circle : Icons.cancel,
+                  color: _isActive
+                      ? Colors.green.shade600
+                      : Colors.orange.shade600,
+                  size: 24,
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                          color: _isActive
+                              ? Colors.green.shade700
+                              : Colors.orange.shade700,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        _isActive
+                            ? 'ผู้เช่านี้จะไม่แสดงในรายการผู้ใช้ทั่วไป'
+                            : 'ผู้เช่านี้จะแสดงในรายการผู้ใช้ทั่วไป',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: _isActive
+                              ? Colors.green.shade600
+                              : Colors.orange.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: _isActive,
+                  onChanged: (value) {
+                    setState(() {
+                      _isActive = value;
+                    });
+                  },
+                  activeColor: Color(0xFF10B981),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1834,42 +1949,84 @@ class _TenantEditUIState extends State<TenantEditUI>
   }
 
   Widget _buildSaveButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 50,
-      child: ElevatedButton.icon(
-        onPressed: _isLoading ? null : _saveData,
-        icon: _isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+    final bool canSave = !_isLoading;
+
+    // ใช้รูปแบบเดียวกับ branch_edit: แสดงปุ่มย้อนกลับ/ถัดไป/บันทึกตามแท็บเสมอ
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          if (_tabController.index > 0)
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _isLoading
+                    ? null
+                    : () => _tabController.animateTo(_tabController.index - 1),
+                icon: const Icon(Icons.arrow_back, size: 18),
+                label: const Text('ย้อนกลับ'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF10B981),
+                  side: const BorderSide(color: Color(0xFF10B981)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
-              )
-            : const Icon(Icons.save, color: Colors.white),
-        label: Text(
-          _isLoading
-              ? 'กำลังบันทึก...'
-              : _tabController.index == 0
-                  ? 'บันทึกข้อมูลผู้เช่า'
-                  : _tabController.index == 1
-                      ? 'บันทึกข้อมูลสัญญา'
-                      : 'บันทึกบัญชีผู้ใช้',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+              ),
+            ),
+          if (_tabController.index > 0) const SizedBox(width: 12),
+          Expanded(
+            flex: _tabController.index == 0 ? 1 : 2,
+            child: _tabController.index < 2
+                ? ElevatedButton.icon(
+                    onPressed: _isLoading
+                        ? null
+                        : () =>
+                            _tabController.animateTo(_tabController.index + 1),
+                    label: const Text(
+                      'ถัดไป',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      elevation: 2,
+                    ),
+                  )
+                : ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _saveData,
+                    icon: const Icon(Icons.save, color: Colors.white, size: 18),
+                    label: const Text(
+                      'บันทึกการแก้ไข',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                      elevation: 2,
+                    ),
+                  ),
           ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: _isLoading ? Colors.grey : AppTheme.primary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: _isLoading ? 0 : 2,
-        ),
+        ],
       ),
     );
   }

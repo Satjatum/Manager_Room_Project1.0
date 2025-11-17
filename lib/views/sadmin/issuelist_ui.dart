@@ -7,20 +7,20 @@ import '../../services/branch_service.dart';
 import '../../models/user_models.dart';
 import '../widgets/colors.dart';
 
-class IssuelistUi extends StatefulWidget {
+class IssueListUi extends StatefulWidget {
   final String? branchId;
   final String? branchName;
-  const IssuelistUi({
+  const IssueListUi({
     Key? key,
     this.branchId,
     this.branchName,
   }) : super(key: key);
 
   @override
-  State<IssuelistUi> createState() => _IssuelistUiState();
+  State<IssueListUi> createState() => _IssueListUiState();
 }
 
-class _IssuelistUiState extends State<IssuelistUi>
+class _IssueListUiState extends State<IssueListUi>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = true;
@@ -31,7 +31,6 @@ class _IssuelistUiState extends State<IssuelistUi>
   Map<String, dynamic> _statistics = {};
   List<Map<String, dynamic>> _branches = [];
 
-  String _selectedPriority = 'all';
   String _selectedType = 'all';
   String? _selectedBranchId;
   String _searchQuery = '';
@@ -100,9 +99,22 @@ class _IssuelistUiState extends State<IssuelistUi>
 
   Future<void> _loadIssues() async {
     try {
-      _allIssues = await IssueService.getIssuesByUser(
-        branchId: _selectedBranchId,
-      );
+      // Role-based visibility
+      if (_currentUser?.userRole == UserRole.tenant) {
+        // Tenants: only their own issues (service enforces tenant_id)
+        _allIssues = await IssueService.getIssuesByUser();
+      } else if (_currentUser?.userRole == UserRole.admin ||
+          _currentUser?.userRole == UserRole.superAdmin) {
+        // Admin/Superadmin: see all issues in the selected branch (if any)
+        _allIssues = await IssueService.getAllIssues(
+          branchId: _selectedBranchId,
+        );
+      } else {
+        // Fallback to user-based scope
+        _allIssues = await IssueService.getIssuesByUser(
+          branchId: _selectedBranchId,
+        );
+      }
       _applyFilters();
     } catch (e) {
       print('Error loading issues: $e');
@@ -172,13 +184,6 @@ class _IssuelistUiState extends State<IssuelistUi>
           .toList();
     }
 
-    // Filter by priority
-    if (_selectedPriority != 'all') {
-      filtered = filtered
-          .where((issue) => issue['issue_priority'] == _selectedPriority)
-          .toList();
-    }
-
     // Filter by type
     if (_selectedType != 'all') {
       filtered = filtered
@@ -226,36 +231,6 @@ class _IssuelistUiState extends State<IssuelistUi>
     return _statistics[status] ?? 0;
   }
 
-  Color _getPriorityColor(String priority) {
-    switch (priority) {
-      case 'urgent':
-        return Colors.red;
-      case 'high':
-        return Colors.orange;
-      case 'medium':
-        return Colors.blue;
-      case 'low':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _getPriorityText(String priority) {
-    switch (priority) {
-      case 'urgent':
-        return 'ด่วนมาก';
-      case 'high':
-        return 'สูง';
-      case 'medium':
-        return 'ปานกลาง';
-      case 'low':
-        return 'ต่ำ';
-      default:
-        return priority;
-    }
-  }
-
   Color _getStatusColor(String status) {
     switch (status) {
       case 'pending':
@@ -283,23 +258,6 @@ class _IssuelistUiState extends State<IssuelistUi>
         return 'ยกเลิก';
       default:
         return status;
-    }
-  }
-
-  String _getIssueTypeText(String type) {
-    switch (type) {
-      case 'repair':
-        return 'ซ่อมแซม';
-      case 'maintenance':
-        return 'บำรุงรักษา';
-      case 'complaint':
-        return 'ร้องเรียน';
-      case 'suggestion':
-        return 'ข้อเสนอแนะ';
-      case 'other':
-        return 'อื่นๆ';
-      default:
-        return type;
     }
   }
 
@@ -385,7 +343,7 @@ class _IssuelistUiState extends State<IssuelistUi>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Issue Management',
+                              'แจ้งปัญหา',
                               style: TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
@@ -394,7 +352,7 @@ class _IssuelistUiState extends State<IssuelistUi>
                             ),
                             SizedBox(height: 4),
                             Text(
-                              'จัดการรายการปัญหาและการติดตามสถานะ',
+                              'สำหรับแจ้งปัญหา',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.black54,
@@ -418,7 +376,7 @@ class _IssuelistUiState extends State<IssuelistUi>
                     child: TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
-                        hintText: 'ค้นหาเลขที่แจ้ง, หัวข้อ, หมายเลขห้อง...',
+                        hintText: 'ค้นหา',
                         hintStyle: TextStyle(color: Colors.grey[500]),
                         prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
                         suffixIcon: _searchQuery.isNotEmpty
@@ -548,7 +506,13 @@ class _IssuelistUiState extends State<IssuelistUi>
                           builder: (context, constraints) {
                             final width = constraints.maxWidth;
                             int cols = 1;
-                            if (width >= 1200) {
+                            if (width >= 2560) {
+                              cols = 5;
+                            } else if (width >= 1920) {
+                              cols = 4;
+                            } else if (width >= 1440) {
+                              cols = 4;
+                            } else if (width >= 1200) {
                               cols = 4;
                             } else if (width >= 992) {
                               cols = 3;
@@ -569,12 +533,18 @@ class _IssuelistUiState extends State<IssuelistUi>
                             }
 
                             double aspect;
-                            if (cols >= 4) {
-                              aspect = 0.95;
-                            } else if (cols == 3) {
+                            if (width >= 2560) {
+                              aspect = 1.70;
+                            } else if (width >= 1920) {
+                              aspect = 1.50;
+                            } else if (width >= 1440) {
+                              aspect = 1.10;
+                            } else if (width >= 1200) {
+                              aspect = 1.50;
+                            } else if (width >= 992) {
                               aspect = 1.05;
                             } else {
-                              aspect = 1.1;
+                              aspect = 1.20;
                             }
 
                             return GridView.builder(
@@ -876,9 +846,8 @@ class _IssuelistUiState extends State<IssuelistUi>
     final issueNum = issue['issue_num'] ?? '';
     final title = issue['issue_title'] ?? '';
     final roomNumber = issue['room_number'] ?? '';
-    final branchName = issue['branch_name'] ?? '';
+    final roomCate = issue['room_category_name'] ?? '';
     final status = issue['issue_status'] ?? '';
-    final priority = issue['issue_priority'] ?? '';
     final type = issue['issue_type'] ?? '';
     final createdAt = issue['created_at'] != null
         ? DateTime.parse(issue['created_at'])
@@ -898,7 +867,7 @@ class _IssuelistUiState extends State<IssuelistUi>
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => IssueDetailScreen(
+              builder: (context) => IssueListDetailUi(
                 issueId: issue['issue_id'],
               ),
             ),
@@ -916,8 +885,14 @@ class _IssuelistUiState extends State<IssuelistUi>
               // Title first
               Row(
                 children: [
-                  Icon(_getIssueTypeIcon(type),
-                      size: 20, color: Colors.grey[700]),
+                  Text(
+                    'เรื่อง',
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -937,7 +912,6 @@ class _IssuelistUiState extends State<IssuelistUi>
               ),
               const SizedBox(height: 8),
 
-              // Status & Priority (inner white box with grey border)
               Container(
                 width: double.infinity,
                 padding:
@@ -967,29 +941,6 @@ class _IssuelistUiState extends State<IssuelistUi>
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _getPriorityColor(priority).withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: _getPriorityColor(priority)),
-                      ),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.flag,
-                            size: 12, color: _getPriorityColor(priority)),
-                        const SizedBox(width: 4),
-                        Text(
-                          _getPriorityText(priority),
-                          style: TextStyle(
-                            color: _getPriorityColor(priority),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ]),
-                    ),
                   ],
                 ),
               ),
@@ -997,14 +948,6 @@ class _IssuelistUiState extends State<IssuelistUi>
 
               // Details (white box with grey border)
               Builder(builder: (context) {
-                final roomCate = (issue['room_category_name'] ??
-                        issue['room_type_name'] ??
-                        issue['roomcate'] ??
-                        '')
-                    .toString();
-                final roomInfo = roomCate.isNotEmpty
-                    ? '$roomCate  $roomNumber'
-                    : roomNumber.toString();
                 final desc = (issue['issue_desc'] ?? '').toString();
                 return Container(
                   width: double.infinity,
@@ -1024,26 +967,7 @@ class _IssuelistUiState extends State<IssuelistUi>
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              branchName,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[700],
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.meeting_room,
-                              size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              roomInfo,
+                              "$roomCateเลขที่ $roomNumber",
                               style: const TextStyle(fontSize: 13),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,

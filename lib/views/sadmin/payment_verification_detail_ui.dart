@@ -6,7 +6,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 class PaymentVerificationDetailPage extends StatefulWidget {
   final String slipId;
-  const PaymentVerificationDetailPage({super.key, required this.slipId});
+  const PaymentVerificationDetailPage({
+    super.key,
+    required this.slipId,
+  });
 
   @override
   State<PaymentVerificationDetailPage> createState() =>
@@ -249,9 +252,16 @@ class _PaymentVerificationDetailPageState
   Widget _buildHeaderCard() {
     final s = _slip!;
     final inv = s['invoices'] ?? {};
-    final room = inv['rooms'] ?? {};
-    final br = room['branches'] ?? {};
-    final tenant = inv['tenants'] ?? {};
+    final room = inv.isNotEmpty ? (inv['rooms'] ?? {}) : {};
+    final br = room.isNotEmpty ? (room['branches'] ?? {}) : {};
+    final tenant = inv.isNotEmpty ? (inv['tenants'] ?? {}) : {};
+
+    // ฟิลด์แบบ flat (กรณี PromptPay pseudo)
+    final invoiceNumber = (s['invoice_number'] ?? inv['invoice_number'] ?? '-').toString();
+    final tenantName = (s['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
+    final tenantPhone = (s['tenant_phone'] ?? tenant['tenant_phone'] ?? '-').toString();
+    final roomNumber = (s['room_number'] ?? room['room_number'] ?? '-').toString();
+    final branchName = (s['branch_name'] ?? br['branch_name'] ?? '-').toString();
 
     return Card(
       child: Padding(
@@ -264,7 +274,7 @@ class _PaymentVerificationDetailPageState
                 const Icon(Icons.receipt_long, size: 18),
                 const SizedBox(width: 6),
                 Text(
-                  (inv['invoice_number'] ?? '-').toString(),
+                  invoiceNumber,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const Spacer(),
@@ -272,10 +282,10 @@ class _PaymentVerificationDetailPageState
               ],
             ),
             const SizedBox(height: 8),
-            Text('ผู้เช่า: ${tenant['tenant_fullname'] ?? '-'}'),
-            Text('เบอร์: ${tenant['tenant_phone'] ?? '-'}'),
-            Text('ห้อง: ${room['room_number'] ?? '-'}'),
-            Text('สาขา: ${br['branch_name'] ?? '-'}'),
+            Text('ผู้เช่า: $tenantName'),
+            Text('เบอร์: $tenantPhone'),
+            Text('ห้อง: $roomNumber'),
+            Text('สาขา: $branchName'),
             const Divider(height: 20),
             Row(
               children: [

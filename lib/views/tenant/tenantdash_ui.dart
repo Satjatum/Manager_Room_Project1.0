@@ -75,7 +75,7 @@ class _TenantdashUiState extends State<TenantdashUi> {
         label: 'รายการปัญหา',
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const IssuelistUi()),
+          MaterialPageRoute(builder: (_) => const IssueListUi()),
         ),
       ),
       _GridItem(

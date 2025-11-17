@@ -13,6 +13,8 @@ class RoomService {
     String? branchId,
     bool? isActive,
     String? roomStatus,
+    String? roomTypeId,
+    String? roomCategoryId,
     String orderBy = 'created_at',
     bool ascending = false,
   }) async {
@@ -42,6 +44,14 @@ class RoomService {
         query = query.eq('room_status', roomStatus);
       }
 
+      if (roomTypeId != null && roomTypeId.isNotEmpty) {
+        query = query.eq('room_type_id', roomTypeId);
+      }
+
+      if (roomCategoryId != null && roomCategoryId.isNotEmpty) {
+        query = query.eq('room_category_id', roomCategoryId);
+      }
+
       // Add ordering and pagination
       final result = await query
           .order(orderBy, ascending: ascending)
@@ -65,6 +75,8 @@ class RoomService {
   /// Get rooms by user role and permissions
   static Future<List<Map<String, dynamic>>> getRoomsByUser({
     String? branchId,
+    String? roomTypeId,
+    String? roomCategoryId,
   }) async {
     try {
       final currentUser = await AuthService.getCurrentUser();
@@ -79,7 +91,12 @@ class RoomService {
         DetailedPermission.all,
         DetailedPermission.manageRooms,
       ])) {
-        return getAllRooms(branchId: branchId, isActive: true);
+        return getAllRooms(
+          branchId: branchId,
+          isActive: true,
+          roomTypeId: roomTypeId,
+          roomCategoryId: roomCategoryId,
+        );
       }
 
       // For other users, return rooms they have access to
@@ -97,6 +114,14 @@ class RoomService {
 
       if (branchId != null && branchId.isNotEmpty) {
         query = query.eq('branch_id', branchId);
+      }
+
+      if (roomTypeId != null && roomTypeId.isNotEmpty) {
+        query = query.eq('room_type_id', roomTypeId);
+      }
+
+      if (roomCategoryId != null && roomCategoryId.isNotEmpty) {
+        query = query.eq('room_category_id', roomCategoryId);
       }
 
       final result = await query.order('room_number');
@@ -121,8 +146,8 @@ class RoomService {
       final result = await _supabase.from('rooms').select('''
         *,
         branches!inner(branch_id, branch_name, branch_code, branch_address),
-        room_types(roomtype_id, roomtype_name, roomtype_desc),
-        room_categories(roomcate_id, roomcate_name, roomcate_desc)
+        room_types(roomtype_id, roomtype_name),
+        room_categories(roomcate_id, roomcate_name)
       ''').eq('room_id', roomId).maybeSingle();
 
       if (result == null) return null;
@@ -134,9 +159,7 @@ class RoomService {
         'branch_code': result['branches']?['branch_code'],
         'branch_address': result['branches']?['branch_address'],
         'room_type_name': result['room_types']?['roomtype_name'],
-        'room_type_desc': result['room_types']?['roomtype_desc'],
         'room_category_name': result['room_categories']?['roomcate_name'],
-        'room_category_desc': result['room_categories']?['roomcate_desc'],
       };
     } catch (e) {
       throw Exception('เกิดข้อผิดพลาดในการโหลดข้อมูลห้องพัก: $e');
@@ -601,6 +624,8 @@ class RoomService {
   /// Get active rooms for public access
   static Future<List<Map<String, dynamic>>> getActiveRooms({
     String? branchId,
+    String? roomTypeId,
+    String? roomCategoryId,
   }) async {
     try {
       var query = _supabase.from('rooms').select('''
@@ -612,6 +637,14 @@ class RoomService {
 
       if (branchId != null && branchId.isNotEmpty) {
         query = query.eq('branch_id', branchId);
+      }
+
+      if (roomTypeId != null && roomTypeId.isNotEmpty) {
+        query = query.eq('room_type_id', roomTypeId);
+      }
+
+      if (roomCategoryId != null && roomCategoryId.isNotEmpty) {
+        query = query.eq('room_category_id', roomCategoryId);
       }
 
       final result = await query.order('room_number');
@@ -670,10 +703,21 @@ class RoomService {
   }
 
   /// Get room types
-  static Future<List<Map<String, dynamic>>> getRoomTypes() async {
+  static Future<List<Map<String, dynamic>>> getRoomTypes({String? branchId}) async {
     try {
-      final result =
-          await _supabase.from('room_types').select('*').order('roomtype_name');
+      String? effectiveBranchId = branchId;
+      try {
+        if (effectiveBranchId == null || effectiveBranchId.isEmpty) {
+          final currentUser = await AuthService.getCurrentUser();
+          effectiveBranchId = currentUser?.branchId;
+        }
+      } catch (_) {}
+
+      var query = _supabase.from('room_types').select('*');
+      if (effectiveBranchId != null && effectiveBranchId.isNotEmpty) {
+        query = query.eq('branch_id', effectiveBranchId);
+      }
+      final result = await query.order('roomtype_name');
 
       return List<Map<String, dynamic>>.from(result);
     } catch (e) {
@@ -682,12 +726,21 @@ class RoomService {
   }
 
   /// Get room categories
-  static Future<List<Map<String, dynamic>>> getRoomCategories() async {
+  static Future<List<Map<String, dynamic>>> getRoomCategories({String? branchId}) async {
     try {
-      final result = await _supabase
-          .from('room_categories')
-          .select('*')
-          .order('roomcate_name');
+      String? effectiveBranchId = branchId;
+      try {
+        if (effectiveBranchId == null || effectiveBranchId.isEmpty) {
+          final currentUser = await AuthService.getCurrentUser();
+          effectiveBranchId = currentUser?.branchId;
+        }
+      } catch (_) {}
+
+      var query = _supabase.from('room_categories').select('*');
+      if (effectiveBranchId != null && effectiveBranchId.isNotEmpty) {
+        query = query.eq('branch_id', effectiveBranchId);
+      }
+      final result = await query.order('roomcate_name');
 
       return List<Map<String, dynamic>>.from(result);
     } catch (e) {
@@ -696,10 +749,21 @@ class RoomService {
   }
 
   /// Get amenities
-  static Future<List<Map<String, dynamic>>> getAmenities() async {
+  static Future<List<Map<String, dynamic>>> getAmenities({String? branchId}) async {
     try {
-      final result =
-          await _supabase.from('amenities').select('*').order('amenities_name');
+      String? effectiveBranchId = branchId;
+      try {
+        if (effectiveBranchId == null || effectiveBranchId.isEmpty) {
+          final currentUser = await AuthService.getCurrentUser();
+          effectiveBranchId = currentUser?.branchId;
+        }
+      } catch (_) {}
+
+      var query = _supabase.from('amenities').select('*');
+      if (effectiveBranchId != null && effectiveBranchId.isNotEmpty) {
+        query = query.eq('branch_id', effectiveBranchId);
+      }
+      final result = await query.order('amenities_name');
 
       return List<Map<String, dynamic>>.from(result);
     } catch (e) {
@@ -713,7 +777,7 @@ class RoomService {
     try {
       final result = await _supabase.from('room_amenities').select('''
         *,
-        amenities!inner(amenities_id, amenities_name, amenities_icon, amenities_desc)
+        amenities!inner(amenities_id, amenities_name, amenities_icon)
       ''').eq('room_id', roomId);
 
       return List<Map<String, dynamic>>.from(result).map((item) {
@@ -721,7 +785,6 @@ class RoomService {
           'amenities_id': item['amenities']?['amenities_id'],
           'amenities_name': item['amenities']?['amenities_name'],
           'amenities_icon': item['amenities']?['amenities_icon'],
-          'amenities_desc': item['amenities']?['amenities_desc'],
         };
       }).toList();
     } catch (e) {
@@ -836,8 +899,24 @@ class RoomService {
         return {'success': false, 'message': 'ไม่มีสิทธิ์ในการสร้างประเภทห้อง'};
       }
 
-      final result =
-          await _supabase.from('room_types').insert(data).select().single();
+      if ((currentUser.branchId ?? '').isEmpty) {
+        return {
+          'success': false,
+          'message': 'กรุณาเลือกสาขา (branch) ก่อนเพิ่มประเภทห้อง',
+        };
+      }
+
+      final insertData = {
+        ...data,
+        'branch_id': currentUser.branchId,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      final result = await _supabase
+          .from('room_types')
+          .insert(insertData)
+          .select()
+          .single();
 
       return {
         'success': true,
@@ -867,7 +946,10 @@ class RoomService {
 
       final result = await _supabase
           .from('room_types')
-          .update(data)
+          .update({
+            ...data,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
           .eq('roomtype_id', id)
           .select()
           .single();
@@ -945,9 +1027,22 @@ class RoomService {
         };
       }
 
+      if ((currentUser.branchId ?? '').isEmpty) {
+        return {
+          'success': false,
+          'message': 'กรุณาเลือกสาขา (branch) ก่อนเพิ่มหมวดหมู่ห้อง',
+        };
+      }
+
+      final insertData = {
+        ...data,
+        'branch_id': currentUser.branchId,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
       final result = await _supabase
           .from('room_categories')
-          .insert(data)
+          .insert(insertData)
           .select()
           .single();
 
@@ -982,7 +1077,10 @@ class RoomService {
 
       final result = await _supabase
           .from('room_categories')
-          .update(data)
+          .update({
+            ...data,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
           .eq('roomcate_id', id)
           .select()
           .single();
@@ -1060,8 +1158,24 @@ class RoomService {
         };
       }
 
-      final result =
-          await _supabase.from('amenities').insert(data).select().single();
+      if ((currentUser.branchId ?? '').isEmpty) {
+        return {
+          'success': false,
+          'message': 'กรุณาเลือกสาขา (branch) ก่อนเพิ่มสิ่งอำนวยความสะดวก',
+        };
+      }
+
+      final insertData = {
+        ...data,
+        'branch_id': currentUser.branchId,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      final result = await _supabase
+          .from('amenities')
+          .insert(insertData)
+          .select()
+          .single();
 
       return {
         'success': true,
@@ -1094,7 +1208,10 @@ class RoomService {
 
       final result = await _supabase
           .from('amenities')
-          .update(data)
+          .update({
+            ...data,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
           .eq('amenities_id', id)
           .select()
           .single();

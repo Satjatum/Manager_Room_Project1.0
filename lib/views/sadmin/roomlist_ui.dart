@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:manager_room_project/views/sadmin/amenities_ui.dart';
-import 'package:manager_room_project/views/sadmin/room_add_ui.dart';
-import 'package:manager_room_project/views/sadmin/room_edit_ui.dart';
-import 'package:manager_room_project/views/sadmin/roomcate_ui.dart';
-import 'package:manager_room_project/views/sadmin/roomlist_detail_ui.dart';
-import 'package:manager_room_project/views/sadmin/roomtype_ui.dart';
-// เพิ่ม import หน้าจัดการข้อมูลพื้นฐาน
-
+//--------
 import '../../models/user_models.dart';
+//--------
 import '../../middleware/auth_middleware.dart';
+//--------
 import '../../services/room_service.dart';
+//--------
+import 'room_add_ui.dart';
+import 'room_edit_ui.dart';
+import 'roomlist_detail_ui.dart';
+//--------
 import '../widgets/colors.dart';
 
 class RoomListUI extends StatefulWidget {
@@ -32,11 +32,15 @@ class _RoomListUIState extends State<RoomListUI> {
   List<Map<String, dynamic>> _rooms = [];
   List<Map<String, dynamic>> _filteredRooms = [];
   List<Map<String, dynamic>> _branches = [];
+  List<Map<String, dynamic>> _roomTypes = [];
+  List<Map<String, dynamic>> _roomCategories = [];
   Map<String, List<Map<String, dynamic>>> _roomAmenities = {};
   bool _isLoading = true;
   String _searchQuery = '';
   String _selectedStatus = 'all';
   String _selectedRoomStatusFilter = 'all';
+  String? _selectedRoomTypeId;
+  String? _selectedRoomCategoryId;
   String? _selectedBranchId;
   UserModel? _currentUser;
   bool _isAnonymous = false;
@@ -82,9 +86,27 @@ class _RoomListUIState extends State<RoomListUI> {
         });
       }
     } catch (e) {
-      print('Error loading branches: $e');
+      print('เกิดข้อผิดพลาดในการโหลดสาขา: $e');
     }
+    await _loadTypeAndCategoryFilters();
     _loadRooms();
+  }
+
+  Future<void> _loadTypeAndCategoryFilters() async {
+    try {
+      final types = await RoomService.getRoomTypes(branchId: _selectedBranchId);
+      final cates =
+          await RoomService.getRoomCategories(branchId: _selectedBranchId);
+      if (mounted) {
+        setState(() {
+          _roomTypes = types;
+          _roomCategories = cates;
+        });
+      }
+    } catch (e) {
+      // Non-fatal; keep current filters empty
+      debugPrint('เกิดข้อผิดพลาดในการโหลดฟิลเตอร์: $e');
+    }
   }
 
   Future<void> _loadRooms() async {
@@ -112,7 +134,8 @@ class _RoomListUIState extends State<RoomListUI> {
           final amenities = await RoomService.getRoomAmenities(room['room_id']);
           amenitiesMap[room['room_id']] = amenities;
         } catch (e) {
-          print('Error loading amenities for room ${room['room_id']}: $e');
+          print(
+              'ไม่สามารถโหลดสิ่งอำนวยความสะดวกของห้องได้ ${room['room_id']}: $e');
           amenitiesMap[room['room_id']] = [];
         }
       }
@@ -120,10 +143,11 @@ class _RoomListUIState extends State<RoomListUI> {
       if (mounted) {
         setState(() {
           _rooms = rooms;
-          _filteredRooms = _rooms;
           _roomAmenities = amenitiesMap;
           _isLoading = false;
         });
+        // Apply current filters to rooms
+        _filterRooms();
       }
     } catch (e) {
       if (mounted) {
@@ -164,14 +188,6 @@ class _RoomListUIState extends State<RoomListUI> {
     _loadRooms();
   }
 
-  void _onBranchChanged(String? branchId) {
-    setState(() {
-      _selectedBranchId = branchId;
-    });
-    _refreshAddPermission();
-    _loadRooms();
-  }
-
   void _onRoomStatusFilterChanged(String? status) {
     setState(() {
       _selectedRoomStatusFilter = status ?? 'all';
@@ -205,37 +221,26 @@ class _RoomListUIState extends State<RoomListUI> {
         final matchesStatus = _selectedRoomStatusFilter == 'all' ||
             (room['room_status'] ?? 'unknown') == _selectedRoomStatusFilter;
 
-        return matchesSearch && matchesStatus;
+        final matchesType = _selectedRoomTypeId == null ||
+            (room['room_type_id']?.toString() ?? '') == _selectedRoomTypeId;
+
+        final matchesCategory = _selectedRoomCategoryId == null ||
+            (room['room_category_id']?.toString() ?? '') ==
+                _selectedRoomCategoryId;
+
+        final matchesActive = _selectedStatus == 'all'
+            ? true
+            : ((_selectedStatus == 'active')
+                ? (room['is_active'] == true)
+                : (room['is_active'] == false));
+
+        return matchesSearch &&
+            matchesStatus &&
+            matchesType &&
+            matchesCategory &&
+            matchesActive;
       }).toList();
     });
-  }
-
-  String _getActiveFiltersText() {
-    List<String> filters = [];
-
-    if (_selectedBranchId != null) {
-      final branch = _branches.firstWhere(
-        (b) => b['branch_id'] == _selectedBranchId,
-        orElse: () => {},
-      );
-      if (branch.isNotEmpty) {
-        filters.add('สาขา: ${branch['branch_name']}');
-      }
-    }
-
-    if (_selectedStatus != 'all') {
-      filters.add(_selectedStatus == 'active' ? 'เปิดใช้งาน' : 'ปิดใช้งาน');
-    }
-
-    if (_selectedRoomStatusFilter != 'all') {
-      filters.add('สถานะ: ${_getStatusText(_selectedRoomStatusFilter)}');
-    }
-
-    if (_searchQuery.isNotEmpty) {
-      filters.add('ค้นหา: "$_searchQuery"');
-    }
-
-    return filters.isEmpty ? 'แสดงทั้งหมด' : filters.join(' • ');
   }
 
   void _showLoginPrompt(String action) {
@@ -272,136 +277,27 @@ class _RoomListUIState extends State<RoomListUI> {
     );
   }
 
-  // ฟังก์ชันแสดงเมนูจัดการข้อมูลพื้นฐาน
-  void _showMasterDataMenu() {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            SizedBox(height: 20),
-            Text(
-              'จัดการข้อมูลพื้นฐาน',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 16),
-            Divider(height: 1),
-            _buildMasterDataMenuItem(
-              icon: Icons.category_outlined,
-              title: 'จัดการประเภทห้อง',
-              subtitle: 'ห้องพัดลม, ห้องแอร์, Studio',
-              color: Colors.blue,
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => RoomTypesUI(),
-                  ),
-                ).then((_) => _loadRooms());
-              },
-            ),
-            Divider(height: 1),
-            _buildMasterDataMenuItem(
-              icon: Icons.grid_view_outlined,
-              title: 'จัดการหมวดหมู่ห้อง',
-              subtitle: 'ห้องเดี่ยว, ห้องคู่, ห้องครอบครัว',
-              color: Colors.purple,
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => RoomCategoriesUI(),
-                  ),
-                ).then((_) => _loadRooms());
-              },
-            ),
-            Divider(height: 1),
-            _buildMasterDataMenuItem(
-              icon: Icons.stars_outlined,
-              title: 'จัดการสิ่งอำนวยความสะดวก',
-              subtitle: 'แอร์, WiFi, ตู้เสื้อผ้า, ที่จอดรถ',
-              color: Colors.orange,
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AmenitiesUI(),
-                  ),
-                ).then((_) => _loadRooms());
-              },
-            ),
-            SizedBox(height: 10),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMasterDataMenuItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Container(
-        padding: EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(icon, color: color, size: 24),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          fontSize: 12,
-          color: Colors.grey[600],
-        ),
-      ),
-      trailing: Icon(Icons.chevron_right, color: Colors.grey[400]),
-      onTap: onTap,
-    );
-  }
-
   Future<void> _toggleRoomStatus(
       String roomId, String roomNumber, bool currentActive) async {
+    final room = _rooms.firstWhere(
+      (r) => (r['room_id']?.toString() ?? '') == roomId.toString(),
+      orElse: () => const {},
+    );
+    final categoryName = (room['room_category_name'] ?? '').toString();
+
     if (_isAnonymous) {
-      _showLoginPrompt('เปลี่ยนสถานะห้อง');
+      _showLoginPrompt(
+          "เปลี่ยนสถานะ ${categoryName.isNotEmpty ? categoryName : 'ห้อง $roomNumber'}");
       return;
     }
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Container(
           padding: EdgeInsets.all(24),
           constraints: BoxConstraints(maxWidth: 400),
@@ -431,7 +327,9 @@ class _RoomListUIState extends State<RoomListUI> {
 
               // Title
               Text(
-                currentActive ? 'ปิดใช้งานห้อง?' : 'เปิดใช้งานห้อง?',
+                currentActive
+                    ? 'คุณต้องการปิดใช้งานหรือไม่?'
+                    : 'คุณต้องการเปิดใช้งานหรือไม่?',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -455,7 +353,7 @@ class _RoomListUIState extends State<RoomListUI> {
                     SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        'Room $roomNumber',
+                        '$categoryNameเลขที่ $roomNumber',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -501,8 +399,8 @@ class _RoomListUIState extends State<RoomListUI> {
                     Expanded(
                       child: Text(
                         currentActive
-                            ? 'ห้องนี้จะไม่แสดงในรายการสำหรับผู้ใช้ทั่วไปและไม่สามารถถูกจองได้'
-                            : 'ห้องนี้จะแสดงในรายการสำหรับผู้ใช้ทั่วไปและสามารถถูกจองได้',
+                            ? '$categoryNameนี้จะไม่แสดงในรายการผู้ใช้ทั่วไป'
+                            : '$categoryNameนี้จะแสดงในรายการผู้ใช้ทั่วไป',
                         style: TextStyle(
                           color: currentActive
                               ? Colors.orange.shade800
@@ -644,8 +542,8 @@ class _RoomListUIState extends State<RoomListUI> {
                   SizedBox(height: 20),
                   Text(
                     currentActive
-                        ? 'กำลังปิดใช้งานห้อง'
-                        : 'กำลังเปิดใช้งานห้อง',
+                        ? 'กำลังปิดใช้งาน$categoryName'
+                        : 'กำลังเปิดใช้งาน$categoryName',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -689,7 +587,7 @@ class _RoomListUIState extends State<RoomListUI> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
+              content: Text(e.toString().replaceAll('ข้อยกเว้น: ', '')),
               backgroundColor: Colors.red,
               duration: Duration(seconds: 3),
             ),
@@ -700,14 +598,22 @@ class _RoomListUIState extends State<RoomListUI> {
   }
 
   Future<void> _deleteRoom(String roomId, String roomNumber) async {
+    final room = _rooms.firstWhere(
+      (r) => (r['room_id']?.toString() ?? '') == roomId.toString(),
+      orElse: () => const {},
+    );
+    final categoryName = (room['room_category_name'] ?? '').toString();
+
     if (_isAnonymous) {
-      _showLoginPrompt('ลบห้อง');
+      _showLoginPrompt(
+          "ยืนยันการลบ ${categoryName.isNotEmpty ? categoryName : 'ห้อง $roomNumber'}");
       return;
     }
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           padding: EdgeInsets.all(24),
@@ -731,7 +637,7 @@ class _RoomListUIState extends State<RoomListUI> {
               SizedBox(height: 20),
               // Title
               Text(
-                'Delete Room?',
+                'คุณต้องการลบ$categoryNameหรือไม่?',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -754,7 +660,7 @@ class _RoomListUIState extends State<RoomListUI> {
                     SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        'Room $roomNumber',
+                        '$categoryNameเลขที่ $roomNumber',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -787,7 +693,7 @@ class _RoomListUIState extends State<RoomListUI> {
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'การดำเนินการนี้ไม่สามารถย้อนกลับได้\nข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
+                        'ข้อมูลทั้งหมดจะถูกลบถาวร',
                         style: TextStyle(
                           color: Colors.red.shade800,
                           fontSize: 13,
@@ -814,7 +720,7 @@ class _RoomListUIState extends State<RoomListUI> {
                         ),
                       ),
                       child: Text(
-                        'Cancel',
+                        'ยกเลิก',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -841,7 +747,7 @@ class _RoomListUIState extends State<RoomListUI> {
                           Icon(Icons.delete_outline, size: 18),
                           SizedBox(width: 8),
                           Text(
-                            'Delete',
+                            'ลบ',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -910,7 +816,7 @@ class _RoomListUIState extends State<RoomListUI> {
                   ),
                   SizedBox(height: 20),
                   Text(
-                    'Deleting Room',
+                    'ลบ$categoryNameเลขที่ $roomNumber',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -919,7 +825,7 @@ class _RoomListUIState extends State<RoomListUI> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Please wait a moment...',
+                    'กรุณารอสักครู่...',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                 ],
@@ -954,7 +860,7 @@ class _RoomListUIState extends State<RoomListUI> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
+              content: Text(e.toString().replaceAll('ข้อยกเว้น: ', '')),
               backgroundColor: Colors.red,
               duration: Duration(seconds: 3),
             ),
@@ -1067,181 +973,197 @@ class _RoomListUIState extends State<RoomListUI> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Section (match branchlist_ui) + Back Arrow
-              Padding(
-                padding: EdgeInsets.all(24),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon:
-                          Icon(Icons.arrow_back_ios_new, color: Colors.black87),
-                      onPressed: () {
-                        if (Navigator.of(context).canPop()) {
-                          Navigator.of(context).pop();
-                        }
-                      },
-                      tooltip: 'ย้อนกลับ',
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            'Room Management',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Section (match branchlist_ui) + Back Arrow
+            Padding(
+              padding: EdgeInsets.all(24),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    tooltip: 'ย้อนกลับ',
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          'จัดการห้องพัก',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
                           ),
-                          SizedBox(height: 4),
-                          Text(
-                            'Manage your rooms and details',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.black54,
-                            ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'สำหรับจัดการห้องพัก',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black54,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
 
-              // Search and Filters in a single horizontal row (scrollable)
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    // Search Bar
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: _onSearchChanged,
-                        decoration: InputDecoration(
-                          hintText: 'Search',
-                          hintStyle:
-                              TextStyle(color: Colors.grey[500], fontSize: 14),
-                          prefixIcon: Icon(Icons.search,
-                              color: Colors.grey[600], size: 20),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: Icon(Icons.clear,
-                                      color: Colors.grey[600], size: 20),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    _onSearchChanged('');
-                                  },
-                                )
-                              : null,
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
-                        ),
+            // Search and Filters in a single horizontal row (scrollable)
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  // Search Bar
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: _onSearchChanged,
+                      decoration: InputDecoration(
+                        hintText: 'ค้นหา',
+                        hintStyle:
+                            TextStyle(color: Colors.grey[500], fontSize: 14),
+                        prefixIcon: Icon(Icons.search,
+                            color: Colors.grey[600], size: 20),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(Icons.clear,
+                                    color: Colors.grey[600], size: 20),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _onSearchChanged('');
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              SizedBox(height: 16),
-              // Active status
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    SizedBox(
-                      child: Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.filter_list,
-                                size: 20, color: Colors.grey[700]),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedStatus,
-                                  isExpanded: true,
-                                  icon:
-                                      Icon(Icons.keyboard_arrow_down, size: 20),
-                                  style: TextStyle(
-                                      fontSize: 14, color: Colors.black87),
-                                  onChanged: _onStatusChanged,
-                                  items: const [
-                                    DropdownMenuItem(
-                                        value: 'all', child: Text('All')),
-                                    DropdownMenuItem(
-                                        value: 'active', child: Text('Active')),
-                                    DropdownMenuItem(
-                                        value: 'inactive',
-                                        child: Text('Inactive')),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (_branches.isNotEmpty && widget.branchId == null) ...[
-                      SizedBox(height: 12),
-                      SizedBox(
+            ),
+            SizedBox(height: 16),
+
+            // Filltter
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ---------------- Row 1: สถานะการใช้งาน + สถานะห้อง ----------------
+                  Row(
+                    children: [
+                      // สถานะการใช้งาน
+                      Expanded(
                         child: Container(
-                          padding:
-                              EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.grey[300]!),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.place_outlined,
+                              Icon(Icons.power_settings_new,
                                   size: 20, color: Colors.grey[700]),
-                              SizedBox(width: 8),
+                              const SizedBox(width: 8),
                               Expanded(
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
-                                    value: _selectedBranchId ?? 'all',
+                                    dropdownColor: Colors.white,
+                                    value: _selectedStatus,
                                     isExpanded: true,
-                                    icon: Icon(Icons.keyboard_arrow_down,
+                                    icon: const Icon(Icons.keyboard_arrow_down,
                                         size: 20),
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                         fontSize: 14, color: Colors.black87),
-                                    items: [
-                                      DropdownMenuItem(
-                                        value: 'all',
-                                        child: Text('ทุกสาขา'),
-                                      ),
-                                      ..._branches.map((branch) {
-                                        return DropdownMenuItem<String>(
-                                          value: branch['branch_id'] as String,
-                                          child:
-                                              Text(branch['branch_name'] ?? ''),
-                                        );
-                                      }).toList(),
-                                    ],
-                                    onChanged: (value) {
-                                      _onBranchChanged(
-                                          value == 'all' ? null : value);
+                                    onChanged: (val) {
+                                      _onStatusChanged(val);
+                                      _filterRooms();
                                     },
+                                    items: const [
+                                      DropdownMenuItem(
+                                          value: 'all', child: Text('ทั้งหมด')),
+                                      DropdownMenuItem(
+                                          value: 'active',
+                                          child: Text('เปิดใช้งาน')),
+                                      DropdownMenuItem(
+                                          value: 'inactive',
+                                          child: Text('ปิดใช้งาน')),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 8),
+
+                      // สถานะห้อง
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline,
+                                  size: 20, color: Colors.grey[700]),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    dropdownColor: Colors.white,
+                                    value: _selectedRoomStatusFilter,
+                                    isExpanded: true,
+                                    icon: const Icon(Icons.keyboard_arrow_down,
+                                        size: 20),
+                                    style: const TextStyle(
+                                        fontSize: 14, color: Colors.black87),
+                                    onChanged: _onRoomStatusFilterChanged,
+                                    items: const [
+                                      DropdownMenuItem(
+                                          value: 'all', child: Text('ทั้งหมด')),
+                                      DropdownMenuItem(
+                                          value: 'available',
+                                          child: Text('ห้องว่าง')),
+                                      DropdownMenuItem(
+                                          value: 'occupied',
+                                          child: Text('มีผู้เช่า')),
+                                      DropdownMenuItem(
+                                          value: 'maintenance',
+                                          child: Text('ซ่อมบำรุง')),
+                                      DropdownMenuItem(
+                                          value: 'reserved',
+                                          child: Text('จอง')),
+                                      DropdownMenuItem(
+                                          value: 'unknown',
+                                          child: Text('ไม่ทราบ')),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -1250,224 +1172,279 @@ class _RoomListUIState extends State<RoomListUI> {
                         ),
                       ),
                     ],
-                    SizedBox(height: 16),
-                    // Room status
-                    SizedBox(
-                      child: Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.hotel_class_rounded,
-                                size: 20, color: Colors.grey[700]),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedRoomStatusFilter,
-                                  isExpanded: true,
-                                  icon:
-                                      Icon(Icons.keyboard_arrow_down, size: 20),
-                                  style: TextStyle(
-                                      fontSize: 14, color: Colors.black87),
-                                  onChanged: _onRoomStatusFilterChanged,
-                                  items: const [
-                                    DropdownMenuItem(
-                                        value: 'all', child: Text('ทั้งหมด')),
-                                    DropdownMenuItem(
-                                        value: 'available',
-                                        child: Text('ห้องว่าง')),
-                                    DropdownMenuItem(
-                                        value: 'occupied',
-                                        child: Text('มีผู้เช่า')),
-                                    DropdownMenuItem(
-                                        value: 'maintenance',
-                                        child: Text('ซ่อมบำรุง')),
-                                    DropdownMenuItem(
-                                        value: 'reserved', child: Text('จอง')),
-                                    DropdownMenuItem(
-                                        value: 'unknown',
-                                        child: Text('ไม่ทราบ')),
-                                  ],
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // ---------------- Row 2: หมวดหมู่ห้อง + ประเภทห้อง ----------------
+                  Row(
+                    children: [
+                      // หมวดหมู่ห้อง
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.grid_view_rounded,
+                                  size: 20, color: Colors.grey[700]),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    dropdownColor: Colors.white,
+                                    value: _selectedRoomCategoryId ?? 'all',
+                                    isExpanded: true,
+                                    icon: const Icon(Icons.keyboard_arrow_down,
+                                        size: 20),
+                                    style: const TextStyle(
+                                        fontSize: 14, color: Colors.black87),
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _selectedRoomCategoryId =
+                                            val == 'all' ? null : val;
+                                      });
+                                      _filterRooms();
+                                    },
+                                    items: [
+                                      const DropdownMenuItem(
+                                          value: 'all', child: Text('ทั้งหมด')),
+                                      ..._roomCategories.map((c) =>
+                                          DropdownMenuItem<String>(
+                                            value: c['roomcate_id']?.toString(),
+                                            child:
+                                                Text(c['roomcate_name'] ?? ''),
+                                          )),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              // Active status
 
-              SizedBox(height: 16),
+                      const SizedBox(width: 8),
 
-              // Results Count
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Text(
-                  'Showing ${_filteredRooms.length} of ${_rooms.length} rooms',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                ),
-              ),
-
-              Expanded(
-                child: _isLoading
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircularProgressIndicator(color: AppTheme.primary),
-                            SizedBox(height: 16),
-                            Text('กำลังโหลดข้อมูล...'),
-                          ],
-                        ),
-                      )
-                    : _filteredRooms.isEmpty
-                        ? _buildEmptyState()
-                        : RefreshIndicator(
-                            onRefresh: _loadRooms,
-                            color: AppTheme.primary,
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                final width = constraints.maxWidth;
-
-                                // Responsive Grid Columns based on screen width
-                                int cols = 1;
-                                double horizontalPadding = 24;
-                                double crossSpacing = 12;
-                                double mainSpacing = 12;
-
-                                // Breakpoints for responsive columns
-                                if (width >= 2560) {
-                                  // 4K screens - 5 columns
-                                  cols = 5;
-                                  horizontalPadding = 32;
-                                  crossSpacing = 16;
-                                  mainSpacing = 16;
-                                } else if (width >= 1440) {
-                                  // Laptop L - 4 columns
-                                  cols = 4;
-                                  horizontalPadding = 28;
-                                  crossSpacing = 14;
-                                  mainSpacing = 14;
-                                } else if (width >= 1024) {
-                                  // Laptop - 3 columns
-                                  cols = 3;
-                                  horizontalPadding = 24;
-                                  crossSpacing = 12;
-                                  mainSpacing = 12;
-                                } else if (width >= 768) {
-                                  // Tablet - 2 columns
-                                  cols = 2;
-                                  horizontalPadding = 20;
-                                  crossSpacing = 10;
-                                  mainSpacing = 10;
-                                }
-
-                                // Mobile - use ListView
-                                if (cols == 1) {
-                                  return ListView.builder(
-                                    padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
-                                    itemCount: _filteredRooms.length,
-                                    itemBuilder: (context, index) {
-                                      final room = _filteredRooms[index];
-                                      return _buildRoomCard(room, _canManage);
+                      // ประเภทห้อง
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.category_outlined,
+                                  size: 20, color: Colors.grey[700]),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    dropdownColor: Colors.white,
+                                    value: _selectedRoomTypeId ?? 'all',
+                                    isExpanded: true,
+                                    icon: const Icon(Icons.keyboard_arrow_down,
+                                        size: 20),
+                                    style: const TextStyle(
+                                        fontSize: 14, color: Colors.black87),
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _selectedRoomTypeId =
+                                            val == 'all' ? null : val;
+                                      });
+                                      _filterRooms();
                                     },
-                                  );
-                                }
-
-                                // Calculate dynamic aspect ratio for grid
-                                final double availableWidth = width -
-                                    (horizontalPadding * 2) -
-                                    (crossSpacing * (cols - 1));
-                                final double tileWidth = availableWidth / cols;
-
-                                // Responsive height estimation based on screen size
-                                // เพิ่มความสูงการ์ดมากขึ้นเพื่อแก้ไข overflow
-                                double estimatedTileHeight;
-
-                                if (width >= 2560) {
-                                  // 4K - larger cards
-                                  estimatedTileHeight = tileWidth * 1.55;
-                                } else if (width >= 1440) {
-                                  // Laptop L - เพิ่มความสูงเพื่อแก้ 82px overflow
-                                  estimatedTileHeight = tileWidth * 1.60;
-                                } else if (width >= 1024) {
-                                  // Laptop - เพิ่มความสูงเพื่อแก้ 67px overflow
-                                  estimatedTileHeight = tileWidth * 1.58;
-                                } else if (width >= 768) {
-                                  // Tablet
-                                  estimatedTileHeight = tileWidth * 1.50;
-                                } else {
-                                  // Fallback
-                                  estimatedTileHeight = tileWidth * 1.50;
-                                }
-
-                                double dynamicAspect =
-                                    tileWidth / estimatedTileHeight;
-                                // ปรับ clamp range ให้รองรับการ์ดที่สูงขึ้นมาก
-                                dynamicAspect = dynamicAspect.clamp(0.55, 0.85);
-
-                                return GridView.builder(
-                                  padding: EdgeInsets.fromLTRB(
-                                      horizontalPadding,
-                                      8,
-                                      horizontalPadding,
-                                      24),
-                                  gridDelegate:
-                                      SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: cols,
-                                    crossAxisSpacing: crossSpacing,
-                                    mainAxisSpacing: mainSpacing,
-                                    childAspectRatio: dynamicAspect,
+                                    items: [
+                                      const DropdownMenuItem(
+                                          value: 'all', child: Text('ทั้งหมด')),
+                                      ..._roomTypes.map((t) =>
+                                          DropdownMenuItem<String>(
+                                            value: t['roomtype_id']?.toString(),
+                                            child:
+                                                Text(t['roomtype_name'] ?? ''),
+                                          )),
+                                    ],
                                   ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Active status
+
+            SizedBox(height: 16),
+
+            // Results Count
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Text(
+                'Showing ${_filteredRooms.length} of ${_rooms.length} rooms',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              ),
+            ),
+
+            Expanded(
+              child: _isLoading
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(color: AppTheme.primary),
+                          SizedBox(height: 16),
+                          Text('กำลังโหลดข้อมูล...'),
+                        ],
+                      ),
+                    )
+                  : _filteredRooms.isEmpty
+                      ? _buildEmptyState()
+                      : RefreshIndicator(
+                          onRefresh: _loadRooms,
+                          color: AppTheme.primary,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final width = constraints.maxWidth;
+
+                              // Responsive Grid Columns based on screen width
+                              int cols = 1;
+                              double horizontalPadding = 24;
+                              double crossSpacing = 12;
+                              double mainSpacing = 12;
+
+                              // Breakpoints for responsive columns
+                              if (width >= 2560) {
+                                // 4K screens - 5 columns
+                                cols = 5;
+                                horizontalPadding = 32;
+                                crossSpacing = 16;
+                                mainSpacing = 16;
+                              } else if (width >= 1440) {
+                                // Laptop L - 4 columns
+                                cols = 4;
+                                horizontalPadding = 28;
+                                crossSpacing = 14;
+                                mainSpacing = 14;
+                              } else if (width >= 1024) {
+                                // Laptop - 3 columns
+                                cols = 3;
+                                horizontalPadding = 24;
+                                crossSpacing = 12;
+                                mainSpacing = 12;
+                              } else if (width >= 768) {
+                                // Tablet - 2 columns
+                                cols = 2;
+                                horizontalPadding = 20;
+                                crossSpacing = 10;
+                                mainSpacing = 10;
+                              }
+
+                              // Mobile - use ListView
+                              if (cols == 1) {
+                                return ListView.builder(
+                                  padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
                                   itemCount: _filteredRooms.length,
                                   itemBuilder: (context, index) {
                                     final room = _filteredRooms[index];
                                     return _buildRoomCard(room, _canManage);
                                   },
                                 );
-                              },
-                            ),
-                          ),
-              ),
-            ],
-          ),
-        ),
-        floatingActionButton: _canAddRoom
-            ? FloatingActionButton(
-                onPressed: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => RoomAddUI(
-                        branchId: _selectedBranchId,
-                        branchName: _selectedBranchId != null
-                            ? _branches.firstWhere(
-                                (b) => b['branch_id'] == _selectedBranchId,
-                                orElse: () => {},
-                              )['branch_name']
-                            : null,
-                      ),
-                    ),
-                  );
+                              }
 
-                  if (result == true) {
-                    await _loadRooms();
-                  }
-                },
-                backgroundColor: AppTheme.primary,
-                child: Icon(Icons.add, color: Colors.white),
-              )
-            : null,
-        bottomNavigationBar: null,
-      );
+                              // Calculate dynamic aspect ratio for grid
+                              final double availableWidth = width -
+                                  (horizontalPadding * 2) -
+                                  (crossSpacing * (cols - 1));
+                              final double tileWidth = availableWidth / cols;
+
+                              // Responsive height estimation based on screen size
+                              // เพิ่มความสูงการ์ดมากขึ้นเพื่อแก้ไข overflow
+                              double estimatedTileHeight;
+
+                              if (width >= 2560) {
+                                // 4K - slightly reduced height
+                                estimatedTileHeight = tileWidth * 1.40;
+                              } else if (width >= 1440) {
+                                // Laptop L - reduce height for better aesthetics
+                                estimatedTileHeight = tileWidth * 1.50;
+                              } else if (width >= 1024) {
+                                // Laptop - reduce height for better aesthetics
+                                estimatedTileHeight = tileWidth * 1.45;
+                              } else if (width >= 768) {
+                                // Tablet
+                                estimatedTileHeight = tileWidth * 1.35;
+                              } else {
+                                // Fallback
+                                estimatedTileHeight = tileWidth * 1.40;
+                              }
+
+                              double dynamicAspect =
+                                  tileWidth / estimatedTileHeight;
+                              // ปรับ clamp range ให้รองรับการ์ดที่สูงขึ้นมาก
+                              dynamicAspect = dynamicAspect.clamp(0.55, 0.85);
+
+                              return GridView.builder(
+                                padding: EdgeInsets.fromLTRB(horizontalPadding,
+                                    8, horizontalPadding, 24),
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: cols,
+                                  crossAxisSpacing: crossSpacing,
+                                  mainAxisSpacing: mainSpacing,
+                                  childAspectRatio: dynamicAspect,
+                                ),
+                                itemCount: _filteredRooms.length,
+                                itemBuilder: (context, index) {
+                                  final room = _filteredRooms[index];
+                                  return _buildRoomCard(room, _canManage);
+                                },
+                              );
+                            },
+                          ),
+                        ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: _canAddRoom
+          ? FloatingActionButton(
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => RoomAddUI(
+                      branchId: _selectedBranchId,
+                      branchName: _selectedBranchId != null
+                          ? _branches.firstWhere(
+                              (b) => b['branch_id'] == _selectedBranchId,
+                              orElse: () => {},
+                            )['branch_name']
+                          : null,
+                    ),
+                  ),
+                );
+
+                if (result == true) {
+                  await _loadRooms();
+                }
+              },
+              backgroundColor: AppTheme.primary,
+              child: Icon(Icons.add, color: Colors.white),
+            )
+          : null,
+      bottomNavigationBar: null,
+    );
   }
 
   Widget _buildEmptyState() {
@@ -1547,7 +1524,6 @@ class _RoomListUIState extends State<RoomListUI> {
         final bool isLaptop = width >= 1024 && width < 1440;
         final bool isLaptopL = width >= 1440 && width < 2560;
         final bool is4K = width >= 2560;
-        final bool isNarrow = constraints.maxWidth < 420;
 
         // Responsive sizing values
         double cardMargin = 16.0;
@@ -1560,11 +1536,16 @@ class _RoomListUIState extends State<RoomListUI> {
         double amenityIconSize = 12.0;
         double amenityFontSize = 11.0;
         double spacing = 10.0;
-        int maxAmenitiesShow = 5;
+        int maxAmenitiesShow = 3;
 
-        if (isTablet) {
-          cardMargin = 18.0;
-          cardPadding = 18.0;
+        // Determine if the screen is tablet-sized or larger
+        final bool isLargeScreen = isTablet || isLaptop || isLaptopL || is4K;
+
+        if (isLargeScreen) {
+          // On tablet and larger devices, reduce padding and spacing slightly
+          // to prevent cards from looking oversized relative to their content.
+          cardMargin = 16.0;
+          cardPadding = 14.0; // was 18.0
           iconSize = 18.0;
           titleFontSize = 17.0;
           subtitleFontSize = 14.0;
@@ -1572,44 +1553,8 @@ class _RoomListUIState extends State<RoomListUI> {
           bodyFontSize = 14.0;
           amenityIconSize = 13.0;
           amenityFontSize = 12.0;
-          spacing = 12.0;
-          maxAmenitiesShow = 6;
-        } else if (isLaptop) {
-          cardMargin = 20.0;
-          cardPadding = 20.0;
-          iconSize = 20.0;
-          titleFontSize = 18.0;
-          subtitleFontSize = 15.0;
-          chipFontSize = 14.0;
-          bodyFontSize = 15.0;
-          amenityIconSize = 14.0;
-          amenityFontSize = 13.0;
-          spacing = 14.0;
-          maxAmenitiesShow = 5;
-        } else if (isLaptopL) {
-          cardMargin = 22.0;
-          cardPadding = 22.0;
-          iconSize = 22.0;
-          titleFontSize = 20.0;
-          subtitleFontSize = 16.0;
-          chipFontSize = 15.0;
-          bodyFontSize = 16.0;
-          amenityIconSize = 15.0;
-          amenityFontSize = 14.0;
-          spacing = 16.0;
+          spacing = 10.0; // was 12.0
           maxAmenitiesShow = 3;
-        } else if (is4K) {
-          cardMargin = 24.0;
-          cardPadding = 24.0;
-          iconSize = 24.0;
-          titleFontSize = 22.0;
-          subtitleFontSize = 18.0;
-          chipFontSize = 16.0;
-          bodyFontSize = 18.0;
-          amenityIconSize = 16.0;
-          amenityFontSize = 15.0;
-          spacing = 18.0;
-          maxAmenitiesShow = 10;
         }
 
         return Card(
@@ -1627,7 +1572,7 @@ class _RoomListUIState extends State<RoomListUI> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => RoomDetailUI(
+                  builder: (context) => RoomListDetailUi(
                     roomId: room['room_id'],
                   ),
                 ),
@@ -1719,7 +1664,7 @@ class _RoomListUIState extends State<RoomListUI> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          isActive ? 'Active' : 'Inactive',
+                          isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: chipFontSize,
@@ -1835,8 +1780,11 @@ class _RoomListUIState extends State<RoomListUI> {
                                 color: Colors.grey[700],
                                 height: 1.4,
                               ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                              // On tablet and larger, restrict the description to a few lines
+                              // to reduce card height; otherwise show full description.
+                              maxLines: isLargeScreen ? 4 : null,
+                              overflow:
+                                  isLargeScreen ? TextOverflow.ellipsis : null,
                             ),
                           ),
                         ],
@@ -1967,6 +1915,7 @@ class _RoomListUIState extends State<RoomListUI> {
   Widget _buildRoomMenu(
       Map<String, dynamic> room, bool canManage, bool isActive) {
     return PopupMenuButton<String>(
+      color: Colors.white,
       padding: EdgeInsets.zero,
       icon: Icon(Icons.more_vert, color: Colors.grey[600], size: 22),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -2033,7 +1982,7 @@ class _RoomListUIState extends State<RoomListUI> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => RoomDetailUI(
+                builder: (context) => RoomListDetailUi(
                   roomId: room['room_id'],
                 ),
               ),
@@ -2069,128 +2018,6 @@ class _RoomListUIState extends State<RoomListUI> {
             break;
         }
       },
-    );
-  }
-
-  void _showRoomActionsBottomSheet(
-      Map<String, dynamic> room, bool canManage, bool isActive, String status) {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                ListTile(
-                  leading: Icon(Icons.visibility, color: AppTheme.primary),
-                  title: Text('ดูรายละเอียด'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RoomDetailUI(
-                          roomId: room['room_id'],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                if (canManage)
-                  ListTile(
-                    leading: Icon(Icons.edit, color: AppTheme.primary),
-                    title: Text('แก้ไข'),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final result = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => RoomEditUI(
-                            roomId: room['room_id'],
-                          ),
-                        ),
-                      );
-                      if (result == true) {
-                        _loadRooms();
-                      }
-                    },
-                  ),
-                if (canManage)
-                  ListTile(
-                    leading: Icon(
-                      isActive ? Icons.visibility_off : Icons.visibility,
-                      color: isActive ? Colors.orange : Colors.green,
-                    ),
-                    title: Text(isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _toggleRoomStatus(
-                        room['room_id'],
-                        room['room_number'] ?? '',
-                        isActive,
-                      );
-                    },
-                  ),
-                if (_currentUser?.userRole == UserRole.superAdmin)
-                  ListTile(
-                    leading: Icon(Icons.delete_forever, color: Colors.red),
-                    title: Text(
-                      'ลบถาวร',
-                      style: TextStyle(color: Colors.red),
-                    ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _deleteRoom(
-                        room['room_id'],
-                        room['room_number'] ?? '',
-                      );
-                    },
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildInfoChip(IconData icon, String label, Color color) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

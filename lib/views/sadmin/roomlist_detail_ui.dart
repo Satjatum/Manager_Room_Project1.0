@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
-import '../../services/room_service.dart';
+// -----
 import '../../models/user_models.dart';
+// -----
 import '../../middleware/auth_middleware.dart';
+// -----
+import '../../services/room_service.dart';
+// -----
 import '../widgets/colors.dart';
 
-class RoomDetailUI extends StatefulWidget {
+class RoomListDetailUi extends StatefulWidget {
   final String roomId;
 
-  const RoomDetailUI({
+  const RoomListDetailUi({
     Key? key,
     required this.roomId,
   }) : super(key: key);
 
   @override
-  State<RoomDetailUI> createState() => _RoomDetailUIState();
+  State<RoomListDetailUi> createState() => _RoomListDetailUiUiState();
 }
 
-class _RoomDetailUIState extends State<RoomDetailUI> {
+class _RoomListDetailUiUiState extends State<RoomListDetailUi> {
   Map<String, dynamic>? _roomData;
   List<Map<String, dynamic>> _amenities = [];
   List<Map<String, dynamic>> _images = [];
@@ -239,30 +243,42 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
   }
 
   Widget _buildCustomHeader() {
-    final title = _roomData != null
-        ? '${_roomData!['roomcate_name'] ?? 'ห้อง'} ${_roomData!['room_number']}'
-        : 'รายละเอียดห้องพัก';
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[300]!, width: 1)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.all(24),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
-            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+            tooltip: 'ย้อนกลับ',
           ),
+          const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-              overflow: TextOverflow.ellipsis,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'รายละเอียดห้องพัก',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'สำหรับดูรายละเอียดแต่ห้องพัก',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black54,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -273,7 +289,7 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
   Widget _buildImageGallery() {
     if (_images.isEmpty) {
       return Container(
-        height: 250,
+        height: 300,
         color: Colors.grey[300],
         child: Center(
           child: Column(
@@ -298,120 +314,170 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
       );
     }
 
-    return Stack(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
+        // Main pager
+        SizedBox(
           height: 250,
-          child: PageView.builder(
-            itemCount: _images.length,
-            onPageChanged: (index) {
-              setState(() {
-                _currentImageIndex = index;
-              });
-            },
-            itemBuilder: (context, index) {
-              final image = _images[index];
-              return GestureDetector(
-                onTap: () {
-                  // แสดงรูปแบบเต็มจอ
-                  _showFullScreenImage(index);
+          child: Stack(
+            children: [
+              PageView.builder(
+                itemCount: _images.length,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentImageIndex = index;
+                  });
                 },
-                child: Image.network(
-                  image['image_url'],
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Center(
-                      child: CircularProgressIndicator(
-                        color: AppTheme.primary,
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                            : null,
-                      ),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey[300],
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.broken_image,
-                                size: 64, color: Colors.grey),
-                            SizedBox(height: 8),
-                            Text(
-                              'ไม่สามารถโหลดรูปภาพ',
-                              style: TextStyle(color: Colors.grey[600]),
+                itemBuilder: (context, index) {
+                  final image = _images[index];
+                  return GestureDetector(
+                    onTap: () => _showFullScreenImage(index),
+                    child: Image.network(
+                      image['image_url'],
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Center(
+                          child: CircularProgressIndicator(
+                            color: AppTheme.primary,
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey[300],
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.broken_image,
+                                    size: 64, color: Colors.grey),
+                                SizedBox(height: 8),
+                                Text(
+                                  'ไม่สามารถโหลดรูปภาพ',
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+              // Image indicator
+              if (_images.length > 1)
+                Positioned(
+                  bottom: 16,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${_currentImageIndex + 1} / ${_images.length}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    );
-                  },
-                ),
-              );
-            },
-          ),
-        ),
-        // Image indicator
-        if (_images.length > 1)
-          Positioned(
-            bottom: 16,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${_currentImageIndex + 1} / ${_images.length}',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        // Primary badge
-        if (_images.isNotEmpty &&
-            _images[_currentImageIndex]['is_primary'] == true)
-          Positioned(
-            top: 16,
-            right: 16,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.blue,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 4,
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.star, size: 14, color: Colors.white),
-                  SizedBox(width: 4),
-                  Text(
-                    'รูปหลัก',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
-              ),
+                ),
+              // Primary badge
+              if (_images.isNotEmpty &&
+                  _images[_currentImageIndex]['is_primary'] == true)
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.star, size: 14, color: Colors.white),
+                        SizedBox(width: 4),
+                        Text(
+                          'รูปหลัก',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        // Thumbnails strip
+        if (_images.length > 1)
+          Container(
+            height: 70,
+            padding: const EdgeInsets.only(top: 8),
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemBuilder: (context, i) {
+                final img = _images[i];
+                final isActive = i == _currentImageIndex;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _currentImageIndex = i;
+                    });
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    width: 80,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: isActive ? AppTheme.primary : Colors.grey[300]!,
+                        width: isActive ? 2 : 1,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(
+                        img['image_url'],
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => Container(
+                          color: Colors.grey[200],
+                          child: Icon(Icons.broken_image,
+                              size: 20, color: Colors.grey[500]),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemCount: _images.length,
             ),
           ),
       ],
@@ -441,7 +507,7 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${_roomData!['roomcate_name'] ?? 'ห้อง'} ${_roomData!['room_number']}',
+                        '${_roomData!['room_category_name'] ?? 'ห้อง'}เลขที่ ${_roomData!['room_number']}',
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -612,14 +678,22 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
           children: [
             Row(
               children: [
-                Icon(Icons.payments, color: AppTheme.primary),
-                const SizedBox(width: 8),
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF10B981).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.payment_outlined,
+                      color: Color(0xFF10B981), size: 20),
+                ),
+                SizedBox(width: 12),
                 Text(
                   'ข้อมูลราคา',
                   style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.primary,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
                 ),
               ],
@@ -729,7 +803,7 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
                 Icon(Icons.description, color: AppTheme.primary),
                 const SizedBox(width: 8),
                 Text(
-                  'รายละเอียด',
+                  'รายละเอียดห้องพัก',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -767,14 +841,22 @@ class _RoomDetailUIState extends State<RoomDetailUI> {
           children: [
             Row(
               children: [
-                Icon(Icons.stars, color: AppTheme.primary),
-                const SizedBox(width: 8),
+                Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF10B981).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.star_outline,
+                      color: Color(0xFF10B981), size: 20),
+                ),
+                SizedBox(width: 12),
                 Text(
                   'สิ่งอำนวยความสะดวก',
                   style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.primary,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
                 ),
               ],

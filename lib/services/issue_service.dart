@@ -1,3 +1,4 @@
+import 'package:printing/printing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import '../models/user_models.dart';
@@ -13,7 +14,6 @@ class IssueService {
     String? branchId,
     String? issueType,
     String? issueStatus,
-    String? issuePriority,
     String orderBy = 'created_at',
     bool ascending = false,
   }) async {
@@ -23,7 +23,8 @@ class IssueService {
         rooms!inner(
           room_id,
           room_number,
-          branches!inner(branch_id, branch_name, branch_code)
+          branches!inner(branch_id, branch_name, branch_code),
+          room_categories!inner(roomcate_name)
         ),
         tenants(tenant_id, tenant_fullname, tenant_phone),
         assigned_user:assigned_to(user_id, user_name, user_email),
@@ -51,10 +52,6 @@ class IssueService {
         query = query.eq('issue_status', issueStatus);
       }
 
-      if (issuePriority != null && issuePriority.isNotEmpty) {
-        query = query.eq('issue_priority', issuePriority);
-      }
-
       final result = await query
           .order(orderBy, ascending: ascending)
           .range(offset, offset + limit - 1);
@@ -63,6 +60,7 @@ class IssueService {
         return {
           ...issue,
           'room_number': issue['rooms']?['room_number'],
+          'room_category_name': issue['rooms']?['room_categories']?['roomcate_name'],
           'branch_id': issue['rooms']?['branches']?['branch_id'],
           'branch_name': issue['rooms']?['branches']?['branch_name'],
           'branch_code': issue['rooms']?['branches']?['branch_code'],
@@ -126,7 +124,8 @@ class IssueService {
           rooms!inner(
             room_id,
             room_number,
-            branches!inner(branch_id, branch_name, branch_code)
+            branches!inner(branch_id, branch_name, branch_code),
+            room_categories!inner(roomcate_name)
           ),
           tenants(tenant_id, tenant_fullname, tenant_phone),
           assigned_user:assigned_to(user_id, user_name, user_email)
@@ -142,6 +141,7 @@ class IssueService {
           return {
             ...issue,
             'room_number': issue['rooms']?['room_number'],
+            'room_category_name': issue['rooms']?['room_categories']?['roomcate_name'],
             'branch_name': issue['rooms']?['branches']?['branch_name'],
             'assigned_user_name': issue['assigned_user']?['user_name'],
           };
@@ -185,22 +185,25 @@ class IssueService {
   static Future<Map<String, dynamic>?> getIssueById(String issueId) async {
     try {
       final result = await _supabase.from('issue_reports').select('''
-        *,
-        rooms!inner(
-          room_id,
-          room_number,
-          branches!inner(branch_id, branch_name, branch_code, branch_address)
-        ),
-        tenants(tenant_id, tenant_fullname, tenant_phone),
-        assigned_user:assigned_to(user_id, user_name, user_email),
-        created_user:created_by(user_id, user_name)
-      ''').eq('issue_id', issueId).maybeSingle();
+      *,
+      rooms!inner(
+        room_id,
+        room_number,
+        branches!inner(branch_id, branch_name, branch_code, branch_address),
+        room_categories!inner(roomcate_name)
+      ),
+      tenants(tenant_id, tenant_fullname, tenant_phone),
+      assigned_user:assigned_to(user_id, user_name, user_email),
+      created_user:created_by(user_id, user_name)
+    ''').eq('issue_id', issueId).maybeSingle();
 
       if (result == null) return null;
 
       return {
         ...result,
         'room_number': result['rooms']?['room_number'],
+        'room_category_name': result['rooms']?['room_categories']
+            ?['roomcate_name'],
         'branch_id': result['rooms']?['branches']?['branch_id'],
         'branch_name': result['rooms']?['branches']?['branch_name'],
         'tenant_fullname': result['tenants']?['tenant_fullname'],
@@ -261,7 +264,6 @@ class IssueService {
         'room_id': issueData['room_id'],
         'tenant_id': issueData['tenant_id'] ?? currentUser.tenantId,
         'issue_type': issueData['issue_type'],
-        'issue_priority': issueData['issue_priority'] ?? 'medium',
         'issue_title': issueData['issue_title'].toString().trim(),
         'issue_desc': issueData['issue_desc'].toString().trim(),
         'issue_status': 'pending',
@@ -310,7 +312,6 @@ class IssueService {
       // Prepare data for update
       final updateData = {
         'issue_type': issueData['issue_type'],
-        'issue_priority': issueData['issue_priority'],
         'issue_title': issueData['issue_title']?.toString().trim(),
         'issue_desc': issueData['issue_desc']?.toString().trim(),
         'issue_status': issueData['issue_status'],
@@ -368,8 +369,7 @@ class IssueService {
 
       await _supabase
           .from('issue_reports')
-          .update({'assigned_to': userId})
-          .eq('issue_id', issueId);
+          .update({'assigned_to': userId}).eq('issue_id', issueId);
 
       return {
         'success': true,
@@ -413,7 +413,8 @@ class IssueService {
         };
       }
 
-      final String currentStatus = (current['issue_status'] ?? 'pending').toString();
+      final String currentStatus =
+          (current['issue_status'] ?? 'pending').toString();
       final bool hasAssignee = current['assigned_to'] != null;
 
       // If requested status equals current, treat as success (no-op)
@@ -451,7 +452,8 @@ class IssueService {
       if (!allowed) {
         return {
           'success': false,
-          'message': 'ไม่สามารถเปลี่ยนสถานะจาก "$currentStatus" เป็น "$status" ได้',
+          'message':
+              'ไม่สามารถเปลี่ยนสถานะจาก "$currentStatus" เป็น "$status" ได้',
         };
       }
 
@@ -509,10 +511,7 @@ class IssueService {
       }
 
       // Delete related images first (if any)
-      await _supabase
-          .from('issue_images')
-          .delete()
-          .eq('issue_id', issueId);
+      await _supabase.from('issue_images').delete().eq('issue_id', issueId);
 
       // Delete the issue
       final deleted = await _supabase

@@ -198,7 +198,8 @@ class MeterReadingService {
           'tenant_phone': reading['tenants']?['tenant_phone'] ?? '-',
           'room_number': reading['rooms']?['room_number'] ?? '-',
           'branch_name': reading['rooms']?['branches']?['branch_name'] ?? '-',
-          'room_category_name': reading['rooms']?['room_categories']?['roomcate_name'] ?? '-',
+          'room_category_name':
+              reading['rooms']?['room_categories']?['roomcate_name'] ?? '-',
           'contract_num': reading['rental_contracts']?['contract_num'] ?? '-',
         };
       }).toList();
@@ -296,8 +297,7 @@ class MeterReadingService {
   }
 
   /// ตรวจสอบว่ามีการบันทึกค่ามิเตอร์สำหรับเดือนและปีนี้แล้วหรือไม่
-  static Future<bool> hasReadingForMonth(
-      String roomId, int month, int year,
+  static Future<bool> hasReadingForMonth(String roomId, int month, int year,
       {List<String>? statuses}) async {
     try {
       // Build filters first, then apply limit at the end (to keep filter builder type)
@@ -420,7 +420,6 @@ class MeterReadingService {
           'reading_status': 'confirmed', // Auto-confirm
           'reading_date': readingData['reading_date'] ??
               DateTime.now().toIso8601String().split('T')[0],
-          'reading_notes': readingData['reading_notes'],
           'created_by': currentUser.userId,
           'confirmed_by': currentUser.userId,
           'confirmed_at': DateTime.now().toIso8601String(),
@@ -433,10 +432,7 @@ class MeterReadingService {
         // ต้องมีค่าปัจจุบันของน้ำและไฟทั้งคู่
         if (readingData['water_current_reading'] == null ||
             readingData['electric_current_reading'] == null) {
-          return {
-            'success': false,
-            'message': 'กรุณากรอกค่าน้ำและค่าไฟให้ครบ'
-          };
+          return {'success': false, 'message': 'กรุณากรอกค่าน้ำและค่าไฟให้ครบ'};
         }
 
         // Previous จากเดือนก่อนหน้า หากไม่มี ต้องมีค่าก่อนหน้าจาก payload ทั้งน้ำและไฟ
@@ -477,7 +473,8 @@ class MeterReadingService {
           };
         }
         if (!validateMeterReading(
-            previousReading: electricPrevious!, currentReading: electricCurrent)) {
+            previousReading: electricPrevious!,
+            currentReading: electricCurrent)) {
           return {
             'success': false,
             'message': 'ค่ามิเตอร์ไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า'
@@ -505,7 +502,6 @@ class MeterReadingService {
           'reading_status': 'confirmed',
           'reading_date': readingData['reading_date'] ??
               DateTime.now().toIso8601String().split('T')[0],
-          'reading_notes': readingData['reading_notes'],
           'created_by': currentUser.userId,
           'confirmed_by': currentUser.userId,
           'confirmed_at': DateTime.now().toIso8601String(),
@@ -590,7 +586,6 @@ class MeterReadingService {
           'electric_current_reading': electricCurrent,
           'electric_usage': 0.0,
           'reading_date': readingData['reading_date'],
-          'reading_notes': readingData['reading_notes'],
         };
       } else {
         // Normal Reading - รองรับการแก้ไขแยกน้ำ/ไฟ
@@ -613,7 +608,8 @@ class MeterReadingService {
               warnings.add({
                 'type': 'locked_conflict',
                 'reading_id': r['reading_id'],
-                'message': 'พบข้อมูลเดือนถัดไปที่ออกบิลแล้ว ไม่สามารถลบเพื่อให้ค่าต่อเนื่องได้'
+                'message':
+                    'พบข้อมูลเดือนถัดไปที่ออกบิลแล้ว ไม่สามารถลบเพื่อให้ค่าต่อเนื่องได้'
               });
               break; // หยุดที่ตัวแรกที่ลบไม่ได้
             }
@@ -627,18 +623,18 @@ class MeterReadingService {
 
         updateData = {
           'reading_date': readingData['reading_date'],
-          'reading_notes': readingData['reading_notes'],
         };
 
         if (changeWater) {
-          final double waterPrevious = ((readingData['water_previous_reading'] ??
+          final double waterPrevious =
+              ((readingData['water_previous_reading'] ??
                       existing['water_previous_reading'] ??
                       0.0) as num)
                   .toDouble();
           final double waterCurrent = ((readingData['water_current_reading'] ??
-                      existing['water_current_reading'] ??
-                      0.0) as num)
-                  .toDouble();
+                  existing['water_current_reading'] ??
+                  0.0) as num)
+              .toDouble();
           if (!validateMeterReading(
               previousReading: waterPrevious, currentReading: waterCurrent)) {
             return {
@@ -656,13 +652,13 @@ class MeterReadingService {
         if (changeElectric) {
           final double electricPrevious =
               ((readingData['electric_previous_reading'] ??
-                          existing['electric_previous_reading'] ??
-                          0.0) as num)
+                      existing['electric_previous_reading'] ??
+                      0.0) as num)
                   .toDouble();
           final double electricCurrent =
               ((readingData['electric_current_reading'] ??
-                          existing['electric_current_reading'] ??
-                          0.0) as num)
+                      existing['electric_current_reading'] ??
+                      0.0) as num)
                   .toDouble();
           if (!validateMeterReading(
               previousReading: electricPrevious,
@@ -775,7 +771,6 @@ class MeterReadingService {
 
       await _supabase.from('meter_readings').update({
         'reading_status': 'cancelled',
-        'reading_notes': reason,
       }).eq('reading_id', readingId);
 
       return {
@@ -840,7 +835,10 @@ class MeterReadingService {
       final int? year = existing['reading_year'];
       final String roomId = existing['room_id'];
       final List<Map<String, dynamic>> warnings = [];
-      if (!isInitialReading && month != null && year != null && roomId.isNotEmpty) {
+      if (!isInitialReading &&
+          month != null &&
+          year != null &&
+          roomId.isNotEmpty) {
         final nextList = await _getNextReadings(roomId, month, year);
         for (final r in nextList) {
           if (r['reading_status'] == 'billed') {
@@ -848,7 +846,8 @@ class MeterReadingService {
             warnings.add({
               'type': 'locked_conflict',
               'reading_id': r['reading_id'],
-              'message': 'พบข้อมูลเดือนถัดไปที่ออกบิลแล้ว ไม่สามารถลบเพื่อให้ค่าต่อเนื่องได้'
+              'message':
+                  'พบข้อมูลเดือนถัดไปที่ออกบิลแล้ว ไม่สามารถลบเพื่อให้ค่าต่อเนื่องได้'
             });
             break;
           }
@@ -940,7 +939,8 @@ class MeterReadingService {
           'room_id': contract['rooms']['room_id'],
           'room_number': contract['rooms']['room_number'],
           'branch_name': contract['rooms']['branches']['branch_name'],
-          'room_category_name': contract['rooms']?['room_categories']?['roomcate_name'],
+          'room_category_name': contract['rooms']?['room_categories']
+              ?['roomcate_name'],
           'tenant_id': contract['tenants']['tenant_id'],
           'tenant_name': contract['tenants']['tenant_fullname'],
           'tenant_phone': contract['tenants']['tenant_phone'],
@@ -1088,7 +1088,8 @@ class MeterReadingService {
           .maybeSingle();
       if (sameYear != null) {
         return {
-          'water_previous': (sameYear['water_current_reading'] ?? 0.0).toDouble(),
+          'water_previous':
+              (sameYear['water_current_reading'] ?? 0.0).toDouble(),
           'electric_previous':
               (sameYear['electric_current_reading'] ?? 0.0).toDouble(),
           'source': 'prev_month_same_year',
@@ -1109,7 +1110,8 @@ class MeterReadingService {
           .maybeSingle();
       if (prevYear != null) {
         return {
-          'water_previous': (prevYear['water_current_reading'] ?? 0.0).toDouble(),
+          'water_previous':
+              (prevYear['water_current_reading'] ?? 0.0).toDouble(),
           'electric_previous':
               (prevYear['electric_current_reading'] ?? 0.0).toDouble(),
           'source': 'prev_month_prev_year',
@@ -1120,7 +1122,8 @@ class MeterReadingService {
       final initial = await getInitialReading(roomId);
       if (initial != null) {
         return {
-          'water_previous': (initial['water_current_reading'] ?? 0.0).toDouble(),
+          'water_previous':
+              (initial['water_current_reading'] ?? 0.0).toDouble(),
           'electric_previous':
               (initial['electric_current_reading'] ?? 0.0).toDouble(),
           'source': 'initial_reading',

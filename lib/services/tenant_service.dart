@@ -849,4 +849,47 @@ class TenantService {
       throw Exception('เกิดข้อผิดพลาดในการตรวจสอบสัญญาเช่า: $e');
     }
   }
+
+  /// Batch fetch: map each tenant_id -> current active room info
+  /// Returns: { tenant_id: { 'room_number': '...', 'roomcate_name': '...' } }
+  static Future<Map<String, Map<String, String>>> getActiveRoomsForTenants(
+      List<String> tenantIds) async {
+    try {
+      if (tenantIds.isEmpty) return {};
+
+      final result = await _supabase
+          .from('rental_contracts')
+          .select('''
+            tenant_id,
+            rooms!inner(
+              room_number,
+              room_categories(roomcate_name)
+            )
+          ''')
+          .inFilter('tenant_id', tenantIds)
+          .eq('contract_status', 'active');
+
+      final List<dynamic> rows = List<dynamic>.from(result);
+      final Map<String, Map<String, String>> map = {};
+
+      for (final row in rows) {
+        final String? tenantId = row['tenant_id']?.toString();
+        if (tenantId == null || tenantId.isEmpty) continue;
+        final room = row['rooms'];
+        if (room == null) continue;
+        final String roomNumber = room['room_number']?.toString() ?? '';
+        final String roomcateName =
+            room['room_categories']?['roomcate_name']?.toString() ?? '';
+        if (roomNumber.isEmpty && roomcateName.isEmpty) continue;
+        map[tenantId] = {
+          'room_number': roomNumber,
+          'roomcate_name': roomcateName,
+        };
+      }
+
+      return map;
+    } catch (e) {
+      throw Exception('เกิดข้อผิดพลาดในการโหลดข้อมูลห้องของผู้เช่า: $e');
+    }
+  }
 }

@@ -96,8 +96,12 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
           status: status,
           branchId: _currentBranchFilter(),
         );
+        // แสดงเฉพาะการชำระแบบโอนธนาคารเท่านั้น (ตัด PromptPay ออกทั้งหมด)
+        final filtered = res
+            .where((e) => (e['payment_method'] ?? 'transfer') == 'transfer')
+            .toList();
         setState(() {
-          _slips = res;
+          _slips = filtered;
           _invoices = [];
           _loading = false;
         });
@@ -659,6 +663,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                       ),
                       const SizedBox(width: 8),
                       _statusChip(status),
+                      const SizedBox(width: 6),
+                      _methodChip('transfer'),
                     ],
                   ),
 
@@ -953,6 +959,24 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
         c = Colors.orange;
         t = 'รอตรวจสอบ';
     }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: c.withOpacity(0.1),
+        border: Border.all(color: c.withOpacity(0.4)),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        t,
+        style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  Widget _methodChip(String method) {
+    final isPP = method == 'promptpay';
+    final c = isPP ? Colors.indigo : Colors.teal;
+    final t = isPP ? 'PromptPay' : 'โอนธนาคาร';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(

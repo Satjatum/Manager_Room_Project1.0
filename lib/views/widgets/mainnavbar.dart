@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:manager_room_project/views/sadmin/branchlist_ui.dart';
-import 'package:manager_room_project/views/sadmin/issuelist_ui.dart';
-import 'package:manager_room_project/views/sadmin/meterlist_ui.dart';
-import 'package:manager_room_project/views/sadmin/payment_verification_ui.dart';
-import 'package:manager_room_project/views/sadmin/superadmindash_ui.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import '../../middleware/auth_middleware.dart';
 import '../../models/user_models.dart';
@@ -80,11 +76,6 @@ class _MainnavbarState extends State<Mainnavbar> {
   void _setupSuperAdminNavigation() {
     _navigationItems = [
       NavItem(
-        icon: Icons.dashboard_outlined,
-        activeIcon: Icons.dashboard,
-        label: 'แดชบอร์ด',
-      ),
-      NavItem(
         icon: Icons.business_outlined,
         activeIcon: Icons.business,
         label: 'สาขา',
@@ -97,7 +88,6 @@ class _MainnavbarState extends State<Mainnavbar> {
     ];
 
     _pages = [
-      const SuperadmindashUi(),
       const BranchlistUi(),
       const SettingUi(),
     ];
@@ -106,11 +96,6 @@ class _MainnavbarState extends State<Mainnavbar> {
   void _setupAdminNavigation() {
     _navigationItems = [
       NavItem(
-        icon: Icons.dashboard_outlined,
-        activeIcon: Icons.dashboard,
-        label: 'แดชบอร์ด',
-      ),
-      NavItem(
         icon: Icons.business_outlined,
         activeIcon: Icons.business,
         label: 'สาขา',
@@ -123,7 +108,6 @@ class _MainnavbarState extends State<Mainnavbar> {
     ];
 
     _pages = [
-      const SuperadmindashUi(),
       const BranchlistUi(),
       const SettingUi(),
     ];

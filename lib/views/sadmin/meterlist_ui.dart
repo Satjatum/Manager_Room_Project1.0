@@ -3,17 +3,16 @@ import 'package:flutter/foundation.dart';
 import '../../services/meter_service.dart';
 import '../../services/utility_rate_service.dart';
 import '../../services/invoice_service.dart';
-import 'invoice_add_ui.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_models.dart';
 import '../widgets/colors.dart';
 
-class MeterReadingsListPage extends StatefulWidget {
+class MeterListUi extends StatefulWidget {
   final bool hideBottomNav;
   final String? branchId;
   final String? branchName;
 
-  const MeterReadingsListPage({
+  const MeterListUi({
     Key? key,
     this.hideBottomNav = false,
     this.branchId,
@@ -21,10 +20,10 @@ class MeterReadingsListPage extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<MeterReadingsListPage> createState() => _MeterReadingsListPageState();
+  State<MeterListUi> createState() => _MeterListUiState();
 }
 
-class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
+class _MeterListUiState extends State<MeterListUi> {
   // User/permission
   UserModel? _currentUser;
 
@@ -76,6 +75,13 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
 
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year; // ค.ศ. (แสดงผล พ.ศ.)
+
+  // Hovered column index per tab (-1/null = none)
+  int? _hoveredWaterCol;
+  int? _hoveredElectricCol;
+  // Selected row id per tab
+  String? _selectedWaterRowId;
+  String? _selectedElectricRowId;
 
   // Period helpers
   bool get _isCurrentPeriod {
@@ -153,8 +159,10 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
   Future<void> _loadRoomsAndPrevious() async {
     setState(() => _loadingRooms = true);
     try {
-      // Load active rooms for selected branch
-      _rooms = await MeterReadingService.getActiveRoomsForMeterReading();
+      // Load active rooms for selected branch (restrict to branch)
+      _rooms = await MeterReadingService.getActiveRoomsForMeterReading(
+        branchId: widget.branchId,
+      );
 
       // Sort by room number (asc) then category
       _rooms.sort((a, b) {
@@ -355,10 +363,17 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          'รอบเดือน: ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
-                          style: const TextStyle(
-                              fontSize: 14, color: Colors.black54),
+                        Row(
+                          children: [
+                            Icon(Icons.date_range,
+                                size: 16, color: Colors.black54),
+                            const SizedBox(width: 6),
+                            Text(
+                              'รอบเดือน: ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
+                              style: const TextStyle(
+                                  fontSize: 14, color: Colors.black54),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -383,7 +398,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                       controller: _searchController,
                       onChanged: (v) => setState(() => _searchQuery = v),
                       decoration: InputDecoration(
-                        hintText: 'ค้นหาเลขห้อง หรือชื่อผู้เช่า...',
+                        hintText: 'ค้นหา',
                         hintStyle:
                             TextStyle(color: Colors.grey[500], fontSize: 14),
                         prefixIcon: Icon(Icons.search,
@@ -412,36 +427,6 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                       // เลขห้อง + หมวดหมู่ห้อง
                       Row(
                         children: [
-                          // เลขห้อง
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 4),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey[300]!),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.meeting_room_outlined,
-                                      size: 20, color: Colors.grey[700]),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _roomNumberController,
-                                      onChanged: (v) =>
-                                          setState(() => _roomNumberQuery = v),
-                                      decoration: const InputDecoration(
-                                        hintText: 'เลขห้อง',
-                                        border: InputBorder.none,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
                           // หมวดหมู่ห้อง
                           Expanded(
                             child: Container(
@@ -459,6 +444,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                                   Expanded(
                                     child: DropdownButtonHideUnderline(
                                       child: DropdownButton<String?>(
+                                        dropdownColor: Colors.white,
                                         value: _selectedCategory,
                                         isExpanded: true,
                                         icon: const Icon(
@@ -471,12 +457,16 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                                             () => _selectedCategory = val),
                                         items: [
                                           const DropdownMenuItem<String?>(
-                                              value: null,
-                                              child: Text('ทั้งหมด')),
+                                            value: null,
+                                            child: Text('ทั้งหมด'),
+                                          ),
                                           ..._categories
-                                              .map((c) =>
-                                                  DropdownMenuItem<String?>(
-                                                      value: c, child: Text(c)))
+                                              .map(
+                                                (c) =>
+                                                    DropdownMenuItem<String?>(
+                                                        value: c,
+                                                        child: Text(c)),
+                                              )
                                               .toList(),
                                         ],
                                       ),
@@ -509,6 +499,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                                   Expanded(
                                     child: DropdownButtonHideUnderline(
                                       child: DropdownButton<int>(
+                                        dropdownColor: Colors.white,
                                         value: _selectedMonth,
                                         isExpanded: true,
                                         icon: const Icon(
@@ -552,6 +543,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                                   Expanded(
                                     child: DropdownButtonHideUnderline(
                                       child: DropdownButton<int>(
+                                        dropdownColor: Colors.white,
                                         value: _selectedYear,
                                         isExpanded: true,
                                         icon: const Icon(
@@ -616,28 +608,17 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     );
   }
 
-  // Responsive container widths (Mobile S/M/L, Tablet, Laptop, Laptop L, 4K)
-  double _maxContentWidth(double screenWidth) {
-    if (screenWidth >= 2560) return 1280; // 4K
-    if (screenWidth >= 1440) return 1100; // Laptop L
-    if (screenWidth >= 1200) return 1000; // Laptop
-    if (screenWidth >= 900) return 860; // Tablet landscape / small desktop
-    if (screenWidth >= 600) return 560; // Mobile L / Tablet portrait
-    return screenWidth; // Mobile S/M: full width
-  }
-
   Widget _buildPeriodBanner() {
     if (_isCurrentPeriod) return const SizedBox.shrink();
     String message;
     Color color;
     IconData icon;
     if (_isPastPeriod) {
-      message =
-          'เดือนที่ผ่านมาย้อนหลัง: ดูได้อย่างเดียว แก้ไข/ลบ/สร้างย้อนหลังไม่ได้';
+      message = 'เกินกำหนดรอบบิล ไม่สามารถบันทึกข้อมูลได้';
       color = Colors.blueGrey.shade50;
       icon = Icons.info_outline;
     } else {
-      message = 'เดือนอนาคต: ยังไม่เปิดให้บันทึก แสดงเพื่อดูข้อมูลเท่านั้น';
+      message = 'ยังไม่ถึงรอบบิล ไม่สามารถบันทึกข้อมูลได้';
       color = Colors.amber.shade50;
       icon = Icons.lock_clock;
     }
@@ -705,31 +686,79 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       );
     }
 
-    // DataTable view with tabs: น้ำ และ ไฟ แยก Tab และให้ตารางเต็มหน้าจอ
+    // สรุปจำนวนรายการ
+    final savedCount = filtered
+        .where(
+            (r) => _existingByRoom.containsKey((r['room_id'] ?? '').toString()))
+        .length;
+    final totalCount = filtered.length;
+    final pendingCount = totalCount - savedCount;
+
+    // DataTable view with tabs: น้ำ และ ไฟ
     return DefaultTabController(
       length: 2,
       child: Column(
         children: [
+          // Summary bar
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: TabBar(
-                isScrollable: true,
-                labelColor: Colors.black87,
-                indicatorColor: AppTheme.primary,
-                tabs: const [
-                  Tab(
-                      icon: Icon(Icons.water_drop, color: Colors.blue),
-                      text: 'ค่าน้ำ'),
-                  Tab(
-                      icon: Icon(Icons.electric_bolt, color: Colors.orange),
-                      text: 'ค่าไฟ'),
-                ],
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              children: [
+                _buildCountChip(Icons.list_alt, 'ทั้งหมด', totalCount,
+                    color: Colors.blueGrey),
+                const SizedBox(width: 8),
+                _buildCountChip(Icons.check_circle, 'บันทึกแล้ว', savedCount,
+                    color: AppTheme.second),
+                const SizedBox(width: 8),
+                _buildCountChip(Icons.edit_note, 'รอกรอก', pendingCount,
+                    color: Colors.orange),
+              ],
             ),
           ),
           const SizedBox(height: 8),
+
+          // Card container for tabs + tables
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 8, right: 8, top: 6),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TabBar(
+                      isScrollable: true,
+                      labelColor: Colors.black87,
+                      indicatorColor: AppTheme.primary,
+                      tabs: const [
+                        Tab(
+                            icon: Icon(Icons.water_drop, color: Colors.blue),
+                            text: 'ค่าน้ำ'),
+                        Tab(
+                            icon:
+                                Icon(Icons.electric_bolt, color: Colors.orange),
+                            text: 'ค่าไฟ'),
+                      ],
+                    ),
+                  ),
+                ),
+                const Divider(height: 1),
+                const SizedBox(height: 6),
+                // Tables
+                SizedBox(
+                  height: 0,
+                ),
+                // Expanded inside Card wrapper
+                SizedBox(
+                  height: 8,
+                ),
+                SizedBox(
+                  height: 0,
+                ),
+              ],
+            ),
+          ),
+          // Real tables area separate Expanded to fill remaining height
           Expanded(
             child: RefreshIndicator(
               onRefresh: _loadRoomsAndPrevious,
@@ -757,444 +786,6 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     );
   }
 
-  Widget _buildRoomCard(Map<String, dynamic> room) {
-    final roomId = room['room_id']?.toString() ?? '';
-    final roomNo = room['room_number']?.toString() ?? '-';
-    final cate = room['room_category_name']?.toString() ?? '-';
-    final tenant = room['tenant_name']?.toString() ?? '-';
-
-    final prevW = (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
-    final prevE = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
-
-    final nCtrl = _noteCtrl[roomId] ??= TextEditingController();
-
-    final existing = _existingByRoom[roomId];
-    final isEditing = _editingRoomIds.contains(roomId);
-
-    // Resolve previous/current for display/input depending on state
-    // Resolve water/electric from dynamic controllers (from Utility Settings)
-    String? waterRateId;
-    String? electricRateId;
-    for (final rate in _meteredRates) {
-      final r = Map<String, dynamic>.from(rate);
-      final rid = (r['rate_id'] ?? '').toString();
-      if (rid.isEmpty) continue;
-      if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
-      if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
-    }
-
-    final prevMapDyn = _dynPrevCtrls[roomId];
-    final curMapDyn = _dynCurCtrls[roomId];
-    final pvWCtrlDyn = (waterRateId != null && prevMapDyn != null)
-        ? prevMapDyn[waterRateId!]
-        : null;
-    final cvWCtrlDyn = (waterRateId != null && curMapDyn != null)
-        ? curMapDyn[waterRateId!]
-        : null;
-    final pvECtrlDyn = (electricRateId != null && prevMapDyn != null)
-        ? prevMapDyn[electricRateId!]
-        : null;
-    final cvECtrlDyn = (electricRateId != null && curMapDyn != null)
-        ? curMapDyn[electricRateId!]
-        : null;
-
-    final displayPrevW = (existing != null && isEditing)
-        ? (existing['water_previous_reading'] ?? prevW).toDouble()
-        : (double.tryParse((pvWCtrlDyn?.text ?? '').trim()) ?? prevW);
-    final displayPrevE = (existing != null && isEditing)
-        ? (existing['electric_previous_reading'] ?? prevE).toDouble()
-        : (double.tryParse((pvECtrlDyn?.text ?? '').trim()) ?? prevE);
-
-    final curW = double.tryParse((cvWCtrlDyn?.text ?? '').trim());
-    final curE = double.tryParse((cvECtrlDyn?.text ?? '').trim());
-    final usageW = curW == null ? null : (curW - displayPrevW);
-    final usageE = curE == null ? null : (curE - displayPrevE);
-    final validW = curW != null && curW > displayPrevW;
-    final validE = curE != null && curE > displayPrevE;
-    final canSaveNew = _isCurrentPeriod &&
-        !_savingRoomIds.contains(roomId) &&
-        existing == null &&
-        validW &&
-        validE &&
-        curW != null &&
-        curE != null;
-    final canSaveEdit = _isCurrentPeriod &&
-        !_savingRoomIds.contains(roomId) &&
-        existing != null &&
-        isEditing &&
-        validW &&
-        validE &&
-        curW != null &&
-        curE != null;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!, width: 1),
-        boxShadow: const [
-          BoxShadow(color: Color(0x0F000000), blurRadius: 10, spreadRadius: -2),
-        ],
-      ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          initiallyExpanded: false,
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          title: Row(
-            children: [
-              Icon(Icons.meeting_room, color: Colors.grey[700]),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '$cate $roomNo',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (_existingByRoom.containsKey(roomId))
-                const Padding(
-                  padding: EdgeInsets.only(left: 8.0),
-                  child: Chip(
-                      label: Text('มีข้อมูลเดือนนี้'),
-                      backgroundColor: Color(0xFFE8F5E9)),
-                ),
-            ],
-          ),
-          children: [
-            if (existing != null && !isEditing) ...[
-              // Read-only view when this month already has data and not in editing mode
-              const SizedBox(height: 8),
-              // If billed -> show utilities snapshot from invoice (each utility as a line)
-              if ((existing['reading_status'] ?? '') == 'billed' &&
-                  _invoiceUtilsByRoom.containsKey(roomId)) ...[
-                ..._invoiceUtilsByRoom[roomId]!.where((u) {
-                  final name =
-                      (u['utility_name'] ?? '').toString().toLowerCase();
-                  return name.contains('น้ำ') ||
-                      name.contains('water') ||
-                      name.contains('ไฟ') ||
-                      name.contains('electric');
-                }).map((u) {
-                  final name = (u['utility_name'] ?? 'สาธารณูปโภค').toString();
-                  final usage = (u['usage_amount'] ?? 0.0).toDouble();
-                  final total = (u['total_amount'] ?? 0.0).toDouble();
-                  final isWater = name.contains('น้ำ') ||
-                      name.toLowerCase().contains('water');
-                  final isElec = name.contains('ไฟ') ||
-                      name.toLowerCase().contains('electric');
-                  final color = isWater
-                      ? Colors.blue[700]!
-                      : isElec
-                          ? Colors.orange[700]!
-                          : const Color(0xFF10B981);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: _buildInvoiceUtilityReadonlyLine(
-                      label: name,
-                      usage: usage,
-                      total: total,
-                      color: color,
-                    ),
-                  );
-                }).toList(),
-              ] else ...[
-                _buildReadonlyLine(
-                  label: 'ค่าน้ำ',
-                  previous:
-                      (existing['water_previous_reading'] ?? 0.0).toDouble(),
-                  current:
-                      (existing['water_current_reading'] ?? 0.0).toDouble(),
-                  color: Colors.blue[700]!,
-                ),
-                const SizedBox(height: 8),
-                _buildReadonlyLine(
-                  label: 'ค่าไฟ',
-                  previous:
-                      (existing['electric_previous_reading'] ?? 0.0).toDouble(),
-                  current:
-                      (existing['electric_current_reading'] ?? 0.0).toDouble(),
-                  color: Colors.orange[700]!,
-                ),
-              ],
-              const SizedBox(height: 8),
-              if ((existing['reading_notes'] ?? '').toString().isNotEmpty)
-                Text('หมายเหตุ: ${existing['reading_notes']}',
-                    style: const TextStyle(color: Colors.black87)),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  if (_isCurrentPeriod) ...[
-                    if ((existing['reading_status'] ?? '') != 'billed') ...[
-                      OutlinedButton.icon(
-                        onPressed: _savingRoomIds.contains(roomId)
-                            ? null
-                            : () {
-                                // enter edit mode and prefill dynamic controllers
-                                _editingRoomIds.add(roomId);
-                                String? waterRateId;
-                                String? electricRateId;
-                                for (final rate in _meteredRates) {
-                                  final r = Map<String, dynamic>.from(rate);
-                                  final rid = (r['rate_id'] ?? '').toString();
-                                  if (rid.isEmpty) continue;
-                                  if (waterRateId == null && _isWaterRate(r))
-                                    waterRateId = rid;
-                                  if (electricRateId == null &&
-                                      _isElectricRate(r)) electricRateId = rid;
-                                }
-                                if (waterRateId != null) {
-                                  final curMap = _dynCurCtrls[roomId];
-                                  final prevMap = _dynPrevCtrls[roomId];
-                                  final curCtrl = curMap != null
-                                      ? curMap[waterRateId!]
-                                      : null;
-                                  final prevCtrl = prevMap != null
-                                      ? prevMap[waterRateId!]
-                                      : null;
-                                  curCtrl?.text =
-                                      (existing['water_current_reading'] ?? '')
-                                          .toString();
-                                  prevCtrl?.text =
-                                      (existing['water_previous_reading'] ?? '')
-                                          .toString();
-                                }
-                                if (electricRateId != null) {
-                                  final curMap = _dynCurCtrls[roomId];
-                                  final prevMap = _dynPrevCtrls[roomId];
-                                  final curCtrl = curMap != null
-                                      ? curMap[electricRateId!]
-                                      : null;
-                                  final prevCtrl = prevMap != null
-                                      ? prevMap[electricRateId!]
-                                      : null;
-                                  curCtrl?.text =
-                                      (existing['electric_current_reading'] ??
-                                              '')
-                                          .toString();
-                                  prevCtrl?.text =
-                                      (existing['electric_previous_reading'] ??
-                                              '')
-                                          .toString();
-                                }
-                                nCtrl.text = (existing['reading_notes'] ?? '')
-                                    .toString();
-                                setState(() {});
-                              },
-                        icon: const Icon(Icons.edit),
-                        label: const Text('แก้ไข'),
-                      ),
-                      const SizedBox(width: 8),
-                      TextButton.icon(
-                        onPressed: _savingRoomIds.contains(roomId)
-                            ? null
-                            : () => _confirmDelete(
-                                existing['reading_id'].toString(), roomId),
-                        icon:
-                            const Icon(Icons.delete_outline, color: Colors.red),
-                        label: const Text('ลบ',
-                            style: TextStyle(color: Colors.red)),
-                      ),
-                    ] else ...[
-                      // billed: no edit, only delete (delete invoice then reading)
-                      TextButton.icon(
-                        onPressed: _savingRoomIds.contains(roomId)
-                            ? null
-                            : () => _confirmDeleteBilled(
-                                  existing['reading_id'].toString(),
-                                  (_invoiceIdByRoom[roomId] ?? ''),
-                                  roomId,
-                                ),
-                        icon:
-                            const Icon(Icons.delete_outline, color: Colors.red),
-                        label: const Text('ลบ (รวมบิลเดือนนี้)',
-                            style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
-                  ],
-                  const Spacer(),
-                  Text(
-                      'เดือน ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
-                      style: TextStyle(color: Colors.grey[700])),
-                ],
-              ),
-            ] else if (_isPastPeriod) ...[
-              // Past period with no data: show previous month data if available
-              const SizedBox(height: 8),
-              _buildNoDataThisMonthLabel(),
-              const SizedBox(height: 8),
-              if (_prevMonthReadingByRoom.containsKey(roomId)) ...[
-                _buildPrevMonthReadonly(roomId),
-                const SizedBox(height: 8),
-              ] else ...[
-                _buildNoPrevMonthLabel(),
-                const SizedBox(height: 8),
-              ],
-            ] else if (_isFuturePeriod) ...[
-              // Future period: locked view
-              const SizedBox(height: 8),
-              _buildDisabledHelp(),
-              const SizedBox(height: 8),
-            ] else ...[
-              // Input view (new or editing existing)
-              const SizedBox(height: 8),
-              // Dynamic meter lines from utility settings (UI only) — เฉพาะน้ำ/ไฟเท่านั้น
-              ...() {
-                final rates = _meteredRates.where((rate) {
-                  final r = Map<String, dynamic>.from(rate);
-                  return _isWaterRate(r) || _isElectricRate(r);
-                }).toList();
-                if (rates.isEmpty) return <Widget>[];
-                return <Widget>[
-                  ...rates.map((rate) {
-                    final rateId = (rate['rate_id'] ?? '').toString();
-                    if (rateId.isEmpty) return const SizedBox.shrink();
-                    final name = (rate['rate_name'] ?? 'มิเตอร์').toString();
-                    final prevMap = _dynPrevCtrls[roomId] ?? const {};
-                    final curMap = _dynCurCtrls[roomId] ?? const {};
-                    final pvCtrl = prevMap[rateId] ?? TextEditingController();
-                    final cvCtrl = curMap[rateId] ?? TextEditingController();
-                    final isWater =
-                        _isWaterRate(Map<String, dynamic>.from(rate));
-                    final isElec =
-                        _isElectricRate(Map<String, dynamic>.from(rate));
-                    final icon = isWater
-                        ? const Icon(Icons.water_drop, color: Colors.blue)
-                        : isElec
-                            ? const Icon(Icons.electric_bolt,
-                                color: Colors.orange)
-                            : const Icon(Icons.speed_outlined,
-                                color: Color(0xFF10B981));
-                    final prevVal = double.tryParse(pvCtrl.text.trim()) ??
-                        (isWater
-                            ? prevW
-                            : isElec
-                                ? prevE
-                                : 0.0);
-                    final curVal = double.tryParse(cvCtrl.text.trim());
-                    final usage = curVal == null ? null : (curVal - prevVal);
-                    final err = (curVal != null && curVal <= prevVal)
-                        ? 'ต้องมากกว่าค่าก่อนหน้า'
-                        : null;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildInputLine(
-                        label: name,
-                        previous: prevVal,
-                        controller: cvCtrl,
-                        icon: icon,
-                        error: err,
-                        usage: usage,
-                        usageColor: isWater
-                            ? Colors.blue[700]!
-                            : isElec
-                                ? Colors.orange[700]!
-                                : const Color(0xFF10B981),
-                        onChanged: () => setState(() {}),
-                        editablePrevious: true,
-                        previousController: pvCtrl,
-                      ),
-                    );
-                  }).toList(),
-                ];
-              }(),
-              const SizedBox(height: 12),
-              TextField(
-                controller: nCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'หมายเหตุ (ถ้ามี)',
-                  border: OutlineInputBorder(),
-                  isDense: true,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  if (existing == null) ...[
-                    ElevatedButton(
-                      onPressed: canSaveNew ? () => _saveRow(room) : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        minimumSize: const Size(0, 36),
-                        textStyle: const TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w600),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_savingRoomIds.contains(roomId))
-                            const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            ),
-                          if (_savingRoomIds.contains(roomId))
-                            const SizedBox(width: 8),
-                          const Text('บันทึกแถวนี้'),
-                        ],
-                      ),
-                    ),
-                  ] else ...[
-                    ElevatedButton(
-                      onPressed: canSaveEdit ? () => _updateRow(roomId) : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        minimumSize: const Size(0, 36),
-                        textStyle: const TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w600),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_savingRoomIds.contains(roomId))
-                            const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            ),
-                          if (_savingRoomIds.contains(roomId))
-                            const SizedBox(width: 8),
-                          const Text('บันทึกการแก้ไข'),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: _savingRoomIds.contains(roomId)
-                          ? null
-                          : () {
-                              // Cancel edit
-                              _editingRoomIds.remove(roomId);
-                              nCtrl.clear();
-                              setState(() {});
-                            },
-                      child: const Text('ยกเลิก'),
-                    ),
-                  ],
-                  const Spacer(),
-                  Text(
-                      'เดือน ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
-                      style: TextStyle(color: Colors.grey[700])),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
   // --- DataTable builders ---
   Widget _buildHorizontalTable(Widget table) {
     // ทำให้ DataTable กว้างเต็มหน้าจอ และเลื่อนแนวนอนได้เมื่อคอลัมน์ยาว
@@ -1209,6 +800,88 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         );
       },
     );
+  }
+
+  // --- Hover helpers ---
+  Color _hoverBg(bool isHovered, {required bool isWater}) {
+    // ปิดเอฟเฟกต์ hover รายคอลัมน์ ให้เหลือเฉพาะ hover แถวเทาอ่อน
+    return Colors.transparent;
+  }
+
+  Widget _hoverHeaderLabel(String text, int col, {required bool isWater}) {
+    final hovered =
+        isWater ? _hoveredWaterCol == col : _hoveredElectricCol == col;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 120),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: _hoverBg(hovered, isWater: isWater),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
+    );
+  }
+
+  Widget _wrapHoverCell({
+    required Widget child,
+    required int col,
+    required bool isWater,
+  }) {
+    return MouseRegion(
+      onEnter: (_) => setState(() {
+        if (isWater) {
+          _hoveredWaterCol = col;
+        } else {
+          _hoveredElectricCol = col;
+        }
+      }),
+      onExit: (_) => setState(() {
+        if (isWater) {
+          _hoveredWaterCol = null;
+        } else {
+          _hoveredElectricCol = null;
+        }
+      }),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        decoration: BoxDecoration(
+          color: _hoverBg(
+              (isWater ? _hoveredWaterCol == col : _hoveredElectricCol == col),
+              isWater: isWater),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: child,
+      ),
+    );
+  }
+
+  // --- Row tap helpers to ensure selection toggles on ANY cell tap ---
+  Future<void> _onTapWaterRow(String roomId, Map<String, dynamic> room,
+      bool isNew, bool canCreate) async {
+    // แสดง active highlight เมื่อแตะ (ทุกแพลตฟอร์ม)
+    setState(() {
+      _selectedWaterRowId = (_selectedWaterRowId == roomId) ? null : roomId;
+    });
+    if (isNew) {
+      if (canCreate) await _showCreateDialog(room);
+    } else {
+      await _showEditDialog(roomId);
+    }
+  }
+
+  Future<void> _onTapElectricRow(String roomId, Map<String, dynamic> room,
+      bool isNew, bool canCreate) async {
+    // แสดง active highlight เมื่อแตะ (ทุกแพลตฟอร์ม)
+    setState(() {
+      _selectedElectricRowId =
+          (_selectedElectricRowId == roomId) ? null : roomId;
+    });
+    if (isNew) {
+      if (canCreate) await _showCreateDialog(room);
+    } else {
+      await _showEditDialog(roomId);
+    }
   }
 
   Widget _buildWaterDataTable(List<Map<String, dynamic>> rooms) {
@@ -1267,71 +940,287 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
           _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
 
       return DataRow(cells: [
-        DataCell(Text(tenant, overflow: TextOverflow.ellipsis)),
-        DataCell(Text(roomNo)),
-        DataCell(Text(room['room_category_name']?.toString() ?? '-')),
-        DataCell(Text(prev.toStringAsFixed(0))),
-        DataCell(Text(current != null ? current.toStringAsFixed(0) : '-')),
-        DataCell(Text(usage != null ? usage.toStringAsFixed(2) : '-')),
-        DataCell(Text(statusStr)),
-        DataCell(Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isNew) ...[
-              ElevatedButton.icon(
-                onPressed: canCreate ? () => _showCreateDialog(room) : null,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('กรอกข้อมูล'),
-              ),
-            ] else ...[
-              OutlinedButton.icon(
-                onPressed: canEdit ? () => _showEditDialogWater(roomId) : null,
-                icon: const Icon(Icons.edit, size: 18),
-                label: const Text('แก้ไข'),
-              ),
-            ],
-            const SizedBox(width: 8),
-            if (!isNew)
-              TextButton.icon(
-                onPressed: canDelete
-                    ? () {
-                        final rid = (existing?['reading_id'] ?? '').toString();
-                        final isBilled =
-                            ((existing?['reading_status'] ?? '') == 'billed');
-                        if (isBilled) {
-                          _confirmDeleteBilled(
-                            rid,
-                            (_invoiceIdByRoom[roomId] ?? ''),
-                            roomId,
-                          );
-                        } else {
-                          _confirmDelete(rid, roomId);
-                        }
-                      }
-                    : null,
-                icon: const Icon(Icons.delete_outline,
-                    color: Colors.red, size: 18),
-                label: const Text('ลบ', style: TextStyle(color: Colors.red)),
-              ),
-          ],
-        )),
+        DataCell(Text(tenant, overflow: TextOverflow.ellipsis),
+            onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(roomNo), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(room['room_category_name']?.toString() ?? '-'),
+            onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(prev.toStringAsFixed(0)), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(current != null ? current.toStringAsFixed(0) : '-'),
+            onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(usage != null ? usage.toStringAsFixed(2) : '-'),
+            onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(Text(statusStr), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
+        DataCell(const Icon(Icons.edit_note, size: 18), onTap: () async {
+          if (isNew) {
+            if (canCreate) await _showCreateDialog(room);
+          } else {
+            await _showEditDialog(roomId);
+          }
+        }),
       ]);
     }).toList();
 
     return DataTable(
-      columns: const [
-        DataColumn(label: Text('ผู้เช่า')),
-        DataColumn(label: Text('เลขที่')),
-        DataColumn(label: Text('ประเภท')),
-        DataColumn(label: Text('ก่อนหน้า')),
-        DataColumn(label: Text('ปัจจุบัน')),
-        DataColumn(label: Text('ใช้งาน')),
-        DataColumn(label: Text('สถานะ')),
-        DataColumn(label: Text('')),
+      showCheckboxColumn: false,
+      columns: [
+        DataColumn(label: _hoverHeaderLabel('ผู้เช่า', 0, isWater: true)),
+        DataColumn(label: _hoverHeaderLabel('เลขที่', 1, isWater: true)),
+        DataColumn(label: _hoverHeaderLabel('ประเภท', 2, isWater: true)),
+        DataColumn(label: _hoverHeaderLabel('ก่อนหน้า', 3, isWater: true)),
+        DataColumn(label: _hoverHeaderLabel('ปัจจุบัน', 4, isWater: true)),
+        DataColumn(label: _hoverHeaderLabel('ใช้งาน', 5, isWater: true)),
+        DataColumn(label: _hoverHeaderLabel('สถานะ', 6, isWater: true)),
+        DataColumn(label: _hoverHeaderLabel('', 7, isWater: true)),
       ],
-      rows: rows,
+      rows: rooms.map((room) {
+        final roomId = (room['room_id'] ?? '').toString();
+        final roomNo = (room['room_number'] ?? '-').toString();
+        final tenant = (room['tenant_name'] ?? '-').toString();
+        final existing = _existingByRoom[roomId];
+
+        // previous/current for water
+        String? waterRateId;
+        for (final rate in _meteredRates) {
+          final r = Map<String, dynamic>.from(rate);
+          final rid = (r['rate_id'] ?? '').toString();
+          if (rid.isEmpty) continue;
+          if (_isWaterRate(r)) {
+            waterRateId = rid;
+            break;
+          }
+        }
+        final prev = (existing != null)
+            ? (existing['water_previous_reading'] ?? 0.0).toDouble()
+            : (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
+        final curMapForWater = _dynCurCtrls[roomId];
+        final cvCtrl = (waterRateId != null && curMapForWater != null)
+            ? curMapForWater[waterRateId!]
+            : null;
+        final current = (existing != null)
+            ? (existing['water_current_reading'] ?? 0.0).toDouble()
+            : double.tryParse((cvCtrl?.text ?? '').trim());
+        final usage = (current != null) ? (current - prev) : null;
+        final statusStr = (existing == null)
+            ? 'ยังไม่บันทึก'
+            : ((existing['reading_status'] ?? '').toString() == 'billed'
+                ? 'ออกบิลแล้ว'
+                : 'ยืนยันแล้ว');
+
+        final isNew = existing == null;
+        final canCreate =
+            _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
+
+        return DataRow(
+            selected: _selectedWaterRowId == roomId,
+            onSelectChanged: null,
+            cells: [
+              DataCell(
+                _wrapHoverCell(
+                  isWater: true,
+                  col: 0,
+                  child: Text(tenant, overflow: TextOverflow.ellipsis),
+                ),
+                onTap: () => _onTapWaterRow(roomId, room, isNew, canCreate),
+              ),
+              DataCell(
+                _wrapHoverCell(isWater: true, col: 1, child: Text(roomNo)),
+                onTap: () => _onTapWaterRow(roomId, room, isNew, canCreate),
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: true,
+                  col: 2,
+                  child: Text(room['room_category_name']?.toString() ?? '-'),
+                ),
+                onTap: () => _onTapWaterRow(roomId, room, isNew, canCreate),
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: true,
+                  col: 3,
+                  child: Text(prev.toStringAsFixed(0)),
+                ),
+                onTap: () => _onTapWaterRow(roomId, room, isNew, canCreate),
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: true,
+                  col: 4,
+                  child:
+                      Text(current != null ? current.toStringAsFixed(0) : '-'),
+                ),
+                onTap: () => _onTapWaterRow(roomId, room, isNew, canCreate),
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: true,
+                  col: 5,
+                  child: Text(usage != null ? usage.toStringAsFixed(2) : '-'),
+                ),
+                onTap: () => _onTapWaterRow(roomId, room, isNew, canCreate),
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: true,
+                  col: 6,
+                  child: _buildStatusChip(statusStr),
+                ),
+                onTap: () => _onTapWaterRow(roomId, room, isNew, canCreate),
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: true,
+                  col: 7,
+                  child: PopupMenuButton<String>(
+                    color: Colors.white,
+                    tooltip: 'ตัวเลือก',
+                    icon: const Icon(Icons.more_horiz, size: 20),
+                    onSelected: (value) async {
+                      if (value == 'create') {
+                        if (canCreate) await _showCreateDialog(room);
+                      } else if (value == 'edit') {
+                        await _showEditDialog(roomId);
+                      } else if (value == 'delete') {
+                        final readingId =
+                            (existing?['reading_id'] ?? '').toString();
+                        if (readingId.isNotEmpty) {
+                          await _confirmDelete(readingId, roomId);
+                        }
+                      } else if (value == 'delete_billed') {
+                        final readingId =
+                            (existing?['reading_id'] ?? '').toString();
+                        final invoiceId = (_invoiceIdByRoom[roomId] ?? '');
+                        if (readingId.isNotEmpty) {
+                          await _confirmDeleteBilled(
+                              readingId, invoiceId, roomId);
+                        }
+                      }
+                    },
+                    itemBuilder: (context) {
+                      final billed =
+                          ((existing?['reading_status'] ?? '').toString() ==
+                              'billed');
+                      final items = <PopupMenuEntry<String>>[];
+                      if (isNew && canCreate) {
+                        items.add(
+                          const PopupMenuItem(
+                            value: 'create',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.edit_outlined,
+                                  size: 20,
+                                  color: Color(0xFF14B8A6),
+                                ),
+                                SizedBox(width: 12),
+                                Text('กรอก'),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      if (!isNew && _isCurrentPeriod && !billed) {
+                        items.add(
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.edit_outlined,
+                                  size: 20,
+                                  color: Color(0xFF14B8A6),
+                                ),
+                                SizedBox(width: 12),
+                                Text('แก้ไข'),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      if (!isNew && _isCurrentPeriod) {
+                        items.add(
+                          PopupMenuItem(
+                            value: billed ? 'delete_billed' : 'delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline,
+                                  size: 20,
+                                  color: Colors.red,
+                                ),
+                                SizedBox(width: 12),
+                                Text(
+                                  billed ? 'ลบ' : 'ลบ',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      return items;
+                    },
+                  ),
+                ),
+              ),
+            ]);
+      }).toList(),
       headingRowColor: MaterialStateProperty.all(Colors.blue.withOpacity(0.06)),
-      dataRowColor: MaterialStateProperty.all(Colors.white),
+      dataRowColor: MaterialStateProperty.resolveWith((states) {
+        if (states.contains(MaterialState.selected)) {
+          return Colors.blue.withOpacity(0.12); // แถวที่คลิก (น้ำ)
+        }
+        if (states.contains(MaterialState.hovered)) {
+          return Colors.grey.withOpacity(0.08); // hover แถวเป็นสีเทาอ่อน
+        }
+        return Colors.white;
+      }),
       border: TableBorder.symmetric(
         inside: BorderSide(color: Colors.grey[300]!),
         outside: BorderSide.none,
@@ -1387,74 +1276,293 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       final canCreate =
           _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
 
-      return DataRow(cells: [
-        DataCell(Text(tenant, overflow: TextOverflow.ellipsis)),
-        DataCell(Text(roomNo)),
-        DataCell(Text(room['room_category_name']?.toString() ?? '-')),
-        DataCell(Text(prev.toStringAsFixed(0))),
-        DataCell(Text(current != null ? current.toStringAsFixed(0) : '-')),
-        DataCell(Text(usage != null ? usage.toStringAsFixed(2) : '-')),
-        DataCell(Text(status)),
-        DataCell(Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isNew) ...[
-              ElevatedButton.icon(
-                onPressed: canCreate ? () => _showCreateDialog(room) : null,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('กรอกข้อมูล'),
-              ),
-            ] else ...[
-              OutlinedButton.icon(
-                onPressed:
-                    canEdit ? () => _showEditDialogElectric(roomId) : null,
-                icon: const Icon(Icons.edit, size: 18),
-                label: const Text('แก้ไข'),
-              ),
-            ],
-            const SizedBox(width: 8),
-            if (!isNew)
-              TextButton.icon(
-                onPressed: canDelete
-                    ? () {
-                        final rid = (existing?['reading_id'] ?? '').toString();
-                        final isBilled =
-                            ((existing?['reading_status'] ?? '') == 'billed');
-                        if (isBilled) {
-                          _confirmDeleteBilled(
-                            rid,
-                            (_invoiceIdByRoom[roomId] ?? ''),
-                            roomId,
-                          );
-                        } else {
-                          _confirmDelete(rid, roomId);
-                        }
-                      }
-                    : null,
-                icon: const Icon(Icons.delete_outline,
-                    color: Colors.red, size: 18),
-                label: const Text('ลบ', style: TextStyle(color: Colors.red)),
-              ),
-          ],
-        )),
-      ]);
+      return DataRow(
+          selected: _selectedElectricRowId == roomId,
+          onSelectChanged: (sel) {
+            setState(() {
+              _selectedElectricRowId =
+                  (_selectedElectricRowId == roomId) ? null : roomId;
+            });
+          },
+          cells: [
+            DataCell(Text(tenant, overflow: TextOverflow.ellipsis),
+                onTap: () => _onTapElectricRow(roomId, room, isNew, canCreate)),
+            DataCell(Text(roomNo),
+                onTap: () => _onTapElectricRow(roomId, room, isNew, canCreate)),
+            DataCell(Text(room['room_category_name']?.toString() ?? '-'),
+                onTap: () => _onTapElectricRow(roomId, room, isNew, canCreate)),
+            DataCell(Text(prev.toStringAsFixed(0)),
+                onTap: () => _onTapElectricRow(roomId, room, isNew, canCreate)),
+            DataCell(Text(current != null ? current.toStringAsFixed(0) : '-'),
+                onTap: () => _onTapElectricRow(roomId, room, isNew, canCreate)),
+            DataCell(Text(usage != null ? usage.toStringAsFixed(2) : '-'),
+                onTap: () => _onTapElectricRow(roomId, room, isNew, canCreate)),
+            DataCell(Text(status),
+                onTap: () => _onTapElectricRow(roomId, room, isNew, canCreate)),
+            DataCell(const Icon(Icons.edit_note, size: 18),
+                onTap: () => _onTapElectricRow(roomId, room, isNew, canCreate)),
+          ]);
     }).toList();
 
     return DataTable(
-      columns: const [
-        DataColumn(label: Text('ผู้เช่า')),
-        DataColumn(label: Text('เลขที่')),
-        DataColumn(label: Text('ประเภท')),
-        DataColumn(label: Text('ก่อนหน้า')),
-        DataColumn(label: Text('ปัจจุบัน')),
-        DataColumn(label: Text('ใช้งาน')),
-        DataColumn(label: Text('สถานะ')),
-        DataColumn(label: Text('')),
+      showCheckboxColumn: false,
+      columns: [
+        DataColumn(label: _hoverHeaderLabel('ผู้เช่า', 0, isWater: false)),
+        DataColumn(label: _hoverHeaderLabel('เลขที่', 1, isWater: false)),
+        DataColumn(label: _hoverHeaderLabel('ประเภท', 2, isWater: false)),
+        DataColumn(label: _hoverHeaderLabel('ก่อนหน้า', 3, isWater: false)),
+        DataColumn(label: _hoverHeaderLabel('ปัจจุบัน', 4, isWater: false)),
+        DataColumn(label: _hoverHeaderLabel('ใช้งาน', 5, isWater: false)),
+        DataColumn(label: _hoverHeaderLabel('สถานะ', 6, isWater: false)),
+        DataColumn(label: _hoverHeaderLabel('', 7, isWater: false)),
       ],
-      rows: rows,
+      rows: rooms.map((room) {
+        final roomId = (room['room_id'] ?? '').toString();
+        final roomNo = (room['room_number'] ?? '-').toString();
+        final tenant = (room['tenant_name'] ?? '-').toString();
+        final existing = _existingByRoom[roomId];
+
+        // previous/current for electric
+        String? electricRateId;
+        for (final rate in _meteredRates) {
+          final r = Map<String, dynamic>.from(rate);
+          final rid = (r['rate_id'] ?? '').toString();
+          if (rid.isEmpty) continue;
+          if (_isElectricRate(r)) {
+            electricRateId = rid;
+            break;
+          }
+        }
+        final prev = (existing != null)
+            ? (existing['electric_previous_reading'] ?? 0.0).toDouble()
+            : (_prevElecByRoom[roomId] ?? 0.0).toDouble();
+        final curMapForElec = _dynCurCtrls[roomId];
+        final cvCtrl = (electricRateId != null && curMapForElec != null)
+            ? curMapForElec[electricRateId!]
+            : null;
+        final current = (existing != null)
+            ? (existing['electric_current_reading'] ?? 0.0).toDouble()
+            : double.tryParse((cvCtrl?.text ?? '').trim());
+        final usage = (current != null) ? (current - prev) : null;
+        final status = (existing == null)
+            ? 'ยังไม่บันทึก'
+            : ((existing['reading_status'] ?? '').toString() == 'billed'
+                ? 'ออกบิลแล้ว'
+                : 'ยืนยันแล้ว');
+
+        final isNew = existing == null;
+        final canCreate =
+            _isCurrentPeriod && isNew && !_savingRoomIds.contains(roomId);
+
+        return DataRow(
+            selected: _selectedElectricRowId == roomId,
+            onSelectChanged: null,
+            cells: [
+              DataCell(
+                _wrapHoverCell(
+                  isWater: false,
+                  col: 0,
+                  child: Text(tenant, overflow: TextOverflow.ellipsis),
+                ),
+                onTap: () async {
+                  if (isNew) {
+                    if (canCreate) await _showCreateDialog(room);
+                  } else {
+                    await _showEditDialog(roomId);
+                  }
+                },
+              ),
+              DataCell(
+                _wrapHoverCell(isWater: false, col: 1, child: Text(roomNo)),
+                onTap: () async {
+                  if (isNew) {
+                    if (canCreate) await _showCreateDialog(room);
+                  } else {
+                    await _showEditDialog(roomId);
+                  }
+                },
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: false,
+                  col: 2,
+                  child: Text(room['room_category_name']?.toString() ?? '-'),
+                ),
+                onTap: () async {
+                  if (isNew) {
+                    if (canCreate) await _showCreateDialog(room);
+                  } else {
+                    await _showEditDialog(roomId);
+                  }
+                },
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: false,
+                  col: 3,
+                  child: Text(prev.toStringAsFixed(0)),
+                ),
+                onTap: () async {
+                  if (isNew) {
+                    if (canCreate) await _showCreateDialog(room);
+                  } else {
+                    await _showEditDialog(roomId);
+                  }
+                },
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: false,
+                  col: 4,
+                  child:
+                      Text(current != null ? current.toStringAsFixed(0) : '-'),
+                ),
+                onTap: () async {
+                  if (isNew) {
+                    if (canCreate) await _showCreateDialog(room);
+                  } else {
+                    await _showEditDialog(roomId);
+                  }
+                },
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: false,
+                  col: 5,
+                  child: Text(usage != null ? usage.toStringAsFixed(2) : '-'),
+                ),
+                onTap: () async {
+                  if (isNew) {
+                    if (canCreate) await _showCreateDialog(room);
+                  } else {
+                    await _showEditDialog(roomId);
+                  }
+                },
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: false,
+                  col: 6,
+                  child: _buildStatusChip(status),
+                ),
+                onTap: () async {
+                  if (isNew) {
+                    if (canCreate) await _showCreateDialog(room);
+                  } else {
+                    await _showEditDialog(roomId);
+                  }
+                },
+              ),
+              DataCell(
+                _wrapHoverCell(
+                  isWater: false,
+                  col: 7,
+                  child: PopupMenuButton<String>(
+                    tooltip: 'ตัวเลือก',
+                    icon: const Icon(Icons.more_horiz, size: 20),
+                    onSelected: (value) async {
+                      if (value == 'create') {
+                        if (canCreate) await _showCreateDialog(room);
+                      } else if (value == 'edit') {
+                        await _showEditDialog(roomId);
+                      } else if (value == 'delete') {
+                        final readingId =
+                            (existing?['reading_id'] ?? '').toString();
+                        if (readingId.isNotEmpty) {
+                          await _confirmDelete(readingId, roomId);
+                        }
+                      } else if (value == 'delete_billed') {
+                        final readingId =
+                            (existing?['reading_id'] ?? '').toString();
+                        final invoiceId = (_invoiceIdByRoom[roomId] ?? '');
+                        if (readingId.isNotEmpty) {
+                          await _confirmDeleteBilled(
+                              readingId, invoiceId, roomId);
+                        }
+                      }
+                    },
+                    itemBuilder: (context) {
+                      final billed =
+                          ((existing?['reading_status'] ?? '').toString() ==
+                              'billed');
+                      final items = <PopupMenuEntry<String>>[];
+                      if (isNew && canCreate) {
+                        items.add(
+                          const PopupMenuItem(
+                            value: 'create',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.edit_outlined,
+                                  size: 20,
+                                  color: Color(0xFF14B8A6),
+                                ),
+                                SizedBox(width: 12),
+                                Text('กรอก'),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      if (!isNew && _isCurrentPeriod && !billed) {
+                        items.add(
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.edit_outlined,
+                                  size: 20,
+                                  color: Color(0xFF14B8A6),
+                                ),
+                                SizedBox(width: 12),
+                                Text('แก้ไข'),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      if (!isNew && _isCurrentPeriod) {
+                        items.add(
+                          PopupMenuItem(
+                            value: billed ? 'delete_billed' : 'delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline,
+                                  size: 20,
+                                  color: Colors.red,
+                                ),
+                                SizedBox(width: 12),
+                                Text(
+                                  billed ? 'ลบ' : 'ลบ',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      return items;
+                    },
+                  ),
+                ),
+              ),
+            ]);
+      }).toList(),
       headingRowColor:
           MaterialStateProperty.all(Colors.orange.withOpacity(0.06)),
-      dataRowColor: MaterialStateProperty.all(Colors.white),
+      dataRowColor: MaterialStateProperty.resolveWith((states) {
+        if (states.contains(MaterialState.selected)) {
+          return Colors.orange.withOpacity(0.12); // แถวที่คลิก (ไฟ)
+        }
+        if (states.contains(MaterialState.hovered)) {
+          return Colors.grey.withOpacity(0.08); // hover แถวเป็นสีเทาอ่อน
+        }
+        return Colors.white;
+      }),
       border: TableBorder.symmetric(
         inside: BorderSide(color: Colors.grey[300]!),
         outside: BorderSide.none,
@@ -1478,7 +1586,6 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     }
 
     final curMap = _dynCurCtrls[roomId];
-    final nCtrl = _noteCtrl[roomId] ??= TextEditingController();
     // Prefill current values from existing
     if (waterRateId != null && curMap != null) {
       final cvW = curMap[waterRateId!];
@@ -1488,7 +1595,6 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
       final cvE = curMap[electricRateId!];
       cvE?.text = (existing['electric_current_reading'] ?? '').toString();
     }
-    nCtrl.text = (existing['reading_notes'] ?? '').toString();
 
     await showDialog(
       context: context,
@@ -1513,155 +1619,165 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
-                    children: [
-                      const Icon(Icons.water_drop, color: Colors.blue),
-                      const SizedBox(width: 8),
-                      const Text('ค่าน้ำ'),
-                      const Spacer(),
-                      Text('ก่อนหน้า: '
-                          '${(existing['water_previous_reading'] ?? 0).toString()}'),
+                    children: const [
+                      Icon(
+                        Icons.water_drop,
+                        color: Colors.blue,
+                      ),
+                      SizedBox(width: 8),
+                      Text('ค่าน้ำ'),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  SizedBox(
+                    width: double.infinity,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          border: Border.all(
+                            color: Colors.blue.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'ค่าน้ำเดือนก่อน',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.blue,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              (existing['water_previous_reading'] ?? 0)
+                                  .toString(),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
                   TextField(
                     controller: waterRateId != null && curMap != null
                         ? curMap[waterRateId!]
                         : null,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'ปัจจุบัน (น้ำ)',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'ค่าน้ำเดือนปัจจุบัน',
                       border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(
+                          color: Color(0xff10B981),
+                          width: 2,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
                       isDense: true,
                     ),
                   ),
                   const SizedBox(height: 12),
                   Row(
-                    children: [
-                      const Icon(Icons.electric_bolt, color: Colors.orange),
-                      const SizedBox(width: 8),
-                      const Text('ค่าไฟ'),
-                      const Spacer(),
-                      Text('ก่อนหน้า: '
-                          '${(existing['electric_previous_reading'] ?? 0).toString()}'),
+                    children: const [
+                      Icon(
+                        Icons.electric_bolt,
+                        color: Colors.orange,
+                      ),
+                      SizedBox(width: 8),
+                      Text('ค่าไฟ'),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  SizedBox(
+                    width: double.infinity,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.1),
+                          border: Border.all(
+                            color: Colors.orange.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'ค่าไฟเดือนก่อน',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.orange,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              (existing['electric_previous_reading'] ?? 0)
+                                  .toString(),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.orange,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
                   TextField(
                     controller: electricRateId != null && curMap != null
                         ? curMap[electricRateId!]
                         : null,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'ปัจจุบัน (ไฟ)',
-                      border: OutlineInputBorder(),
-                      isDense: true,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: nCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'หมายเหตุ (ถ้ามี)',
+                    decoration: InputDecoration(
+                      labelText: 'ค่าไฟเดือนปัจจุบัน',
                       border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('ยกเลิก'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                await _updateRow(roomId);
-                if (mounted) Navigator.pop(context);
-              },
-              child: const Text('บันทึก'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // แก้ไขเฉพาะค่าน้ำ
-  Future<void> _showEditDialogWater(String roomId) async {
-    final existing = _existingByRoom[roomId];
-    if (existing == null) return;
-
-    String? waterRateId;
-    for (final rate in _meteredRates) {
-      final r = Map<String, dynamic>.from(rate);
-      final rid = (r['rate_id'] ?? '').toString();
-      if (rid.isEmpty) continue;
-      if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
-    }
-
-    final curMap = _dynCurCtrls[roomId];
-    final nCtrl = _noteCtrl[roomId] ??= TextEditingController();
-    if (waterRateId != null && curMap != null) {
-      curMap[waterRateId!]?.text =
-          (existing['water_current_reading'] ?? '').toString();
-    }
-    nCtrl.text = (existing['reading_notes'] ?? '').toString();
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.grey.shade300),
-          ),
-          title: const Text('แก้ไขค่าน้ำ เดือนนี้'),
-          content: SizedBox(
-            width: 420,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.water_drop, color: Colors.blue),
-                      const SizedBox(width: 8),
-                      const Text('ค่าน้ำ'),
-                      const Spacer(),
-                      Text('ก่อนหน้า: '
-                          '${(existing['water_previous_reading'] ?? 0).toString()}'),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: waterRateId != null && curMap != null
-                        ? curMap[waterRateId!]
-                        : null,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'ปัจจุบัน (น้ำ)',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: nCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'หมายเหตุ (ถ้ามี)',
-                      border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(
+                          color: Color(0xff10B981),
+                          width: 2,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
                       isDense: true,
                     ),
                   ),
@@ -1670,113 +1786,47 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('ยกเลิก'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                await _updateRowWater(roomId);
-                if (mounted) Navigator.pop(context);
-              },
-              child: const Text('บันทึก'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // แก้ไขเฉพาะค่าไฟ
-  Future<void> _showEditDialogElectric(String roomId) async {
-    final existing = _existingByRoom[roomId];
-    if (existing == null) return;
-
-    String? electricRateId;
-    for (final rate in _meteredRates) {
-      final r = Map<String, dynamic>.from(rate);
-      final rid = (r['rate_id'] ?? '').toString();
-      if (rid.isEmpty) continue;
-      if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
-    }
-
-    final curMap = _dynCurCtrls[roomId];
-    final nCtrl = _noteCtrl[roomId] ??= TextEditingController();
-    if (electricRateId != null && curMap != null) {
-      curMap[electricRateId!]?.text =
-          (existing['electric_current_reading'] ?? '').toString();
-    }
-    nCtrl.text = (existing['reading_notes'] ?? '').toString();
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.grey.shade300),
-          ),
-          title: const Text('แก้ไขค่าไฟ เดือนนี้'),
-          content: SizedBox(
-            width: 420,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.electric_bolt, color: Colors.orange),
-                      const SizedBox(width: 8),
-                      const Text('ค่าไฟ'),
-                      const Spacer(),
-                      Text('ก่อนหน้า: '
-                          '${(existing['electric_previous_reading'] ?? 0).toString()}'),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: electricRateId != null && curMap != null
-                        ? curMap[electricRateId!]
-                        : null,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'ปัจจุบัน (ไฟ)',
-                      border: OutlineInputBorder(),
-                      isDense: true,
+            Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary, // เขียว
+                    ),
+                    onPressed: () async {
+                      await _updateRow(roomId);
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                    child: const Text(
+                      'บันทึก',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: nCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'หมายเหตุ (ถ้ามี)',
-                      border: OutlineInputBorder(),
-                      isDense: true,
+                ),
+                const SizedBox(height: 5),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'ยกเลิก',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('ยกเลิก'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                await _updateRowElectric(roomId);
-                if (mounted) Navigator.pop(context);
-              },
-              child: const Text('บันทึก'),
+                ),
+              ],
             ),
           ],
         );
@@ -1853,29 +1903,77 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                   if (needPrevWater)
                     TextField(
                       controller: pvWCtrl,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'ก่อนหน้า (น้ำ)',
+                      keyboardType: TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'ค่าน้ำเดือนก่อน',
                         border: OutlineInputBorder(),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(
+                            color: Color(0xff10B981),
+                            width: 2,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey[300]!,
+                            width: 1,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
                         isDense: true,
                       ),
                     )
                   else
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Text('ก่อนหน้า: ${prevW.toStringAsFixed(0)}'),
+                    TextField(
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        labelText: 'เดือนก่อน: ${prevW.toStringAsFixed(0)}',
+                        border: OutlineInputBorder(),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(
+                            color: Color(0xff10B981),
+                            width: 2,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey[300]!,
+                            width: 1,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        isDense: true,
+                      ),
                     ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 10),
                   TextField(
                     controller: waterRateId != null && curMap != null
                         ? curMap[waterRateId!]
                         : null,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'ปัจจุบัน (น้ำ)',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: 'ค่าน้ำเดือนปัจจุบัน',
                       border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(
+                          color: Color(0xff10B981),
+                          width: 2,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
                       isDense: true,
                     ),
                   ),
@@ -1891,38 +1989,77 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
                   if (needPrevElec)
                     TextField(
                       controller: pvECtrl,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'ก่อนหน้า (ไฟ)',
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'ค่าไฟเดือนก่อน',
                         border: OutlineInputBorder(),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(
+                            color: Color(0xff10B981),
+                            width: 2,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey[300]!,
+                            width: 1,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
                         isDense: true,
                       ),
                     )
                   else
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Text('ก่อนหน้า: ${prevE.toStringAsFixed(0)}'),
+                    TextField(
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        labelText: 'เดือนก่อน: ${prevE.toStringAsFixed(0)}',
+                        border: OutlineInputBorder(),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: const BorderSide(
+                            color: Color(0xff10B981),
+                            width: 2,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey[300]!,
+                            width: 1,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        isDense: true,
+                      ),
                     ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 10),
                   TextField(
                     controller: electricRateId != null && curMap != null
                         ? curMap[electricRateId!]
                         : null,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'ปัจจุบัน (ไฟ)',
-                      border: OutlineInputBorder(),
-                      isDense: true,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: nCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'หมายเหตุ (ถ้ามี)',
+                    decoration: InputDecoration(
+                      labelText: 'ค่าไฟเดือนปัจจุบัน',
                       border: OutlineInputBorder(),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(
+                          color: Color(0xff10B981),
+                          width: 2,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
                       isDense: true,
                     ),
                   ),
@@ -1931,406 +2068,138 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('ยกเลิก'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                await _saveRow(room);
-                if (mounted) Navigator.pop(context);
-              },
-              child: const Text('บันทึก'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // กรอกข้อมูลใหม่เฉพาะค่าน้ำ
-  Future<void> _showCreateDialogWater(Map<String, dynamic> room) async {
-    final roomId = (room['room_id'] ?? '').toString();
-
-    String? waterRateId;
-    for (final rate in _meteredRates) {
-      final r = Map<String, dynamic>.from(rate);
-      final rid = (r['rate_id'] ?? '').toString();
-      if (rid.isEmpty) continue;
-      if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
-    }
-
-    final curMap = _dynCurCtrls[roomId];
-    final nCtrl = _noteCtrl[roomId] ??= TextEditingController();
-    if (waterRateId != null && curMap != null) {
-      curMap[waterRateId!]?.text = '';
-    }
-    nCtrl.text = '';
-
-    final prevW = (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
-    final needPrevWater = _needsPrevWaterInput.contains(roomId);
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.grey.shade300),
-          ),
-          title: const Text('กรอกค่าน้ำ เดือนนี้'),
-          content: SizedBox(
-            width: 420,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (!needPrevWater) ...[
-                    Row(
-                      children: [
-                        const Icon(Icons.water_drop, color: Colors.blue),
-                        const SizedBox(width: 8),
-                        const Text('ค่าน้ำ'),
-                        const Spacer(),
-                        Text('ก่อนหน้า: ${prevW.toStringAsFixed(0)}'),
-                      ],
+            Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary, // เขียว
                     ),
-                    const SizedBox(height: 6),
-                  ] else ...[
-                    Row(
-                      children: const [
-                        Icon(Icons.water_drop, color: Colors.blue),
-                        SizedBox(width: 8),
-                        Text('ค่าน้ำ'),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _prevWaterCtrl[roomId],
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'ก่อนหน้า (น้ำ)',
-                        border: OutlineInputBorder(),
-                        isDense: true,
+                    onPressed: () async {
+                      await _updateRow(roomId);
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                    child: const Text(
+                      'บันทึก',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                  ],
-                  TextField(
-                    controller: waterRateId != null && curMap != null
-                        ? curMap[waterRateId!]
-                        : null,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'ปัจจุบัน (น้ำ)',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: nCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'หมายเหตุ (ถ้ามี)',
-                      border: OutlineInputBorder(),
-                      isDense: true,
+                ),
+                const SizedBox(height: 5),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('ยกเลิก'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                await _saveRowWater(room);
-                if (mounted) Navigator.pop(context);
-              },
-              child: const Text('บันทึก'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // กรอกข้อมูลใหม่เฉพาะค่าไฟ
-  Future<void> _showCreateDialogElectric(Map<String, dynamic> room) async {
-    final roomId = (room['room_id'] ?? '').toString();
-
-    String? electricRateId;
-    for (final rate in _meteredRates) {
-      final r = Map<String, dynamic>.from(rate);
-      final rid = (r['rate_id'] ?? '').toString();
-      if (rid.isEmpty) continue;
-      if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
-    }
-
-    final curMap = _dynCurCtrls[roomId];
-    final nCtrl = _noteCtrl[roomId] ??= TextEditingController();
-    if (electricRateId != null && curMap != null) {
-      curMap[electricRateId!]?.text = '';
-    }
-    nCtrl.text = '';
-
-    final prevE = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
-    final needPrevElec = _needsPrevElecInput.contains(roomId);
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.grey.shade300),
-          ),
-          title: const Text('กรอกค่าไฟ เดือนนี้'),
-          content: SizedBox(
-            width: 420,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (!needPrevElec) ...[
-                    Row(
-                      children: [
-                        const Icon(Icons.electric_bolt, color: Colors.orange),
-                        const SizedBox(width: 8),
-                        const Text('ค่าไฟ'),
-                        const Spacer(),
-                        Text('ก่อนหน้า: ${prevE.toStringAsFixed(0)}'),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                  ] else ...[
-                    Row(
-                      children: const [
-                        Icon(Icons.electric_bolt, color: Colors.orange),
-                        SizedBox(width: 8),
-                        Text('ค่าไฟ'),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    TextField(
-                      controller: _prevElecCtrl[roomId],
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'ก่อนหน้า (ไฟ)',
-                        border: OutlineInputBorder(),
-                        isDense: true,
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'ยกเลิก',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                  ],
-                  TextField(
-                    controller: electricRateId != null && curMap != null
-                        ? curMap[electricRateId!]
-                        : null,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(
-                      labelText: 'ปัจจุบัน (ไฟ)',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: nCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'หมายเหตุ (ถ้ามี)',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('ยกเลิก'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                await _saveRowElectric(room);
-                if (mounted) Navigator.pop(context);
-              },
-              child: const Text('บันทึก'),
-            ),
+                ),
+              ],
+            )
           ],
         );
       },
     );
   }
 
-  bool _canIssueBill(String roomId) {
-    final existing = _existingByRoom[roomId];
-    if (existing == null) return false;
-    final status = (existing['reading_status'] ?? '').toString();
-    // ต้องบันทึกน้ำและไฟครบ และยังไม่ออกบิล
-    final hasWater = existing['water_current_reading'] != null;
-    final hasElec = existing['electric_current_reading'] != null;
-    final notBilled = status != 'billed';
-    return hasWater && hasElec && status == 'confirmed' && notBilled;
-  }
-
-  Future<void> _goToInvoiceFromRoom(String roomId) async {
-    final existing = _existingByRoom[roomId];
-    if (existing == null) return;
-    final initial = {
-      'branch_id': existing['branch_id'],
-      'room_id': existing['room_id'],
-      'tenant_id': existing['tenant_id'],
-      'contract_id': existing['contract_id'],
-      'reading_id': existing['reading_id'],
-      'invoice_month': existing['reading_month'],
-      'invoice_year': existing['reading_year'],
-    };
-
-    final res = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => InvoiceAddPage(initialData: initial),
+  // --- UI helpers (chips) ---
+  Widget _buildCountChip(IconData icon, String label, int count,
+      {required Color color}) {
+    final c = color;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: c.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: c.withOpacity(0.25)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: c),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 13, color: Colors.black87),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: c.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              count.toString(),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: c,
+              ),
+            ),
+          ),
+        ],
       ),
     );
-
-    if (res is Map && res['success'] == true) {
-      // Reload to update statuses
-      await _loadRoomsAndPrevious();
-    }
   }
 
-  Widget _buildDisabledHelp() {
-    final String msg = _isPastPeriod
-        ? 'ดูข้อมูลย้อนหลังได้เท่านั้น ไม่อนุญาตให้บันทึกย้อนหลังในเดือนนี้'
-        : 'เดือนอนาคตยังไม่เปิดให้บันทึก กรุณาเลือกเดือนปัจจุบัน';
-    final Color bg =
-        _isPastPeriod ? Colors.blueGrey.shade50 : Colors.amber.shade50;
-    final IconData icon = _isPastPeriod ? Icons.info_outline : Icons.lock_clock;
+  Widget _buildStatusChip(String status) {
+    Color fg;
+    Color bg;
+    switch (status) {
+      case 'ยืนยันแล้ว':
+        fg = AppTheme.second; // deep green
+        bg = AppTheme.primary.withOpacity(0.10);
+        break;
+      case 'ออกบิลแล้ว':
+        fg = Colors.orange.shade700;
+        bg = Colors.orange.withOpacity(0.12);
+        break;
+      default: // 'ยังไม่บันทึก' or others
+        fg = Colors.blueGrey.shade700;
+        bg = Colors.blueGrey.withOpacity(0.10);
+    }
+
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: fg.withOpacity(0.25)),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.black87),
-          const SizedBox(width: 8),
-          Expanded(child: Text(msg)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNoDataThisMonthLabel() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.blueGrey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.history_toggle_off, color: Colors.black87),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'ยังไม่มีข้อมูลของเดือนนี้ แสดงข้อมูลของเดือนก่อนแทน (เฉพาะเพื่อดู)',
-              style: const TextStyle(color: Colors.black87),
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: fg, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            status,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: fg,
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildNoPrevMonthLabel() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.info_outline, color: Colors.black54),
-          const SizedBox(width: 8),
-          const Expanded(
-            child: Text(
-              'ไม่มีข้อมูลของเดือนก่อน',
-              style: TextStyle(color: Colors.black87),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPrevMonthReadonly(String roomId) {
-    final prev = _prevMonthReadingByRoom[roomId]!;
-    final int pm = (prev['reading_month'] ?? 0) as int;
-    final int py = (prev['reading_year'] ?? 0) as int; // ค.ศ.
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.calendar_month, size: 18, color: Colors.black54),
-            const SizedBox(width: 6),
-            Text('ข้อมูลเดือนก่อน: ${_getMonthName(pm)} ${py + 543}',
-                style: const TextStyle(fontWeight: FontWeight.w600)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        _buildReadonlyLine(
-          label: 'ค่าน้ำ',
-          previous: (prev['water_previous_reading'] ?? 0.0).toDouble(),
-          current: (prev['water_current_reading'] ?? 0.0).toDouble(),
-          color: Colors.blue[700]!,
-        ),
-        const SizedBox(height: 8),
-        _buildReadonlyLine(
-          label: 'ค่าไฟ',
-          previous: (prev['electric_previous_reading'] ?? 0.0).toDouble(),
-          current: (prev['electric_current_reading'] ?? 0.0).toDouble(),
-          color: Colors.orange[700]!,
-        ),
-        if ((prev['reading_notes'] ?? '').toString().isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text('หมายเหตุ: ${prev['reading_notes']}',
-              style: const TextStyle(color: Colors.black87)),
-        ],
-      ],
     );
   }
 
@@ -2349,161 +2218,12 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
           const SizedBox(width: 8),
           const Expanded(
             child: Text(
-              'ยังไม่ตั้งค่า Utility สำหรับสาขานี้ — กรุณาไปที่ Utility Settings เพื่อเพิ่มเรตค่าน้ำ/ค่าไฟ ก่อนทำการบันทึก',
+              'ยังไม่ได้ตั้งค่าค่าน้ำ - ค่าไฟ',
               style: TextStyle(color: Colors.black87),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildReadonlyLine({
-    required String label,
-    required double previous,
-    required double current,
-    required Color color,
-  }) {
-    final usage = (current - previous);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(6)),
-          child: Text(label,
-              style: TextStyle(color: color, fontWeight: FontWeight.w600)),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            'ปัจจุบัน ${current.toStringAsFixed(2)} - ก่อนหน้า ${previous.toStringAsFixed(2)} = ${usage.toStringAsFixed(2)} หน่วย',
-            style: const TextStyle(fontSize: 14),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInvoiceUtilityReadonlyLine({
-    required String label,
-    required double usage,
-    required double total,
-    required Color color,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(6)),
-          child: Text(label,
-              style: TextStyle(color: color, fontWeight: FontWeight.w600)),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            'ใช้ ${usage.toStringAsFixed(2)} หน่วย • รวม ${total.toStringAsFixed(2)} บาท',
-            style: const TextStyle(fontSize: 14),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInputLine({
-    required String label,
-    required double previous,
-    required TextEditingController controller,
-    required Widget icon,
-    String? error,
-    double? usage,
-    required Color usageColor,
-    required VoidCallback onChanged,
-    bool editablePrevious = false,
-    TextEditingController? previousController,
-  }) {
-    final prevText = previous.toStringAsFixed(2);
-    final usageText =
-        usage == null ? '' : (usage < 0 ? 'ผิด' : usage.toStringAsFixed(2));
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Previous (read-only or input) - equal width
-            Expanded(
-              child: editablePrevious && previousController != null
-                  ? TextField(
-                      controller: previousController,
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'ก่อนหน้า',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      onChanged: (_) => onChanged(),
-                    )
-                  : TextField(
-                      controller: TextEditingController(text: prevText),
-                      readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'ก่อนหน้า',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                    ),
-            ),
-            const SizedBox(width: 8),
-            // Current input - equal width
-            Expanded(
-              child: TextField(
-                controller: controller,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: 'ปัจจุบัน',
-                  prefixIcon: icon,
-                  errorText: error,
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                ),
-                onChanged: (_) => onChanged(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Usage as read-only field - equal width
-            Expanded(
-              child: TextField(
-                controller: TextEditingController(text: usageText),
-                readOnly: true,
-                decoration: InputDecoration(
-                  labelText: 'หน่วย',
-                  border: const OutlineInputBorder(),
-                  isDense: true,
-                  suffixText: (usage == null || usage < 0) ? null : 'หน่วย',
-                  suffixStyle: TextStyle(
-                    color:
-                        (usage == null || usage >= 0) ? usageColor : Colors.red,
-                  ),
-                ),
-                style: TextStyle(
-                  color:
-                      (usage == null || usage >= 0) ? usageColor : Colors.red,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 
@@ -2576,7 +2296,6 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         'water_current_reading': curW,
         'electric_current_reading': curE,
         'reading_date': DateTime.now().toIso8601String().split('T')[0],
-        'reading_notes': nCtrl.text.trim().isEmpty ? null : nCtrl.text.trim(),
       };
 
       final res = await MeterReadingService.createMeterReading(payload);
@@ -2606,167 +2325,21 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     }
   }
 
-  // บันทึก (สร้าง) เฉพาะค่าน้ำ — ค่าไฟจะถูกตั้งเท่าค่าก่อนหน้าอัตโนมัติ
-  Future<void> _saveRowWater(Map<String, dynamic> room) async {
-    final roomId = room['room_id']?.toString();
-    final tenantId = room['tenant_id']?.toString();
-    final contractId = room['contract_id']?.toString();
-    if (roomId == null || tenantId == null || contractId == null) {
-      _showErrorSnackBar('ข้อมูลไม่ครบ ไม่สามารถบันทึกได้');
-      return;
-    }
-    final nCtrl = _noteCtrl[roomId]!;
-
-    String? waterRateId;
-    String? electricRateId;
-    for (final rate in _meteredRates) {
-      final r = Map<String, dynamic>.from(rate);
-      final rid = (r['rate_id'] ?? '').toString();
-      if (rid.isEmpty) continue;
-      if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
-      if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
-    }
-    if (waterRateId == null || electricRateId == null) {
-      _showErrorSnackBar(
-          'กรุณาตั้งค่าเรตค่าน้ำและค่าไฟใน Utility Settings ก่อน');
-      return;
-    }
-    final curMap = _dynCurCtrls[roomId];
-    final needPrev = roomId != null && _needsPrevWaterInput.contains(roomId);
-    double prevW = (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
-    if (needPrev) {
-      prevW =
-          double.tryParse((_prevWaterCtrl[roomId]?.text ?? '').trim()) ?? prevW;
-    }
-    final prevE = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
-    final curW = double.tryParse((curMap?[waterRateId!]?.text ?? '').trim());
-    if (curW == null) {
-      _showErrorSnackBar('กรุณากรอกค่าน้ำให้ถูกต้อง');
-      return;
-    }
-    if (curW <= prevW) {
-      _showErrorSnackBar('ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
-      return;
-    }
-
-    setState(() => _savingRoomIds.add(roomId));
-    try {
-      final payload = {
-        'room_id': roomId,
-        'tenant_id': tenantId,
-        'contract_id': contractId,
-        'is_initial_reading': false,
-        'reading_month': _selectedMonth,
-        'reading_year': _selectedYear,
-        'water_previous_reading': prevW,
-        'electric_previous_reading': prevE,
-        'water_current_reading': curW,
-        'reading_date': DateTime.now().toIso8601String().split('T')[0],
-        'reading_notes': nCtrl.text.trim().isEmpty ? null : nCtrl.text.trim(),
-      };
-      final res = await MeterReadingService.createMeterReading(payload);
-      if (res['success'] == true) {
-        _showSuccessSnackBar('บันทึกค่าน้ำสำเร็จ');
-        _savedRoomIds.add(roomId);
-        final data = Map<String, dynamic>.from(res['data'] ?? {});
-        _existingByRoom[roomId] = data;
-        // ล้างช่องกรอกน้ำ
-        curMap?[waterRateId!]?.clear();
-        if (needPrev) _prevWaterCtrl[roomId]?.clear();
-        nCtrl.clear();
-        setState(() {});
-      } else {
-        _showErrorSnackBar(res['message'] ?? 'บันทึกไม่สำเร็จ');
-      }
-    } catch (e) {
-      _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
-    } finally {
-      if (mounted) setState(() => _savingRoomIds.remove(roomId));
-    }
-  }
-
-  // บันทึก (สร้าง) เฉพาะค่าไฟ — ค่าน้ำจะถูกตั้งเท่าค่าก่อนหน้าอัตโนมัติ
-  Future<void> _saveRowElectric(Map<String, dynamic> room) async {
-    final roomId = room['room_id']?.toString();
-    final tenantId = room['tenant_id']?.toString();
-    final contractId = room['contract_id']?.toString();
-    if (roomId == null || tenantId == null || contractId == null) {
-      _showErrorSnackBar('ข้อมูลไม่ครบ ไม่สามารถบันทึกได้');
-      return;
-    }
-    final nCtrl = _noteCtrl[roomId]!;
-
-    String? waterRateId;
-    String? electricRateId;
-    for (final rate in _meteredRates) {
-      final r = Map<String, dynamic>.from(rate);
-      final rid = (r['rate_id'] ?? '').toString();
-      if (rid.isEmpty) continue;
-      if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
-      if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
-    }
-    if (waterRateId == null || electricRateId == null) {
-      _showErrorSnackBar(
-          'กรุณาตั้งค่าเรตค่าน้ำและค่าไฟใน Utility Settings ก่อน');
-      return;
-    }
-    final curMap = _dynCurCtrls[roomId];
-    final needPrev = roomId != null && _needsPrevElecInput.contains(roomId);
-    final prevW = (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
-    double prevE = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
-    if (needPrev) {
-      prevE =
-          double.tryParse((_prevElecCtrl[roomId]?.text ?? '').trim()) ?? prevE;
-    }
-    final curE = double.tryParse((curMap?[electricRateId!]?.text ?? '').trim());
-    if (curE == null) {
-      _showErrorSnackBar('กรุณากรอกค่าไฟให้ถูกต้อง');
-      return;
-    }
-    if (curE <= prevE) {
-      _showErrorSnackBar('ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
-      return;
-    }
-
-    setState(() => _savingRoomIds.add(roomId));
-    try {
-      final payload = {
-        'room_id': roomId,
-        'tenant_id': tenantId,
-        'contract_id': contractId,
-        'is_initial_reading': false,
-        'reading_month': _selectedMonth,
-        'reading_year': _selectedYear,
-        'water_previous_reading': prevW,
-        'electric_previous_reading': prevE,
-        'electric_current_reading': curE,
-        'reading_date': DateTime.now().toIso8601String().split('T')[0],
-        'reading_notes': nCtrl.text.trim().isEmpty ? null : nCtrl.text.trim(),
-      };
-      final res = await MeterReadingService.createMeterReading(payload);
-      if (res['success'] == true) {
-        _showSuccessSnackBar('บันทึกค่าไฟสำเร็จ');
-        _savedRoomIds.add(roomId);
-        final data = Map<String, dynamic>.from(res['data'] ?? {});
-        _existingByRoom[roomId] = data;
-        // ล้างช่องกรอกไฟ
-        curMap?[electricRateId!]?.clear();
-        if (needPrev) _prevElecCtrl[roomId]?.clear();
-        nCtrl.clear();
-        setState(() {});
-      } else {
-        _showErrorSnackBar(res['message'] ?? 'บันทึกไม่สำเร็จ');
-      }
-    } catch (e) {
-      _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
-    } finally {
-      if (mounted) setState(() => _savingRoomIds.remove(roomId));
-    }
-  }
-
   Future<void> _updateRow(String roomId) async {
     final existing = _existingByRoom[roomId];
-    if (existing == null) return;
+    // If there is no existing reading for this room/month, treat this as create
+    if (existing == null) {
+      final room = _rooms.firstWhere(
+        (r) => (r['room_id']?.toString() ?? '') == roomId,
+        orElse: () => <String, dynamic>{},
+      );
+      if (room.isNotEmpty) {
+        await _saveRow(room);
+      } else {
+        _showErrorSnackBar('ไม่พบข้อมูลห้อง');
+      }
+      return;
+    }
     final nCtrl = _noteCtrl[roomId]!;
 
     final prevW = (existing['water_previous_reading'] ?? 0.0).toDouble();
@@ -2818,7 +2391,6 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         'water_current_reading': curW,
         'electric_current_reading': curE,
         'reading_date': DateTime.now().toIso8601String().split('T')[0],
-        'reading_notes': nCtrl.text.trim().isEmpty ? null : nCtrl.text.trim(),
       };
       final res =
           await MeterReadingService.updateMeterReading(readingId, payload);
@@ -2847,146 +2419,259 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
     }
   }
 
-  // อัปเดตเฉพาะค่าน้ำ
-  Future<void> _updateRowWater(String roomId) async {
-    final existing = _existingByRoom[roomId];
-    if (existing == null) return;
-    final nCtrl = _noteCtrl[roomId]!;
-
-    final prevW = (existing['water_previous_reading'] ?? 0.0).toDouble();
-    String? waterRateId;
-    for (final rate in _meteredRates) {
-      final r = Map<String, dynamic>.from(rate);
-      final rid = (r['rate_id'] ?? '').toString();
-      if (rid.isEmpty) continue;
-      if (waterRateId == null && _isWaterRate(r)) waterRateId = rid;
-    }
-    if (waterRateId == null) {
-      _showErrorSnackBar('กรุณาตั้งค่าเรตค่าน้ำใน Utility Settings ก่อน');
-      return;
-    }
-    final cvW = _dynCurCtrls[roomId]?[waterRateId!];
-    final curW = double.tryParse((cvW?.text ?? '').trim());
-    if (curW == null) {
-      _showErrorSnackBar('กรุณากรอกค่าน้ำให้ถูกต้อง');
-      return;
-    }
-    if (curW <= prevW) {
-      _showErrorSnackBar('ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
-      return;
-    }
-
-    final readingId = (existing['reading_id'] ?? '').toString();
-    if (readingId.isEmpty) return;
-
-    setState(() => _savingRoomIds.add(roomId));
-    try {
-      final payload = {
-        'water_previous_reading': prevW,
-        'water_current_reading': curW,
-        'reading_date': DateTime.now().toIso8601String().split('T')[0],
-        'reading_notes': nCtrl.text.trim().isEmpty ? null : nCtrl.text.trim(),
-      };
-      final res =
-          await MeterReadingService.updateMeterReading(readingId, payload);
-      if (res['success'] == true) {
-        _showSuccessSnackBar('บันทึกค่าน้ำสำเร็จ');
-        final data = Map<String, dynamic>.from(res['data'] ?? {});
-        _existingByRoom[roomId] = data;
-        _dynCurCtrls[roomId]?[waterRateId!]?.clear();
-        nCtrl.clear();
-        setState(() {});
-      } else {
-        _showErrorSnackBar(res['message'] ?? 'แก้ไขไม่สำเร็จ');
-      }
-    } catch (e) {
-      _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
-    } finally {
-      if (mounted) setState(() => _savingRoomIds.remove(roomId));
-    }
-  }
-
-  // อัปเดตเฉพาะค่าไฟ
-  Future<void> _updateRowElectric(String roomId) async {
-    final existing = _existingByRoom[roomId];
-    if (existing == null) return;
-    final nCtrl = _noteCtrl[roomId]!;
-
-    final prevE = (existing['electric_previous_reading'] ?? 0.0).toDouble();
-    String? electricRateId;
-    for (final rate in _meteredRates) {
-      final r = Map<String, dynamic>.from(rate);
-      final rid = (r['rate_id'] ?? '').toString();
-      if (rid.isEmpty) continue;
-      if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
-    }
-    if (electricRateId == null) {
-      _showErrorSnackBar('กรุณาตั้งค่าเรตค่าไฟใน Utility Settings ก่อน');
-      return;
-    }
-    final cvE = _dynCurCtrls[roomId]?[electricRateId!];
-    final curE = double.tryParse((cvE?.text ?? '').trim());
-    if (curE == null) {
-      _showErrorSnackBar('กรุณากรอกค่าไฟให้ถูกต้อง');
-      return;
-    }
-    if (curE <= prevE) {
-      _showErrorSnackBar('ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
-      return;
-    }
-
-    final readingId = (existing['reading_id'] ?? '').toString();
-    if (readingId.isEmpty) return;
-
-    setState(() => _savingRoomIds.add(roomId));
-    try {
-      final payload = {
-        'electric_previous_reading': prevE,
-        'electric_current_reading': curE,
-        'reading_date': DateTime.now().toIso8601String().split('T')[0],
-        'reading_notes': nCtrl.text.trim().isEmpty ? null : nCtrl.text.trim(),
-      };
-      final res =
-          await MeterReadingService.updateMeterReading(readingId, payload);
-      if (res['success'] == true) {
-        _showSuccessSnackBar('บันทึกค่าไฟสำเร็จ');
-        final data = Map<String, dynamic>.from(res['data'] ?? {});
-        _existingByRoom[roomId] = data;
-        _dynCurCtrls[roomId]?[electricRateId!]?.clear();
-        nCtrl.clear();
-        setState(() {});
-      } else {
-        _showErrorSnackBar(res['message'] ?? 'แก้ไขไม่สำเร็จ');
-      }
-    } catch (e) {
-      _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
-    } finally {
-      if (mounted) setState(() => _savingRoomIds.remove(roomId));
-    }
-  }
-
   Future<void> _confirmDelete(String readingId, String roomId) async {
-    final ok = await showDialog<bool>(
+    final tenantName = (() {
+      try {
+        final r = _rooms.firstWhere(
+          (e) => (e['room_id']?.toString() ?? '') == roomId,
+          orElse: () => <String, dynamic>{},
+        );
+        return (r['tenant_name'] ?? '').toString();
+      } catch (_) {
+        return '';
+      }
+    })();
+
+    final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('ยืนยันการลบ'),
-        content: const Text('ต้องการลบข้อมูลค่ามิเตอร์ของเดือนนี้ใช่หรือไม่?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('ยกเลิก')),
-          ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('ลบ')),
-        ],
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.delete_outline,
+                  color: Colors.red.shade600,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title
+              const Text(
+                'ยืนยันการลบผู้เช่า',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Tenant label
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.person, size: 18, color: Colors.grey[700]),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        tenantName.isEmpty ? '-' : tenantName,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Info Box
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.red.shade100,
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.warning_rounded,
+                      color: Colors.red.shade600,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'การลบนี้ไม่สามารถกู้คืนได้',
+                            style: TextStyle(
+                              color: Colors.red,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.delete_outline, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'ยืนยันการลบ',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
 
-    if (ok != true) return;
+    if (confirm != true) return;
+
+    // Loading dialog while deleting
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 50,
+                      height: 50,
+                      child: CircularProgressIndicator(
+                        color: Colors.red,
+                        strokeWidth: 3,
+                      ),
+                    ),
+                    Icon(
+                      Icons.delete_outline,
+                      color: Colors.red.shade600,
+                      size: 28,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'กำลังลบข้อมูลผู้เช่า',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'กรุณารอสักครู่...',
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
 
     setState(() => _savingRoomIds.add(roomId));
     try {
       final res = await MeterReadingService.deleteMeterReading(readingId);
+      if (mounted) Navigator.of(context).pop(); // close loading dialog
       if (res['success'] == true) {
         _showSuccessSnackBar('ลบข้อมูลสำเร็จ');
         final warns = List.from(res['warnings'] ?? const []);
@@ -3045,6 +2730,7 @@ class _MeterReadingsListPageState extends State<MeterReadingsListPage> {
         _showErrorSnackBar(res['message'] ?? 'ลบไม่สำเร็จ');
       }
     } catch (e) {
+      if (mounted) Navigator.of(context).pop(); // close loading dialog
       _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
     } finally {
       if (mounted) setState(() => _savingRoomIds.remove(roomId));

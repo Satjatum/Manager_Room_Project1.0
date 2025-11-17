@@ -1,29 +1,31 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+//--------
+import '../../models/user_models.dart';
+//--------
+import '../../middleware/auth_middleware.dart';
+//--------
 import '../../services/branch_service.dart';
 import '../../services/user_service.dart';
 import '../../services/image_service.dart';
 import '../../services/branch_manager_service.dart';
-import '../../models/user_models.dart';
-import '../../middleware/auth_middleware.dart';
-import '../widgets/colors.dart';
 
-class BranchEditPage extends StatefulWidget {
+class BranchEditUi extends StatefulWidget {
   final String branchId;
 
-  const BranchEditPage({
+  const BranchEditUi({
     Key? key,
     required this.branchId,
   }) : super(key: key);
 
   @override
-  State<BranchEditPage> createState() => _BranchEditPageState();
+  State<BranchEditUi> createState() => _BranchEditUiState();
 }
 
-class _BranchEditPageState extends State<BranchEditPage>
+class _BranchEditUiState extends State<BranchEditUi>
     with SingleTickerProviderStateMixin {
   // Controllers and state variables (same as branch_add but with additional fields)
   final _formKey = GlobalKey<FormState>();
@@ -117,7 +119,7 @@ class _BranchEditPageState extends State<BranchEditPage>
         });
       }
     } catch (e) {
-      print('Error loading current user: $e');
+      print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
       if (mounted) {
         setState(() {
           _currentUser = null;
@@ -150,7 +152,7 @@ class _BranchEditPageState extends State<BranchEditPage>
               children: [
                 Icon(Icons.error_outline, color: Colors.white),
                 SizedBox(width: 12),
-                Expanded(child: Text('Error loading branch: $e')),
+                Expanded(child: Text('เกิดข้อผิดพลาดในการโหลดสาขา: $e')),
               ],
             ),
             backgroundColor: Colors.red.shade600,
@@ -184,7 +186,7 @@ class _BranchEditPageState extends State<BranchEditPage>
               children: [
                 Icon(Icons.error_outline, color: Colors.white),
                 SizedBox(width: 12),
-                Expanded(child: Text('Failed to load managers: $e')),
+                Expanded(child: Text('เกิดข้อผิดพลาดในการโหลดผู้ดูแล: $e')),
               ],
             ),
             backgroundColor: Colors.orange.shade600,
@@ -213,7 +215,7 @@ class _BranchEditPageState extends State<BranchEditPage>
         });
       }
     } catch (e) {
-      print('Error loading branch managers: $e');
+      print('เกิดข้อผิดพลาดในการโหลดผู้จัดการ: $e');
     }
   }
 
@@ -259,7 +261,7 @@ class _BranchEditPageState extends State<BranchEditPage>
               children: [
                 Icon(Icons.error_outline, color: Colors.white),
                 SizedBox(width: 12),
-                Expanded(child: Text('Error selecting image: $e')),
+                Expanded(child: Text('เกิดข้อผิดพลาดในการเลือกภาพ: $e')),
               ],
             ),
             backgroundColor: Colors.red.shade600,
@@ -320,7 +322,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                 padding: EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    Text('Select Branch Image',
+                    Text('เลือกภาพสาขา',
                         style: TextStyle(
                             fontSize: 18, fontWeight: FontWeight.bold)),
                     SizedBox(height: 20),
@@ -342,7 +344,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                                   Icon(Icons.camera_alt,
                                       size: 40, color: Color(0xFF10B981)),
                                   SizedBox(height: 8),
-                                  Text('Camera',
+                                  Text('กล้อง',
                                       style: TextStyle(
                                           fontWeight: FontWeight.w500)),
                                 ],
@@ -367,7 +369,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                                   Icon(Icons.photo_library,
                                       size: 40, color: Color(0xFF10B981)),
                                   SizedBox(height: 8),
-                                  Text('Gallery',
+                                  Text('แกลเลอรี่',
                                       style: TextStyle(
                                           fontWeight: FontWeight.w500)),
                                 ],
@@ -382,7 +384,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                       width: double.infinity,
                       child: TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: Text('Cancel',
+                        child: Text('ยกเลิก',
                             style: TextStyle(color: Colors.grey[600])),
                       ),
                     ),
@@ -427,7 +429,7 @@ class _BranchEditPageState extends State<BranchEditPage>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('File size exceeds 5MB'),
+              content: Text('ขนาดไฟล์เกิน 5MB'),
               backgroundColor: Colors.red.shade600,
               behavior: SnackBarBehavior.floating,
             ),
@@ -440,7 +442,7 @@ class _BranchEditPageState extends State<BranchEditPage>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('File is empty or corrupted'),
+              content: Text('ไฟล์ว่างเปล่าหรือเสียหาย'),
               backgroundColor: Colors.red.shade600,
               behavior: SnackBarBehavior.floating,
             ),
@@ -456,7 +458,7 @@ class _BranchEditPageState extends State<BranchEditPage>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Only JPG, JPEG, PNG, WebP files are allowed'),
+              content: Text('เฉพาะไฟล์ JPG, JPEG, PNG, WebP เท่านั้น'),
               backgroundColor: Colors.red.shade600,
               behavior: SnackBarBehavior.floating,
             ),
@@ -470,7 +472,7 @@ class _BranchEditPageState extends State<BranchEditPage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to validate file: $e'),
+            content: Text('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e'),
             backgroundColor: Colors.red.shade600,
             behavior: SnackBarBehavior.floating,
           ),
@@ -486,7 +488,7 @@ class _BranchEditPageState extends State<BranchEditPage>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('File not found or deleted'),
+              content: Text('ไม่พบไฟล์หรือไฟล์ถูกลบ'),
               backgroundColor: Colors.red.shade600,
               behavior: SnackBarBehavior.floating,
             ),
@@ -500,7 +502,7 @@ class _BranchEditPageState extends State<BranchEditPage>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('File size exceeds 5MB'),
+              content: Text('ขนาดไฟล์เกิน 5MB'),
               backgroundColor: Colors.red.shade600,
               behavior: SnackBarBehavior.floating,
             ),
@@ -513,7 +515,7 @@ class _BranchEditPageState extends State<BranchEditPage>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('File is empty or corrupted'),
+              content: Text('ไฟล์ว่างเปล่าหรือเสียหาย'),
               backgroundColor: Colors.red.shade600,
               behavior: SnackBarBehavior.floating,
             ),
@@ -529,7 +531,7 @@ class _BranchEditPageState extends State<BranchEditPage>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Only JPG, JPEG, PNG, WebP files are allowed'),
+              content: Text('เฉพาะไฟล์ JPG, JPEG, PNG, WebP เท่านั้น'),
               backgroundColor: Colors.red.shade600,
               behavior: SnackBarBehavior.floating,
             ),
@@ -543,7 +545,7 @@ class _BranchEditPageState extends State<BranchEditPage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to validate file: $e'),
+            content: Text('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e'),
             backgroundColor: Colors.red.shade600,
             behavior: SnackBarBehavior.floating,
           ),
@@ -568,7 +570,7 @@ class _BranchEditPageState extends State<BranchEditPage>
           children: [
             Icon(Icons.check_circle, color: Colors.white),
             SizedBox(width: 12),
-            Text('Image removed'),
+            Text('ลบรูปภาพแล้ว'),
           ],
         ),
         backgroundColor: Colors.green.shade600,
@@ -582,7 +584,7 @@ class _BranchEditPageState extends State<BranchEditPage>
     if (_currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please log in to update branch'),
+          content: Text('กรุณาเข้าสู่ระบบเพื่ออัปเดตสาขา'),
           backgroundColor: Colors.red.shade600,
           behavior: SnackBarBehavior.floating,
         ),
@@ -600,7 +602,7 @@ class _BranchEditPageState extends State<BranchEditPage>
     if (!allowedUI) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('You do not have permission to edit this branch'),
+          content: Text('คุณไม่มีสิทธิ์แก้ไขสาขานี้'),
           backgroundColor: Colors.red.shade600,
           behavior: SnackBarBehavior.floating,
         ),
@@ -618,7 +620,7 @@ class _BranchEditPageState extends State<BranchEditPage>
       if (_selectedManagerIds.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Please select at least one manager'),
+            content: Text('กรุณาเลือกผู้จัดการอย่างน้อยหนึ่งคน'),
             backgroundColor: Colors.orange.shade600,
             behavior: SnackBarBehavior.floating,
           ),
@@ -651,7 +653,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                   children: [
                     CircularProgressIndicator(color: Color(0xFF10B981)),
                     SizedBox(height: 16),
-                    Text('Uploading image...'),
+                    Text('กำลังอัปโหลดรูปภาพ...'),
                   ],
                 ),
               ),
@@ -702,7 +704,7 @@ class _BranchEditPageState extends State<BranchEditPage>
             imageUrl = uploadResult['url'];
           } else {
             throw Exception(
-                uploadResult?['message'] ?? 'Failed to upload image');
+                uploadResult?['message'] ?? 'เกิดข้อผิดพลาดในการอัปโหลดภาพ');
           }
         } else {
           if (_currentImageUrl != null && _currentImageUrl!.isNotEmpty) {
@@ -746,7 +748,7 @@ class _BranchEditPageState extends State<BranchEditPage>
               children: [
                 Icon(Icons.check_circle, color: Colors.white),
                 SizedBox(width: 12),
-                Expanded(child: Text('Branch updated successfully')),
+                Expanded(child: Text('อัปเดตสาขาเรียบร้อยแล้ว')),
               ],
             ),
             backgroundColor: Colors.green.shade600,
@@ -763,7 +765,7 @@ class _BranchEditPageState extends State<BranchEditPage>
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text('เกิดข้อผิดพลาด: $e'),
             backgroundColor: Colors.red.shade600,
             duration: Duration(seconds: 4),
             behavior: SnackBarBehavior.floating,
@@ -813,12 +815,6 @@ class _BranchEditPageState extends State<BranchEditPage>
     if (_isCheckingAuth || _isLoadingData) {
       return Scaffold(
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          title: Text('Edit Branch'),
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          elevation: 0,
-        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -826,9 +822,6 @@ class _BranchEditPageState extends State<BranchEditPage>
               CircularProgressIndicator(
                   color: Color(0xFF10B981), strokeWidth: 3),
               SizedBox(height: 16),
-              Text(_isCheckingAuth
-                  ? 'Checking permissions...'
-                  : 'Loading data...'),
             ],
           ),
         ),
@@ -846,7 +839,7 @@ class _BranchEditPageState extends State<BranchEditPage>
       return Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
-          title: Text('Edit Branch'),
+          title: Text('แก้ไขสาขา'),
           backgroundColor: Colors.white,
           foregroundColor: Colors.black87,
           elevation: 0,
@@ -858,7 +851,9 @@ class _BranchEditPageState extends State<BranchEditPage>
               Icon(Icons.lock_outline, size: 80, color: Colors.grey[400]),
               SizedBox(height: 16),
               Text(
-                _currentUser == null ? 'Please log in' : 'Access Denied',
+                _currentUser == null
+                    ? 'กรุณาเข้าสู่ระบบ'
+                    : 'การเข้าถึงถูกปฏิเสธ',
                 style: TextStyle(
                     fontSize: 18,
                     color: Colors.grey[700],
@@ -869,8 +864,8 @@ class _BranchEditPageState extends State<BranchEditPage>
                 padding: EdgeInsets.symmetric(horizontal: 40),
                 child: Text(
                   _currentUser == null
-                      ? 'You need to log in to edit branches'
-                      : 'Only SuperAdmin or branch managers can edit this branch',
+                      ? 'คุณต้องเข้าสู่ระบบเพื่อแก้ไขสาขา'
+                      : 'เฉพาะ SuperAdmin หรือผู้จัดการสาขาสามารถแก้ไขสาขานี้ได้',
                   style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                   textAlign: TextAlign.center,
                 ),
@@ -883,7 +878,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                 ),
-                child: Text('Go Back'),
+                child: Text('ย้อนกลับ'),
               ),
             ],
           ),
@@ -915,10 +910,10 @@ class _BranchEditPageState extends State<BranchEditPage>
                   tabs: [
                     Tab(
                         icon: Icon(Icons.info_outline, size: 20),
-                        text: 'Branch Info'),
+                        text: 'รายละเอียดสาขา'),
                     Tab(
                         icon: Icon(Icons.people_outline, size: 20),
-                        text: 'Managers'),
+                        text: 'ผู้จัดการ'),
                   ],
                 ),
               ),
@@ -932,7 +927,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                           CircularProgressIndicator(
                               color: Color(0xFF10B981), strokeWidth: 3),
                           SizedBox(height: 16),
-                          Text('Updating branch...'),
+                          Text('กำลังอัปเดตสาขา...'),
                         ],
                       ),
                     )
@@ -957,34 +952,40 @@ class _BranchEditPageState extends State<BranchEditPage>
   }
 
   Widget _buildCustomHeader() {
-    return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[300]!, width: 1)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.all(24),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           IconButton(
-            icon: Icon(Icons.arrow_back, color: Colors.black87),
-            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+            tooltip: 'ย้อนกลับ',
           ),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              children: const [
                 Text(
-                  'Edit Branch',
+                  'แก้ไขสาขา',
                   style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87),
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
-                SizedBox(height: 2),
+                SizedBox(height: 4),
                 Text(
-                  'Update branch information',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  'สำหรับแก้ไขสาขาในระบบ',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black54,
+                  ),
                 ),
               ],
             ),
@@ -1044,7 +1045,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Branch Managers',
+                        'ผู้จัดการสาขา',
                         style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -1060,7 +1061,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                         border: Border.all(color: Colors.orange.shade200),
                       ),
                       child: Text(
-                        'Editable',
+                        'แก้ไข',
                         style: TextStyle(
                             fontSize: 11,
                             color: Colors.orange.shade700,
@@ -1070,7 +1071,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                   ],
                 ),
                 SizedBox(height: 8),
-                Text('Select at least 1 manager (can select multiple)',
+                Text('กรุณาเลือกผู้จัดการอย่างน้อยหนึ่งคน',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600])),
                 if (_selectedManagerIds.isNotEmpty) ...[
                   SizedBox(height: 12),
@@ -1087,7 +1088,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                             color: Colors.green.shade600, size: 20),
                         SizedBox(width: 8),
                         Text(
-                          '${_selectedManagerIds.length} manager${_selectedManagerIds.length > 1 ? 's' : ''} selected',
+                          'เลือกผู้จัดการแล้ว ${_selectedManagerIds.length} ${_selectedManagerIds.length > 1 ? 'คน' : 'คน'} ',
                           style: TextStyle(
                               color: Colors.green.shade700,
                               fontWeight: FontWeight.w500),
@@ -1124,13 +1125,13 @@ class _BranchEditPageState extends State<BranchEditPage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('No managers found',
+                        Text('ไม่พบผู้จัดการ',
                             style: TextStyle(
                                 color: Colors.red.shade700,
                                 fontWeight: FontWeight.w600)),
                         SizedBox(height: 4),
                         Text(
-                          'You need at least one Admin or SuperAdmin in the system',
+                          'คุณต้องมีผู้ดูแลระบบหรือผู้ดูแลระบบระดับสูงอย่างน้อย 1 คนในระบบ',
                           style: TextStyle(
                               color: Colors.red.shade600, fontSize: 13),
                         ),
@@ -1213,7 +1214,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                           children: [
                             Expanded(
                               child: Text(
-                                user['user_name'] ?? 'No Name',
+                                user['user_name'] ?? 'ไม่มีชื่อ',
                                 style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 15,
@@ -1235,7 +1236,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                                         size: 12, color: Colors.amber.shade700),
                                     SizedBox(width: 4),
                                     Text(
-                                      'Primary',
+                                      'หลัก',
                                       style: TextStyle(
                                           fontSize: 10,
                                           color: Colors.amber.shade700,
@@ -1259,7 +1260,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                     IconButton(
                       icon: Icon(Icons.star_border, color: Colors.grey[400]),
                       onPressed: () => _setPrimaryManager(userId),
-                      tooltip: 'Set as primary manager',
+                      tooltip: 'ตั้งเป็นผู้จัดการหลัก',
                     ),
                 ],
               ),
@@ -1295,11 +1296,12 @@ class _BranchEditPageState extends State<BranchEditPage>
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Branch Image',
+                  'รูปภาพสาขา',
                   style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
               ),
               if (_hasSelectedImage())
@@ -1312,7 +1314,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    _imageChanged ? 'Updated' : 'Current',
+                    _imageChanged ? 'อัปเดต' : 'ปัจจุบัน',
                     style: TextStyle(
                       fontSize: 11,
                       color: _imageChanged
@@ -1372,7 +1374,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                   child: OutlinedButton.icon(
                     onPressed: _pickImage,
                     icon: Icon(Icons.swap_horiz, size: 18),
-                    label: Text('Change'),
+                    label: Text('เปลี่ยน'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Color(0xFF10B981),
                       side: BorderSide(color: Color(0xFF10B981)),
@@ -1385,7 +1387,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                   child: OutlinedButton.icon(
                     onPressed: _removeImage,
                     icon: Icon(Icons.delete_outline, size: 18),
-                    label: Text('Remove'),
+                    label: Text('ลบ'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
                       side: BorderSide(color: Colors.red.shade300),
@@ -1420,7 +1422,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                     ),
                     SizedBox(height: 12),
                     Text(
-                      kIsWeb ? 'Upload Image' : 'Select Branch Image',
+                      kIsWeb ? 'อัปโหลดรูปภาพ' : 'เลือกภาพสาขา',
                       style: TextStyle(
                           fontSize: 16,
                           color: Colors.grey[700],
@@ -1429,8 +1431,8 @@ class _BranchEditPageState extends State<BranchEditPage>
                     SizedBox(height: 6),
                     Text(
                       kIsWeb
-                          ? 'Click to select file from computer'
-                          : 'Click to select from gallery or camera',
+                          ? 'คลิกเพื่อเลือกไฟล์จากคอมพิวเตอร์'
+                          : 'คลิกเพื่อเลือกภาพจากแกลอรี่หรือกล้อง',
                       style: TextStyle(fontSize: 13, color: Colors.grey[500]),
                       textAlign: TextAlign.center,
                     ),
@@ -1541,19 +1543,21 @@ class _BranchEditPageState extends State<BranchEditPage>
                     color: Color(0xFF10B981), size: 20),
               ),
               SizedBox(width: 12),
-              Text('Basic Information',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87)),
+              Text(
+                'ข้อมูลพื้นฐานสาขา',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
             ],
           ),
           SizedBox(height: 16),
           TextFormField(
             controller: _branchCodeController,
             decoration: InputDecoration(
-              labelText: 'Branch Code *',
-              hintText: 'e.g., BKK-01, CNX-01',
+              labelText: 'รหัสสาขา',
               prefixIcon: Icon(Icons.qr_code, size: 20),
               border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -1570,10 +1574,10 @@ class _BranchEditPageState extends State<BranchEditPage>
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Please enter branch code';
+                return 'กรุณากรอกรหัสสาขา';
               }
               if (value.trim().length < 3) {
-                return 'Branch code must be at least 3 characters';
+                return 'รหัสสาขาต้องมีอย่างน้อย 3 ตัวอักษร';
               }
               return null;
             },
@@ -1582,8 +1586,7 @@ class _BranchEditPageState extends State<BranchEditPage>
           TextFormField(
             controller: _branchNameController,
             decoration: InputDecoration(
-              labelText: 'Branch Name *',
-              hintText: 'e.g., Bangkok Central, Chiang Mai Branch',
+              labelText: 'ชื่อสาขา',
               prefixIcon: Icon(Icons.store, size: 20),
               border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -1600,10 +1603,10 @@ class _BranchEditPageState extends State<BranchEditPage>
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Please enter branch name';
+                return 'กรุณากรอกชื่อสาขา';
               }
               if (value.trim().length < 2) {
-                return 'Branch name must be at least 2 characters';
+                return 'ชื่อสาขาต้องมีอย่างน้อย 2 ตัวอักษร';
               }
               return null;
             },
@@ -1612,8 +1615,7 @@ class _BranchEditPageState extends State<BranchEditPage>
           TextFormField(
             controller: _branchPhoneController,
             decoration: InputDecoration(
-              labelText: 'Phone Number',
-              hintText: 'e.g., 02-123-4567 or 081-234-5678',
+              labelText: 'หมายเลขโทรศัพท์',
               prefixIcon: Icon(Icons.phone, size: 20),
               border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -1627,13 +1629,13 @@ class _BranchEditPageState extends State<BranchEditPage>
               ),
               filled: true,
               fillColor: Colors.grey.shade50,
-              helperText: 'Branch contact number (optional)',
             ),
+            maxLength: 10,
             keyboardType: TextInputType.phone,
             validator: (value) {
               if (value != null && value.trim().isNotEmpty) {
                 if (!RegExp(r'^[0-9\-\(\)\s]+').hasMatch(value)) {
-                  return 'Invalid phone number format';
+                  return 'รูปแบบหมายเลขโทรศัพท์ไม่ถูกต้อง';
                 }
               }
               return null;
@@ -1644,8 +1646,7 @@ class _BranchEditPageState extends State<BranchEditPage>
             controller: _branchAddressController,
             maxLines: 3,
             decoration: InputDecoration(
-              labelText: 'Address',
-              hintText: 'Enter branch address...',
+              labelText: 'ที่อยู่',
               prefixIcon: Padding(
                 padding: EdgeInsets.only(bottom: 60),
                 child: Icon(Icons.location_on, size: 20),
@@ -1693,11 +1694,14 @@ class _BranchEditPageState extends State<BranchEditPage>
                     color: Color(0xFF10B981), size: 20),
               ),
               SizedBox(width: 12),
-              Text('Additional Details',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87)),
+              Text(
+                'รายละเอียดเพิ่มเติม',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
             ],
           ),
           SizedBox(height: 16),
@@ -1705,9 +1709,7 @@ class _BranchEditPageState extends State<BranchEditPage>
             controller: _branchDescController,
             maxLines: 4,
             decoration: InputDecoration(
-              labelText: 'Description',
-              hintText:
-                  'Enter branch description, highlights, or additional information...',
+              labelText: 'รายละเอียด',
               border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               focusedBorder: OutlineInputBorder(
@@ -1751,7 +1753,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                     color: Color(0xFF10B981), size: 20),
               ),
               SizedBox(width: 12),
-              Text('Status Settings',
+              Text('การตั้งค่าสถานะ',
                   style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -1784,7 +1786,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _isActive ? 'Active' : 'Inactive',
+                        _isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
@@ -1796,8 +1798,8 @@ class _BranchEditPageState extends State<BranchEditPage>
                       SizedBox(height: 2),
                       Text(
                         _isActive
-                            ? 'Branch is visible and operational'
-                            : 'Branch is hidden from the system',
+                            ? 'สาขาแสดงอยู่และใช้งานได้'
+                            : 'สาขาถูกซ่อนจากระบบ',
                         style: TextStyle(
                           fontSize: 13,
                           color: _isActive
@@ -1857,7 +1859,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                   )
                 : Icon(Icons.save, color: Colors.white, size: 18),
             label: Text(
-              _isLoading ? 'Updating...' : 'Update Branch',
+              _isLoading ? 'กำลังบันทึกการแก้ไข...' : 'บันทึกการแก้ไข',
               style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -1894,7 +1896,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                     ? null
                     : () => _tabController.animateTo(_currentTabIndex - 1),
                 icon: Icon(Icons.arrow_back, size: 18),
-                label: Text('Previous'),
+                label: Text('ย้อนกลับ'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Color(0xFF10B981),
                   side: BorderSide(color: Color(0xFF10B981)),
@@ -1912,13 +1914,13 @@ class _BranchEditPageState extends State<BranchEditPage>
                     onPressed: _isLoading
                         ? null
                         : () => _tabController.animateTo(_currentTabIndex + 1),
-                    icon: Icon(Icons.arrow_forward,
-                        color: Colors.white, size: 18),
-                    label: Text('Next',
-                        style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white)),
+                    label: Text(
+                      'ถัดไป',
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF10B981),
                       padding: EdgeInsets.symmetric(vertical: 14),
@@ -1939,7 +1941,7 @@ class _BranchEditPageState extends State<BranchEditPage>
                           )
                         : Icon(Icons.save, color: Colors.white, size: 18),
                     label: Text(
-                      _isLoading ? 'Updating...' : 'Update Branch',
+                      _isLoading ? 'กำลังบันทึกการแก้ไข...' : 'บันทึกการแก้ไข',
                       style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,

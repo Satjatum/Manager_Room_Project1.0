@@ -1,15 +1,11 @@
-import 'dart:io';
-import 'dart:typed_data';
-
-import 'package:flutter/foundation.dart' show kIsWeb;
+// Removed image upload dependencies for simplification per requirements
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../models/user_models.dart';
 import '../services/auth_service.dart';
 import '../services/branch_service.dart';
 import '../services/branch_payment_qr_service.dart';
-import '../services/image_service.dart';
+// image upload removed: QR images no longer required for bank or PromptPay
 
 class PaymentQrManagementUi extends StatefulWidget {
   final String? branchId;
@@ -64,6 +60,11 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
     setState(() => _busy = true);
     try {
       _qrs = await BranchPaymentQrService.getByBranch(_selectedBranchId!);
+      // ตัด PromptPay ออกทั้งหมดจากรายการแสดงผล
+      _qrs = _qrs
+          .where((q) => (q['promptpay_id'] == null ||
+              q['promptpay_id'].toString().isEmpty))
+          .toList();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -125,21 +126,7 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text(
-          'ตั้งค่าบัญชี/QR รับชำระ',
-          style: TextStyle(fontWeight: FontWeight.w700, color: Colors.black87),
-        ),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      backgroundColor: Colors.white,
       floatingActionButton: _selectedBranchId != null
           ? FloatingActionButton(
               onPressed: () => _openEditor(),
@@ -159,6 +146,47 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
               )
             : Column(
                 children: [
+                  // Header (unified style)
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new,
+                              color: Colors.black87),
+                          onPressed: () {
+                            if (Navigator.of(context).canPop()) {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          tooltip: 'ย้อนกลับ',
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'ตั้งค่าบัญชีรับชำระ',
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'จัดการบัญชีธนาคารสำหรับรับการโอนเงิน',
+                                style: TextStyle(
+                                    fontSize: 14, color: Colors.black54),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   if (widget.branchId == null && _branches.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -248,13 +276,7 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                 itemCount: _qrs.length,
                                 itemBuilder: (ctx, i) {
                                   final q = _qrs[i];
-                                  final isActive =
-                                      (q['is_active'] ?? true) == true;
-                                  final isPrimary =
-                                      (q['is_primary'] ?? false) == true;
-                                  final isPromptPay =
-                                      (q['promptpay_id'] != null &&
-                                          q['promptpay_id'].toString().isNotEmpty);
+                                  final isActive = (q['is_active'] ?? true) == true;
 
                                   return Container(
                                     margin: const EdgeInsets.only(bottom: 12),
@@ -280,64 +302,21 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                           children: [
                                             Row(
                                               children: [
-                                                if (isPromptPay)
-                                                  (
-                                                    (q['qr_code_image'] != null &&
-                                                            q['qr_code_image']
-                                                                .toString()
-                                                                .isNotEmpty)
-                                                        ? ClipRRect(
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(12),
-                                                            child: Image.network(
-                                                              q['qr_code_image'],
-                                                              width: 64,
-                                                              height: 64,
-                                                              fit: BoxFit.cover,
-                                                            ),
-                                                          )
-                                                        : Container(
-                                                            width: 64,
-                                                            height: 64,
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              color: const Color(
-                                                                      0xFF1ABC9C)
-                                                                  .withOpacity(
-                                                                      0.1),
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          12),
-                                                            ),
-                                                            child: const Icon(
-                                                              Icons
-                                                                  .qr_code_rounded,
-                                                              size: 32,
-                                                              color: Color(
-                                                                  0xFF1ABC9C),
-                                                            ),
-                                                          )
-                                                  )
-                                                else
-                                                  Container(
-                                                    width: 64,
-                                                    height: 64,
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.blue
-                                                          .withOpacity(0.08),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              12),
-                                                    ),
-                                                    child: const Icon(
-                                                      Icons
-                                                          .account_balance_rounded,
-                                                      size: 30,
-                                                      color: Colors.blue,
-                                                    ),
+                                                Container(
+                                                  width: 64,
+                                                  height: 64,
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.blue
+                                                        .withOpacity(0.08),
+                                                    borderRadius:
+                                                        BorderRadius.circular(12),
                                                   ),
+                                                  child: const Icon(
+                                                    Icons.account_balance_rounded,
+                                                    size: 30,
+                                                    color: Colors.blue,
+                                                  ),
+                                                ),
                                                 const SizedBox(width: 12),
                                                 Expanded(
                                                   child: Column(
@@ -346,47 +325,21 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                                             .start,
                                                     children: [
                                                       Text(
-                                                        isPromptPay
-                                                            ? 'PromptPay'
-                                                            : (q['account_number'] ?? '-'),
+                                                        (q['account_number'] ?? '-'),
                                                         style: const TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.w700,
+                                                          fontWeight: FontWeight.w700,
                                                           fontSize: 16,
                                                         ),
                                                       ),
                                                       const SizedBox(height: 4),
-                                                      if (!isPromptPay) ...[
-                                                        Text(
-                                                          '${q['bank_name'] ?? '-'} • ${q['account_name'] ?? ''}',
-                                                          style: TextStyle(
-                                                            fontSize: 13,
-                                                            color:
-                                                                Colors.grey.shade700,
-                                                          ),
-                                                          overflow: TextOverflow.ellipsis,
+                                                      Text(
+                                                        '${q['bank_name'] ?? '-'} • ${q['account_name'] ?? ''}',
+                                                        style: TextStyle(
+                                                          fontSize: 13,
+                                                          color: Colors.grey.shade700,
                                                         ),
-                                                      ] else ...[
-                                                        Text(
-                                                          'ประเภท: ' +
-                                                              (q['promptpay_type'] ?? '-')
-                                                                  .toString(),
-                                                          style: TextStyle(
-                                                            fontSize: 13,
-                                                            color:
-                                                                Colors.grey.shade700,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(height: 2),
-                                                        Text(
-                                                          (q['promptpay_id'] ?? ''),
-                                                          style: TextStyle(
-                                                            fontSize: 12,
-                                                            color:
-                                                                Colors.grey.shade600,
-                                                          ),
-                                                        ),
-                                                      ],
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
                                                     ],
                                                   ),
                                                 ),
@@ -416,23 +369,6 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                                         ],
                                                       ),
                                                     ),
-                                                    if (!isPrimary)
-                                                      PopupMenuItem(
-                                                        value: 'primary',
-                                                        child: Row(
-                                                          children: const [
-                                                            Icon(
-                                                                Icons
-                                                                    .star_rounded,
-                                                                color: Colors
-                                                                    .orange,
-                                                                size: 18),
-                                                            SizedBox(width: 8),
-                                                            Text(
-                                                                'ตั้งเป็นบัญชีหลัก'),
-                                                          ],
-                                                        ),
-                                                      ),
                                                     PopupMenuItem(
                                                       value: 'toggle',
                                                       child: Row(
@@ -475,28 +411,6 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                                   onSelected: (val) async {
                                                     if (val == 'edit') {
                                                       _openEditor(record: q);
-                                                    } else if (val ==
-                                                        'primary') {
-                                                      final res =
-                                                          await BranchPaymentQrService
-                                                              .setPrimary(
-                                                        qrId: q['qr_id']
-                                                            .toString(),
-                                                        branchId:
-                                                            _selectedBranchId!,
-                                                      );
-                                                      if (mounted) {
-                                                        if (res['success'] ==
-                                                            true) {
-                                                          _showSuccessSnackBar(
-                                                              'ตั้งเป็นบัญชีหลักแล้ว');
-                                                        } else {
-                                                          _showErrorSnackBar(res[
-                                                                  'message'] ??
-                                                              'ทำรายการไม่สำเร็จ');
-                                                        }
-                                                        await _loadQrs();
-                                                      }
                                                     } else if (val ==
                                                         'toggle') {
                                                       final res =
@@ -731,45 +645,7 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                                     ],
                                                   ),
                                                 ),
-                                                if (isPrimary)
-                                                  Container(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 10,
-                                                        vertical: 6),
-                                                    decoration: BoxDecoration(
-                                                      color:
-                                                          Colors.orange.shade50,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8),
-                                                      border: Border.all(
-                                                          color: Colors
-                                                              .orange.shade200),
-                                                    ),
-                                                    child: Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Icon(Icons.star_rounded,
-                                                            size: 14,
-                                                            color: Colors.orange
-                                                                .shade700),
-                                                        const SizedBox(
-                                                            width: 4),
-                                                        Text(
-                                                          'บัญชีหลัก',
-                                                          style: TextStyle(
-                                                            fontSize: 11,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color: Colors.orange
-                                                                .shade700,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
+                                                // removed primary badge
                                               ],
                                             ),
                                           ],
@@ -803,14 +679,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
   final _accNumCtrl = TextEditingController();
   final _orderCtrl = TextEditingController();
   bool _isActive = true;
-  bool _isPrimary = false;
-  XFile? _image;
   bool _saving = false;
-
-  // Payment type: bank | promptpay
-  String _paymentType = 'bank';
-  String? _ppType; // mobile | citizen_id | tax_id | ewallet
-  final _ppIdCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -820,21 +689,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
       _bankCtrl.text = (r['bank_name'] ?? '').toString();
       _accNameCtrl.text = (r['account_name'] ?? '').toString();
       _accNumCtrl.text = (r['account_number'] ?? '').toString();
-      _orderCtrl.text = (r['display_order'] ?? '').toString();
       _isActive = (r['is_active'] ?? true) == true;
-      _isPrimary = (r['is_primary'] ?? false) == true;
-
-      // Detect type by presence of promptpay_id
-      final ppId = (r['promptpay_id'] ?? '').toString();
-      if (ppId.isNotEmpty) {
-        _paymentType = 'promptpay';
-        _ppType = (r['promptpay_type'] ?? '').toString().isEmpty
-            ? null
-            : r['promptpay_type'].toString();
-        _ppIdCtrl.text = ppId;
-      } else {
-        _paymentType = 'bank';
-      }
     }
   }
 
@@ -843,103 +698,23 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
     _bankCtrl.dispose();
     _accNameCtrl.dispose();
     _accNumCtrl.dispose();
-    _orderCtrl.dispose();
-    _ppIdCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final img =
-        await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
-    if (img != null) setState(() => _image = img);
-  }
-
   Future<void> _save() async {
-    // Validate according to type
-    if (_paymentType == 'bank') {
-      if (!_formKey.currentState!.validate()) return;
-    } else {
-      // promptpay minimal validation
-      if ((_ppType == null || _ppType!.isEmpty)) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('เลือกประเภทพร้อมเพย์')));
-        return;
-      }
-      if (_ppIdCtrl.text.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('กรอกหมายเลขพร้อมเพย์')));
-        return;
-      }
-    }
+    if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
-      String? imageUrl = widget.record?['qr_code_image'];
-      if (_image != null) {
-        Map<String, dynamic> upload;
-        if (kIsWeb) {
-          final bytes = await _image!.readAsBytes();
-          upload = await ImageService.uploadImageFromBytes(
-            bytes,
-            _image!.name,
-            'branch-payment-qr',
-            folder: widget.branchId,
-            prefix: 'qr',
-            context: 'branch_${widget.branchId}',
-          );
-        } else {
-          upload = await ImageService.uploadImage(
-            File(_image!.path),
-            'branch-payment-qr',
-            folder: widget.branchId,
-            prefix: 'qr',
-            context: 'branch_${widget.branchId}',
-          );
-        }
-
-        if (upload['success'] != true) {
-          throw upload['message'] ?? 'อัปโหลดรูป QR ไม่สำเร็จ';
-        }
-        imageUrl = upload['url'];
-      }
-
-      // บังคับอัปโหลดรูปเฉพาะกรณี PromptPay เท่านั้น (เพื่อการสแกน)
-      if (_paymentType == 'promptpay' &&
-          (widget.record == null) &&
-          (imageUrl == null || imageUrl.isEmpty)) {
-        throw 'กรุณาอัปโหลดรูป QR สำหรับ PromptPay';
-      }
-
-      Map<String, dynamic> payload;
-      if (_paymentType == 'bank') {
-        payload = {
-          'branch_id': widget.branchId,
-          'bank_name': _bankCtrl.text.trim(),
-          'account_name': _accNameCtrl.text.trim(),
-          'account_number': _accNumCtrl.text.trim(),
-          'promptpay_type': null,
-          'promptpay_id': null,
-          'qr_code_image': imageUrl ?? '', // ธนาคารไม่บังคับรูป
-          'is_active': _isActive,
-          'is_primary': _isPrimary,
-          'display_order': int.tryParse(_orderCtrl.text.trim()),
-        };
-      } else {
-        // PromptPay: fill required NOT NULL bank fields with placeholders
-        final ppId = _ppIdCtrl.text.trim();
-        payload = {
-          'branch_id': widget.branchId,
-          'bank_name': 'PromptPay',
-          'account_name': 'PromptPay',
-          'account_number': ppId,
-          'promptpay_type': _ppType,
-          'promptpay_id': ppId,
-          'qr_code_image': imageUrl,
-          'is_active': _isActive,
-          'is_primary': _isPrimary,
-          'display_order': int.tryParse(_orderCtrl.text.trim()),
-        };
-      }
+      final Map<String, dynamic> payload = {
+        'branch_id': widget.branchId,
+        'bank_name': _bankCtrl.text.trim(),
+        'account_name': _accNameCtrl.text.trim(),
+        'account_number': _accNumCtrl.text.trim(),
+        'promptpay_type': null,
+        'promptpay_id': null,
+        'qr_code_image': '',
+        'is_active': _isActive,
+      };
 
       Map<String, dynamic> res;
       if (widget.record == null) {
@@ -1116,31 +891,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  // Payment type selector
-                  Row(
-                    children: [
-                      ChoiceChip(
-                        label: const Text('ธนาคาร'),
-                        selected: _paymentType == 'bank',
-                        onSelected: (s) {
-                          if (!s) return;
-                          setState(() => _paymentType = 'bank');
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      ChoiceChip(
-                        label: const Text('PromptPay'),
-                        selected: _paymentType == 'promptpay',
-                        onSelected: (s) {
-                          if (!s) return;
-                          setState(() => _paymentType = 'promptpay');
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  if (_paymentType == 'bank')
-                    _buildFormField(
+                  _buildFormField(
                       label: 'ธนาคาร *',
                       hint: 'เช่น ธนาคารกสิกรไทย',
                       controller: _bankCtrl,
@@ -1149,8 +900,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
                           (v == null || v.trim().isEmpty) ? 'กรอกธนาคาร' : null,
                     ),
                   const SizedBox(height: 20),
-                  if (_paymentType == 'bank')
-                    _buildFormField(
+                  _buildFormField(
                       label: 'ชื่อบัญชี *',
                       hint: 'ชื่อเจ้าของบัญชี',
                       controller: _accNameCtrl,
@@ -1160,8 +910,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
                           : null,
                     ),
                   const SizedBox(height: 20),
-                  if (_paymentType == 'bank')
-                    _buildFormField(
+                  _buildFormField(
                       label: 'เลขบัญชี *',
                       hint: 'เลขที่บัญชี',
                       controller: _accNumCtrl,
@@ -1170,209 +919,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
                           ? 'กรอกเลขบัญชี'
                           : null,
                     ),
-                  if (_paymentType == 'promptpay') ...[
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'ประเภทพร้อมเพย์ *',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          value: _ppType,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            hintText: 'เลือกประเภท',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide:
-                                  BorderSide(color: Colors.grey.shade300),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide:
-                                  BorderSide(color: Colors.grey.shade300),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                  color: Color(0xFF1ABC9C), width: 2),
-                            ),
-                            filled: true,
-                            fillColor: Colors.grey.shade50,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: 14),
-                          ),
-                          items: const [
-                            DropdownMenuItem(
-                                value: 'mobile', child: Text('เบอร์มือถือ')),
-                            DropdownMenuItem(
-                                value: 'citizen_id', child: Text('บัตรประชาชน')),
-                            DropdownMenuItem(
-                                value: 'tax_id', child: Text('เลขภาษี')),
-                            DropdownMenuItem(
-                                value: 'ewallet', child: Text('E-Wallet')),
-                          ],
-                          onChanged: (v) => setState(() => _ppType = v),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    _buildFormField(
-                      label: 'หมายเลขพร้อมเพย์ *',
-                      hint: 'เช่น 0812345678 หรือ เลขบัตร/ภาษี',
-                      controller: _ppIdCtrl,
-                      icon: Icons.qr_code_2_rounded,
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-                  _buildFormField(
-                    label: 'ลำดับแสดง',
-                    hint: '0',
-                    controller: _orderCtrl,
-                    icon: Icons.sort_rounded,
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade100,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(Icons.image_rounded,
-                            color: Colors.blue.shade700, size: 18),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'รูปภาพ QR Code',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  InkWell(
-                    onTap: _pickImage,
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0FDF4),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: const Color(0xFF86EFAC),
-                          width: 2,
-                          style: BorderStyle.solid,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (_image != null ||
-                              widget.record?['qr_code_image'] != null)
-                            Container(
-                              height: 120,
-                              width: 120,
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey.shade300),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: _image != null
-                                    ? (kIsWeb
-                                        ? FutureBuilder<Uint8List>(
-                                            future: _image!.readAsBytes(),
-                                            builder: (context, snapshot) {
-                                              if (snapshot.hasData) {
-                                                return Image.memory(
-                                                  snapshot.data!,
-                                                  fit: BoxFit.cover,
-                                                );
-                                              }
-                                              return const Center(
-                                                child:
-                                                    CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                ),
-                                              );
-                                            },
-                                          )
-                                        : Image.file(
-                                            File(_image!.path),
-                                            fit: BoxFit.cover,
-                                          ))
-                                    : Image.network(
-                                        widget.record!['qr_code_image'],
-                                        fit: BoxFit.cover,
-                                      ),
-                              ),
-                            )
-                          else
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                Icons.file_upload_outlined,
-                                size: 48,
-                                color: const Color(0xFF10B981),
-                              ),
-                            ),
-                          const SizedBox(height: 12),
-                          Text(
-                            _image != null ||
-                                    widget.record?['qr_code_image'] != null
-                                ? 'แตะเพื่อเปลี่ยนรูปภาพ'
-                                : 'เลือกไฟล์รูปภาพ',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF065F46),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'แตะหรือลากไฟล์รูปภาพมาวางที่นี่',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              'รองรับ JPG, PNG, WebP (สูงสุด 5MB)',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: const Color(0xFF065F46),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  // ลบส่วนอัปโหลดรูป QR ตามข้อกำหนดใหม่
                   const SizedBox(height: 20),
                   Container(
                     padding: const EdgeInsets.all(14),
@@ -1441,74 +988,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: _isPrimary
-                          ? Colors.orange.shade50
-                          : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: _isPrimary
-                            ? Colors.orange.shade200
-                            : Colors.grey.shade300,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: _isPrimary ? Colors.orange : Colors.grey,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            _isPrimary
-                                ? Icons.star_rounded
-                                : Icons.star_outline_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'บัญชีหลัก',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _isPrimary
-                                    ? 'ตั้งเป็นบัญชีหลักของสาขา'
-                                    : 'ไม่ได้ตั้งเป็นบัญชีหลัก',
-                                style: TextStyle(
-                                  color: _isPrimary
-                                      ? Colors.orange.shade700
-                                      : Colors.grey.shade600,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Switch(
-                          value: _isPrimary,
-                          onChanged: (value) {
-                            setState(() => _isPrimary = value);
-                          },
-                          activeColor: Colors.orange,
-                        ),
-                      ],
-                    ),
-                  ),
+                  // ลบส่วนตั้งบัญชีหลัก เนื่องจากไม่มี is_primary แล้ว
                   const SizedBox(height: 28),
                   Row(
                     children: [

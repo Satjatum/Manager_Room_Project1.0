@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
-import 'package:manager_room_project/views/sadmin/branchdash_ui.dart';
-import 'package:manager_room_project/views/widgets/mainnavbar.dart';
+//--------
 import '../../models/user_models.dart';
+//--------
 import '../../middleware/auth_middleware.dart';
+//--------
 import '../../services/branch_service.dart';
+//--------
 import 'branch_add_ui.dart';
-import 'branchlist_detail_ui.dart';
 import 'branch_edit_ui.dart';
+import 'branchdash_ui.dart';
+import 'branchlist_detail_ui.dart';
+// -------
+import '../widgets/mainnavbar.dart';
 import '../widgets/colors.dart';
 
 class BranchlistUi extends StatefulWidget {
@@ -349,7 +354,9 @@ class _BranchlistUiState extends State<BranchlistUi> {
 
               // Title
               Text(
-                currentStatus ? 'ปิดใช้งานสาขา?' : 'เปิดใช้งานสาขา?',
+                currentStatus
+                    ? 'คุณต้องการปิดใช้งานสาขานี้หรือไม่?'
+                    : 'คุณต้องการเปิดใช้งานสาขานี้หรือไม่?',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -660,7 +667,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
 
               // Title
               Text(
-                'Delete Branch?',
+                'คุณต้องการลบสาขานี้หรือไม่?',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -684,7 +691,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                     SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        branchName,
+                        'สาขา$branchName',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -718,7 +725,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'การดำเนินการนี้ไม่สามารถย้อนกลับได้\nข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
+                        'ข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
                         style: TextStyle(
                           color: Colors.red.shade800,
                           fontSize: 13,
@@ -746,7 +753,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                         ),
                       ),
                       child: Text(
-                        'Cancel',
+                        'ยกเลิก',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -773,7 +780,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                           Icon(Icons.delete_outline, size: 18),
                           SizedBox(width: 8),
                           Text(
-                            'Delete',
+                            'ลบ',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -845,7 +852,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
 
                   // Loading Text
                   Text(
-                    'Deleting Branch',
+                    'ลบสาขา',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -854,7 +861,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Please wait a moment...',
+                    'กรุณารอสักครู่...',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -911,7 +918,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => BranchListDetail(
+        builder: (context) => BranchlistDetailUi(
           branchId: branchId,
         ),
       ),
@@ -953,7 +960,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Branch Management',
+                    'จัดการสาขา',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -962,7 +969,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'Manage your branch locations and details',
+                    'สำหรับจัดการสาขา',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -988,7 +995,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                       controller: _searchController,
                       onChanged: _onSearchChanged,
                       decoration: InputDecoration(
-                        hintText: 'Search',
+                        hintText: 'ค้นหา',
                         hintStyle:
                             TextStyle(color: Colors.grey[500], fontSize: 14),
                         prefixIcon: Icon(Icons.search,
@@ -1019,11 +1026,13 @@ class _BranchlistUiState extends State<BranchlistUi> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.filter_list, size: 20, color: Colors.white),
-                        SizedBox(width: 8),
+                        Icon(Icons.filter_list,
+                            size: 20, color: Colors.grey[700]),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
+                              dropdownColor: Colors.white,
                               value: _selectedStatus,
                               isExpanded: true,
                               icon: Icon(Icons.keyboard_arrow_down, size: 20),
@@ -1032,11 +1041,12 @@ class _BranchlistUiState extends State<BranchlistUi> {
                               onChanged: _onStatusChanged,
                               items: [
                                 DropdownMenuItem(
-                                    value: 'all', child: Text('All Branches')),
+                                    value: 'all', child: Text('ทั้งหมด')),
                                 DropdownMenuItem(
-                                    value: 'active', child: Text('Active')),
+                                    value: 'active', child: Text('เปิดใช้งาน')),
                                 DropdownMenuItem(
-                                    value: 'inactive', child: Text('Inactive')),
+                                    value: 'inactive',
+                                    child: Text('ปิดใช้งาน')),
                               ],
                             ),
                           ),
@@ -1104,7 +1114,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => BranchAddPage()),
+                  MaterialPageRoute(builder: (context) => BranchAddUi()),
                 ).then((result) {
                   if (result == true) _loadBranches();
                 });
@@ -1117,7 +1127,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
               elevation: 4,
             )
           : null,
-      bottomNavigationBar: const Mainnavbar(currentIndex: 1),
+      bottomNavigationBar: const Mainnavbar(currentIndex: 0),
     );
   }
 
@@ -1246,9 +1256,15 @@ class _BranchlistUiState extends State<BranchlistUi> {
 
         Widget buildMenu() => PopupMenuButton<String>(
               padding: EdgeInsets.zero,
-              icon: Icon(Icons.more_vert, color: Colors.grey[600], size: 22),
+              color: Colors.white,
+              icon: Icon(
+                Icons.more_vert,
+                color: Colors.grey[600],
+                size: 22,
+              ),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
               offset: Offset(0, 40),
               itemBuilder: (context) => [
                 PopupMenuItem(
@@ -1258,7 +1274,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                       Icon(Icons.visibility_outlined,
                           size: 20, color: Color(0xFF14B8A6)),
                       SizedBox(width: 12),
-                      Text('View Details'),
+                      Text('ดูรายละเอียด'),
                     ],
                   ),
                 ),
@@ -1270,7 +1286,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                         Icon(Icons.edit_outlined,
                             size: 20, color: Color(0xFF14B8A6)),
                         SizedBox(width: 12),
-                        Text('Edit Branch'),
+                        Text('แก้ไข'),
                       ],
                     ),
                   ),
@@ -1287,7 +1303,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                       ),
                       SizedBox(width: 12),
                       Text(
-                        isActive ? 'Deactivate' : 'Activate',
+                        isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
                         style: TextStyle(
                           color: isActive ? Colors.orange : Colors.green,
                         ),
@@ -1302,8 +1318,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                       children: [
                         Icon(Icons.delete_outline, size: 20, color: Colors.red),
                         SizedBox(width: 12),
-                        Text('Delete Branch',
-                            style: TextStyle(color: Colors.red)),
+                        Text('ลบสาขา', style: TextStyle(color: Colors.red)),
                       ],
                     ),
                   ),
@@ -1321,7 +1336,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => BranchEditPage(
+                        builder: (context) => BranchEditUi(
                           branchId: branch['branch_id'],
                         ),
                       ),
@@ -1353,7 +1368,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
-            isActive ? 'Active' : 'Inactive',
+            isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน',
             style: TextStyle(
               color: Colors.white,
               fontSize: badgeFontSize,
@@ -1408,7 +1423,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                                           Padding(
                                             padding: EdgeInsets.only(top: 4),
                                             child: Text(
-                                              'Code: ${branch['branch_code']}',
+                                              'รหัสสาขา: ${branch['branch_code']}',
                                               style: TextStyle(
                                                 fontSize: subTitleSize,
                                                 color: Colors.grey[600],
@@ -1447,7 +1462,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                                       Padding(
                                         padding: EdgeInsets.only(top: 4),
                                         child: Text(
-                                          'Code: ${branch['branch_code']}',
+                                          'รหัสสาขา: ${branch['branch_code']}',
                                           style: TextStyle(
                                             fontSize: subTitleSize,
                                             color: Colors.grey[600],
@@ -1562,11 +1577,11 @@ class _BranchlistUiState extends State<BranchlistUi> {
                                     children: [
                                       TextSpan(
                                           text:
-                                              '${branch['manager_count'] ?? 1} manager'),
+                                              '${branch['manager_count'] ?? 1} ผู้จัดการ'),
                                       if (branch['manager_count'] != null &&
                                           branch['manager_count'] > 1)
                                         TextSpan(text: 's'),
-                                      TextSpan(text: ' • Primary: '),
+                                      TextSpan(text: 'หลัก: '),
                                       TextSpan(
                                         text: branch['primary_manager_name'],
                                         style: TextStyle(

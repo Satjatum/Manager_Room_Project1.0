@@ -107,7 +107,7 @@ class BranchDashboardPage extends StatelessWidget {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => IssuelistUi(
+            builder: (_) => IssueListUi(
               branchId: branchId,
               branchName: branchName,
             ),
@@ -120,7 +120,7 @@ class BranchDashboardPage extends StatelessWidget {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => MeterReadingsListPage(
+            builder: (_) => MeterListUi(
               branchId: branchId,
               branchName: branchName,
               hideBottomNav: true,
@@ -269,20 +269,24 @@ class BranchDashboardPage extends StatelessWidget {
     return WillPopScope(
       onWillPop: _confirmExit,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: _PageTheme.pageBackground,
         body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header section (theme-aligned with branchlist_ui / settingbranch_ui)
-              Padding(
-                padding: const EdgeInsets.all(24),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final double screenW = constraints.maxWidth;
+
+              // Header ด้านบน (พื้นหลังขาว)
+              final header = Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new,
-                          color: Colors.black87),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.black87,
+                      ),
                       onPressed: () async {
                         if (await _confirmExit()) {
                           if (Navigator.of(context).canPop()) {
@@ -297,31 +301,28 @@ class BranchDashboardPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'แดชบอร์ดสาขา',
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
                               color: Colors.black87,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            (branchName == null || branchName!.isEmpty)
-                                ? 'เลือกเมนูการทำงานของสาขา'
-                                : 'เลือกเมนูการทำงานของสาขา',
+                            'เลือกเมนูการทำงานของสาขา',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 13,
                               color: Colors.grey[600],
                             ),
                           ),
-                          // เอารหัสสาขาออก และย้ายชื่อสาขาไปแสดงในส่วนเนื้อหาด้านล่างเป็น Card
                         ],
                       ),
                     ),
                   ],
                 ),
-              ),
+              );
 
               // Content section — Responsive breakpoints; center only on phone
               Expanded(
@@ -620,33 +621,129 @@ class _DashItem {
   _DashItem({required this.icon, required this.label, required this.onTap});
 }
 
-class _DashCard extends StatelessWidget {
+class _DashCard extends StatefulWidget {
   final _DashItem item;
   const _DashCard({required this.item});
 
   @override
+  State<_DashCard> createState() => _DashCardState();
+}
+
+class _DashCardState extends State<_DashCard> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: item.onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
+    final borderRadius = BorderRadius.circular(14);
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 140),
+        scale: _hovered ? 1.02 : 1.0,
+        curve: Curves.easeOut,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.item.onTap,
+            borderRadius: borderRadius,
+            child: Ink(
+              decoration: BoxDecoration(
+                color: _PageTheme.surface,
+                borderRadius: borderRadius,
+                border: Border.all(
+                  color: _hovered
+                      ? _PageTheme.primary.withOpacity(0.8)
+                      : _PageTheme.border,
+                  width: 1,
+                ),
+              ),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: _PageTheme.primary.withOpacity(0.10),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        widget.item.icon,
+                        size: 22,
+                        color: _PageTheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.item.label,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// การ์ดหัวสาขา: background ขาว, container ขาว, icon/badge ใช้สีเขียวหลัก
+class _BranchHeaderCard extends StatelessWidget {
+  final String branchId;
+  final String? fallbackName;
+  const _BranchHeaderCard({required this.branchId, this.fallbackName});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: BranchService.getBranchById(branchId),
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        final String branchName =
+            (data != null ? (data['branch_name']?.toString() ?? '') : '')
+                    .trim()
+                    .isNotEmpty
+                ? data!['branch_name'].toString()
+                : (fallbackName ?? '');
+        final String branchCode =
+            (data != null ? (data['branch_code']?.toString() ?? '') : '')
+                .trim();
+        final bool isActive =
+            (data != null ? (data['is_active'] as bool?) ?? false : false);
+        final String? imageUrl =
+            data != null ? (data['branch_image'] as String?) : null;
+
+        return Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: _PageTheme.border),
+          ),
+          color: _PageTheme.surface,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // รูปสาขา/ไอคอนสาขา (พื้นหลังขาว)
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.08),
-                    shape: BoxShape.circle,
+                    color: _PageTheme.soft,
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(item.icon, color: AppTheme.primary, size: 22),
                 ),
@@ -659,58 +756,287 @@ class _DashCard extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
+        );
+      },
+    );
+  }
+}
+
+// ====================== สถิติภาพรวมของสาขา ======================
+
+class _BranchStats extends StatelessWidget {
+  final String branchId;
+  const _BranchStats({required this.branchId});
+
+  Future<Map<String, dynamic>> _load() async {
+    final now = DateTime.now();
+    final stats = await Future.wait([
+      BranchService.getBranchStatistics(branchId),
+      IssueService.getIssueStatistics(branchId: branchId),
+      InvoiceService.getInvoiceStats(
+        branchId: branchId,
+        month: now.month,
+        year: now.year,
+      ),
+    ]);
+
+    final branch = stats[0];
+    final issues = stats[1];
+    final invoices = stats[2];
+
+    final int issuePending =
+        (issues['pending'] ?? 0) + (issues['in_progress'] ?? 0);
+    final int invoicePending = (invoices['pending'] ?? 0) +
+        (invoices['partial'] ?? 0) +
+        (invoices['overdue'] ?? 0);
+
+    return {
+      'total_rooms': branch['total_rooms'] ?? 0,
+      'occupied_rooms': branch['occupied_rooms'] ?? 0,
+      'available_rooms': branch['available_rooms'] ?? 0,
+      'maintenance_rooms': branch['maintenance_rooms'] ?? 0,
+      'occupancy_rate': branch['occupancy_rate'] ?? 0,
+      'issue_pending': issuePending,
+      'invoice_pending': invoicePending,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _load(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const _StatsSkeleton();
+        }
+        if (snapshot.hasError || !snapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+
+        final data = snapshot.data!;
+
+        final tiles = <Widget>[
+          _StatTile(
+            label: 'ห้องทั้งหมด',
+            value: data['total_rooms'].toString(),
+            icon: Icons.meeting_room_outlined,
+          ),
+          _StatTile(
+            label: 'มีผู้เช่า',
+            value: data['occupied_rooms'].toString(),
+            icon: Icons.person_pin_circle_rounded,
+          ),
+          _StatTile(
+            label: 'ว่าง',
+            value: data['available_rooms'].toString(),
+            icon: Icons.event_available_outlined,
+          ),
+          _StatTile(
+            label: 'ซ่อมบำรุง',
+            value: data['maintenance_rooms'].toString(),
+            icon: Icons.build_circle_outlined,
+          ),
+          _StatTile(
+            label: 'อัตราเข้าพัก',
+            value: '${data['occupancy_rate']}%',
+            icon: Icons.pie_chart_outline,
+          ),
+          _StatTile(
+            label: 'ปัญหาค้าง',
+            value: data['issue_pending'].toString(),
+            icon: Icons.report_gmailerrorred_outlined,
+          ),
+          _StatTile(
+            label: 'บิลค้าง',
+            value: data['invoice_pending'].toString(),
+            icon: Icons.receipt_long_outlined,
+          ),
+        ];
+
+        return LayoutBuilder(
+          builder: (context, c) {
+            final w = c.maxWidth;
+
+            const double minTileWidth = 180;
+            const double spacing = 12;
+
+            final double contentWidth = w;
+            int crossAxisCount =
+                ((contentWidth + spacing) / (minTileWidth + spacing)).floor();
+
+            if (crossAxisCount < 2) crossAxisCount = 2;
+            if (crossAxisCount > 6) crossAxisCount = 6;
+
+            const double desiredHeight = 80;
+            final double aspectRatio = minTileWidth / desiredHeight;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // หัวข้อ section สถิติ
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: _PageTheme.primary.withOpacity(0.10),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.insights_outlined,
+                          size: 16,
+                          color: _PageTheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'สถิติภาพรวมของสาขา',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GridView.count(
+                  crossAxisCount: crossAxisCount,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisSpacing: spacing,
+                  mainAxisSpacing: spacing,
+                  childAspectRatio: aspectRatio,
+                  children: tiles,
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _StatTile({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: _PageTheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: _PageTheme.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: _PageTheme.primary.withOpacity(0.10),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: _PageTheme.primary,
+                size: 16,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-// ชิปแสดงข้อมูล (กรอบ + ไอคอน) สำหรับชื่อสาขา/รหัสสาขา
-class _BranchNameCard extends StatelessWidget {
-  final String name;
-  const _BranchNameCard({required this.name});
-
+class _StatsSkeleton extends StatelessWidget {
+  const _StatsSkeleton();
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 0,
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
+    return LayoutBuilder(
+      builder: (context, c) {
+        final w = c.maxWidth;
+
+        const double minTileWidth = 180;
+        const double spacing = 12;
+
+        final double contentWidth = w;
+        int crossAxisCount =
+            ((contentWidth + spacing) / (minTileWidth + spacing)).floor();
+        if (crossAxisCount < 2) crossAxisCount = 2;
+        if (crossAxisCount > 6) crossAxisCount = 6;
+
+        const double desiredHeight = 80;
+        final double aspectRatio = minTileWidth / desiredHeight;
+
+        return GridView.count(
+          crossAxisCount: crossAxisCount,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: spacing,
+          mainAxisSpacing: spacing,
+          childAspectRatio: aspectRatio,
+          children: List.generate(
+            6,
+            (i) => Container(
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child:
-                  const Icon(Icons.business, color: AppTheme.primary, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

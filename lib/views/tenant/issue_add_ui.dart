@@ -37,7 +37,6 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
   String? _branchName;
 
   String _selectedIssueType = 'repair';
-  String _selectedPriority = 'medium';
 
   List<XFile> _selectedImageFiles = [];
   UserModel? _currentUser;
@@ -336,8 +335,6 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                   _buildSummaryRow('หัวข้อ', _titleController.text),
                   _buildSummaryRow(
                       'ประเภท', _getIssueTypeText(_selectedIssueType)),
-                  _buildSummaryRow(
-                      'ความสำคัญ', _getPriorityText(_selectedPriority)),
                   if (_selectedImageFiles.isNotEmpty)
                     _buildSummaryRow(
                         'รูปภาพ', '${_selectedImageFiles.length} รูป'),
@@ -376,7 +373,6 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
         'room_id': _roomId,
         'tenant_id': _tenantId,
         'issue_type': _selectedIssueType,
-        'issue_priority': _selectedPriority,
         'issue_title': _titleController.text.trim(),
         'issue_desc': _descController.text.trim(),
       };
@@ -526,21 +522,6 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
     }
   }
 
-  String _getPriorityText(String priority) {
-    switch (priority) {
-      case 'urgent':
-        return 'ด่วนมาก';
-      case 'high':
-        return 'สูง';
-      case 'medium':
-        return 'ปานกลาง';
-      case 'low':
-        return 'ต่ำ';
-      default:
-        return priority;
-    }
-  }
-
   void _showErrorSnackBar(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -616,10 +597,11 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // ไม่ต้องแสดงข้อมูลห้องพักตามคำขอ
+                    // เพิ่มฟอร์มให้ครบตาม schema issue_reports: issue_type, issue_title, issue_desc
+                    _buildTypeAndPriorityCard(),
+                    const SizedBox(height: 16),
                     _buildImagesCard(),
                     const SizedBox(height: 16),
-                    _buildTypeAndPriorityCard(),
-                    const SizedBox(height: 24),
                     _buildSubmitButton(),
                     const SizedBox(height: 16),
                   ],
@@ -744,7 +726,6 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
             controller: _titleController,
             decoration: InputDecoration(
               labelText: 'หัวข้อปัญหา',
-              hintText: 'เช่น ก๊อกน้ำรั่ว, แอร์เสีย',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -802,45 +783,11 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
               }
             },
           ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            value: _selectedPriority,
-            decoration: InputDecoration(
-              labelText: 'ความสำคัญ',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide:
-                    const BorderSide(color: Color(0xff10B981), width: 2),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-              ),
-              filled: true,
-              fillColor: Colors.grey.shade50,
-              prefixIcon: const Icon(Icons.flag_outlined),
-            ),
-            items: const [
-              DropdownMenuItem(value: 'low', child: Text(' ต่ำ')),
-              DropdownMenuItem(value: 'medium', child: Text('ปานกลาง')),
-              DropdownMenuItem(value: 'high', child: Text(' สูง')),
-              DropdownMenuItem(value: 'urgent', child: Text('ด่วนมาก')),
-            ],
-            onChanged: (value) {
-              if (value != null) {
-                setState(() => _selectedPriority = value);
-              }
-            },
-          ),
           SizedBox(height: 16),
           TextFormField(
             controller: _descController,
             decoration: InputDecoration(
               labelText: 'รายละเอียด',
-              hintText: 'อธิบายปัญหาโดยละเอียด',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
