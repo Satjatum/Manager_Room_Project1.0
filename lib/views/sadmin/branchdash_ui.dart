@@ -426,24 +426,37 @@ class _StatsSection extends StatelessWidget {
         const SizedBox(height: 8),
         LayoutBuilder(
           builder: (context, constraints) {
-            // Auto-wrap by available width (no fixed item count)
-            final double spacing = 14;
-            final double minTileW = constraints.maxWidth < 420
-                ? 180
-                : (constraints.maxWidth < 900 ? 200 : 230);
-            int columns = (constraints.maxWidth / (minTileW)).floor();
-            if (columns < 1) columns = 1;
-            final double itemW =
-                (constraints.maxWidth - spacing * (columns - 1)) / columns;
-
-            return Wrap(
-              spacing: spacing,
-              runSpacing: spacing,
-              children: [
-                for (final s in stats)
-                  SizedBox(width: itemW, child: _StatCard(item: s)),
-              ],
-            );
+            // Requirement:
+            // - Remove progress bars (handled in _StatCard)
+            // - If stats > 4, use horizontal SingleChildScrollView
+            const double spacing = 14;
+            if (stats.length > 4) {
+              final double tileW = constraints.maxWidth < 600
+                  ? 200
+                  : (constraints.maxWidth < 1200 ? 220 : 240);
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (int i = 0; i < stats.length; i++) ...[
+                      SizedBox(width: tileW, child: _StatCard(item: stats[i])),
+                      if (i != stats.length - 1) const SizedBox(width: spacing),
+                    ],
+                  ],
+                ),
+              );
+            } else {
+              final int columns = stats.isEmpty ? 1 : stats.length;
+              final double itemW = (constraints.maxWidth - spacing * (columns - 1)) / columns;
+              return Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: [
+                  for (final s in stats)
+                    SizedBox(width: itemW, child: _StatCard(item: s)),
+                ],
+              );
+            }
           },
         ),
       ],
@@ -507,31 +520,8 @@ class _StatCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          if (item.progress != null)
-            Row(
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(9999),
-                    child: LinearProgressIndicator(
-                      value: item.progress!.clamp(0.0, 1.0),
-                      minHeight: 6,
-                      backgroundColor: Colors.grey[200],
-                      color: AppTheme.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  "${(item.progress! * 100).round()}%",
-                  style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87),
-                ),
-              ],
-            ),
-          if (item.progress == null && item.trendText.isNotEmpty)
+          // Progress bar removed per request; show trend only if provided
+          if (item.trendText.isNotEmpty)
             Row(
               children: [
                 Icon(trendIcon, size: 16, color: trendColor),
