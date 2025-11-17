@@ -45,8 +45,16 @@ class _PaymentVerificationDetailPageState
     try {
       if (widget.slipId != null) {
         final res = await PaymentService.getSlipById(widget.slipId!);
+        Map<String, dynamic>? inv;
+        final invId = res?['invoice_id']?.toString();
+        if (invId != null && invId.isNotEmpty) {
+          try {
+            inv = await InvoiceService.getInvoiceById(invId);
+          } catch (_) {}
+        }
         setState(() {
           _slip = res;
+          _invoice = inv;
           _loading = false;
         });
       } else if (widget.invoiceId != null) {
@@ -224,17 +232,23 @@ class _PaymentVerificationDetailPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(widget.slipId != null
             ? 'รายละเอียดสลิปชำระเงิน'
             : 'รายละเอียดใบแจ้งหนี้'),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: Colors.grey[300]),
+        ),
         actions: [
           if (widget.slipId != null)
             IconButton(
               onPressed: _openSlip,
-              icon: const Icon(Icons.download),
+              icon: const Icon(Icons.open_in_new),
               tooltip: 'เปิด/ดาวน์โหลดสลิป',
             )
         ],
@@ -251,19 +265,23 @@ class _PaymentVerificationDetailPageState
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 900),
-                      child: ListView(
-                        padding: const EdgeInsets.all(16),
-                        children: [
-                          if (widget.slipId != null) ...[
-                            _buildHeaderCard(),
-                            const SizedBox(height: 12),
-                            _buildSlipImage(),
-                            const SizedBox(height: 16),
-                            _buildActionBar(),
-                          ] else ...[
-                            _buildInvoiceHeaderCard(),
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildSummaryHeader(),
+                            const SizedBox(height: 14),
+                            _buildDetailsContainer(),
+                            if (widget.slipId != null) ...[
+                              const SizedBox(height: 14),
+                              _buildSlipImage(),
+                              const SizedBox(height: 16),
+                              _buildActionBar(),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -271,80 +289,150 @@ class _PaymentVerificationDetailPageState
     );
   }
 
-  Widget _buildHeaderCard() {
-    final s = _slip!;
-    final inv = s['invoices'] ?? {};
-    final room = inv.isNotEmpty ? (inv['rooms'] ?? {}) : {};
-    final br = room.isNotEmpty ? (room['branches'] ?? {}) : {};
-    final tenant = inv.isNotEmpty ? (inv['tenants'] ?? {}) : {};
-
-    // ฟิลด์แบบ flat (กรณี PromptPay pseudo)
-    final invoiceNumber = (s['invoice_number'] ?? inv['invoice_number'] ?? '-').toString();
-    final tenantName = (s['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
-    final tenantPhone = (s['tenant_phone'] ?? tenant['tenant_phone'] ?? '-').toString();
-    final roomNumber = (s['room_number'] ?? room['room_number'] ?? '-').toString();
-    final branchName = (s['branch_name'] ?? br['branch_name'] ?? '-').toString();
+  // Header: Invoice number + status chips — white bg, grey border
+  Widget _buildSummaryHeader() {
+    final s = _slip;
+    final inv = _invoice ?? (s?['invoices'] ?? {});
+    final invoiceNumber = (s?['invoice_number'] ?? inv['invoice_number'] ?? '-')
+        .toString();
     final invoiceStatus = (inv['invoice_status'] ?? '-').toString();
-    final slipStatus = (s['slip_status'] ?? 'pending').toString();
+    final slipStatus = (s?['slip_status'] ?? '').toString();
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.receipt_long, size: 18),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    invoiceNumber,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _invoiceStatusChip(invoiceStatus),
-                const SizedBox(width: 6),
-                _slipStatusChip(slipStatus),
-              ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          const Icon(Icons.receipt_long, size: 20, color: Colors.black87),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              invoiceNumber,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+                color: Colors.black87,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 8),
-            Text('ผู้เช่า: $tenantName'),
-            Text('เบอร์: $tenantPhone'),
-            Text('ห้อง: $roomNumber'),
-            Text('สาขา: $branchName'),
-            const Divider(height: 20),
-            Row(
-              children: [
-                const Icon(Icons.payments, size: 18, color: Colors.green),
-                const SizedBox(width: 6),
-                Text(
-                  '${_asDouble(s['paid_amount']).toStringAsFixed(2)} บาท',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, color: Colors.green),
-                ),
-                const Spacer(),
-                const Icon(Icons.schedule, size: 18, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text((s['payment_date'] ?? '').toString().split('T').first),
-                if ((s['payment_time'] ?? '').toString().isNotEmpty) ...[
-                  const SizedBox(width: 8),
-                  Text((s['payment_time'] ?? '').toString()),
-                ]
-              ],
-            ),
-            if ((s['tenant_notes'] ?? '').toString().isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text('หมายเหตุผู้เช่า: ${s['tenant_notes']}'),
-            ],
+          ),
+          const SizedBox(width: 8),
+          _invoiceStatusChip(invoiceStatus),
+          if (slipStatus.isNotEmpty) ...[
+            const SizedBox(width: 6),
+            _slipStatusChip(slipStatus),
           ],
-        ),
+        ],
       ),
     );
   }
 
+  // Details container — white bg + grey border like branchlist_detail_ui
+  Widget _buildDetailsContainer() {
+    final s = _slip; // may be null when opened by invoiceId only
+    final inv = _invoice ?? (s?['invoices'] ?? {});
+    final room = inv.isNotEmpty ? (inv['rooms'] ?? {}) : {};
+    final tenant = inv.isNotEmpty ? (inv['tenants'] ?? {}) : {};
+
+    final tenantName =
+        (s?['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
+    final roomNumber = (s?['room_number'] ?? room['room_number'] ?? '-')
+        .toString();
+    final roomcateName = (inv['roomcate_name'] ??
+            room['room_categories']?['roomcate_name'] ??
+            '-')
+        .toString();
+
+    final utilities = (_invoice?['utilities'] as List?) ?? const [];
+    final otherLines =
+        (_invoice?['other_charge_lines'] as List?) ?? const [];
+
+    final amount = widget.slipId != null
+        ? _asDouble(s?['paid_amount'])
+        : _asDouble(inv['total_amount']);
+
+    final rawDate = widget.slipId != null
+        ? (s?['payment_date'] ?? '').toString()
+        : (inv['due_date'] ?? inv['issue_date'] ?? '').toString();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _infoRow('ชื่อผู้เช่า', tenantName),
+          _infoRow('ประเภทห้อง + เลขที่ห้อง', '$roomcateName  เลขที่ $roomNumber'),
+          const SizedBox(height: 8),
+
+          // Utilities lines
+          if (utilities.isNotEmpty) ...[
+            const Text('ค่าบริการหน่วย',
+                style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87)),
+            const SizedBox(height: 6),
+            ...utilities.map((u) {
+              final name = (u['utility_name'] ?? '-').toString();
+              final unit = _asDouble(u['unit_price']);
+              final qty = _asDouble(u['usage_amount']);
+              final total = _asDouble(u['total_amount']);
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: _infoRow(
+                  name,
+                  '${unit.toStringAsFixed(2)} x ${qty.toStringAsFixed(2)} = ${total.toStringAsFixed(2)} บาท',
+                ),
+              );
+            }),
+            const SizedBox(height: 8),
+          ],
+
+          // Other charges
+          const Text('ค่าบริการเพิ่มเติม',
+              style:
+                  TextStyle(fontWeight: FontWeight.w700, color: Colors.black87)),
+          const SizedBox(height: 6),
+          if (otherLines.isEmpty)
+            _infoRow('-', 'ไม่มีรายการ')
+          else
+            ...otherLines.map((o) {
+              final name = (o['charge_name'] ?? '-').toString();
+              final desc = (o['charge_desc'] ?? '').toString();
+              final amt = _asDouble(o['charge_amount']);
+              final val = desc.isEmpty
+                  ? '${amt.toStringAsFixed(2)} บาท'
+                  : '$desc = ${amt.toStringAsFixed(2)} บาท';
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: _infoRow(name, val),
+              );
+            }),
+
+          const SizedBox(height: 12),
+          _infoRow('จำนวนเงิน', '${amount.toStringAsFixed(2)} บาท',
+              valueStyle: const TextStyle(
+                  fontWeight: FontWeight.w700, color: Colors.green)),
+          _infoRow('วันที่', _formatThaiDate(rawDate)),
+
+          if ((s?['tenant_notes'] ?? '').toString().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _infoRow('หมายเหตุผู้เช่า', s?['tenant_notes'].toString() ?? ''),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // In case open by invoiceId (no slip actions)
   Widget _buildInvoiceHeaderCard() {
     final inv = _invoice!;
     final room = inv['rooms'] ?? {};
@@ -361,9 +449,14 @@ class _PaymentVerificationDetailPageState
     final total = _asDouble(inv['total_amount']);
     final dueDate = (inv['due_date'] ?? '').toString();
 
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -382,11 +475,9 @@ class _PaymentVerificationDetailPageState
                 _invoiceStatusChip(invoiceStatus),
               ],
             ),
-            const SizedBox(height: 8),
-            Text('ผู้เช่า: $tenantName'),
-            Text('เบอร์: $tenantPhone'),
-            Text('$roomcate เลขที่ $roomNumber'),
-            Text('สาขา: $branchName'),
+            const SizedBox(height: 10),
+            _infoRow('ชื่อผู้เช่า', tenantName),
+            _infoRow('ประเภทห้อง + เลขที่ห้อง', '$roomcate เลขที่ $roomNumber'),
             const Divider(height: 20),
             Row(
               children: [
@@ -400,7 +491,7 @@ class _PaymentVerificationDetailPageState
                 const Spacer(),
                 const Icon(Icons.schedule, size: 18, color: Colors.grey),
                 const SizedBox(width: 4),
-                Text(dueDate.toString().split('T').first),
+                Text(_formatThaiDate(dueDate)),
               ],
             ),
             const SizedBox(height: 8),
@@ -414,16 +505,22 @@ class _PaymentVerificationDetailPageState
 
   Widget _buildSlipImage() {
     final url = (_slip?['slip_image'] ?? '').toString();
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 const Text('สลิปที่อัปโหลด',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700, color: Colors.black87)),
                 const Spacer(),
                 IconButton(
                   onPressed: _openSlip,
@@ -548,6 +645,60 @@ class _PaymentVerificationDetailPageState
       child: Text(
         t,
         style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  // Helpers
+  String _formatThaiDate(String? iso) {
+    if (iso == null || iso.isEmpty) return '-';
+    try {
+      final dt = DateTime.parse(iso);
+      final buddhistYear = dt.year + 543;
+      final mm = dt.month.toString().padLeft(2, '0');
+      final dd = dt.day.toString().padLeft(2, '0');
+      return '$dd/$mm/$buddhistYear';
+    } catch (_) {
+      final d = iso.split('T').first;
+      if (d.isEmpty) return '-';
+      try {
+        final dt = DateTime.parse(d);
+        final buddhistYear = dt.year + 543;
+        final mm = dt.month.toString().padLeft(2, '0');
+        final dd = dt.day.toString().padLeft(2, '0');
+        return '$dd/$mm/$buddhistYear';
+      } catch (_) {
+        return d;
+      }
+    }
+  }
+
+  Widget _infoRow(String label, String value, {TextStyle? valueStyle}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 160,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[700],
+                fontSize: 14,
+              ),
+            ),
+          ),
+          const Text(': ',
+              style: TextStyle(fontWeight: FontWeight.w500, color: Colors.black54)),
+          Expanded(
+            child: Text(
+              value,
+              style: valueStyle ?? const TextStyle(color: Colors.black87, fontSize: 14),
+            ),
+          ),
+        ],
       ),
     );
   }
