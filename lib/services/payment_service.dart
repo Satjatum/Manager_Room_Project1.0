@@ -197,7 +197,7 @@ class PaymentService {
       if (branchId != null && branchId.isNotEmpty) {
         final roomRows = await _supabase
             .from('rooms')
-            .select('room_id,branch_id')
+            .select('room_id, room_number, branch_id, room_categories ( roomcate_name )')
             .eq('branch_id', branchId);
         final roomIds = List<Map<String, dynamic>>.from(roomRows)
             .map((r) => r['room_id'])
@@ -307,7 +307,7 @@ class PaymentService {
           if (roomIds.isNotEmpty) {
             final roomRows2 = await _supabase
                 .from('rooms')
-                .select('room_id, room_number, branch_id')
+                .select('room_id, room_number, branch_id, room_categories ( roomcate_name )')
                 .inFilter('room_id', roomIds);
             roomsById = {
               for (final r in List<Map<String, dynamic>>.from(roomRows2))
@@ -386,6 +386,9 @@ class PaymentService {
           'invoice_paid': inv['paid_amount'],
           'invoice_status': inv['invoice_status'],
           'room_number': room['room_number'],
+          'roomcate_name': (room['room_categories'] is Map
+                  ? (room['room_categories']['roomcate_name'])
+                  : room['roomcate_name']) ?? null,
           'branch_id': room['branch_id'],
           'branch_name': br['branch_name'],
           'tenant_name': tenant['tenant_fullname'],

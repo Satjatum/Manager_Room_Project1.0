@@ -501,8 +501,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   Widget _slipCard(Map<String, dynamic> s) {
     final amount = _asDouble(s['paid_amount']);
     final status = (s['slip_status'] ?? 'pending').toString();
-    final createdAt = (s['created_at'] ?? '').toString();
-    final canAction = status == 'pending';
+    final payDate = (s['payment_date'] ?? s['created_at'] ?? '').toString();
 
     return LayoutBuilder(builder: (context, constraints) {
       final double width = constraints.maxWidth;
@@ -559,31 +558,12 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                       ),
                       const SizedBox(width: 8),
                       _invoiceStatusChip((s['invoice_status'] ?? '').toString()),
+                      const SizedBox(width: 6),
+                      _slipStatusChip(status),
                     ],
                   ),
 
-                  const SizedBox(height: 12),
-
-                  // Media
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: ((s['slip_image'] ?? '').toString().isNotEmpty)
-                        ? Image.network(
-                            s['slip_image'],
-                            height: mediaHeight,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          )
-                        : Container(
-                            height: mediaHeight,
-                            width: double.infinity,
-                            color: Colors.grey[200],
-                            child: Icon(Icons.image,
-                                color: Colors.grey[400], size: 36),
-                          ),
-                  ),
-
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
 
                   // Info
                   Column(
@@ -609,33 +589,17 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                             ],
                           ),
                         ),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 6,
+                      Row(
                         children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.meeting_room_outlined,
-                                  size: iconSize, color: AppTheme.primary),
-                              const SizedBox(width: 6),
-                              Text((s['room_number'] ?? '-').toString(),
-                                  style: TextStyle(
-                                      fontSize: bodySize,
-                                      color: Colors.grey[700])),
-                            ],
-                          ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.business_outlined,
-                                  size: iconSize, color: AppTheme.primary),
-                              const SizedBox(width: 6),
-                              Text((s['branch_name'] ?? '-').toString(),
-                                  style: TextStyle(
-                                      fontSize: bodySize,
-                                      color: Colors.grey[700])),
-                            ],
+                          Icon(Icons.meeting_room_outlined,
+                              size: iconSize, color: AppTheme.primary),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              '${(s['roomcate_name'] ?? '-').toString()} เลขที่ ${(s['room_number'] ?? '-').toString()}',
+                              style: TextStyle(fontSize: bodySize, color: Colors.grey[700]),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ),
@@ -653,7 +617,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                           const Icon(Icons.schedule,
                               size: 16, color: Colors.grey),
                           const SizedBox(width: 4),
-                          Text(createdAt.split('T').first,
+                          Text(_formatThaiDate(payDate),
                               style: TextStyle(
                                   fontSize: bodySize, color: Colors.grey[700])),
                         ],
@@ -661,67 +625,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                     ],
                   ),
 
-                  const SizedBox(height: 12),
-
-                  // Actions
-                  Row(
-                    children: [
-                      if (canAction) ...[
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => _rejectSlip(s),
-                            icon: const Icon(Icons.close, color: Colors.red),
-                            label: const Text('ปฏิเสธ',
-                                style: TextStyle(color: Colors.red)),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () => _approveSlip(s),
-                            icon: const Icon(Icons.check, color: Colors.white),
-                            label: const Text('อนุมัติ',
-                                style: TextStyle(color: Colors.white)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primary,
-                            ),
-                          ),
-                        ),
-                      ] else ...[
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => PaymentVerificationDetailPage(
-                                    slipId: (s['slip_id'] ?? '').toString(),
-                                  ),
-                                ),
-                              );
-                              if (mounted) await _load();
-                            },
-                            icon: const Icon(Icons.info_outline),
-                            label: const Text('รายละเอียด'),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        if (status == 'verified')
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () async => _printSlip(s),
-                              icon:
-                                  const Icon(Icons.print, color: Colors.white),
-                              label: const Text('พิมพ์สลิป',
-                                  style: TextStyle(color: Colors.white)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primary,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ],
-                  ),
+                  // no action buttons on list page per requirements
                 ],
               ),
             ),
@@ -914,6 +818,37 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
       default:
         c = const Color(0xFF3B82F6);
         t = 'รอดำเนินการ';
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: c.withOpacity(0.1),
+        border: Border.all(color: c.withOpacity(0.4)),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        t,
+        style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  // ป้ายสถานะของสลิป (pending/verified/rejected) ให้สอดคล้องโทนสี/สไตล์กับ _invoiceStatusChip
+  Widget _slipStatusChip(String status) {
+    Color c;
+    String t;
+    switch (status) {
+      case 'verified':
+        c = const Color(0xFF22C55E);
+        t = 'อนุมัติแล้ว';
+        break;
+      case 'rejected':
+        c = const Color(0xFFEF4444);
+        t = 'ถูกปฏิเสธ';
+        break;
+      default:
+        c = const Color(0xFFF59E0B);
+        t = 'รอตรวจสอบ';
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
