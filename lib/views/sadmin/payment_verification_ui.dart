@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:manager_room_project/services/payment_service.dart';
+import 'package:manager_room_project/services/invoice_service.dart';
 import 'package:manager_room_project/services/auth_service.dart';
 import 'package:manager_room_project/services/branch_service.dart';
 import 'package:manager_room_project/models/user_models.dart';
@@ -88,9 +89,25 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
       final byInvoiceStatus = filtered
           .where((e) => (e['invoice_status'] ?? '').toString() == invStatus)
           .toList();
+      // โหลดบิลตามสถานะเพื่อให้แสดงแม้ยังไม่มีสลิป
+      final invList = await InvoiceService.getAllInvoices(
+        branchId: _currentBranchFilter(),
+        status: invStatus,
+        limit: 500,
+        orderBy: 'due_date',
+        ascending: true,
+      );
+      final slipInvIds = byInvoiceStatus
+          .map((e) => (e['invoice_id'] ?? '').toString())
+          .where((id) => id.isNotEmpty)
+          .toSet();
+      final invoicesNoSlip = invList
+          .where((inv) => !slipInvIds.contains((inv['invoice_id'] ?? '').toString()))
+          .toList();
+
       setState(() {
         _slips = byInvoiceStatus;
-        _invoices = [];
+        _invoices = invoicesNoSlip;
         _loading = false;
       });
     } catch (e) {
@@ -368,7 +385,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
 
   // List builders (mobile/narrow)
   Widget _buildSlipListView() {
-    if (_slips.isEmpty) {
+    final totalCount = _slips.length + _invoices.length;
+    if (totalCount == 0) {
       return ListView(
         children: const [
           SizedBox(height: 120),
@@ -378,8 +396,14 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     }
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-      itemCount: _slips.length,
-      itemBuilder: (context, index) => _slipCard(_slips[index]),
+      itemCount: totalCount,
+      itemBuilder: (context, index) {
+        if (index < _slips.length) {
+          return _slipCard(_slips[index]);
+        }
+        final invIndex = index - _slips.length;
+        return _invoiceCard(_invoices[invIndex]);
+      },
     );
   }
 
