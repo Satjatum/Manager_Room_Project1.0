@@ -41,6 +41,8 @@ class _TenantListUIState extends State<TenantListUI> {
   final TextEditingController _searchController = TextEditingController();
   // tenant_id -> { 'room_number': '...', 'roomcate_name': '...' }
   Map<String, Map<String, String>> _tenantRoomInfo = {};
+  // tenant_id -> overdue invoice count
+  Map<String, int> _tenantOverdueCount = {};
 
   // Screen breakpoints
   static const double mobileBreakpoint = 600;
@@ -121,8 +123,9 @@ class _TenantListUIState extends State<TenantListUI> {
           _tenants = tenants;
           _filteredTenants = _tenants;
         });
-        // Load room info in batch (active contracts only)
+        // Load room info and overdue invoices in batch
         await _loadTenantRooms();
+        await _loadTenantOverdues();
         if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
@@ -169,6 +172,29 @@ class _TenantListUIState extends State<TenantListUI> {
       }
     } catch (e) {
       // Non-blocking; simply keep room info empty on error
+    }
+  }
+
+  Future<void> _loadTenantOverdues() async {
+    try {
+      final ids = _tenants
+          .map((t) => t['tenant_id']?.toString())
+          .whereType<String>()
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList();
+      if (ids.isEmpty) {
+        if (mounted) setState(() => _tenantOverdueCount = {});
+        return;
+      }
+      final map = await TenantService.getOverdueInvoiceCountsForTenants(ids);
+      if (mounted) {
+        setState(() {
+          _tenantOverdueCount = map;
+        });
+      }
+    } catch (e) {
+      // Non-blocking; keep empty on error
     }
   }
 
@@ -1185,8 +1211,16 @@ class _TenantListUIState extends State<TenantListUI> {
                 true);
 
     // สถานะแบบ pill
-    String statusLabel = isActive ? 'เช่าอยู่' : 'ย้ายออกแล้ว';
-    Color statusColor = isActive ? const Color(0xFF10B981) : Colors.redAccent;
+    final overdue = _tenantOverdueCount[tenantId ?? ''] ?? 0;
+    String statusLabel;
+    Color statusColor;
+    if (overdue > 0) {
+      statusLabel = 'ค้างชำระ';
+      statusColor = Colors.orange.shade700;
+    } else {
+      statusLabel = isActive ? 'เช่าอยู่' : 'ย้ายออกแล้ว';
+      statusColor = isActive ? const Color(0xFF10B981) : Colors.redAccent;
+    }
 
     // Card UI
     return Material(
