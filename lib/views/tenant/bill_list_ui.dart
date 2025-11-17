@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:manager_room_project/middleware/auth_middleware.dart';
 import 'package:manager_room_project/services/invoice_service.dart';
+import 'package:manager_room_project/services/payment_service.dart';
 import 'package:manager_room_project/views/tenant/bill_detail_ui.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 
@@ -38,6 +39,22 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
         orderBy: 'invoice_year',
         ascending: false,
       );
+
+      // ติดธงว่าบิลใดมีสลิปรอตรวจสอบอยู่
+      final invoiceIds = bills
+          .map((b) => (b['invoice_id'] ?? '').toString())
+          .where((id) => id.isNotEmpty)
+          .toList();
+      if (invoiceIds.isNotEmpty) {
+        final pendingSet = await PaymentService.getInvoicesWithPendingSlip(
+          invoiceIds: invoiceIds,
+          tenantId: user.tenantId,
+        );
+        for (final b in bills) {
+          final id = (b['invoice_id'] ?? '').toString();
+          b['has_pending_slip'] = pendingSet.contains(id);
+        }
+      }
       return bills;
     } catch (e) {
       if (mounted) {
@@ -361,6 +378,9 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
     final total = _asDouble(bill['total_amount']);
     final status = (bill['invoice_status'] ?? '').toString();
     final number = (bill['invoice_number'] ?? '').toString();
+    final hasPendingSlip = (bill['has_pending_slip'] == true);
+    final showPendingCheck =
+        hasPendingSlip && status != 'paid' && status != 'cancelled';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -443,7 +463,12 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                             ),
                           ),
                           const Spacer(),
-                          _StatusChip(status: status),
+                          _StatusChip(
+                            status: status,
+                            overrideLabel: showPendingCheck ? 'รอตรวจสอบ' : null,
+                            overrideColor:
+                                showPendingCheck ? Colors.orange : null,
+                          ),
                         ],
                       ),
                     ],
@@ -469,9 +494,12 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
 
 class _StatusChip extends StatelessWidget {
   final String status;
-  const _StatusChip({required this.status});
+  final String? overrideLabel;
+  final Color? overrideColor;
+  const _StatusChip({required this.status, this.overrideLabel, this.overrideColor});
 
   Color _color() {
+    if (overrideColor != null) return overrideColor!;
     switch (status) {
       case 'paid':
         return Colors.green;
@@ -487,6 +515,9 @@ class _StatusChip extends StatelessWidget {
   }
 
   String _label() {
+    if (overrideLabel != null && overrideLabel!.isNotEmpty) {
+      return overrideLabel!;
+    }
     switch (status) {
       case 'paid':
         return 'ชำระแล้ว';
