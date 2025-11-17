@@ -296,90 +296,90 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
 
   @override
   Widget build(BuildContext context) {
-    // หมายเหตุ: ตัดการใช้ตัวแปรตรวจแพลตฟอร์มที่ไม่จำเป็น เพื่อลด warning และความซ้ำซ้อน
-
+    // แสดง Header/Tab คงที่ แล้วให้โหลดเฉพาะส่วนรายการ (body)
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppTheme.primary),
-              )
-            : RefreshIndicator(
-                onRefresh: _load,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header (meterlist style)
-                    Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.arrow_back_ios_new,
-                                color: Colors.black87),
-                            onPressed: () {
-                              if (Navigator.of(context).canPop()) {
-                                Navigator.of(context).pop();
-                              }
-                            },
-                            tooltip: 'ย้อนกลับ',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header (meterlist style)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon:
+                        const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    tooltip: 'ย้อนกลับ',
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ตรวจสอบสลิปชำระเงิน',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
                           ),
-                          const SizedBox(width: 8),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'ตรวจสอบสลิปชำระเงิน',
-                                  style: TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'ตรวจสอบ อนุมัติ/ปฏิเสธ และติดตามสถานะการชำระ',
-                                  style: TextStyle(
-                                      fontSize: 14, color: Colors.black54),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // แท็บตัวกรองตามสถานะบิลจาก Database
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: TabBar(
-                          controller: _tabController,
-                          isScrollable: true,
-                          labelColor: Colors.black87,
-                          unselectedLabelColor: Colors.black54,
-                          indicatorColor: AppTheme.primary,
-                          indicatorWeight: 3,
-                          tabs: const [
-                            Tab(text: 'pending'),
-                            Tab(text: 'partial'),
-                            Tab(text: 'paid'),
-                            Tab(text: 'overdue'),
-                            Tab(text: 'cancelled'),
-                          ],
                         ),
-                      ),
+                        SizedBox(height: 4),
+                        Text(
+                          'ตรวจสอบ อนุมัติ/ปฏิเสธ และติดตามสถานะการชำระ',
+                          style: TextStyle(fontSize: 14, color: Colors.black54),
+                        ),
+                      ],
                     ),
+                  ),
+                ],
+              ),
+            ),
 
-                    const SizedBox(height: 8),
-                    Expanded(child: _buildSlipListView()),
+            // แท็บตัวกรองตามสถานะบิลจาก Database
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  labelColor: Colors.black87,
+                  unselectedLabelColor: Colors.black54,
+                  indicatorColor: AppTheme.primary,
+                  indicatorWeight: 3,
+                  tabs: const [
+                    Tab(text: 'pending'),
+                    Tab(text: 'partial'),
+                    Tab(text: 'paid'),
+                    Tab(text: 'overdue'),
+                    Tab(text: 'cancelled'),
                   ],
                 ),
               ),
+            ),
+
+            const SizedBox(height: 8),
+            Expanded(
+              child: _loading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: AppTheme.primary),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: _buildSlipListView(),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -652,36 +652,42 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
       return 0;
     }
 
+    final invoiceId = (inv['invoice_id'] ?? '').toString();
     final total = _asDouble(inv['total_amount']);
     final status = (inv['invoice_status'] ?? '').toString();
     final due = (inv['due_date'] ?? '').toString();
-    final paidAt = (inv['paid_at'] ?? '').toString();
-
-    // Status icon + color + label (match sample card)
-    IconData icon;
-    Color color;
-    String caption;
-    if (status == 'paid') {
-      icon = Icons.check_circle_outline;
-      color = const Color(0xFF22C55E); // green
-      caption = 'Paid: ' + _formatThaiDate(paidAt);
-    } else if (status == 'overdue') {
-      icon = Icons.error_outline;
-      color = const Color(0xFFEF4444); // red
-      caption = 'Overdue: ' + _formatThaiDate(due);
-    } else {
-      icon = Icons.hourglass_bottom_outlined;
-      color = const Color(0xFFF59E0B); // amber
-      caption = 'Due: ' + _formatThaiDate(due);
-    }
-
     final tenantName = (inv['tenant_name'] ?? '-').toString();
-    final unit = (inv['room_number'] ?? '-').toString();
-    final roomcate = (inv['roomcate_name'] ?? 'ประเภทห้อง').toString();
+    final roomNumber = (inv['room_number'] ?? '-').toString();
+    final roomcate = (inv['roomcate_name'] ?? '-').toString();
+    final invoiceNumber = (inv['invoice_number'] ?? '-').toString();
+
+    Color statusColor;
+    String statusLabel;
+    switch (status) {
+      case 'paid':
+        statusColor = const Color(0xFF22C55E);
+        statusLabel = 'ชำระแล้ว';
+        break;
+      case 'overdue':
+        statusColor = const Color(0xFFEF4444);
+        statusLabel = 'เกินกำหนด';
+        break;
+      case 'partial':
+        statusColor = const Color(0xFFF59E0B);
+        statusLabel = 'ชำระบางส่วน';
+        break;
+      case 'cancelled':
+        statusColor = Colors.grey;
+        statusLabel = 'ยกเลิก';
+        break;
+      case 'pending':
+      default:
+        statusColor = const Color(0xFF3B82F6);
+        statusLabel = 'รอดำเนินการ';
+    }
 
     return InkWell(
       onTap: () async {
-        final invoiceId = (inv['invoice_id'] ?? '').toString();
         if (invoiceId.isEmpty) return;
         await Navigator.push(
           context,
@@ -691,97 +697,83 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
         );
       },
       child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          )
-        ],
-      ),
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Left status icon
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
-              shape: BoxShape.circle,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 12),
-
-          // Middle info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Status row (dot + label)
+            Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        tenantName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      _formatMoney(total) + ' บาท',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ],
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '$roomcate เลขที่ $unit',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration:
-                          BoxDecoration(color: color, shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      caption,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
-                    ),
-                  ],
-                )
+                const SizedBox(width: 6),
+                Text(statusLabel,
+                    style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w600, color: statusColor)),
+                const Spacer(),
+                const Icon(Icons.chevron_right, color: Colors.black38),
               ],
             ),
-          ),
-        ],
+
+            const SizedBox(height: 8),
+
+            // Title: ชื่อผู้เช่า - ประเภทห้อง เลขที่ห้อง
+            Text(
+              '$tenantName - $roomcate เลขที่ $roomNumber',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
+            ),
+
+            const SizedBox(height: 4),
+            // Sub: Bill #... • วันที่ พ.ศ.
+            Text(
+              'Bill #$invoiceNumber • ${_formatThaiDate(due)}',
+              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+
+            const SizedBox(height: 10),
+            // Amount block bottom-right similar to sample
+            Row(
+              children: [
+                const Text('ยอดรวม',
+                    style: TextStyle(fontSize: 12, color: Colors.black54)),
+                const Spacer(),
+                Text(
+                  '${_formatMoney(total)} บาท',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 
