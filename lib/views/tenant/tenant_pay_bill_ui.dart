@@ -354,7 +354,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(' • ', style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text('$bankName • $accNum', style: const TextStyle(fontWeight: FontWeight.w600)),
               if (accName.isNotEmpty)
                 Text(accName, style: const TextStyle(color: Colors.black54)),
               const SizedBox(height: 8),
@@ -402,7 +402,22 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                           _buildSection(
                             title: 'เลือกบัญชีธนาคารเพื่อโอน',
                             icon: Icons.account_balance_outlined,
-                            child: _buildBankListDropdown(),
+                            child: Column(
+  children: [
+    _buildBankList(),
+    const SizedBox(height: 8),
+    SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: _selectedQrId == null
+            ? null
+            : _showQrDialog,
+        icon: const Icon(Icons.qr_code_2_outlined),
+        label: const Text('แสดง QR'),
+      ),
+    ),
+  ],
+),
                           ),
                           const SizedBox(height: 12),
                           _buildSection(
@@ -776,5 +791,6 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     );
   }
 }
+
 
 
