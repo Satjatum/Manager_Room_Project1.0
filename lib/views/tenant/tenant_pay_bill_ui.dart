@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -35,8 +35,6 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
   final List<XFile> _slipFiles = [];
   static const int _maxFiles = 5;
 
-  bool _showQr = false;
-
   double _asDouble(dynamic v) {
     if (v == null) return 0;
     if (v is num) return v.toDouble();
@@ -64,7 +62,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       if (inv == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('à¹„à¸¡à¹ˆà¸žà¸šà¸šà¸´à¸¥')));
+            .showSnackBar(const SnackBar(content: Text('ไม่พบบิล')));
         Navigator.pop(context);
         return;
       }
@@ -81,8 +79,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         qrs = await PaymentService.getBranchQRCodes(branchId);
       }
       final banks = qrs
-          .where((e) => (e['promptpay_id'] == null ||
-              e['promptpay_id'].toString().isEmpty))
+          .where((e) => (e['promptpay_id'] == null || e['promptpay_id'].toString().isEmpty))
           .toList();
 
       setState(() {
@@ -95,7 +92,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       setState(() => _loading = false);
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”: $e')));
+          .showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
     }
   }
 
@@ -111,7 +108,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       if (_slipFiles.length + files.length > _maxFiles) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('à¹à¸™à¸šà¸£à¸¹à¸›à¹„à¸”à¹‰à¹„à¸¡à¹ˆà¹€à¸à¸´à¸™ $_maxFiles à¸£à¸¹à¸›à¸•à¹ˆà¸­à¸šà¸´à¸¥')),
+            SnackBar(content: Text('แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล')),
           );
         }
       }
@@ -120,7 +117,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('à¹€à¸¥à¸·à¸­à¸à¸ à¸²à¸žà¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ: $e')));
+          .showSnackBar(SnackBar(content: Text('เลือกภาพไม่สำเร็จ: $e')));
     }
   }
 
@@ -128,148 +125,121 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     setState(() => _slipFiles.removeAt(index));
   }
 
-  Future<void> _pickTimeBottomSheet() async {
-    int h = _selectedTime?.hour ?? TimeOfDay.now().hour;
-    int m = _selectedTime?.minute ?? TimeOfDay.now().minute;
-    m = (m ~/ 5) * 5; // snap to 5 minutes
-    final hours = List<int>.generate(24, (i) => i);
-    final minutes = List<int>.generate(12, (i) => i * 5);
-    final hourCtrl = FixedExtentScrollController(initialItem: h);
-    final minCtrl = FixedExtentScrollController(initialItem: minutes.indexOf(m));
-    final res = await showModalBottomSheet<bool>(
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final d = await showDatePicker(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      initialDate: _selectedDate ?? now,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 1),
+    );
+    if (d != null) setState(() => _selectedDate = d);
+  }
+
+  Future<void> _pickTimeBottomSheet() async {
+    final now = TimeOfDay.now();
+    int h = _selectedTime?.hour ?? now.hour;
+    int m = _selectedTime?.minute ?? (now.minute - (now.minute % 5));
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
       builder: (ctx) {
         return SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 300,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                  child: Row(
-                    children: [
-                      const Expanded(
-                        child: Text('à¹€à¸¥à¸·à¸­à¸à¹€à¸§à¸¥à¸²',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w700)),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('à¸•à¸à¸¥à¸‡'),
-                      )
-                    ],
-                  ),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text('เลือกเวลา',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('ตกลง'),
+                    )
+                  ],
                 ),
-                const Divider(height: 1),
-                Expanded(
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 200,
                   child: Row(
                     children: [
                       Expanded(
                         child: ListWheelScrollView.useDelegate(
-                          controller: hourCtrl,
-                          itemExtent: 40,
+                          controller: FixedExtentScrollController(initialItem: h),
+                          onSelectedItemChanged: (v) => h = v,
+                          itemExtent: 36,
                           physics: const FixedExtentScrollPhysics(),
-                          onSelectedItemChanged: (i) => h = i,
                           childDelegate: ListWheelChildBuilderDelegate(
-                            childCount: hours.length,
-                            builder: (_, i) => Center(
-                              child: Text(hours[i].toString().padLeft(2, '0'),
-                                  style: const TextStyle(fontSize: 18)),
-                            ),
+                            builder: (c, i) => i == null || i < 0 || i > 23
+                                ? null
+                                : Center(child: Text(i.toString().padLeft(2, '0'))),
                           ),
                         ),
                       ),
-                      const Text(':', style: TextStyle(fontSize: 18)),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: ListWheelScrollView.useDelegate(
-                          controller: minCtrl,
-                          itemExtent: 40,
+                          controller: FixedExtentScrollController(initialItem: (m / 5).round()),
+                          onSelectedItemChanged: (v) => m = v * 5,
+                          itemExtent: 36,
                           physics: const FixedExtentScrollPhysics(),
-                          onSelectedItemChanged: (i) => m = minutes[i],
                           childDelegate: ListWheelChildBuilderDelegate(
-                            childCount: minutes.length,
-                            builder: (_, i) => Center(
-                              child: Text(minutes[i].toString().padLeft(2, '0'),
-                                  style: const TextStyle(fontSize: 18)),
-                            ),
+                            builder: (c, i) => i == null || i < 0 || i > 11
+                                ? null
+                                : Center(child: Text((i * 5).toString().padLeft(2, '0'))),
                           ),
                         ),
                       ),
                     ],
                   ),
-                ),
+                )
               ],
             ),
           ),
         );
       },
     );
-    if (res == true) {
-      setState(() => _selectedTime = TimeOfDay(hour: h, minute: m));
-    }
+    if (ok == true) setState(() => _selectedTime = TimeOfDay(hour: h, minute: m));
   }
 
   Future<void> _submit() async {
-    if (_invoice == null) return;
     final amount = double.tryParse(_amountCtrl.text) ?? 0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸ˆà¸³à¸™à¸§à¸™à¹€à¸‡à¸´à¸™')));
+          .showSnackBar(const SnackBar(content: Text('กรุณากรอกจำนวนเงิน')));
       return;
     }
     if (_selectedDate == null || _selectedTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('à¸à¸£à¸¸à¸“à¸²à¹€à¸¥à¸·à¸­à¸à¸§à¸±à¸™à¸—à¸µà¹ˆà¹à¸¥à¸°à¹€à¸§à¸¥à¸²à¹ƒà¸™à¸à¸²à¸£à¸Šà¸³à¸£à¸°')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('กรุณาเลือกวันที่และเวลาในการชำระ')));
       return;
     }
     if (_slipFiles.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('à¸à¸£à¸¸à¸“à¸²à¸­à¸±à¸›à¹‚à¸«à¸¥à¸”à¸£à¸¹à¸›à¸ªà¸¥à¸´à¸›à¸­à¸¢à¹ˆà¸²à¸‡à¸™à¹‰à¸­à¸¢ 1 à¸£à¸¹à¸›')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('กรุณาอัปโหลดรูปสลิปอย่างน้อย 1 รูป')));
       return;
     }
+
     setState(() => _submitting = true);
     try {
-      // Upload all images first
+      // Upload all slip images first
       final urls = <String>[];
       for (final f in _slipFiles) {
-        late Map<String, dynamic> up;
-        if (kIsWeb) {
-          final bytes = await f.readAsBytes();
-          up = await ImageService.uploadImageFromBytes(
-            bytes,
-            f.name,
-            'payment-slips',
-            folder: widget.invoiceId,
-            prefix: 'slip',
-            context: 'invoice_${widget.invoiceId}',
-          );
-        } else {
-          up = await ImageService.uploadImage(
-            File(f.path),
-            'payment-slips',
-            folder: widget.invoiceId,
-            prefix: 'slip',
-            context: 'invoice_${widget.invoiceId}',
-          );
-        }
+        final up = await ImageService.uploadFile(File(f.path));
         if (up['success'] == true && (up['url'] ?? '').toString().isNotEmpty) {
           urls.add(up['url']);
         } else {
-          throw up['message'] ?? 'à¸­à¸±à¸›à¹‚à¸«à¸¥à¸”à¸£à¸¹à¸›à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ';
+          throw up['message'] ?? 'อัปโหลดรูปไม่สำเร็จ';
         }
       }
 
-      final dt = DateTime(
-        _selectedDate!.year,
-        _selectedDate!.month,
-        _selectedDate!.day,
-        _selectedTime!.hour,
-        _selectedTime!.minute,
-      );
+      final d = _selectedDate!;
+      final t = _selectedTime!;
+      final dt = DateTime(d.year, d.month, d.day, t.hour, t.minute);
 
       // Create slip with first image
       final res = await PaymentService.submitPaymentSlip(
@@ -281,6 +251,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         slipImageUrl: urls.first,
         tenantNotes: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
       );
+
       if (res['success'] == true) {
         // attach remaining files
         final data = res['data'] as Map<String, dynamic>;
@@ -292,20 +263,83 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         }
         if (!mounted) return;
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(res['message'] ?? 'à¸ªà¸³à¹€à¸£à¹‡à¸ˆ')));
+            .showSnackBar(SnackBar(content: Text(res['message'] ?? 'สำเร็จ')));
         Navigator.pop(context, true);
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(res['message'] ?? 'à¸ªà¹ˆà¸‡à¸ªà¸¥à¸´à¸›à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(res['message'] ?? 'ส่งสลิปไม่สำเร็จ')));
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”: $e')));
+          .showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  void _showQrDialog() {
+    if (_selectedQrId == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('กรุณาเลือกบัญชีธนาคาร')));
+      return;
+    }
+    final acct = _bankAccounts.firstWhere(
+      (q) => (q['qr_id']?.toString() ?? '') == (_selectedQrId ?? ''),
+      orElse: () => {},
+    );
+    final accNum = (acct['account_number'] ?? '').toString();
+    final bankName = (acct['bank_name'] ?? '').toString();
+    final accName = (acct['account_name'] ?? '').toString();
+    if (accNum.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('กรุณาเลือกบัญชีธนาคาร')));
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('QR สำหรับโอน',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: QrImageView(
+                  data: accNum,
+                  version: QrVersions.auto,
+                  size: 220,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text('$bankName • $accNum', style: const TextStyle(fontWeight: FontWeight.w600)),
+              if (accName.isNotEmpty)
+                Text(accName, style: const TextStyle(color: Colors.black54)),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('ปิด'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -323,7 +357,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                       valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
                     ),
                     const SizedBox(height: 12),
-                    const Text('à¸à¸³à¸¥à¸±à¸‡à¹‚à¸«à¸¥à¸”...'),
+                    const Text('กำลังโหลด...'),
                   ],
                 ),
               )
@@ -337,73 +371,38 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildSection(
-                            title: 'à¹€à¸¥à¸·à¸­à¸à¸šà¸±à¸à¸Šà¸µà¸˜à¸™à¸²à¸„à¸²à¸£à¹€à¸žà¸·à¹ˆà¸­à¹‚à¸­à¸™',
+                            title: 'เลือกบัญชีธนาคารเพื่อโอน',
                             icon: Icons.account_balance_outlined,
-                            child: _buildBankList(),
-                          ),
-                          const SizedBox(height: 12),
-                          if (_selectedQrId != null) _buildSection(
-                            title: 'QR สำหรับโอน (เปิด/ปิด)',
-                            icon: Icons.qr_code_2_outlined,
-                            child: Builder(
-                              builder: (context) {
-                                final acct = _bankAccounts.firstWhere(
-                                  (q) => (q['qr_id']?.toString() ?? '') == (_selectedQrId ?? ''),
-                                  orElse: () => {},
-                                );
-                                final accNum = (acct['account_number'] ?? '').toString();
-                                final bankName = (acct['bank_name'] ?? '').toString();
-                                final accName = (acct['account_name'] ?? '').toString();
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: OutlinedButton.icon(
-                                        onPressed: accNum.isEmpty ? null : () { setState(() => _showQr = !_showQr); },
-                                        icon: Icon(_showQr ? Icons.visibility_off : Icons.visibility),
-                                        label: Text(_showQr ? 'ซ่อน QR' : 'แสดง QR'),
-                                      ),
-                                    ),
-                                    if (_showQr && accNum.isNotEmpty) ...[
-                                      SizedBox(height: 12),
-                                      Container(
-                                        padding: EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Colors.grey[300]!),
-                                        ),
-                                        child: QrImageView(
-                                          data: accNum,
-                                          version: QrVersions.auto,
-                                          size: 220,
-                                        ),
-                                      ),
-                                      SizedBox(height: 8),
-                                      Text(' • ', style: TextStyle(fontWeight: FontWeight.w600)),
-                                      if (accName.isNotEmpty) Text(accName, style: TextStyle(color: Colors.black54)),
-                                    ],
-                                  ],
-                                );
-                              },
+                            child: Column(
+                              children: [
+                                _buildBankList(),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: _selectedQrId == null ? null : _showQrDialog,
+                                    icon: const Icon(Icons.qr_code_2_outlined),
+                                    label: const Text('แสดง QR'),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 12),
                           _buildSection(
-                            title: 'à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”à¸à¸²à¸£à¸Šà¸³à¸£à¸°',
+                            title: 'รายละเอียดการชำระ',
                             icon: Icons.payments_outlined,
                             child: _buildPaymentDetails(),
                           ),
                           const SizedBox(height: 12),
                           _buildSection(
-                            title: 'à¸­à¸±à¸›à¹‚à¸«à¸¥à¸”à¸ªà¸¥à¸´à¸› (à¹„à¸”à¹‰à¸«à¸¥à¸²à¸¢à¸£à¸¹à¸› à¸ªà¸¹à¸‡à¸ªà¸¸à¸” $_maxFiles à¸£à¸¹à¸›)',
+                            title: 'อัปโหลดสลิป (ได้หลายรูป สูงสุด $_maxFiles รูป)',
                             icon: Icons.upload_file_outlined,
                             child: _buildSlipUploader(),
                           ),
                           const SizedBox(height: 12),
                           _buildSection(
-                            title: 'à¸«à¸¡à¸²à¸¢à¹€à¸«à¸•à¸¸ (à¸–à¹‰à¸²à¸¡à¸µ)',
+                            title: 'หมายเหตุ (ถ้ามี)',
                             icon: Icons.sticky_note_2_outlined,
                             child: _buildNoteBox(),
                           ),
@@ -435,7 +434,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
           const SizedBox(width: 8),
           const Expanded(
             child: Text(
-              'à¸Šà¸³à¸£à¸°à¸šà¸´à¸¥/à¸­à¸±à¸›à¹‚à¸«à¸¥à¸”à¸ªà¸¥à¸´à¸›',
+              'ชำระบิล/อัปโหลดสลิป',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
@@ -470,19 +469,18 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                   ),
                   child: Icon(icon, color: AppTheme.primary, size: 20),
                 ),
-                const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                 ),
               ],
             ),
           ),
-          Divider(height: 1, color: Colors.grey[300]),
+          const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.all(16),
             child: child,
@@ -494,44 +492,40 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
 
   Widget _buildBankList() {
     if (_bankAccounts.isEmpty) {
-      return const Text('à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µà¸šà¸±à¸à¸Šà¸µà¸˜à¸™à¸²à¸„à¸²à¸£à¹ƒà¸«à¹‰à¹€à¸¥à¸·à¸­à¸');
+      return const Text('ยังไม่มีบัญชีธนาคารให้เลือก');
     }
     return Column(
       children: _bankAccounts.map((q) {
         final id = q['qr_id'].toString();
-        final title = '${q['bank_name'] ?? ''} â€¢ ${q['account_number'] ?? ''}';
+        final title = '${q['bank_name'] ?? ''} • ${q['account_number'] ?? ''}';
         final sub = (q['account_name'] ?? '').toString();
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
-            border: Border.all(
-                color: _selectedQrId == id ? AppTheme.primary : Colors.grey[300]!),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[300]!),
           ),
           child: RadioListTile<String>(
             value: id,
             groupValue: _selectedQrId,
             onChanged: (v) => setState(() => _selectedQrId = v),
-            title: Text(title),
-            subtitle: Row(
-              children: [
-                Expanded(child: Text(sub)),
-                TextButton.icon(
-                  onPressed: () async {
-                    final acc = (q['account_number'] ?? '').toString();
-                    if (acc.isEmpty) return;
-                    await Clipboard.setData(ClipboardData(text: acc));
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('à¸„à¸±à¸”à¸¥à¸­à¸à¹€à¸¥à¸‚à¸šà¸±à¸à¸Šà¸µà¹à¸¥à¹‰à¸§')),
-                    );
-                  },
-                  icon: const Icon(Icons.copy, size: 16),
-                  label: const Text('à¸„à¸±à¸”à¸¥à¸­à¸à¹€à¸¥à¸‚à¸šà¸±à¸à¸Šà¸µ'),
-                  style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8)),
-                ),
-              ],
+            title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+            subtitle: sub.isEmpty ? null : Text(sub),
+            secondary: TextButton.icon(
+              onPressed: () async {
+                final acc = (q['account_number'] ?? '').toString();
+                if (acc.isEmpty) return;
+                await Clipboard.setData(ClipboardData(text: acc));
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('คัดลอกเลขบัญชีแล้ว')),
+                );
+              },
+              icon: const Icon(Icons.copy, size: 16),
+              label: const Text('คัดลอกเลขบัญชี'),
+              style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8)),
             ),
           ),
         );
@@ -543,7 +537,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('à¸ˆà¸³à¸™à¸§à¸™à¹€à¸‡à¸´à¸™à¸—à¸µà¹ˆà¸Šà¸³à¸£à¸°',
+        const Text('จำนวนเงินที่ชำระ',
             style: TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         TextFormField(
@@ -552,40 +546,29 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
           decoration: const InputDecoration(
             prefixIcon: Icon(Icons.payments),
             border: OutlineInputBorder(),
-            hintText: 'à¹€à¸Šà¹ˆà¸™ 5000.00',
+            hintText: 'เช่น 5000.00',
             filled: true,
             fillColor: Colors.white,
           ),
         ),
         const SizedBox(height: 16),
-        const Text('à¸§à¸±à¸™à¸—à¸µà¹ˆà¹à¸¥à¸°à¹€à¸§à¸¥à¸²',
+        const Text('วันที่และเวลา',
             style: TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () async {
-                  final now = DateTime.now();
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: _selectedDate ?? now,
-                    firstDate: DateTime(now.year - 1),
-                    lastDate: DateTime(now.year + 1),
-                  );
-                  if (picked != null) setState(() => _selectedDate = picked);
-                },
+                onPressed: _pickDate,
                 icon: const Icon(Icons.calendar_today),
                 label: Text(
                   _selectedDate == null
-                      ? 'à¹€à¸¥à¸·à¸­à¸à¸§à¸±à¸™à¸—à¸µà¹ˆ'
+                      ? 'เลือกวันที่'
                       : '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}',
                 ),
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,
                   side: BorderSide(color: Colors.grey[300]!),
-                  foregroundColor: Colors.black87,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
             ),
@@ -596,14 +579,12 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                 icon: const Icon(Icons.schedule),
                 label: Text(
                   _selectedTime == null
-                      ? 'à¹€à¸¥à¸·à¸­à¸à¹€à¸§à¸¥à¸²'
+                      ? 'เลือกเวลา'
                       : '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}',
                 ),
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,
                   side: BorderSide(color: Colors.grey[300]!),
-                  foregroundColor: Colors.black87,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
             ),
@@ -617,66 +598,65 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _slipFiles.length >= _maxFiles ? null : _pickSlips,
-            icon: const Icon(Icons.add_photo_alternate_outlined),
-            label: Text(
-              _slipFiles.isEmpty
-                  ? 'à¹€à¸¥à¸·à¸­à¸à¸ à¸²à¸žà¸ªà¸¥à¸´à¸›'
-                  : 'à¹€à¸žà¸´à¹ˆà¸¡à¸ à¸²à¸ž (à¹€à¸«à¸¥à¸·à¸­ ${_maxFiles - _slipFiles.length})',
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _slipFiles.isEmpty
+                    ? 'ยังไม่ได้เพิ่มรูป'
+                    : 'เลือกรูปแล้ว ${_slipFiles.length} ไฟล์',
+                style: const TextStyle(color: Colors.black54),
+              ),
             ),
-          ),
+            OutlinedButton.icon(
+              onPressed: _slipFiles.length >= _maxFiles ? null : _pickSlips,
+              icon: const Icon(Icons.add_photo_alternate_outlined),
+              label: Text(
+                _slipFiles.isEmpty
+                    ? 'เลือกภาพสลิป'
+                    : 'เพิ่มภาพ (เหลือ ${_maxFiles - _slipFiles.length})',
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         if (_slipFiles.isNotEmpty)
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: _slipFiles.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
             ),
-            itemBuilder: (ctx, i) {
-              final f = _slipFiles[i];
-              Widget img;
-              if (kIsWeb) {
-                img = FutureBuilder(
-                  future: f.readAsBytes(),
-                  builder: (ctx, snap) {
-                    if (snap.hasData) {
-                      return Image.memory(snap.data!, fit: BoxFit.cover);
-                    }
-                    return const SizedBox.shrink();
-                  },
-                );
-              } else {
-                img = Image.file(File(f.path), fit: BoxFit.cover);
-              }
+            itemCount: _slipFiles.length,
+            itemBuilder: (context, index) {
+              final f = _slipFiles[index];
               return Stack(
-                fit: StackFit.expand,
                 children: [
-                  ClipRRect(
-                      borderRadius: BorderRadius.circular(8), child: img),
-                  Positioned(
-                    right: 4,
-                    top: 4,
-                    child: InkWell(
-                      onTap: () => _removeSlip(i),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.grey[300]!),
-                        ),
-                        padding: const EdgeInsets.all(4),
-                        child: const Icon(Icons.close, size: 16),
-                      ),
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: kIsWeb
+                          ? Image.network(f.path, fit: BoxFit.cover)
+                          : Image.file(File(f.path), fit: BoxFit.cover),
                     ),
                   ),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: InkWell(
+                      onTap: () => _removeSlip(index),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.all(4),
+                        child: const Icon(Icons.close, color: Colors.white, size: 16),
+                      ),
+                    ),
+                  )
                 ],
               );
             },
@@ -686,12 +666,12 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
   }
 
   Widget _buildNoteBox() {
-    return TextField(
+    return TextFormField(
       controller: _noteCtrl,
       maxLines: 3,
       decoration: const InputDecoration(
         border: OutlineInputBorder(),
-        hintText: 'à¹€à¸Šà¹ˆà¸™ à¹‚à¸­à¸™à¸œà¹ˆà¸²à¸™à¸šà¸±à¸à¸Šà¸µ xxx à¹€à¸§à¸¥à¸² xx:xx à¸™.',
+        hintText: 'เช่น โอนผ่านบัญชี xxx เวลา xx:xx น.',
         filled: true,
         fillColor: Colors.white,
       ),
@@ -699,17 +679,10 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
   }
 
   Widget _buildSubmitButton() {
-    final amountOk = (double.tryParse(_amountCtrl.text) ?? 0) > 0;
-    final isValid = amountOk &&
-        _selectedDate != null &&
-        _selectedTime != null &&
-        _slipFiles.isNotEmpty &&
-        _selectedQrId != null;
     return SizedBox(
       width: double.infinity,
-      height: 52,
       child: OutlinedButton.icon(
-        onPressed: (_submitting || !isValid) ? null : _submit,
+        onPressed: _submitting ? null : _submit,
         icon: _submitting
             ? const SizedBox(
                 width: 18,
@@ -717,16 +690,14 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.upload),
-        label: Text(_submitting ? 'à¸à¸³à¸¥à¸±à¸‡à¸ªà¹ˆà¸‡...' : 'à¸ªà¹ˆà¸‡à¸ªà¸¥à¸´à¸›à¹€à¸žà¸·à¹ˆà¸­à¸£à¸­à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸š'),
+        label: Text(_submitting ? 'กำลังส่ง...' : 'ส่งสลิปเพื่อรอตรวจสอบ'),
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.white,
           side: BorderSide(color: Colors.grey[300]!),
-          foregroundColor: Colors.black87,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
     );
   }
 }
-
