@@ -334,7 +334,8 @@ class _PaymentVerificationDetailPageState
     double lateFeeAmount = _asDouble(invFull['late_fee_amount']);
     final totalAmount = _asDouble(invFull['total_amount']);
     final paidAmount = _asDouble(invFull['paid_amount'] ?? s['invoice_paid']);
-    final remaining = (totalAmount - paidAmount).clamp(0, double.infinity);
+    final double remaining =
+        (totalAmount - paidAmount).clamp(0.0, double.infinity).toDouble();
 
     // Utilities detail lines
     final utils = (invFull['utilities'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
