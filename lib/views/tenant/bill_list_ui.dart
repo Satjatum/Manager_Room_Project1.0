@@ -183,10 +183,11 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                                             value: m,
                                             child: Text(_getMonthName(m))))
                                         .toList(),
-                                    onChanged: (val) async {
-                                      setState(() => _selectedMonth =
-                                          val ?? _selectedMonth);
-                                      await _loadBills();
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _selectedMonth = val ?? _selectedMonth;
+                                        _billsFuture = _loadBills();
+                                      });
                                     },
                                   ),
                                 ),
@@ -225,10 +226,11 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                                             value: y,
                                             child: Text('${y + 543}')))
                                         .toList(),
-                                    onChanged: (val) async {
-                                      setState(() =>
-                                          _selectedYear = val ?? _selectedYear);
-                                      await _loadBills();
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _selectedYear = val ?? _selectedYear;
+                                        _billsFuture = _loadBills();
+                                      });
                                     },
                                   ),
                                 ),
@@ -277,9 +279,11 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                                 DropdownMenuItem(
                                     value: 'cancelled', child: Text('à¸¢à¸à¹€à¸¥à¸´à¸')),
                               ],
-                              onChanged: (val) async {
-                                setState(() => _status = val ?? _status);
-                                await _loadBills();
+                              onChanged: (val) {
+                                setState(() {
+                                  _status = val ?? _status;
+                                  _billsFuture = _loadBills();
+                                });
                               },
                             ),
                           ),
@@ -299,7 +303,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                         child:
                             CircularProgressIndicator(color: AppTheme.primary))
                     : FutureBuilder<List<Map<String, dynamic>>>(
-                        future: _loadBills(),
+                        future: _billsFuture,
                         builder: (context, snapshot) {
                           final items = snapshot.data ?? [];
                           if (items.isEmpty) {
@@ -307,7 +311,12 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                           }
 
                           return RefreshIndicator(
-                            onRefresh: () { setState(() { _billsFuture = _loadBills(); }); return _billsFuture!; },
+                            onRefresh: () async {
+                              setState(() {
+                                _billsFuture = _loadBills();
+                              });
+                              await _billsFuture;
+                            },
                             color: AppTheme.primary,
                             child: ListView.builder(
                               itemCount: items.length,
