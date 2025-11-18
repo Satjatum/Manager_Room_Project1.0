@@ -100,6 +100,10 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
+      // อัปเดตสถานะบิลเกินกำหนดอัตโนมัติเมื่อเข้าหน้านี้
+      try {
+        await InvoiceService.updateOverdueInvoices();
+      } catch (_) {}
       // โหลดสลิปทั้งหมด แล้วค่อยกรองตามสถานะบิล (pending/partial/paid/overdue/cancelled)
       final invStatus = _invoiceTabStatus();
       // ดึง "ทั้งหมด" มาก่อน เพื่อให้สามารถ dedupe ตาม invoice และคัดล่าสุดได้
@@ -292,6 +296,21 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
 
     try {
       setState(() => _loading = true);
+      // Hybrid: ใช้ส่วนลดชำระก่อนกำหนดจาก Payment Settings ก่อนอนุมัติ
+      try {
+        final invId = (slip['invoice_id'] ?? '').toString();
+        DateTime? payDate;
+        final payDateStr = (slip['payment_date'] ?? '').toString();
+        if (payDateStr.isNotEmpty) {
+          payDate = DateTime.tryParse(payDateStr);
+        }
+        if (invId.isNotEmpty) {
+          await InvoiceService.applyEarlyDiscountFromSettings(
+            invoiceId: invId,
+            paymentDate: payDate,
+          );
+        }
+      } catch (_) {}
       final result = await PaymentService.verifySlip(
         slipId: slip['slip_id'],
         approvedAmount: amount,

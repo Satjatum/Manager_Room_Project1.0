@@ -90,7 +90,14 @@ class _PaymentVerificationDetailPageState
         // Load invoice details (with utilities/other charges/payments)
         final invId = (res?['invoice_id'] ?? '').toString();
         if (invId.isNotEmpty) {
-          final invRaw = await InvoiceService.getInvoiceById(invId);
+          var invRaw = await InvoiceService.getInvoiceById(invId);
+          // Hybrid: รีคอมพิวต์ค่าปรับล่าช้าเมื่อเปิดดูรายละเอียด
+          try {
+            final changed = await InvoiceService.recomputeLateFeeFromSettings(invId);
+            if (changed) {
+              invRaw = await InvoiceService.getInvoiceById(invId);
+            }
+          } catch (_) {}
           inv = _asMap(invRaw);
           // Preload meter reading(s) if present on utilities
           try {
@@ -115,7 +122,14 @@ class _PaymentVerificationDetailPageState
           _loading = false;
         });
       } else if (widget.invoiceId != null) {
-        final invRaw = await InvoiceService.getInvoiceById(widget.invoiceId!);
+        var invRaw = await InvoiceService.getInvoiceById(widget.invoiceId!);
+        try {
+          // Hybrid: รีคอมพิวต์ค่าปรับล่าช้าเมื่อเปิดดูรายละเอียด
+          final changed = await InvoiceService.recomputeLateFeeFromSettings(widget.invoiceId!);
+          if (changed) {
+            invRaw = await InvoiceService.getInvoiceById(widget.invoiceId!);
+          }
+        } catch (_) {}
         final inv = _asMap(invRaw);
         try {
           final utils = _asListOfMap(inv['utilities']);
@@ -242,6 +256,21 @@ class _PaymentVerificationDetailPageState
 
     try {
       setState(() => _loading = true);
+      // Hybrid: ใช้ส่วนลดยอดชำระก่อนกำหนดจาก Payment Settings ก่อนอนุมัติ
+      try {
+        final invId = (_slip!['invoice_id'] ?? '').toString();
+        DateTime? payDate;
+        final payDateStr = (_slip!['payment_date'] ?? '').toString();
+        if (payDateStr.isNotEmpty) {
+          payDate = DateTime.tryParse(payDateStr);
+        }
+        if (invId.isNotEmpty) {
+          await InvoiceService.applyEarlyDiscountFromSettings(
+            invoiceId: invId,
+            paymentDate: payDate,
+          );
+        }
+      } catch (_) {}
       final result = await PaymentService.verifySlip(
         slipId: _slip!['slip_id'],
         approvedAmount: amount,

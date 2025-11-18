@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import 'package:manager_room_project/services/meter_service.dart';
 import '../models/user_models.dart';
+import 'package:manager_room_project/services/payment_rate_service.dart';
 
 class InvoiceService {
   static final SupabaseClient _supabase = Supabase.instance.client;
@@ -795,6 +796,109 @@ class InvoiceService {
           .neq('invoice_status', 'cancelled');
     } catch (e) {
       print('Error updating overdue invoices: $e');
+    }
+  }
+
+  /// รีคอมพิวต์ค่าปรับล่าช้าตาม Payment Settings และอัปเดตลงใบแจ้งหนี้ (Hybrid Mode)
+  static Future<bool> recomputeLateFeeFromSettings(String invoiceId) async {
+    try {
+      final invoice = await getInvoiceById(invoiceId);
+      if (invoice == null) return false;
+
+      final room = invoice['rooms'] ?? {};
+      final branchId = room['branch_id']?.toString();
+      if (branchId == null || branchId.isEmpty) return false;
+
+      final settings = await PaymentSettingsService.getActivePaymentSettings(branchId);
+
+      final dueStr = (invoice['due_date'] ?? '').toString();
+      final dueDate = DateTime.tryParse(dueStr);
+      if (dueDate == null) return false;
+
+      final rental = (invoice['rental_amount'] ?? 0).toDouble();
+      final utilities = (invoice['utilities_amount'] ?? 0).toDouble();
+      final others = (invoice['other_charges'] ?? 0).toDouble();
+      final subtotal = rental + utilities + others;
+
+      double newLateFee = 0.0;
+      if (settings != null) {
+        newLateFee = PaymentSettingsService.calculateLateFeeManual(
+          settings: settings,
+          dueDate: dueDate,
+          subtotal: subtotal,
+          paymentDate: DateTime.now(),
+        );
+      }
+
+      final currentLate = (invoice['late_fee_amount'] ?? 0).toDouble();
+      // เปรียบเทียบแบบ 2 ตำแหน่งเพื่อกันความคลาดเคลื่อนทศนิยม
+      if (newLateFee.toStringAsFixed(2) == currentLate.toStringAsFixed(2)) {
+        return false; // ไม่มีการเปลี่ยนแปลง
+      }
+
+      await updateInvoice(invoiceId, {
+        'late_fee_amount': newLateFee,
+      });
+      return true;
+    } catch (e) {
+      // ไม่ถือเป็น fatal
+      return false;
+    }
+  }
+
+  /// ใช้ส่วนลดชำระก่อนกำหนดแบบอัตโนมัติจาก Payment Settings ตอนอนุมัติชำระเงิน (Hybrid Mode)
+  static Future<bool> applyEarlyDiscountFromSettings({
+    required String invoiceId,
+    DateTime? paymentDate,
+  }) async {
+    try {
+      final invoice = await getInvoiceById(invoiceId);
+      if (invoice == null) return false;
+
+      final room = invoice['rooms'] ?? {};
+      final branchId = room['branch_id']?.toString();
+      if (branchId == null || branchId.isEmpty) return false;
+
+      final settings = await PaymentSettingsService.getActivePaymentSettings(branchId);
+      if (settings == null) return false;
+
+      // ตรวจเงื่อนไขเปิดใช้ส่วนลด
+      final enable = (settings['enable_discount'] == true) && (settings['is_active'] == true);
+      if (!enable) return false;
+
+      final dueStr = (invoice['due_date'] ?? '').toString();
+      final dueDate = DateTime.tryParse(dueStr);
+      if (dueDate == null) return false;
+
+      final rental = (invoice['rental_amount'] ?? 0).toDouble();
+      final utilities = (invoice['utilities_amount'] ?? 0).toDouble();
+      final others = (invoice['other_charges'] ?? 0).toDouble();
+      final subtotal = rental + utilities + others;
+
+      final paidDate = paymentDate ?? DateTime.now();
+      final discountAmount = PaymentSettingsService.calculateEarlyDiscountManual(
+        settings: settings,
+        dueDate: dueDate,
+        subtotal: subtotal,
+        paymentDate: paidDate,
+      );
+
+      if (discountAmount <= 0) return false;
+
+      // อย่าให้ซ้ำซ้อน หากมีส่วนลดอยู่แล้วให้ข้าม
+      final existingDiscount = (invoice['discount_amount'] ?? 0).toDouble();
+      if (existingDiscount > 0) return false;
+
+      final discountType = (settings['early_payment_type'] ?? 'percentage').toString();
+      final result = await applyDiscount(
+        invoiceId: invoiceId,
+        discountType: discountType,
+        discountAmount: discountAmount,
+        discountReason: 'Auto early payment discount',
+      );
+      return result['success'] == true;
+    } catch (e) {
+      return false;
     }
   }
 

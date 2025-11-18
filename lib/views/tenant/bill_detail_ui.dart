@@ -69,7 +69,14 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final invRaw = await InvoiceService.getInvoiceById(widget.invoiceId);
+      var invRaw = await InvoiceService.getInvoiceById(widget.invoiceId);
+      // Hybrid: รีคอมพิวต์ค่าปรับล่าช้าเมื่อเปิดดูบิล
+      try {
+        final changed = await InvoiceService.recomputeLateFeeFromSettings(widget.invoiceId);
+        if (changed) {
+          invRaw = await InvoiceService.getInvoiceById(widget.invoiceId);
+        }
+      } catch (_) {}
       if (invRaw != null) {
         // preload meter readings for utilities
         try {
