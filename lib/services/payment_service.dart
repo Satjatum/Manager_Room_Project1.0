@@ -904,8 +904,10 @@ class PaymentService {
         q = q.inFilter('invoice_id', invoiceIds);
       }
 
-      // ถือเป็น "รอตรวจสอบ" หากยังไม่มีการผูกกับ payment
-      q = q.isFilter('payment_id', null);
+      // ถือเป็น "รอตรวจสอบ" เฉพาะสลิปที่ยังไม่ถูกผูกกับ payment และยังไม่ถูกปฏิเสธ
+      q = q
+          .isFilter('payment_id', null)
+          .isFilter('rejection_reason', null);
 
       final rows = await q;
       final list = List<Map<String, dynamic>>.from(rows);

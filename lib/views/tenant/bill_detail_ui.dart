@@ -20,6 +20,8 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
   final Map<String, Map<String, dynamic>> _readingById = {};
   Map<String, dynamic>? _latestSlip;
   bool _pendingVerification = false;
+  bool _rejectedSlip = false;
+  String _rejectionReason = '';
 
   @override
   void initState() {
@@ -99,14 +101,22 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
             );
             _latestSlip = slip;
             final paymentId = (slip?['payment_id'] ?? '').toString();
-            _pendingVerification = slip != null && paymentId.isEmpty;
+            final rejection = (slip?['rejection_reason'] ?? '').toString();
+            _rejectionReason = rejection;
+            _rejectedSlip = slip != null && paymentId.isEmpty && rejection.isNotEmpty;
+            _pendingVerification =
+                slip != null && paymentId.isEmpty && rejection.isEmpty;
           } else {
             _latestSlip = null;
             _pendingVerification = false;
+            _rejectedSlip = false;
+            _rejectionReason = '';
           }
         } catch (_) {
           _latestSlip = null;
           _pendingVerification = false;
+          _rejectedSlip = false;
+          _rejectionReason = '';
         }
       }
       setState(() {
@@ -194,6 +204,34 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
                                   child: Text(
                                     'คุณได้ส่งสลิปแล้ว ระบบกำลังรอตรวจสอบ',
                                     style: TextStyle(color: Color(0xFF92400E)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        if (_rejectedSlip) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Color(0xFFFFEBEE),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Color(0xFFEF5350)),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(Icons.error_outline,
+                                    color: Color(0xFFD32F2F)),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _rejectionReason.isNotEmpty
+                                        ? 'สลิปถูกปฏิเสธ: ' + _rejectionReason + '\nกรุณาส่งสลิปใหม่'
+                                        : 'สลิปถูกปฏิเสธ กรุณาส่งสลิปใหม่',
+                                    style: const TextStyle(
+                                        color: Color(0xFFB71C1C)),
                                   ),
                                 ),
                               ],
