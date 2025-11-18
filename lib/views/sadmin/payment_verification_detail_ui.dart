@@ -522,7 +522,8 @@ class _PaymentVerificationDetailPageState
               // subtext ตัวเลขเท่านั้น
               final parts = <String>[];
               if (prev != null && curr != null) {
-                parts.add('${prev.toStringAsFixed(2)} - ${curr.toStringAsFixed(2)} = ${usage.toStringAsFixed(2)}');
+                parts.add(
+                    '${prev.toStringAsFixed(2)} - ${curr.toStringAsFixed(2)} = ${usage.toStringAsFixed(2)}');
               } else {
                 parts.add(usage.toStringAsFixed(2));
               }
@@ -539,7 +540,8 @@ class _PaymentVerificationDetailPageState
                       padding: const EdgeInsets.only(top: 2, bottom: 4),
                       child: Text(
                         sub,
-                        style: const TextStyle(fontSize: 12, color: Colors.black54),
+                        style: const TextStyle(
+                            fontSize: 14, color: Colors.black54),
                         textAlign: TextAlign.right,
                       ),
                     ),
@@ -781,7 +783,8 @@ class _PaymentVerificationDetailPageState
               }
               final parts = <String>[];
               if (prev != null && curr != null) {
-                parts.add('${prev.toStringAsFixed(2)} - ${curr.toStringAsFixed(2)} = ${usage.toStringAsFixed(2)}');
+                parts.add(
+                    '${prev.toStringAsFixed(2)} - ${curr.toStringAsFixed(2)} = ${usage.toStringAsFixed(2)}');
               } else {
                 parts.add(usage.toStringAsFixed(2));
               }
@@ -798,7 +801,8 @@ class _PaymentVerificationDetailPageState
                       padding: const EdgeInsets.only(top: 2, bottom: 4),
                       child: Text(
                         sub,
-                        style: const TextStyle(fontSize: 12, color: Colors.black54),
+                        style: const TextStyle(
+                            fontSize: 14, color: Colors.black54),
                         textAlign: TextAlign.right,
                       ),
                     ),
