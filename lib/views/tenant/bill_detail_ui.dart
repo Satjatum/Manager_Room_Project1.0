@@ -29,18 +29,18 @@ class TenantBillDetailUi extends StatelessWidget {
   String _thaiMonth(int month) {
     const months = [
       '',
-      'มกราคม',
-      'กุมภาพันธ์',
-      'มีนาคม',
-      'เมษายน',
-      'พฤษภาคม',
-      'มิถุนายน',
-      'กรกฎาคม',
-      'สิงหาคม',
-      'กันยายน',
-      'ตุลาคม',
-      'พฤศจิกายน',
-      'ธันวาคม',
+      'à¸¡à¸à¸£à¸²à¸„à¸¡',
+      'à¸à¸¸à¸¡à¸ à¸²à¸žà¸±à¸™à¸˜à¹Œ',
+      'à¸¡à¸µà¸™à¸²à¸„à¸¡',
+      'à¹€à¸¡à¸©à¸²à¸¢à¸™',
+      'à¸žà¸¤à¸©à¸ à¸²à¸„à¸¡',
+      'à¸¡à¸´à¸–à¸¸à¸™à¸²à¸¢à¸™',
+      'à¸à¸£à¸à¸Žà¸²à¸„à¸¡',
+      'à¸ªà¸´à¸‡à¸«à¸²à¸„à¸¡',
+      'à¸à¸±à¸™à¸¢à¸²à¸¢à¸™',
+      'à¸•à¸¸à¸¥à¸²à¸„à¸¡',
+      'à¸žà¸¤à¸¨à¸ˆà¸´à¸à¸²à¸¢à¸™',
+      'à¸˜à¸±à¸™à¸§à¸²à¸„à¸¡',
     ];
     if (month < 1 || month > 12) return '';
     return months[month];
@@ -80,14 +80,14 @@ class TenantBillDetailUi extends StatelessWidget {
         if (data == null) {
           return const Scaffold(
             backgroundColor: Colors.white,
-            body: Center(child: Text('ไม่พบบิล')),
+            body: Center(child: Text('à¹„à¸¡à¹ˆà¸žà¸šà¸šà¸´à¸¥')),
           );
         }
 
         final status = (data['invoice_status'] ?? '').toString();
         final latestSlip =
             (data['latest_slip'] as Map<String, dynamic>?) ?? const {};
-        // สคีมาใหม่: ไม่มี slip_status แล้ว
+        // à¸ªà¸„à¸µà¸¡à¸²à¹ƒà¸«à¸¡à¹ˆ: à¹„à¸¡à¹ˆà¸¡à¸µ slip_status à¹à¸¥à¹‰à¸§
         final isRejectedSlip =
             ((latestSlip['rejection_reason'] ?? '').toString()).isNotEmpty;
         final hasPendingSlip = latestSlip.isNotEmpty &&
@@ -130,7 +130,7 @@ class TenantBillDetailUi extends StatelessWidget {
                           Navigator.of(context).pop();
                         }
                       },
-                      tooltip: 'ย้อนกลับ',
+                      tooltip: 'à¸¢à¹‰à¸­à¸™à¸à¸¥à¸±à¸š',
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -138,7 +138,7 @@ class TenantBillDetailUi extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: const [
                           Text(
-                            'รายละเอียดบิลค่าเช่า',
+                            'à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”à¸šà¸´à¸¥à¸„à¹ˆà¸²à¹€à¸Šà¹ˆà¸²',
                             style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
@@ -147,7 +147,7 @@ class TenantBillDetailUi extends StatelessWidget {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'ตรวจสอบรายละเอียดบิลค่าเช่าของคุณ',
+                            'à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”à¸šà¸´à¸¥à¸„à¹ˆà¸²à¹€à¸Šà¹ˆà¸²à¸‚à¸­à¸‡à¸„à¸¸à¸“',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.black54,
@@ -179,7 +179,7 @@ class TenantBillDetailUi extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'เลขบิล: ${data['invoice_number'] ?? '-'}',
+                              'à¹€à¸¥à¸‚à¸šà¸´à¸¥: ${data['invoice_number'] ?? '-'}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 16,
@@ -187,21 +187,21 @@ class TenantBillDetailUi extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'เดือน/ปี: ${_thaiMonth(data['invoice_month'] ?? 0)} พ.ศ. ${(data['invoice_year'] ?? 0) + 543}',
+                              'à¹€à¸”à¸·à¸­à¸™/à¸›à¸µ: ${_thaiMonth(data['invoice_month'] ?? 0)} à¸ž.à¸¨. ${(data['invoice_year'] ?? 0) + 543}',
                               style: TextStyle(
                                   color: Colors.grey[700], fontSize: 13),
                             ),
                             if (data['issue_date'] != null) ...[
                               const SizedBox(height: 4),
                               Text(
-                                  'ออกบิล: ${_thaiFullDateFromDynamic(data['issue_date'])}',
+                                  'à¸­à¸­à¸à¸šà¸´à¸¥: ${_thaiFullDateFromDynamic(data['issue_date'])}',
                                   style: TextStyle(
                                       color: Colors.grey[700], fontSize: 13)),
                             ],
                             if (data['due_date'] != null) ...[
                               const SizedBox(height: 2),
                               Text(
-                                  'ครบกำหนด: ${_thaiFullDateFromDynamic(data['due_date'])}',
+                                  'à¸„à¸£à¸šà¸à¸³à¸«à¸™à¸”: ${_thaiFullDateFromDynamic(data['due_date'])}',
                                   style: TextStyle(
                                       color: Colors.grey[700], fontSize: 13)),
                             ],
@@ -210,7 +210,7 @@ class TenantBillDetailUi extends StatelessWidget {
                       ),
                       _StatusChip(
                         status: status,
-                        overrideLabel: hasPendingSlip ? 'รอตรวจสอบ' : null,
+                        overrideLabel: hasPendingSlip ? 'à¸£à¸­à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸š' : null,
                         overrideColor: hasPendingSlip ? Colors.orange : null,
                       ),
                     ],
@@ -229,7 +229,7 @@ class TenantBillDetailUi extends StatelessWidget {
                       border: Border.all(color: Colors.red.withOpacity(0.3)),
                     ),
                     child: const Text(
-                      'สลิปล่าสุดถูกปฏิเสธ กรุณาอัปโหลดใหม่',
+                      'à¸ªà¸¥à¸´à¸›à¸¥à¹ˆà¸²à¸ªà¸¸à¸”à¸–à¸¹à¸à¸›à¸à¸´à¹€à¸ªà¸˜ à¸à¸£à¸¸à¸“à¸²à¸­à¸±à¸›à¹‚à¸«à¸¥à¸”à¹ƒà¸«à¸¡à¹ˆ',
                       style: TextStyle(
                           color: Colors.red, fontWeight: FontWeight.w600),
                     ),
@@ -246,10 +246,10 @@ class TenantBillDetailUi extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _SectionHeader('ค่าใช้จ่าย'),
-                      _kv('ค่าเช่า', rental),
-                      _kv('ค่าสาธารณูปโภค', utilities),
-                      _kv('ค่าใช้จ่ายอื่น', others),
+                      const _SectionHeader('à¸„à¹ˆà¸²à¹ƒà¸Šà¹‰à¸ˆà¹ˆà¸²à¸¢'),
+                      _kv('à¸„à¹ˆà¸²à¹€à¸Šà¹ˆà¸²', rental),
+                      _kv('à¸„à¹ˆà¸²à¸ªà¸²à¸˜à¸²à¸£à¸“à¸¹à¸›à¹‚à¸ à¸„', utilities),
+                      _kv('à¸„à¹ˆà¸²à¹ƒà¸Šà¹‰à¸ˆà¹ˆà¸²à¸¢à¸­à¸·à¹ˆà¸™', others),
                       if (utilLines.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Container(
@@ -266,11 +266,11 @@ class TenantBillDetailUi extends StatelessWidget {
                               final fixed = _asDouble(u['fixed_amount']);
                               final add = _asDouble(u['additional_charge']);
                               final amount = _asDouble(u['total_amount']);
-                              String meta = '';
+                              String final metaParts = <String>[]; if (usage > 0) { metaParts.add(usage.toStringAsFixed(2)); } if (unit > 0) { metaParts.add(unit.toStringAsFixed(2)); } final meta = metaParts.join(' � ');
                               if (unit > 0 && usage > 0) {
-                                meta = '($usage x ${unit.toStringAsFixed(2)})';
+                                final metaParts = <String>[]; if (usage > 0) { metaParts.add(usage.toStringAsFixed(2)); } if (unit > 0) { metaParts.add(unit.toStringAsFixed(2)); } final meta = metaParts.join(' � ');
                               } else if (fixed > 0) {
-                                meta = '(เหมาจ่าย ${fixed.toStringAsFixed(2)})';
+                                final metaParts = <String>[]; if (usage > 0) { metaParts.add(usage.toStringAsFixed(2)); } if (unit > 0) { metaParts.add(unit.toStringAsFixed(2)); } final meta = metaParts.join(' � ');
                               }
                               if (add > 0) {
                                 meta = meta.isEmpty
@@ -298,12 +298,12 @@ class TenantBillDetailUi extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      _kv('ส่วนลด', -discount),
-                      _kv('ค่าปรับล่าช้า', lateFee),
+                      _kv('à¸ªà¹ˆà¸§à¸™à¸¥à¸”', -discount),
+                      _kv('à¸„à¹ˆà¸²à¸›à¸£à¸±à¸šà¸¥à¹ˆà¸²à¸Šà¹‰à¸²', lateFee),
                       const Divider(height: 24),
-                      _kv('ยอดรวม', total, emphasize: true),
-                      _kv('ชำระแล้ว', paid),
-                      _kv('คงเหลือ', remain, emphasize: true),
+                      _kv('à¸¢à¸­à¸”à¸£à¸§à¸¡', total, emphasize: true),
+                      _kv('à¸Šà¸³à¸£à¸°à¹à¸¥à¹‰à¸§', paid),
+                      _kv('à¸„à¸‡à¹€à¸«à¸¥à¸·à¸­', remain, emphasize: true),
                     ],
                   ),
                 ),
@@ -321,11 +321,11 @@ class TenantBillDetailUi extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _SectionHeader('ประวัติการชำระเงิน'),
+                      const _SectionHeader('à¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸à¸²à¸£à¸Šà¸³à¸£à¸°à¹€à¸‡à¸´à¸™'),
                       if (payments.isEmpty)
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Text('— ไม่มีรายการ —'),
+                          child: Text('â€” à¹„à¸¡à¹ˆà¸¡à¸µà¸£à¸²à¸¢à¸à¸²à¸£ â€”'),
                         )
                       else
                         Column(
@@ -368,9 +368,7 @@ class TenantBillDetailUi extends StatelessWidget {
                       ],
                     ),
                     child: SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
+                      width: double.infinity,\r\n                      child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF22C55E),
                           foregroundColor: Colors.white,
@@ -392,7 +390,7 @@ class TenantBillDetailUi extends StatelessWidget {
                           }
                         },
                         child: const Text(
-                          'ชำระเงิน/อัปโหลดสลิป',
+                          'à¸Šà¸³à¸£à¸°à¹€à¸‡à¸´à¸™/à¸­à¸±à¸›à¹‚à¸«à¸¥à¸”à¸ªà¸¥à¸´à¸›',
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.w700),
                         ),
@@ -482,15 +480,15 @@ class _StatusChip extends StatelessWidget {
     }
     switch (status) {
       case 'paid':
-        return 'ชำระแล้ว';
+        return 'à¸Šà¸³à¸£à¸°à¹à¸¥à¹‰à¸§';
       case 'partial':
-        return 'ชำระบางส่วน';
+        return 'à¸Šà¸³à¸£à¸°à¸šà¸²à¸‡à¸ªà¹ˆà¸§à¸™';
       case 'overdue':
-        return 'เกินกำหนด';
+        return 'à¹€à¸à¸´à¸™à¸à¸³à¸«à¸™à¸”';
       case 'cancelled':
-        return 'ยกเลิก';
+        return 'à¸¢à¸à¹€à¸¥à¸´à¸';
       case 'pending':
-        return 'ค้างชำระ';
+        return 'à¸„à¹‰à¸²à¸‡à¸Šà¸³à¸£à¸°';
       default:
         return status;
     }
@@ -512,3 +510,5 @@ class _StatusChip extends StatelessWidget {
     );
   }
 }
+
+
