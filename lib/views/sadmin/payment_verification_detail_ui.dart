@@ -43,6 +43,20 @@ class _PaymentVerificationDetailPageState
     return 0;
   }
 
+  // Safe conversion: dynamic -> List<Map<String, dynamic>>
+  List<Map<String, dynamic>> _asListOfMap(dynamic v) {
+    if (v is List) {
+      final out = <Map<String, dynamic>>[];
+      for (final e in v) {
+        if (e is Map) {
+          out.add(Map<String, dynamic>.from(e as Map));
+        }
+      }
+      return out;
+    }
+    return const [];
+  }
+
   String _thaiDate(String s) {
     if (s.isEmpty) return '-';
     final base = s.split(' ').first; // handle 'YYYY-MM-DD' or ISO 'YYYY-MM-DDTHH:mm'
@@ -67,9 +81,7 @@ class _PaymentVerificationDetailPageState
           inv = await InvoiceService.getInvoiceById(invId);
           // Preload meter reading(s) if present on utilities
           try {
-            final utils =
-                (inv?['utilities'] as List?)?.cast<Map<String, dynamic>>() ??
-                    const [];
+            final utils = _asListOfMap(inv?['utilities']);
             final ids = utils
                 .map((u) => (u['reading_id'] ?? '').toString())
                 .where((id) => id.isNotEmpty)
@@ -92,9 +104,7 @@ class _PaymentVerificationDetailPageState
       } else if (widget.invoiceId != null) {
         final inv = await InvoiceService.getInvoiceById(widget.invoiceId!);
         try {
-          final utils =
-              (inv['utilities'] as List?)?.cast<Map<String, dynamic>>() ??
-                  const [];
+          final utils = _asListOfMap(inv['utilities']);
           final ids = utils
               .map((u) => (u['reading_id'] ?? '').toString())
               .where((id) => id.isNotEmpty)
@@ -124,8 +134,7 @@ class _PaymentVerificationDetailPageState
   }
 
   String _firstFileUrl() {
-    final files =
-        (_slip?['files'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+    final files = _asListOfMap(_slip?['files']);
     if (files.isNotEmpty) {
       final u = (files.first['file_url'] ?? '').toString();
       if (u.isNotEmpty) return u;
@@ -424,12 +433,8 @@ class _PaymentVerificationDetailPageState
         (totalAmount - paidAmount).clamp(0.0, double.infinity).toDouble();
 
     // Utilities detail lines
-    final utils =
-        (invFull['utilities'] as List?)?.cast<Map<String, dynamic>>() ??
-            const [];
-    final otherLines = (invFull['other_charge_lines'] as List?)
-            ?.cast<Map<String, dynamic>>() ??
-        const [];
+    final utils = _asListOfMap(invFull['utilities']);
+    final otherLines = _asListOfMap(invFull['other_charge_lines']);
 
     return Card(
       color: Colors.white,
@@ -594,8 +599,7 @@ class _PaymentVerificationDetailPageState
 
   // แสดง thumbnail ของสลิปใน Header (กดเพื่อเปิดเต็ม)
   Widget _buildInlineSlipThumbnails() {
-    final files =
-        (_slip?['files'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+    final files = _asListOfMap(_slip?['files']);
     final hasAny = files.isNotEmpty ||
         ((_slip?['slip_image'] ?? '').toString().isNotEmpty);
     if (!hasAny) return const SizedBox.shrink();
@@ -679,11 +683,8 @@ class _PaymentVerificationDetailPageState
     final double remaining =
         (totalAmount - paidAmount).clamp(0.0, double.infinity).toDouble();
 
-    final utils =
-        (inv['utilities'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
-    final otherLines = (inv['other_charge_lines'] as List?)
-            ?.cast<Map<String, dynamic>>() ??
-        const [];
+    final utils = _asListOfMap(inv['utilities']);
+    final otherLines = _asListOfMap(inv['other_charge_lines']);
 
     return Card(
       color: Colors.white,
@@ -791,8 +792,7 @@ class _PaymentVerificationDetailPageState
   }
 
   Widget _buildSlipFiles() {
-    final files =
-        (_slip?['files'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+    final files = _asListOfMap(_slip?['files']);
     final hasAny = files.isNotEmpty ||
         ((_slip?['slip_image'] ?? '').toString().isNotEmpty);
     return Card(
