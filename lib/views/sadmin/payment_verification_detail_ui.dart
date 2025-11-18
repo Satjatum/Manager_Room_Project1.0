@@ -70,7 +70,8 @@ class _PaymentVerificationDetailPageState
 
   String _thaiDate(String s) {
     if (s.isEmpty) return '-';
-    final base = s.split(' ').first; // handle 'YYYY-MM-DD' or ISO 'YYYY-MM-DDTHH:mm'
+    final base =
+        s.split(' ').first; // handle 'YYYY-MM-DD' or ISO 'YYYY-MM-DDTHH:mm'
     final iso = base.contains('T') ? base : base;
     final d = DateTime.tryParse(iso);
     if (d == null) return base;
@@ -363,8 +364,7 @@ class _PaymentVerificationDetailPageState
             Expanded(
               child: _loading
                   ? const Center(
-                      child:
-                          CircularProgressIndicator(color: AppTheme.primary),
+                      child: CircularProgressIndicator(color: AppTheme.primary),
                     )
                   : (widget.slipId != null && _slip == null) ||
                           (widget.invoiceId != null && _invoice == null)
@@ -373,8 +373,7 @@ class _PaymentVerificationDetailPageState
                           onRefresh: _load,
                           child: Center(
                             child: ConstrainedBox(
-                              constraints:
-                                  const BoxConstraints(maxWidth: 900),
+                              constraints: const BoxConstraints(maxWidth: 900),
                               child: ListView(
                                 padding: const EdgeInsets.all(16),
                                 children: [
@@ -495,16 +494,13 @@ class _PaymentVerificationDetailPageState
             _kv('ผู้เช่า', tenantName),
             _kv('เบอร์', tenantPhone),
             _kv('ห้อง', roomNumber),
-            _kv('สาขา', branchName),
 
             const Divider(height: 24),
             const Text('ค่าใช้จ่าย',
                 style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             _moneyRow('ค่าเช่า', rentalAmount),
-            _moneyRow('ค่าสาธารณูปโภค', utilitiesAmount),
-
-            // ค่าน้ำ/ค่าไฟ แยกรายการพร้อมรายละเอียดมิเตอร์/หน่วย/หน่วยละ
+            // ค่าน้ำ/ค่าไฟ แยกรายการพร้อม subtext แสดงตัวเลขเท่านั้น
             ...utils.map((u) {
               final name = (u['utility_name'] ?? '').toString();
               final unitPrice = _asDouble(u['unit_price']);
@@ -523,10 +519,32 @@ class _PaymentVerificationDetailPageState
                   curr = _asDouble(r['electric_current_reading']);
                 }
               }
-              final detail = prev != null && curr != null
-                  ? '(มิเตอร์ก่อนหน้า $prev - ปัจจุบัน $curr = ${usage.toStringAsFixed(2)} หน่วย) (หน่วยละ ${unitPrice.toStringAsFixed(2)})'
-                  : '(${usage.toStringAsFixed(2)} หน่วย) (หน่วยละ ${unitPrice.toStringAsFixed(2)})';
-              return _moneyRow('$name $detail', total);
+              // subtext ตัวเลขเท่านั้น
+              final parts = <String>[];
+              if (prev != null && curr != null) {
+                parts.add('${prev.toStringAsFixed(2)} - ${curr.toStringAsFixed(2)} = ${usage.toStringAsFixed(2)}');
+              } else {
+                parts.add(usage.toStringAsFixed(2));
+              }
+              if (unitPrice > 0) {
+                parts.add(unitPrice.toStringAsFixed(2));
+              }
+              final sub = parts.join(' • ');
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _moneyRow(name, total),
+                  if (sub.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2, bottom: 4),
+                      child: Text(
+                        sub,
+                        style: const TextStyle(fontSize: 12, color: Colors.black54),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                ],
+              );
             }).toList(),
 
             // ค่าใช้จ่ายอื่นๆ
@@ -738,14 +756,11 @@ class _PaymentVerificationDetailPageState
             _kv('ผู้เช่า', tenantName),
             _kv('เบอร์', tenantPhone),
             _kv('ห้อง', roomNumber),
-            _kv('สาขา', branchName),
-
             const Divider(height: 24),
             const Text('ค่าใช้จ่าย',
                 style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             _moneyRow('ค่าเช่า', rentalAmount),
-            _moneyRow('ค่าสาธารณูปโภค', utilitiesAmount),
             ...utils.map((u) {
               final name = (u['utility_name'] ?? '').toString();
               final unitPrice = _asDouble(u['unit_price']);
@@ -764,12 +779,32 @@ class _PaymentVerificationDetailPageState
                   curr = _asDouble(r['electric_current_reading']);
                 }
               }
-              final detail = prev != null && curr != null
-                  ? '(มิเตอร์ก่อนหน้า $prev - ปัจจุบัน $curr = ${usage.toStringAsFixed(2)} หน่วย) (หน่วยละ ${unitPrice.toStringAsFixed(2)})'
-                  : '(${usage.toStringAsFixed(2)} หน่วย) (หน่วยละ ${unitPrice.toStringAsFixed(2)})';
-              return _moneyRow('$name $detail', total);
+              final parts = <String>[];
+              if (prev != null && curr != null) {
+                parts.add('${prev.toStringAsFixed(2)} - ${curr.toStringAsFixed(2)} = ${usage.toStringAsFixed(2)}');
+              } else {
+                parts.add(usage.toStringAsFixed(2));
+              }
+              if (unitPrice > 0) {
+                parts.add(unitPrice.toStringAsFixed(2));
+              }
+              final sub = parts.join(' • ');
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _moneyRow(name, total),
+                  if (sub.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2, bottom: 4),
+                      child: Text(
+                        sub,
+                        style: const TextStyle(fontSize: 12, color: Colors.black54),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                ],
+              );
             }).toList(),
-
             if (otherLines.isNotEmpty) ...[
               const SizedBox(height: 8),
               const Text('ค่าใช้จ่ายอื่นๆ',
@@ -783,18 +818,15 @@ class _PaymentVerificationDetailPageState
                 return _moneyRow(label, amt);
               }).toList(),
             ],
-
             if (discountAmount > 0)
               _moneyRow('ส่วนลด', -discountAmount, emphasis: true),
             if (lateFeeAmount > 0)
               _moneyRow('ค่าปรับล่าช้า', lateFeeAmount, emphasis: true),
-
             const Divider(height: 24),
             _moneyRow('ยอดรวม', totalAmount, bold: true),
             _moneyRow('ชำระแล้ว', paidAmount, color: Colors.green),
             _moneyRow('คงเหลือ', remaining,
                 bold: true, color: Colors.redAccent),
-
             const SizedBox(height: 8),
             const Text('ยังไม่มีสลิปการชำระเงินสำหรับบิลนี้',
                 style: TextStyle(color: Colors.orange)),
