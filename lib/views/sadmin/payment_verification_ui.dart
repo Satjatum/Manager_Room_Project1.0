@@ -102,8 +102,9 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     try {
       // โหลดสลิปทั้งหมด แล้วค่อยกรองตามสถานะบิล (pending/partial/paid/overdue/cancelled)
       final invStatus = _invoiceTabStatus();
+      // ดึง "ทั้งหมด" มาก่อน เพื่อให้สามารถ dedupe ตาม invoice และคัดล่าสุดได้
       final res = await PaymentService.listPaymentSlips(
-        status: _slipFilter,
+        status: 'all',
         branchId: _currentBranchFilter(),
         search: _search.isEmpty ? null : _search,
       );
@@ -116,8 +117,28 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
           .where((e) => (e['invoice_status'] ?? '').toString() == invStatus)
           .toList();
 
+      // จัดระเบียบ: แสดงสลิปล่าสุดต่อใบแจ้งหนี้เพียง 1 รายการ
+      // และทำเครื่องหมายถ้าเคยมีสลิปถูกปฏิเสธก่อนหน้า (เพื่อไม่ให้ดูซับซ้อน)
+      List<Map<String, dynamic>> deduped = _latestPerInvoice(byInvoiceStatus);
+
+      // นำตัวกรองสลิป (all/pending/rejected) มาวางหลัง dedupe
+      if (_slipFilter == 'pending') {
+        deduped = deduped
+            .where((s) =>
+                (s['payment_id'] == null || s['payment_id'].toString().isEmpty) &&
+                ((s['rejection_reason'] == null) ||
+                    s['rejection_reason'].toString().isEmpty))
+            .toList();
+      } else if (_slipFilter == 'rejected') {
+        // แสดงเฉพาะใบแจ้งหนี้ที่ "สลิปล่าสุด" เป็นสถานะถูกปฏิเสธ
+        deduped = deduped
+            .where((s) => (s['rejection_reason'] != null &&
+                s['rejection_reason'].toString().isNotEmpty))
+            .toList();
+      }
+
       setState(() {
-        _slips = byInvoiceStatus;
+        _slips = deduped;
         _invoices = const [];
         _loading = false;
       });
@@ -129,6 +150,45 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
         );
       }
     }
+  }
+
+  // คืนสลิปล่าสุดต่อ invoice_id เพียง 1 รายการ พร้อมระบุว่าเคยมีสลิปถูกปฏิเสธก่อนหน้าหรือไม่
+  List<Map<String, dynamic>> _latestPerInvoice(
+      List<Map<String, dynamic>> list) {
+    // จัดเรียงล่าสุดมาก่อน (อิง created_at)
+    int _cmpDesc(Map a, Map b) {
+      DateTime _parse(dynamic v) {
+        final s = (v ?? '').toString();
+        return DateTime.tryParse(s) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      }
+      final da = _parse(a['created_at'] ?? a['payment_date']);
+      final db = _parse(b['created_at'] ?? b['payment_date']);
+      return db.compareTo(da); // desc
+    }
+
+    final sorted = [...list]..sort(_cmpDesc);
+    final Map<String, Map<String, dynamic>> latest = {};
+    final Map<String, bool> priorRejected = {};
+
+    for (final s in sorted) {
+      final invId = (s['invoice_id'] ?? '').toString();
+      if (invId.isEmpty) continue;
+      if (!latest.containsKey(invId)) {
+        latest[invId] = Map<String, dynamic>.from(s);
+      } else {
+        // พบสลิปเดิมของ invoice เดียวกัน — ถ้าอันเก่ามี rejection ให้ทำเครื่องหมาย
+        final rej = (s['rejection_reason'] ?? '').toString();
+        if (rej.isNotEmpty) priorRejected[invId] = true;
+      }
+    }
+
+    return latest.entries.map((e) {
+      final row = Map<String, dynamic>.from(e.value);
+      if (priorRejected[e.key] == true) {
+        row['has_prior_rejected'] = true;
+      }
+      return row;
+    }).toList();
   }
 
   String? _currentBranchFilter() {
@@ -645,6 +705,25 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: statusColor)),
+                const SizedBox(width: 8),
+                if ((s['has_prior_rejected'] ?? false) == true)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFEBEE),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFEF5350)),
+                    ),
+                    child: const Text(
+                      'เคยถูกปฏิเสธ',
+                      style: TextStyle(
+                        color: Color(0xFFD32F2F),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 const Spacer(),
                 const Icon(Icons.chevron_right, color: Colors.black38),
               ],
