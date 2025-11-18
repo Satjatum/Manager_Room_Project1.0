@@ -32,6 +32,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   final TextEditingController _searchCtrl = TextEditingController();
   Timer? _debounce;
   String _search = '';
+  String _slipFilter = 'all'; // all | pending | rejected | verified
 
   @override
   void initState() {
@@ -102,7 +103,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
       // โหลดสลิปทั้งหมด แล้วค่อยกรองตามสถานะบิล (pending/partial/paid/overdue/cancelled)
       final invStatus = _invoiceTabStatus();
       final res = await PaymentService.listPaymentSlips(
-        status: 'all',
+        status: _slipFilter,
         branchId: _currentBranchFilter(),
         search: _search.isEmpty ? null : _search,
       );
@@ -377,6 +378,18 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                 ),
               ),
             ),
+            // Slip status filter chips
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+              child: Wrap(
+                spacing: 8,
+                children: [
+                  _slipFilterChip('ทั้งหมด', 'all'),
+                  _slipFilterChip('รอตรวจสอบ', 'pending'),
+                  _slipFilterChip('ถูกปฏิเสธ', 'rejected'),
+                ],
+              ),
+            ),
 
             // แท็บตัวกรองตามสถานะบิลจาก Database
             Padding(
@@ -414,6 +427,28 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _slipFilterChip(String label, String value) {
+    final selected = _slipFilter == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (v) async {
+        if (!v) return;
+        setState(() => _slipFilter = value);
+        await _load();
+      },
+      selectedColor: AppTheme.primary.withOpacity(0.12),
+      labelStyle: TextStyle(
+        color: selected ? AppTheme.primary : Colors.black87,
+        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+      ),
+      shape: StadiumBorder(
+        side: BorderSide(
+            color: selected ? AppTheme.primary : Colors.grey[300]!),
       ),
     );
   }
