@@ -57,6 +57,17 @@ class _PaymentVerificationDetailPageState
     return const [];
   }
 
+  // Safe conversion: dynamic -> Map<String, dynamic>
+  Map<String, dynamic> _asMap(dynamic v) {
+    if (v is Map) {
+      return Map<String, dynamic>.from(v as Map);
+    }
+    if (v is List && v.isNotEmpty && v.first is Map) {
+      return Map<String, dynamic>.from(v.first as Map);
+    }
+    return <String, dynamic>{};
+  }
+
   String _thaiDate(String s) {
     if (s.isEmpty) return '-';
     final base = s.split(' ').first; // handle 'YYYY-MM-DD' or ISO 'YYYY-MM-DDTHH:mm'
@@ -78,7 +89,8 @@ class _PaymentVerificationDetailPageState
         // Load invoice details (with utilities/other charges/payments)
         final invId = (res?['invoice_id'] ?? '').toString();
         if (invId.isNotEmpty) {
-          inv = await InvoiceService.getInvoiceById(invId);
+          final invRaw = await InvoiceService.getInvoiceById(invId);
+          inv = _asMap(invRaw);
           // Preload meter reading(s) if present on utilities
           try {
             final utils = _asListOfMap(inv?['utilities']);
@@ -102,7 +114,8 @@ class _PaymentVerificationDetailPageState
           _loading = false;
         });
       } else if (widget.invoiceId != null) {
-        final inv = await InvoiceService.getInvoiceById(widget.invoiceId!);
+        final invRaw = await InvoiceService.getInvoiceById(widget.invoiceId!);
+        final inv = _asMap(invRaw);
         try {
           final utils = _asListOfMap(inv['utilities']);
           final ids = utils
@@ -388,7 +401,7 @@ class _PaymentVerificationDetailPageState
 
   Widget _buildHeaderCard() {
     final s = _slip!;
-    final invFull = _invoice ?? (s['invoices'] ?? {}) as Map<String, dynamic>;
+    final invFull = _asMap(_invoice ?? s['invoices']);
     final room = invFull.isNotEmpty ? (invFull['rooms'] ?? {}) : {};
     final br = room.isNotEmpty ? (room['branches'] ?? {}) : {};
     final tenant = invFull.isNotEmpty ? (invFull['tenants'] ?? {}) : {};
@@ -653,7 +666,7 @@ class _PaymentVerificationDetailPageState
   }
 
   Widget _buildInvoiceHeaderCard() {
-    final inv = _invoice!;
+    final inv = _asMap(_invoice);
     final room = inv['rooms'] ?? {};
     final br = room['branches'] ?? {};
     final tenant = inv['tenants'] ?? {};
