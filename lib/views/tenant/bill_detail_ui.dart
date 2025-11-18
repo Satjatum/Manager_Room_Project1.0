@@ -1,514 +1,426 @@
 import 'package:flutter/material.dart';
 import 'package:manager_room_project/services/invoice_service.dart';
-import 'package:manager_room_project/services/payment_service.dart';
-import 'package:manager_room_project/views/tenant/tenant_pay_bill_ui.dart';
+import 'package:manager_room_project/services/meter_service.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
+import 'package:manager_room_project/views/tenant/tenant_pay_bill_ui.dart';
 
-double _asDouble(dynamic v) {
-  if (v == null) return 0;
-  if (v is num) return v.toDouble();
-  if (v is String) return double.tryParse(v) ?? 0;
-  return 0;
-}
-
-class TenantBillDetailUi extends StatelessWidget {
+class TenantBillDetailUi extends StatefulWidget {
   final String invoiceId;
   const TenantBillDetailUi({super.key, required this.invoiceId});
 
-  Future<Map<String, dynamic>?> _load() async {
-    final inv = await InvoiceService.getInvoiceById(invoiceId);
-    if (inv != null) {
-      try {
-        final slip = await PaymentService.getLatestSlipForInvoice(invoiceId);
-        if (slip != null) inv['latest_slip'] = slip;
-      } catch (_) {}
-    }
-    return inv;
+  @override
+  State<TenantBillDetailUi> createState() => _TenantBillDetailUiState();
+}
+
+class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
+  bool _loading = true;
+  Map<String, dynamic>? _invoice;
+  final Map<String, Map<String, dynamic>> _readingById = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
   }
 
-  String _thaiMonth(int month) {
-    const months = [
-      '',
-      'à¸¡à¸à¸£à¸²à¸„à¸¡',
-      'à¸à¸¸à¸¡à¸ à¸²à¸žà¸±à¸™à¸˜à¹Œ',
-      'à¸¡à¸µà¸™à¸²à¸„à¸¡',
-      'à¹€à¸¡à¸©à¸²à¸¢à¸™',
-      'à¸žà¸¤à¸©à¸ à¸²à¸„à¸¡',
-      'à¸¡à¸´à¸–à¸¸à¸™à¸²à¸¢à¸™',
-      'à¸à¸£à¸à¸Žà¸²à¸„à¸¡',
-      'à¸ªà¸´à¸‡à¸«à¸²à¸„à¸¡',
-      'à¸à¸±à¸™à¸¢à¸²à¸¢à¸™',
-      'à¸•à¸¸à¸¥à¸²à¸„à¸¡',
-      'à¸žà¸¤à¸¨à¸ˆà¸´à¸à¸²à¸¢à¸™',
-      'à¸˜à¸±à¸™à¸§à¸²à¸„à¸¡',
-    ];
-    if (month < 1 || month > 12) return '';
-    return months[month];
+  double _asDouble(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v.toDouble();
+    if (v is String) return double.tryParse(v) ?? 0;
+    return 0;
   }
 
-  String _thaiFullDateFromDynamic(dynamic value) {
-    if (value == null) return '-';
-    DateTime? dt;
-    if (value is DateTime) {
-      dt = value;
-    } else {
-      final s = value.toString();
-      dt = DateTime.tryParse(s);
+  List<Map<String, dynamic>> _asListOfMap(dynamic v) {
+    if (v is List) {
+      final out = <Map<String, dynamic>>[];
+      for (final e in v) {
+        if (e is Map) out.add(Map<String, dynamic>.from(e as Map));
+      }
+      return out;
     }
-    if (dt == null) return value.toString();
-    final buddhistYear = dt.year + 543;
-    return '${dt.day} ${_thaiMonth(dt.month)} $buddhistYear';
+    return const [];
+  }
+
+  Map<String, dynamic> _asMap(dynamic v) {
+    if (v is Map) return Map<String, dynamic>.from(v as Map);
+    if (v is List && v.isNotEmpty && v.first is Map) {
+      return Map<String, dynamic>.from(v.first as Map);
+    }
+    return <String, dynamic>{};
+  }
+
+  String _thaiDate(String s) {
+    if (s.isEmpty) return '-';
+    final base = s.split(' ').first;
+    final d = DateTime.tryParse(base);
+    if (d == null) return base;
+    final y = d.year + 543;
+    final m = d.month.toString().padLeft(2, '0');
+    final d2 = d.day.toString().padLeft(2, '0');
+    return '$d2/$m/$y';
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final invRaw = await InvoiceService.getInvoiceById(widget.invoiceId);
+      if (invRaw != null) {
+        // preload meter readings for utilities
+        try {
+          final utils = _asListOfMap(invRaw['utilities']);
+          final ids = utils
+              .map((u) => (u['reading_id'] ?? '').toString())
+              .where((id) => id.isNotEmpty)
+              .toSet()
+              .toList();
+          if (ids.isNotEmpty) {
+            final futures = ids.map((id) async {
+              final r = await MeterReadingService.getMeterReadingById(id);
+              if (r != null) _readingById[id] = r;
+            });
+            await Future.wait(futures);
+          }
+        } catch (_) {}
+      }
+      setState(() {
+        _invoice = invRaw;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() => _loading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('โหลดรายละเอียดไม่สำเร็จ: $e')));
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>?>(
-      future: _load(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: Colors.white,
-            body: Center(
-              child: CircularProgressIndicator(
-                color: AppTheme.primary,
-                strokeWidth: 3,
-              ),
-            ),
-          );
-        }
-        final data = snapshot.data;
-        if (data == null) {
-          return const Scaffold(
-            backgroundColor: Colors.white,
-            body: Center(child: Text('à¹„à¸¡à¹ˆà¸žà¸šà¸šà¸´à¸¥')),
-          );
-        }
-
-        final status = (data['invoice_status'] ?? '').toString();
-        final latestSlip =
-            (data['latest_slip'] as Map<String, dynamic>?) ?? const {};
-        // à¸ªà¸„à¸µà¸¡à¸²à¹ƒà¸«à¸¡à¹ˆ: à¹„à¸¡à¹ˆà¸¡à¸µ slip_status à¹à¸¥à¹‰à¸§
-        final isRejectedSlip =
-            ((latestSlip['rejection_reason'] ?? '').toString()).isNotEmpty;
-        final hasPendingSlip = latestSlip.isNotEmpty &&
-            latestSlip['payment_id'] == null &&
-            !isRejectedSlip;
-        final rental = _asDouble(data['rental_amount']);
-        final utilities = _asDouble(data['utilities_amount']);
-        final others = _asDouble(data['other_charges']);
-        final discount = _asDouble(data['discount_amount']);
-        final lateFee = _asDouble(data['late_fee_amount']);
-        final subtotal = _asDouble(data['subtotal']);
-        final total = _asDouble(data['total_amount']);
-        final paid = _asDouble(data['paid_amount']);
-        final remain = (total - paid);
-
-        final utilLines =
-            (data['utilities'] as List?)?.cast<Map<String, dynamic>>() ??
-                const [];
-        final otherLines = (data['other_charge_lines'] as List?)
-                ?.cast<Map<String, dynamic>>() ??
-            const [];
-        final payments =
-            (data['payments'] as List?)?.cast<Map<String, dynamic>>() ??
-                const [];
-
-        return Scaffold(
-          backgroundColor: Colors.white,
-          body: SafeArea(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-              children: [
-                // Header row with back button
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new,
-                          color: Colors.black87),
-                      onPressed: () {
-                        if (Navigator.of(context).canPop()) {
-                          Navigator.of(context).pop();
-                        }
-                      },
-                      tooltip: 'à¸¢à¹‰à¸­à¸™à¸à¸¥à¸±à¸š',
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            'à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”à¸šà¸´à¸¥à¸„à¹ˆà¸²à¹€à¸Šà¹ˆà¸²',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”à¸šà¸´à¸¥à¸„à¹ˆà¸²à¹€à¸Šà¹ˆà¸²à¸‚à¸­à¸‡à¸„à¸¸à¸“',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                const SizedBox(height: 16),
-
-                // Summary Card
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: _loading
+            ? const Center(
+                child: CircularProgressIndicator(color: AppTheme.primary),
+              )
+            : (_invoice == null)
+                ? const Center(child: Text('ไม่พบบิล'))
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                      children: [
+                        Row(
                           children: [
-                            Text(
-                              'à¹€à¸¥à¸‚à¸šà¸´à¸¥: ${data['invoice_number'] ?? '-'}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 16,
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back_ios_new,
+                                  color: Colors.black87),
+                              onPressed: () {
+                                if (Navigator.of(context).canPop()) {
+                                  Navigator.of(context).pop();
+                                }
+                              },
+                              tooltip: 'ย้อนกลับ',
+                            ),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'รายละเอียดบิลค่าเช่า',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'ตรวจสอบรายละเอียดบิลค่าเช่าของคุณ',
+                                    style: TextStyle(
+                                        fontSize: 14, color: Colors.black54),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'à¹€à¸”à¸·à¸­à¸™/à¸›à¸µ: ${_thaiMonth(data['invoice_month'] ?? 0)} à¸ž.à¸¨. ${(data['invoice_year'] ?? 0) + 543}',
-                              style: TextStyle(
-                                  color: Colors.grey[700], fontSize: 13),
-                            ),
-                            if (data['issue_date'] != null) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                  'à¸­à¸­à¸à¸šà¸´à¸¥: ${_thaiFullDateFromDynamic(data['issue_date'])}',
-                                  style: TextStyle(
-                                      color: Colors.grey[700], fontSize: 13)),
-                            ],
-                            if (data['due_date'] != null) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                  'à¸„à¸£à¸šà¸à¸³à¸«à¸™à¸”: ${_thaiFullDateFromDynamic(data['due_date'])}',
-                                  style: TextStyle(
-                                      color: Colors.grey[700], fontSize: 13)),
-                            ],
                           ],
                         ),
-                      ),
-                      _StatusChip(
-                        status: status,
-                        overrideLabel: hasPendingSlip ? 'à¸£à¸­à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸š' : null,
-                        overrideColor: hasPendingSlip ? Colors.orange : null,
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                if (isRejectedSlip)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.withOpacity(0.3)),
-                    ),
-                    child: const Text(
-                      'à¸ªà¸¥à¸´à¸›à¸¥à¹ˆà¸²à¸ªà¸¸à¸”à¸–à¸¹à¸à¸›à¸à¸´à¹€à¸ªà¸˜ à¸à¸£à¸¸à¸“à¸²à¸­à¸±à¸›à¹‚à¸«à¸¥à¸”à¹ƒà¸«à¸¡à¹ˆ',
-                      style: TextStyle(
-                          color: Colors.red, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-
-                // Charges Card
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _SectionHeader('à¸„à¹ˆà¸²à¹ƒà¸Šà¹‰à¸ˆà¹ˆà¸²à¸¢'),
-                      _kv('à¸„à¹ˆà¸²à¹€à¸Šà¹ˆà¸²', rental),
-                      _kv('à¸„à¹ˆà¸²à¸ªà¸²à¸˜à¸²à¸£à¸“à¸¹à¸›à¹‚à¸ à¸„', utilities),
-                      _kv('à¸„à¹ˆà¸²à¹ƒà¸Šà¹‰à¸ˆà¹ˆà¸²à¸¢à¸­à¸·à¹ˆà¸™', others),
-                      if (utilLines.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.grey[300]!),
-                          ),
-                          child: Column(
-                            children: utilLines.map((u) {
-                              final name = (u['utility_name'] ?? '').toString();
-                              final unit = _asDouble(u['unit_price']);
-                              final usage = _asDouble(u['usage_amount']);
-                              final fixed = _asDouble(u['fixed_amount']);
-                              final add = _asDouble(u['additional_charge']);
-                              final amount = _asDouble(u['total_amount']);
-                              String final metaParts = <String>[]; if (usage > 0) { metaParts.add(usage.toStringAsFixed(2)); } if (unit > 0) { metaParts.add(unit.toStringAsFixed(2)); } final meta = metaParts.join(' � ');
-                              if (unit > 0 && usage > 0) {
-                                final metaParts = <String>[]; if (usage > 0) { metaParts.add(usage.toStringAsFixed(2)); } if (unit > 0) { metaParts.add(unit.toStringAsFixed(2)); } final meta = metaParts.join(' � ');
-                              } else if (fixed > 0) {
-                                final metaParts = <String>[]; if (usage > 0) { metaParts.add(usage.toStringAsFixed(2)); } if (unit > 0) { metaParts.add(unit.toStringAsFixed(2)); } final meta = metaParts.join(' � ');
-                              }
-                              if (add > 0) {
-                                meta = meta.isEmpty
-                                    ? '(+${add.toStringAsFixed(2)})'
-                                    : '$meta (+${add.toStringAsFixed(2)})';
-                              }
-                              return _line(name, amount, meta: meta);
-                            }).toList(),
-                          ),
-                        ),
-                      ]
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Totals Card
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      _kv('à¸ªà¹ˆà¸§à¸™à¸¥à¸”', -discount),
-                      _kv('à¸„à¹ˆà¸²à¸›à¸£à¸±à¸šà¸¥à¹ˆà¸²à¸Šà¹‰à¸²', lateFee),
-                      const Divider(height: 24),
-                      _kv('à¸¢à¸­à¸”à¸£à¸§à¸¡', total, emphasize: true),
-                      _kv('à¸Šà¸³à¸£à¸°à¹à¸¥à¹‰à¸§', paid),
-                      _kv('à¸„à¸‡à¹€à¸«à¸¥à¸·à¸­', remain, emphasize: true),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Payments history Card
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _SectionHeader('à¸›à¸£à¸°à¸§à¸±à¸•à¸´à¸à¸²à¸£à¸Šà¸³à¸£à¸°à¹€à¸‡à¸´à¸™'),
-                      if (payments.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Text('â€” à¹„à¸¡à¹ˆà¸¡à¸µà¸£à¸²à¸¢à¸à¸²à¸£ â€”'),
-                        )
-                      else
-                        Column(
-                          children: payments.map((p) {
-                            final amount = _asDouble(p['payment_amount']);
-                            final dateStr =
-                                _thaiFullDateFromDynamic(p['payment_date']);
-                            final pstatus =
-                                (p['payment_status'] ?? '').toString();
-                            return ListTile(
-                              dense: true,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(horizontal: 8),
-                              title: Text(amount.toStringAsFixed(2)),
-                              subtitle: Text(dateStr),
-                              trailing: Text(pstatus),
-                            );
-                          }).toList(),
-                        ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 80),
-              ],
-            ),
-          ),
-          bottomNavigationBar: (status != 'paid' && !hasPendingSlip)
-              ? SafeArea(
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 8,
-                          offset: const Offset(0, -2),
-                        )
+                        const SizedBox(height: 12),
+                        _buildInvoiceHeaderCard(),
                       ],
                     ),
-                    child: SizedBox(
-                      width: double.infinity,\r\n                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF22C55E),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => TenantPayBillUi(
-                                invoiceId: invoiceId,
-                              ),
-                            ),
-                          );
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                          }
-                        },
-                        child: const Text(
-                          'à¸Šà¸³à¸£à¸°à¹€à¸‡à¸´à¸™/à¸­à¸±à¸›à¹‚à¸«à¸¥à¸”à¸ªà¸¥à¸´à¸›',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ),
                   ),
-                )
-              : null,
-        );
-      },
+      ),
+      bottomNavigationBar: _buildBottomBar(),
     );
   }
 
-  Widget _kv(String label, double value, {bool emphasize = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label),
-          Text(
-            value.toStringAsFixed(2),
-            style: TextStyle(
-              fontWeight: emphasize ? FontWeight.w700 : FontWeight.w500,
-              fontSize: emphasize ? 16 : 14,
+  Widget _buildInvoiceHeaderCard() {
+    final inv = _asMap(_invoice);
+    final room = inv['rooms'] ?? {};
+    final br = room['branches'] ?? {};
+    final tenant = inv['tenants'] ?? {};
+
+    final invoiceNumber = (inv['invoice_number'] ?? '-').toString();
+    final invoiceMonth = (inv['invoice_month'] ?? '-').toString();
+    final invoiceYear = (inv['invoice_year'] ?? '-').toString();
+    final issueDate = (inv['issue_date'] ?? '').toString();
+    final dueDate = (inv['due_date'] ?? '').toString();
+    final tenantName =
+        (inv['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
+    final tenantPhone =
+        (inv['tenant_phone'] ?? tenant['tenant_phone'] ?? '-').toString();
+    final roomNumber =
+        (inv['room_number'] ?? room['room_number'] ?? '-').toString();
+    final invoiceStatus = (inv['invoice_status'] ?? '-').toString();
+
+    double rentalAmount = _asDouble(inv['rental_amount']);
+    double discountAmount = _asDouble(inv['discount_amount']);
+    double lateFeeAmount = _asDouble(inv['late_fee_amount']);
+    final totalAmount = _asDouble(inv['total_amount']);
+    final paidAmount = _asDouble(inv['paid_amount']);
+    final double remaining =
+        (totalAmount - paidAmount).clamp(0.0, double.infinity).toDouble();
+
+    final utils = _asListOfMap(inv['utilities']);
+    final otherLines = _asListOfMap(inv['other_charge_lines']);
+
+    return Card(
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade300),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.receipt_long, size: 18),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '#$invoiceNumber',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _invoiceStatusChip(invoiceStatus),
+              ],
             ),
-          )
+            const Divider(height: 20),
+            const Text('รายละเอียดบิล',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            _kv('เลขบิล', invoiceNumber),
+            _kv('รอบบิลเดือน', '$invoiceMonth/$invoiceYear'),
+            _kv('ออกบิลวันที่', _thaiDate(issueDate)),
+            _kv('ครบกำหนดชำระ', _thaiDate(dueDate)),
+            const SizedBox(height: 8),
+            _kv('ผู้เช่า', tenantName),
+            _kv('เบอร์', tenantPhone),
+            _kv('ห้อง', roomNumber),
+
+            const Divider(height: 24),
+            const Text('ค่าใช้จ่าย',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            _moneyRow('ค่าเช่า', rentalAmount),
+            ...utils.map((u) {
+              final name = (u['utility_name'] ?? '').toString();
+              final unitPrice = _asDouble(u['unit_price']);
+              final usage = _asDouble(u['usage_amount']);
+              final total = _asDouble(u['total_amount']);
+              final readingId = (u['reading_id'] ?? '').toString();
+              double? prev;
+              double? curr;
+              if (readingId.isNotEmpty && _readingById.containsKey(readingId)) {
+                final r = _readingById[readingId]!;
+                if (name.contains('น้ำ')) {
+                  prev = _asDouble(r['water_previous_reading']);
+                  curr = _asDouble(r['water_current_reading']);
+                } else if (name.contains('ไฟ')) {
+                  prev = _asDouble(r['electric_previous_reading']);
+                  curr = _asDouble(r['electric_current_reading']);
+                }
+              }
+              final parts = <String>[];
+              if (prev != null && curr != null) {
+                parts.add(
+                    '${prev.toStringAsFixed(2)} - ${curr.toStringAsFixed(2)} = ${usage.toStringAsFixed(2)}');
+              } else {
+                parts.add(usage.toStringAsFixed(2));
+              }
+              if (unitPrice > 0) parts.add(unitPrice.toStringAsFixed(2));
+              final sub = parts.join(' • ');
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _moneyRow(name, total),
+                  if (sub.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2, bottom: 4),
+                      child: Text(
+                        sub,
+                        style:
+                            const TextStyle(fontSize: 14, color: Colors.black54),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                ],
+              );
+            }).toList(),
+            if (otherLines.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Text('ค่าใช้จ่ายอื่นๆ',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              ...otherLines.map((o) {
+                final title = (o['charge_name'] ?? '').toString();
+                final amt = _asDouble(o['charge_amount']);
+                final desc = (o['charge_desc'] ?? '').toString();
+                final label = desc.isNotEmpty ? '$title ($desc)' : title;
+                return _moneyRow(label, amt);
+              }).toList(),
+            ],
+            if (discountAmount > 0)
+              _moneyRow('ส่วนลด', -discountAmount, emphasis: true),
+            if (lateFeeAmount > 0)
+              _moneyRow('ค่าปรับล่าช้า', lateFeeAmount, emphasis: true),
+
+            const Divider(height: 24),
+            _moneyRow('ยอดรวม', totalAmount, bold: true),
+            _moneyRow('ชำระแล้ว', paidAmount, color: Colors.green),
+            _moneyRow('คงเหลือ', remaining, bold: true, color: Colors.redAccent),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _kv(String k, String v) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          SizedBox(
+              width: 140,
+              child: Text(k, style: const TextStyle(color: Colors.black54))),
+          Expanded(child: Text(v, textAlign: TextAlign.right)),
         ],
       ),
     );
   }
 
-  Widget _line(String label, double value, {String? meta}) {
-    return ListTile(
-      dense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-      title: Text(label),
-      subtitle: meta == null || meta.isEmpty ? null : Text(meta),
-      trailing: Text(value.toStringAsFixed(2),
-          style: const TextStyle(fontWeight: FontWeight.w600)),
+  Widget _moneyRow(String label, double amount,
+      {bool bold = false, bool emphasis = false, Color? color}) {
+    final style = TextStyle(
+      fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+      color: color ?? (emphasis ? AppTheme.primary : null),
     );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String text;
-  const _SectionHeader(this.text);
-
-  @override
-  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        text,
-        style: const TextStyle(fontWeight: FontWeight.w700),
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Expanded(child: Text(label)),
+          Text('${amount.toStringAsFixed(2)} บาท', style: style),
+        ],
       ),
     );
   }
-}
 
-class _StatusChip extends StatelessWidget {
-  final String status;
-  final String? overrideLabel;
-  final Color? overrideColor;
-  const _StatusChip(
-      {required this.status, this.overrideLabel, this.overrideColor});
-
-  Color _color() {
-    if (overrideColor != null) return overrideColor!;
+  Widget _invoiceStatusChip(String status) {
+    Color c;
+    String t;
     switch (status) {
       case 'paid':
-        return Colors.green;
-      case 'partial':
-        return Colors.orange;
+        c = const Color(0xFF22C55E);
+        t = 'ชำระแล้ว';
+        break;
       case 'overdue':
-        return Colors.red;
-      case 'cancelled':
-        return Colors.grey;
-      default:
-        return Colors.blueGrey;
-    }
-  }
-
-  String _label() {
-    if (overrideLabel != null && overrideLabel!.isNotEmpty) {
-      return overrideLabel!;
-    }
-    switch (status) {
-      case 'paid':
-        return 'à¸Šà¸³à¸£à¸°à¹à¸¥à¹‰à¸§';
+        c = const Color(0xFFEF4444);
+        t = 'เกินกำหนด';
+        break;
       case 'partial':
-        return 'à¸Šà¸³à¸£à¸°à¸šà¸²à¸‡à¸ªà¹ˆà¸§à¸™';
-      case 'overdue':
-        return 'à¹€à¸à¸´à¸™à¸à¸³à¸«à¸™à¸”';
+        c = const Color(0xFFF59E0B);
+        t = 'ชำระบางส่วน';
+        break;
       case 'cancelled':
-        return 'à¸¢à¸à¹€à¸¥à¸´à¸';
+        c = Colors.grey;
+        t = 'ยกเลิก';
+        break;
       case 'pending':
-        return 'à¸„à¹‰à¸²à¸‡à¸Šà¸³à¸£à¸°';
       default:
-        return status;
+        c = const Color(0xFF3B82F6);
+        t = 'รอดำเนินการ';
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: _color().withOpacity(0.1),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: _color().withOpacity(0.3)),
+        color: c.withOpacity(0.1),
+        border: Border.all(color: c.withOpacity(0.4)),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        _label(),
-        style: TextStyle(color: _color(), fontWeight: FontWeight.w700),
+        t,
+        style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  Widget _buildBottomBar() {
+    if (_invoice == null) return const SizedBox.shrink();
+    final inv = _asMap(_invoice);
+    final status = (inv['invoice_status'] ?? '').toString();
+    final total = _asDouble(inv['total_amount']);
+    final paid = _asDouble(inv['paid_amount']);
+    final remaining = (total - paid);
+    final disabled = status == 'paid' || status == 'cancelled' || remaining <= 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey[300]!, width: 1)),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+      child: SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: OutlinedButton.icon(
+          onPressed: disabled
+              ? null
+              : () async {
+                  final res = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => TenantPayBillUi(invoiceId: widget.invoiceId),
+                    ),
+                  );
+                  if (res == true) {
+                    await _load();
+                  }
+                },
+          icon: const Icon(Icons.payments_outlined),
+          label: Text(
+            disabled ? 'ชำระแล้ว' : 'ชำระเงิน',
+          ),
+          style: OutlinedButton.styleFrom(
+            backgroundColor: Colors.white,
+            side: BorderSide(color: Colors.grey[300]!),
+            foregroundColor: Colors.black87,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
       ),
     );
   }
 }
-
-
