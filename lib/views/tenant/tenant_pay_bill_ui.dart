@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -9,6 +9,7 @@ import 'package:manager_room_project/services/invoice_service.dart';
 import 'package:manager_room_project/services/payment_service.dart';
 import 'package:manager_room_project/services/image_service.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 class TenantPayBillUi extends StatefulWidget {
   final String invoiceId;
@@ -33,6 +34,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
 
   final List<XFile> _slipFiles = [];
   static const int _maxFiles = 5;
+
+  bool _showQr = false;
 
   double _asDouble(dynamic v) {
     if (v == null) return 0;
@@ -61,7 +64,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       if (inv == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('ไม่พบบิล')));
+            .showSnackBar(const SnackBar(content: Text('à¹„à¸¡à¹ˆà¸žà¸šà¸šà¸´à¸¥')));
         Navigator.pop(context);
         return;
       }
@@ -92,7 +95,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       setState(() => _loading = false);
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+          .showSnackBar(SnackBar(content: Text('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”: $e')));
     }
   }
 
@@ -108,7 +111,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       if (_slipFiles.length + files.length > _maxFiles) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล')),
+            SnackBar(content: Text('à¹à¸™à¸šà¸£à¸¹à¸›à¹„à¸”à¹‰à¹„à¸¡à¹ˆà¹€à¸à¸´à¸™ $_maxFiles à¸£à¸¹à¸›à¸•à¹ˆà¸­à¸šà¸´à¸¥')),
           );
         }
       }
@@ -117,7 +120,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('เลือกภาพไม่สำเร็จ: $e')));
+          .showSnackBar(SnackBar(content: Text('à¹€à¸¥à¸·à¸­à¸à¸ à¸²à¸žà¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ: $e')));
     }
   }
 
@@ -150,13 +153,13 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                   child: Row(
                     children: [
                       const Expanded(
-                        child: Text('เลือกเวลา',
+                        child: Text('à¹€à¸¥à¸·à¸­à¸à¹€à¸§à¸¥à¸²',
                             style: TextStyle(
                                 fontSize: 16, fontWeight: FontWeight.w700)),
                       ),
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('ตกลง'),
+                        child: const Text('à¸•à¸à¸¥à¸‡'),
                       )
                     ],
                   ),
@@ -215,17 +218,17 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     final amount = double.tryParse(_amountCtrl.text) ?? 0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('กรุณากรอกจำนวนเงิน')));
+          .showSnackBar(const SnackBar(content: Text('à¸à¸£à¸¸à¸“à¸²à¸à¸£à¸­à¸à¸ˆà¸³à¸™à¸§à¸™à¹€à¸‡à¸´à¸™')));
       return;
     }
     if (_selectedDate == null || _selectedTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('กรุณาเลือกวันที่และเวลาในการชำระ')));
+          const SnackBar(content: Text('à¸à¸£à¸¸à¸“à¸²à¹€à¸¥à¸·à¸­à¸à¸§à¸±à¸™à¸—à¸µà¹ˆà¹à¸¥à¸°à¹€à¸§à¸¥à¸²à¹ƒà¸™à¸à¸²à¸£à¸Šà¸³à¸£à¸°')));
       return;
     }
     if (_slipFiles.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('กรุณาอัปโหลดรูปสลิปอย่างน้อย 1 รูป')));
+          const SnackBar(content: Text('à¸à¸£à¸¸à¸“à¸²à¸­à¸±à¸›à¹‚à¸«à¸¥à¸”à¸£à¸¹à¸›à¸ªà¸¥à¸´à¸›à¸­à¸¢à¹ˆà¸²à¸‡à¸™à¹‰à¸­à¸¢ 1 à¸£à¸¹à¸›')));
       return;
     }
     setState(() => _submitting = true);
@@ -256,7 +259,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         if (up['success'] == true && (up['url'] ?? '').toString().isNotEmpty) {
           urls.add(up['url']);
         } else {
-          throw up['message'] ?? 'อัปโหลดรูปไม่สำเร็จ';
+          throw up['message'] ?? 'à¸­à¸±à¸›à¹‚à¸«à¸¥à¸”à¸£à¸¹à¸›à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ';
         }
       }
 
@@ -289,17 +292,17 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         }
         if (!mounted) return;
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(res['message'] ?? 'สำเร็จ')));
+            .showSnackBar(SnackBar(content: Text(res['message'] ?? 'à¸ªà¸³à¹€à¸£à¹‡à¸ˆ')));
         Navigator.pop(context, true);
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(res['message'] ?? 'ส่งสลิปไม่สำเร็จ')));
+            SnackBar(content: Text(res['message'] ?? 'à¸ªà¹ˆà¸‡à¸ªà¸¥à¸´à¸›à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ')));
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+          .showSnackBar(SnackBar(content: Text('à¹€à¸à¸´à¸”à¸‚à¹‰à¸­à¸œà¸´à¸”à¸žà¸¥à¸²à¸”: $e')));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -320,7 +323,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                       valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
                     ),
                     const SizedBox(height: 12),
-                    const Text('กำลังโหลด...'),
+                    const Text('à¸à¸³à¸¥à¸±à¸‡à¹‚à¸«à¸¥à¸”...'),
                   ],
                 ),
               )
@@ -334,25 +337,73 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildSection(
-                            title: 'เลือกบัญชีธนาคารเพื่อโอน',
+                            title: 'à¹€à¸¥à¸·à¸­à¸à¸šà¸±à¸à¸Šà¸µà¸˜à¸™à¸²à¸„à¸²à¸£à¹€à¸žà¸·à¹ˆà¸­à¹‚à¸­à¸™',
                             icon: Icons.account_balance_outlined,
                             child: _buildBankList(),
                           ),
                           const SizedBox(height: 12),
+                          if (_selectedQrId != null) _buildSection(
+                            title: 'QR สำหรับโอน (เปิด/ปิด)',
+                            icon: Icons.qr_code_2_outlined,
+                            child: Builder(
+                              builder: (context) {
+                                final acct = _bankAccounts.firstWhere(
+                                  (q) => (q['qr_id']?.toString() ?? '') == (_selectedQrId ?? ''),
+                                  orElse: () => {},
+                                );
+                                final accNum = (acct['account_number'] ?? '').toString();
+                                final bankName = (acct['bank_name'] ?? '').toString();
+                                final accName = (acct['account_name'] ?? '').toString();
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: OutlinedButton.icon(
+                                        onPressed: accNum.isEmpty ? null : () { setState(() => _showQr = !_showQr); },
+                                        icon: Icon(_showQr ? Icons.visibility_off : Icons.visibility),
+                                        label: Text(_showQr ? 'ซ่อน QR' : 'แสดง QR'),
+                                      ),
+                                    ),
+                                    if (_showQr && accNum.isNotEmpty) ...[
+                                      SizedBox(height: 12),
+                                      Container(
+                                        padding: EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: Colors.grey[300]!),
+                                        ),
+                                        child: QrImageView(
+                                          data: accNum,
+                                          version: QrVersions.auto,
+                                          size: 220,
+                                        ),
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(' • ', style: TextStyle(fontWeight: FontWeight.w600)),
+                                      if (accName.isNotEmpty) Text(accName, style: TextStyle(color: Colors.black54)),
+                                    ],
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 12),
                           _buildSection(
-                            title: 'รายละเอียดการชำระ',
+                            title: 'à¸£à¸²à¸¢à¸¥à¸°à¹€à¸­à¸µà¸¢à¸”à¸à¸²à¸£à¸Šà¸³à¸£à¸°',
                             icon: Icons.payments_outlined,
                             child: _buildPaymentDetails(),
                           ),
                           const SizedBox(height: 12),
                           _buildSection(
-                            title: 'อัปโหลดสลิป (ได้หลายรูป สูงสุด $_maxFiles รูป)',
+                            title: 'à¸­à¸±à¸›à¹‚à¸«à¸¥à¸”à¸ªà¸¥à¸´à¸› (à¹„à¸”à¹‰à¸«à¸¥à¸²à¸¢à¸£à¸¹à¸› à¸ªà¸¹à¸‡à¸ªà¸¸à¸” $_maxFiles à¸£à¸¹à¸›)',
                             icon: Icons.upload_file_outlined,
                             child: _buildSlipUploader(),
                           ),
                           const SizedBox(height: 12),
                           _buildSection(
-                            title: 'หมายเหตุ (ถ้ามี)',
+                            title: 'à¸«à¸¡à¸²à¸¢à¹€à¸«à¸•à¸¸ (à¸–à¹‰à¸²à¸¡à¸µ)',
                             icon: Icons.sticky_note_2_outlined,
                             child: _buildNoteBox(),
                           ),
@@ -384,7 +435,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
           const SizedBox(width: 8),
           const Expanded(
             child: Text(
-              'ชำระบิล/อัปโหลดสลิป',
+              'à¸Šà¸³à¸£à¸°à¸šà¸´à¸¥/à¸­à¸±à¸›à¹‚à¸«à¸¥à¸”à¸ªà¸¥à¸´à¸›',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
@@ -443,12 +494,12 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
 
   Widget _buildBankList() {
     if (_bankAccounts.isEmpty) {
-      return const Text('ยังไม่มีบัญชีธนาคารให้เลือก');
+      return const Text('à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µà¸šà¸±à¸à¸Šà¸µà¸˜à¸™à¸²à¸„à¸²à¸£à¹ƒà¸«à¹‰à¹€à¸¥à¸·à¸­à¸');
     }
     return Column(
       children: _bankAccounts.map((q) {
         final id = q['qr_id'].toString();
-        final title = '${q['bank_name'] ?? ''} • ${q['account_number'] ?? ''}';
+        final title = '${q['bank_name'] ?? ''} â€¢ ${q['account_number'] ?? ''}';
         final sub = (q['account_name'] ?? '').toString();
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
@@ -472,11 +523,11 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                     await Clipboard.setData(ClipboardData(text: acc));
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('คัดลอกเลขบัญชีแล้ว')),
+                      const SnackBar(content: Text('à¸„à¸±à¸”à¸¥à¸­à¸à¹€à¸¥à¸‚à¸šà¸±à¸à¸Šà¸µà¹à¸¥à¹‰à¸§')),
                     );
                   },
                   icon: const Icon(Icons.copy, size: 16),
-                  label: const Text('คัดลอกเลขบัญชี'),
+                  label: const Text('à¸„à¸±à¸”à¸¥à¸­à¸à¹€à¸¥à¸‚à¸šà¸±à¸à¸Šà¸µ'),
                   style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 8)),
                 ),
@@ -492,7 +543,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('จำนวนเงินที่ชำระ',
+        const Text('à¸ˆà¸³à¸™à¸§à¸™à¹€à¸‡à¸´à¸™à¸—à¸µà¹ˆà¸Šà¸³à¸£à¸°',
             style: TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         TextFormField(
@@ -501,13 +552,13 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
           decoration: const InputDecoration(
             prefixIcon: Icon(Icons.payments),
             border: OutlineInputBorder(),
-            hintText: 'เช่น 5000.00',
+            hintText: 'à¹€à¸Šà¹ˆà¸™ 5000.00',
             filled: true,
             fillColor: Colors.white,
           ),
         ),
         const SizedBox(height: 16),
-        const Text('วันที่และเวลา',
+        const Text('à¸§à¸±à¸™à¸—à¸µà¹ˆà¹à¸¥à¸°à¹€à¸§à¸¥à¸²',
             style: TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
         Row(
@@ -527,7 +578,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                 icon: const Icon(Icons.calendar_today),
                 label: Text(
                   _selectedDate == null
-                      ? 'เลือกวันที่'
+                      ? 'à¹€à¸¥à¸·à¸­à¸à¸§à¸±à¸™à¸—à¸µà¹ˆ'
                       : '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}',
                 ),
                 style: OutlinedButton.styleFrom(
@@ -545,7 +596,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                 icon: const Icon(Icons.schedule),
                 label: Text(
                   _selectedTime == null
-                      ? 'เลือกเวลา'
+                      ? 'à¹€à¸¥à¸·à¸­à¸à¹€à¸§à¸¥à¸²'
                       : '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}',
                 ),
                 style: OutlinedButton.styleFrom(
@@ -573,8 +624,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
             icon: const Icon(Icons.add_photo_alternate_outlined),
             label: Text(
               _slipFiles.isEmpty
-                  ? 'เลือกภาพสลิป'
-                  : 'เพิ่มภาพ (เหลือ ${_maxFiles - _slipFiles.length})',
+                  ? 'à¹€à¸¥à¸·à¸­à¸à¸ à¸²à¸žà¸ªà¸¥à¸´à¸›'
+                  : 'à¹€à¸žà¸´à¹ˆà¸¡à¸ à¸²à¸ž (à¹€à¸«à¸¥à¸·à¸­ ${_maxFiles - _slipFiles.length})',
             ),
           ),
         ),
@@ -640,7 +691,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       maxLines: 3,
       decoration: const InputDecoration(
         border: OutlineInputBorder(),
-        hintText: 'เช่น โอนผ่านบัญชี xxx เวลา xx:xx น.',
+        hintText: 'à¹€à¸Šà¹ˆà¸™ à¹‚à¸­à¸™à¸œà¹ˆà¸²à¸™à¸šà¸±à¸à¸Šà¸µ xxx à¹€à¸§à¸¥à¸² xx:xx à¸™.',
         filled: true,
         fillColor: Colors.white,
       ),
@@ -666,7 +717,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.upload),
-        label: Text(_submitting ? 'กำลังส่ง...' : 'ส่งสลิปเพื่อรอตรวจสอบ'),
+        label: Text(_submitting ? 'à¸à¸³à¸¥à¸±à¸‡à¸ªà¹ˆà¸‡...' : 'à¸ªà¹ˆà¸‡à¸ªà¸¥à¸´à¸›à¹€à¸žà¸·à¹ˆà¸­à¸£à¸­à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸š'),
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.white,
           side: BorderSide(color: Colors.grey[300]!),
@@ -678,3 +729,4 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     );
   }
 }
+
