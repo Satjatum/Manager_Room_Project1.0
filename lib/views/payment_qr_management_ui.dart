@@ -5,8 +5,6 @@ import '../models/user_models.dart';
 import '../services/auth_service.dart';
 import '../services/branch_service.dart';
 import '../services/branch_payment_qr_service.dart';
-import '../services/payment_rate_service.dart';
-import 'payment_setting_ui.dart';
 // image upload removed: QR images no longer required for bank or PromptPay
 
 class PaymentQrManagementUi extends StatefulWidget {
@@ -24,8 +22,6 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
   List<Map<String, dynamic>> _branches = [];
   List<Map<String, dynamic>> _qrs = [];
   bool _busy = false;
-  Map<String, dynamic>? _paymentSettings;
-  bool _psLoading = false;
 
   @override
   void initState() {
@@ -40,18 +36,12 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
       if (widget.branchId != null) {
         _selectedBranchId = widget.branchId;
         _branches = [];
-        await Future.wait([
-          _loadQrs(),
-          _loadPaymentSettings(),
-        ]);
+        await _loadQrs();
       } else {
         _branches = await BranchService.getBranchesByUser();
         if (_branches.isNotEmpty) {
           _selectedBranchId = _branches.first['branch_id'];
-          await Future.wait([
-            _loadQrs(),
-            _loadPaymentSettings(),
-          ]);
+          await _loadQrs();
         }
       }
     } catch (e) {
@@ -82,24 +72,6 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
       }
     } finally {
       if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  Future<void> _loadPaymentSettings() async {
-    if (_selectedBranchId == null) return;
-    setState(() => _psLoading = true);
-    try {
-      final res =
-          await PaymentSettingsService.getPaymentSettings(_selectedBranchId!);
-      if (mounted) setState(() => _paymentSettings = res);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('โหลดการตั้งค่าค่าปรับ/ส่วนลดล้มเหลว: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _psLoading = false);
     }
   }
 
@@ -249,18 +221,10 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                           }).toList(),
                           onChanged: (v) async {
                             setState(() => _selectedBranchId = v);
-                            await Future.wait([
-                              _loadQrs(),
-                              _loadPaymentSettings(),
-                            ]);
+                            await _loadQrs();
                           },
                         ),
                       ),
-                    ),
-                  if (_selectedBranchId != null)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: _buildPaymentSettingsCard(),
                     ),
                   Expanded(
                     child: _busy
@@ -696,202 +660,6 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
               ),
       ),
     );
-  }
-}
-
-extension on num {
-  String toBaht() {
-    return toStringAsFixed(0);
-  }
-}
-
-extension _Safe on Object? {
-  T? asT<T>() => this is T ? this as T : null;
-}
-
-extension _Ui on _PaymentQrManagementUiState {
-  Widget _buildPaymentSettingsCard() {
-    final ps = _paymentSettings;
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.policy_rounded, color: Colors.indigo.shade700, size: 22),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'นโยบายค่าปรับ/ส่วนลดของสาขา',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: _psLoading || _selectedBranchId == null
-                      ? null
-                      : () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PaymentSettingsUi(
-                                branchId: _selectedBranchId,
-                              ),
-                            ),
-                          );
-                          await _loadPaymentSettings();
-                        },
-                  icon: const Icon(Icons.edit_rounded),
-                  label: const Text('แก้ไขการตั้งค่า'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xff10B981),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (_psLoading)
-              Row(
-                children: [
-                  SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text('กำลังโหลดการตั้งค่า...',
-                      style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
-                ],
-              )
-            else if (ps == null)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.yellow.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.yellow.shade200),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.orange.shade700, size: 18),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'ยังไม่ได้ตั้งค่านโยบายค่าปรับและส่วนลด ชำระเงินจะไม่ถูกคิดค่าปรับ/ส่วนลดอัตโนมัติ',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else ...[
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildBadge(
-                    active: (ps['enable_late_fee'] == true),
-                    title: 'ค่าปรับ',
-                    subtitle: _lateFeeSummary(ps),
-                    activeColor: const Color(0xFF065F46),
-                    bgActive: const Color(0xFFD1FAE5),
-                  ),
-                  _buildBadge(
-                    active: (ps['enable_discount'] == true),
-                    title: 'ส่วนลด',
-                    subtitle: _discountSummary(ps),
-                    activeColor: const Color(0xFF1E3A8A),
-                    bgActive: const Color(0xFFDBEAFE),
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBadge({
-    required bool active,
-    required String title,
-    required String subtitle,
-    required Color activeColor,
-    required Color bgActive,
-  }) {
-    final bg = active ? bgActive : const Color(0xFFF3F4F6);
-    final border = active ? (activeColor.withOpacity(.3)) : Colors.grey.shade300;
-    final fg = active ? activeColor : const Color(0xFF6B7280);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(active ? Icons.check_circle : Icons.cancel,
-              size: 16, color: fg),
-          const SizedBox(width: 6),
-          Text('$title: ',
-              style: TextStyle(
-                  fontWeight: FontWeight.w700, fontSize: 12, color: fg)),
-          Flexible(
-            child: Text(
-              active ? subtitle : 'ปิดใช้งาน',
-              style: TextStyle(fontSize: 12, color: fg),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _lateFeeSummary(Map<String, dynamic> ps) {
-    final type = (ps['late_fee_type'] ?? 'fixed') as String;
-    final amt = (ps['late_fee_amount'] ?? 0);
-    final day = (ps['late_fee_start_day'] ?? 1);
-    final max = ps['late_fee_max_amount'];
-    String tlabel =
-        type == 'percentage' ? 'เปอร์เซ็นต์' : (type == 'daily' ? 'รายวัน' : 'คงที่');
-    String unit = type == 'percentage' ? '%' : '฿';
-    final amtStr = (amt is num) ? amt.toString() : amt.toString();
-    final maxStr = (max is num) ? max.toString() : (max?.toString() ?? '');
-    final maxPart = max != null && (max is num ? max > 0 : true)
-        ? ' • สูงสุด $maxStr฿'
-        : '';
-    return '$tlabel $amtStr$unit • เริ่ม $day วัน$maxPart';
-  }
-
-  String _discountSummary(Map<String, dynamic> ps) {
-    final dtype = (ps['early_payment_type'] ?? 'percentage') as String;
-    final days = (ps['early_payment_days'] ?? 0);
-    if (dtype == 'fixed') {
-      final amt = (ps['early_payment_amount'] ?? 0);
-      final amtStr = (amt is num) ? amt.toString() : amt.toString();
-      return 'จำนวนเงิน $amtStr฿ • ก่อนกำหนด $days วัน';
-    } else {
-      final pct = (ps['early_payment_discount'] ?? 0);
-      final pctStr = (pct is num) ? pct.toString() : pct.toString();
-      return 'ส่วนลด $pctStr% • ก่อนกำหนด $days วัน';
-    }
   }
 }
 
