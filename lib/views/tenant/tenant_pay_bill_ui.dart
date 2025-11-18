@@ -335,34 +335,43 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          content: ConstrainedBox(constraints: BoxConstraints(maxWidth: 360), child: Column(mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('QR สำหรับโอน',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
+          content: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 360),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('QR สำหรับโอน',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: SizedBox(
+                      width: 240,
+                      height: 240,
+                      child:
+                          QrImageView(data: accNum, version: QrVersions.auto)),
                 ),
-                child: SizedBox(width: 240, height: 240, child: QrImageView(data: accNum, version: QrVersions.auto)),
-              ),
-              const SizedBox(height: 8),
-              Text('$bankName • $accNum',
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
-              if (accName.isNotEmpty)
-                Text(accName, style: const TextStyle(color: Colors.black54)),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('ปิด'),
+                const SizedBox(height: 8),
+                Text('$bankName • $accNum',
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                if (accName.isNotEmpty)
+                  Text(accName, style: const TextStyle(color: Colors.black54)),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('ปิด'),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -400,22 +409,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                           _buildSection(
                             title: 'เลือกบัญชีธนาคารเพื่อโอน',
                             icon: Icons.account_balance_outlined,
-                            child: Column(
-                              children: [
-                                _buildBankList(),
-                                const SizedBox(height: 8),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: OutlinedButton.icon(
-                                    onPressed: _selectedQrId == null
-                                        ? null
-                                        : _showQrDialog,
-                                    icon: const Icon(Icons.qr_code_2_outlined),
-                                    label: const Text('แสดง QR'),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            child: _buildBankDropdownWithQrButton(),
                           ),
                           const SizedBox(height: 12),
                           _buildSection(
@@ -456,16 +450,36 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       ),
       padding: const EdgeInsets.all(16),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
+            tooltip: 'ย้อนกลับ',
           ),
           const SizedBox(width: 8),
           const Expanded(
-            child: Text(
-              'ชำระบิล/อัปโหลดสลิป',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'บิลค่าเช่า',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'ดูและจัดการบิลค่าเช่าของคุณ',
+                  style: TextStyle(fontSize: 14, color: Colors.black54),
+                ),
+              ],
             ),
           ),
         ],
@@ -575,7 +589,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     }
     final items = _bankAccounts.map((q) {
       final id = (q['qr_id'] ?? '').toString();
-      final title = " • ";
+      final title = "${q['bank_name'] ?? ''} • ${q['account_number'] ?? ''}";
       return DropdownMenuItem<String>(
         value: id,
         child: Text(title, overflow: TextOverflow.ellipsis),
@@ -599,6 +613,53 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         prefixIcon: Icon(Icons.account_balance),
         hintText: 'เลือกบัญชีธนาคาร',
       ),
+    );
+  }
+
+  // Dropdown + QR button (popup)
+  Widget _buildBankDropdownWithQrButton() {
+    if (_bankAccounts.isEmpty) {
+      return const Text('ยังไม่มีบัญชีธนาคารให้เลือก');
+    }
+    final items = _bankAccounts.map((q) {
+      final id = (q['qr_id'] ?? '').toString();
+      final title = "${q['bank_name'] ?? ''} • ${q['account_number'] ?? ''}";
+      return DropdownMenuItem<String>(
+        value: id,
+        child: Text(title, overflow: TextOverflow.ellipsis),
+      );
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        DropdownButtonFormField<String>(
+          value: (_selectedQrId != null && _selectedQrId!.isNotEmpty)
+              ? _selectedQrId
+              : null,
+          items: items,
+          onChanged: (v) {
+            if (v == null || v.isEmpty) return;
+            setState(() => _selectedQrId = v);
+          },
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            filled: true,
+            fillColor: Colors.white,
+            prefixIcon: Icon(Icons.account_balance),
+            hintText: 'เลือกบัญชีธนาคาร',
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _selectedQrId == null ? null : _showQrDialog,
+            icon: const Icon(Icons.qr_code_2_outlined),
+            label: const Text('แสดง QR'),
+          ),
+        ),
+      ],
     );
   }
 
@@ -792,4 +853,3 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     );
   }
 }
-
