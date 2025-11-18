@@ -23,6 +23,17 @@ class PaymentService {
     }
   }
 
+  // Attach an additional file to an existing payment slip (multi-file support)
+  static Future<void> addSlipFile({
+    required String slipId,
+    required String fileUrl,
+  }) async {
+    await _supabase.from('payment_slip_files').insert({
+      'slip_id': slipId,
+      'file_url': fileUrl,
+    });
+  }
+
   // Simulate PromptPay success (test mode): create payment directly and update invoice
   static Future<Map<String, dynamic>> createPromptPayTestPayment({
     required String invoiceId,
