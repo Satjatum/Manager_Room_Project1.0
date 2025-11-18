@@ -43,6 +43,18 @@ class _PaymentVerificationDetailPageState
     return 0;
   }
 
+  String _thaiDate(String s) {
+    if (s.isEmpty) return '-';
+    final base = s.split(' ').first; // handle 'YYYY-MM-DD' or ISO 'YYYY-MM-DDTHH:mm'
+    final iso = base.contains('T') ? base : base;
+    final d = DateTime.tryParse(iso);
+    if (d == null) return base;
+    final y = d.year + 543;
+    final m = d.month.toString().padLeft(2, '0');
+    final d2 = d.day.toString().padLeft(2, '0');
+    return '$d2/$m/$y';
+  }
+
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
@@ -79,6 +91,23 @@ class _PaymentVerificationDetailPageState
         });
       } else if (widget.invoiceId != null) {
         final inv = await InvoiceService.getInvoiceById(widget.invoiceId!);
+        try {
+          final utils =
+              (inv['utilities'] as List?)?.cast<Map<String, dynamic>>() ??
+                  const [];
+          final ids = utils
+              .map((u) => (u['reading_id'] ?? '').toString())
+              .where((id) => id.isNotEmpty)
+              .toSet()
+              .toList();
+          if (ids.isNotEmpty) {
+            final futures = ids.map((id) async {
+              final r = await MeterReadingService.getMeterReadingById(id);
+              if (r != null) _readingById[id] = r;
+            }).toList();
+            await Future.wait(futures);
+          }
+        } catch (_) {}
         setState(() {
           _invoice = inv;
           _loading = false;
@@ -626,6 +655,10 @@ class _PaymentVerificationDetailPageState
     final tenant = inv['tenants'] ?? {};
 
     final invoiceNumber = (inv['invoice_number'] ?? '-').toString();
+    final invoiceMonth = (inv['invoice_month'] ?? '-').toString();
+    final invoiceYear = (inv['invoice_year'] ?? '-').toString();
+    final issueDate = (inv['issue_date'] ?? '').toString();
+    final dueDate = (inv['due_date'] ?? '').toString();
     final tenantName =
         (inv['tenant_name'] ?? tenant['tenant_fullname'] ?? '-').toString();
     final tenantPhone =
@@ -634,13 +667,23 @@ class _PaymentVerificationDetailPageState
         (inv['room_number'] ?? room['room_number'] ?? '-').toString();
     final branchName =
         (inv['branch_name'] ?? br['branch_name'] ?? '-').toString();
-    final roomcate = (inv['roomcate_name'] ??
-            room['room_categories']?['roomcate_name'] ??
-            '-')
-        .toString();
     final invoiceStatus = (inv['invoice_status'] ?? '-').toString();
-    final total = _asDouble(inv['total_amount']);
-    final dueDate = (inv['due_date'] ?? '').toString();
+
+    double rentalAmount = _asDouble(inv['rental_amount']);
+    double utilitiesAmount = _asDouble(inv['utilities_amount']);
+    double otherCharges = _asDouble(inv['other_charges']);
+    double discountAmount = _asDouble(inv['discount_amount']);
+    double lateFeeAmount = _asDouble(inv['late_fee_amount']);
+    final totalAmount = _asDouble(inv['total_amount']);
+    final paidAmount = _asDouble(inv['paid_amount']);
+    final double remaining =
+        (totalAmount - paidAmount).clamp(0.0, double.infinity).toDouble();
+
+    final utils =
+        (inv['utilities'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+    final otherLines = (inv['other_charge_lines'] as List?)
+            ?.cast<Map<String, dynamic>>() ??
+        const [];
 
     return Card(
       color: Colors.white,
@@ -660,7 +703,7 @@ class _PaymentVerificationDetailPageState
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    invoiceNumber,
+                    '#$invoiceNumber',
                     style: const TextStyle(fontWeight: FontWeight.w700),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -669,27 +712,75 @@ class _PaymentVerificationDetailPageState
                 _invoiceStatusChip(invoiceStatus),
               ],
             ),
-            const SizedBox(height: 8),
-            Text('ผู้เช่า: $tenantName'),
-            Text('เบอร์: $tenantPhone'),
-            Text('$roomcate เลขที่ $roomNumber'),
-            Text('สาขา: $branchName'),
             const Divider(height: 20),
-            Row(
-              children: [
-                const Icon(Icons.payments, size: 18, color: Colors.green),
-                const SizedBox(width: 6),
-                Text(
-                  '${total.toStringAsFixed(2)} บาท',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, color: Colors.green),
-                ),
-                const Spacer(),
-                const Icon(Icons.schedule, size: 18, color: Colors.grey),
-                const SizedBox(width: 4),
-                Text(dueDate.toString().split('T').first),
-              ],
-            ),
+            const Text('รายละเอียดบิล',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            _kv('เลขบิล', invoiceNumber),
+            _kv('รอบบิลเดือน', '$invoiceMonth/$invoiceYear'),
+            _kv('ออกบิลวันที่', _thaiDate(issueDate)),
+            _kv('ครบกำหนดชำระ', _thaiDate(dueDate)),
+            const SizedBox(height: 8),
+            _kv('ผู้เช่า', tenantName),
+            _kv('เบอร์', tenantPhone),
+            _kv('ห้อง', roomNumber),
+            _kv('สาขา', branchName),
+
+            const Divider(height: 24),
+            const Text('ค่าใช้จ่าย',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            _moneyRow('ค่าเช่า', rentalAmount),
+            _moneyRow('ค่าสาธารณูปโภค', utilitiesAmount),
+            ...utils.map((u) {
+              final name = (u['utility_name'] ?? '').toString();
+              final unitPrice = _asDouble(u['unit_price']);
+              final usage = _asDouble(u['usage_amount']);
+              final total = _asDouble(u['total_amount']);
+              final readingId = (u['reading_id'] ?? '').toString();
+              double? prev;
+              double? curr;
+              if (readingId.isNotEmpty && _readingById.containsKey(readingId)) {
+                final r = _readingById[readingId]!;
+                if (name.contains('น้ำ')) {
+                  prev = _asDouble(r['water_previous_reading']);
+                  curr = _asDouble(r['water_current_reading']);
+                } else if (name.contains('ไฟ')) {
+                  prev = _asDouble(r['electric_previous_reading']);
+                  curr = _asDouble(r['electric_current_reading']);
+                }
+              }
+              final detail = prev != null && curr != null
+                  ? '(มิเตอร์ก่อนหน้า $prev - ปัจจุบัน $curr = ${usage.toStringAsFixed(2)} หน่วย) (หน่วยละ ${unitPrice.toStringAsFixed(2)})'
+                  : '(${usage.toStringAsFixed(2)} หน่วย) (หน่วยละ ${unitPrice.toStringAsFixed(2)})';
+              return _moneyRow('$name $detail', total);
+            }).toList(),
+
+            if (otherLines.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Text('ค่าใช้จ่ายอื่นๆ',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 4),
+              ...otherLines.map((o) {
+                final title = (o['charge_name'] ?? '').toString();
+                final amt = _asDouble(o['charge_amount']);
+                final desc = (o['charge_desc'] ?? '').toString();
+                final label = desc.isNotEmpty ? '$title ($desc)' : title;
+                return _moneyRow(label, amt);
+              }).toList(),
+            ],
+
+            if (discountAmount > 0)
+              _moneyRow('ส่วนลด', -discountAmount, emphasis: true),
+            if (lateFeeAmount > 0)
+              _moneyRow('ค่าปรับล่าช้า', lateFeeAmount, emphasis: true),
+
+            const Divider(height: 24),
+            _moneyRow('ยอดรวม', totalAmount, bold: true),
+            _moneyRow('ชำระแล้ว', paidAmount, color: Colors.green),
+            _moneyRow('คงเหลือ', remaining,
+                bold: true, color: Colors.redAccent),
+
             const SizedBox(height: 8),
             const Text('ยังไม่มีสลิปการชำระเงินสำหรับบิลนี้',
                 style: TextStyle(color: Colors.orange)),
