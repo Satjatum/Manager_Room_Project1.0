@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:manager_room_project/services/payment_service.dart';
 import 'package:manager_room_project/services/invoice_service.dart';
@@ -7,7 +8,7 @@ import 'package:manager_room_project/models/user_models.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/views/sadmin/payment_verification_detail_ui.dart';
 import 'package:manager_room_project/services/receipt_print_service.dart';
-import 'package:manager_room_project/views/tenant/bill_detail_ui.dart';
+// import removed: tenant bill detail is not used from this page
 
 class PaymentVerificationPage extends StatefulWidget {
   final String? branchId;
@@ -28,6 +29,9 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   UserModel? _currentUser;
   List<Map<String, dynamic>> _branches = [];
   String? _selectedBranchId; // null = all (for superadmin)
+  final TextEditingController _searchCtrl = TextEditingController();
+  Timer? _debounce;
+  String _search = '';
 
   @override
   void initState() {
@@ -38,7 +42,25 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
       if (_tabController.indexIsChanging) return;
       _load();
     });
+    _searchCtrl.addListener(() {
+      final val = _searchCtrl.text.trim();
+      _debounce?.cancel();
+      _debounce = Timer(const Duration(milliseconds: 300), () {
+        if (_search != val) {
+          setState(() => _search = val);
+          _load();
+        }
+      });
+    });
     _initialize();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchCtrl.dispose();
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _initialize() async {
@@ -82,6 +104,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
       final res = await PaymentService.listPaymentSlips(
         status: 'all',
         branchId: _currentBranchFilter(),
+        search: _search.isEmpty ? null : _search,
       );
       // แสดงเฉพาะวิธีโอนธนาคารเท่านั้น (PromptPay ถูกถอดออก)
       final filtered = res
@@ -91,26 +114,10 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
       final byInvoiceStatus = filtered
           .where((e) => (e['invoice_status'] ?? '').toString() == invStatus)
           .toList();
-      // โหลดบิลตามสถานะเพื่อให้แสดงแม้ยังไม่มีสลิป
-      final invList = await InvoiceService.getAllInvoices(
-        branchId: _currentBranchFilter(),
-        status: invStatus,
-        limit: 500,
-        orderBy: 'due_date',
-        ascending: true,
-      );
-      final slipInvIds = byInvoiceStatus
-          .map((e) => (e['invoice_id'] ?? '').toString())
-          .where((id) => id.isNotEmpty)
-          .toSet();
-      final invoicesNoSlip = invList
-          .where((inv) =>
-              !slipInvIds.contains((inv['invoice_id'] ?? '').toString()))
-          .toList();
 
       setState(() {
         _slips = byInvoiceStatus;
-        _invoices = invoicesNoSlip;
+        _invoices = const [];
         _loading = false;
       });
     } catch (e) {
@@ -346,6 +353,31 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
               ),
             ),
 
+            // Branch filter (for SuperAdmin/Admin)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _buildBranchFilter(),
+            ),
+
+            // Search box
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+              child: TextField(
+                controller: _searchCtrl,
+                decoration: InputDecoration(
+                  hintText: 'ค้นหา: เลขบิล / ชื่อผู้เช่า / เบอร์โทร / จำนวนเงิน',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  isDense: true,
+                ),
+              ),
+            ),
+
             // แท็บตัวกรองตามสถานะบิลจาก Database
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -388,8 +420,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
 
   // List builders (mobile/narrow)
   Widget _buildSlipListView() {
-    final totalCount = _slips.length + _invoices.length;
-    if (totalCount == 0) {
+    if (_slips.isEmpty) {
       return ListView(
         children: const [
           SizedBox(height: 120),
@@ -399,13 +430,9 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     }
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-      itemCount: totalCount,
+      itemCount: _slips.length,
       itemBuilder: (context, index) {
-        if (index < _slips.length) {
-          return _slipCard(_slips[index]);
-        }
-        final invIndex = index - _slips.length;
-        return _invoiceCard(_invoices[invIndex]);
+        return _slipCard(_slips[index]);
       },
     );
   }

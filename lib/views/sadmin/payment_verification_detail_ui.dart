@@ -435,8 +435,6 @@ class _PaymentVerificationDetailPageState
 
     // Amounts
     double rentalAmount = _asDouble(invFull['rental_amount']);
-    double utilitiesAmount = _asDouble(invFull['utilities_amount']);
-    double otherCharges = _asDouble(invFull['other_charges']);
     double discountAmount = _asDouble(invFull['discount_amount']);
     double lateFeeAmount = _asDouble(invFull['late_fee_amount']);
     final totalAmount = _asDouble(invFull['total_amount']);
@@ -940,23 +938,59 @@ class _PaymentVerificationDetailPageState
         (_slip?['invoice_status'] ?? inv['invoice_status'] ?? 'pending')
             .toString();
     final canAction = invoiceStatus != 'paid' && invoiceStatus != 'cancelled';
-    return Row(
+    String? bannerText;
+    if (!canAction) {
+      bannerText = invoiceStatus == 'paid'
+          ? 'บิลนี้ชำระแล้ว ไม่สามารถดำเนินการได้'
+          : 'บิลนี้ถูกยกเลิกแล้ว ไม่สามารถดำเนินการได้';
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: canAction ? _reject : null,
-            icon: const Icon(Icons.close, color: Colors.red),
-            label: const Text('ปฏิเสธ', style: TextStyle(color: Colors.red)),
+        if (bannerText != null)
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, color: Colors.grey),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    bannerText,
+                    style: const TextStyle(color: Colors.black87),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: canAction ? _approve : null,
-            icon: const Icon(Icons.check, color: Colors.white),
-            label: const Text('อนุมัติ', style: TextStyle(color: Colors.white)),
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: canAction ? _reject : null,
+                icon: const Icon(Icons.close, color: Colors.red),
+                label:
+                    const Text('ปฏิเสธ', style: TextStyle(color: Colors.red)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: canAction ? _approve : null,
+                icon: const Icon(Icons.check, color: Colors.white),
+                label: const Text('อนุมัติ',
+                    style: TextStyle(color: Colors.white)),
+                style:
+                    ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
+              ),
+            ),
+          ],
         ),
       ],
     );

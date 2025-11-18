@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:manager_room_project/middleware/auth_middleware.dart';
 import 'package:manager_room_project/services/invoice_service.dart';
+import 'package:manager_room_project/services/payment_service.dart';
 import 'package:manager_room_project/views/tenant/bill_detail_ui.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 
@@ -16,6 +17,7 @@ class _TenantBillListPageState extends State<TenantBillListPage>
   bool _loading = true;
   List<Map<String, dynamic>> _invoices = [];
   late TabController _tabController; // pending/partial/paid/overdue/cancelled
+  Set<String> _pendingInvoiceIds = <String>{};
 
   @override
   void initState() {
@@ -59,6 +61,7 @@ class _TenantBillListPageState extends State<TenantBillListPage>
       if (user == null || user.tenantId == null) {
         setState(() {
           _invoices = [];
+          _pendingInvoiceIds = <String>{};
           _loading = false;
         });
         return;
@@ -71,6 +74,20 @@ class _TenantBillListPageState extends State<TenantBillListPage>
         orderBy: 'due_date',
         ascending: true,
       );
+      // Mark invoices that have submitted slip but not yet verified (pending review)
+      try {
+        final ids = invList
+            .map((e) => (e['invoice_id'] ?? '').toString())
+            .where((id) => id.isNotEmpty)
+            .toList();
+        final pending = await PaymentService.getInvoicesWithPendingSlip(
+          invoiceIds: ids,
+          tenantId: user.tenantId,
+        );
+        _pendingInvoiceIds = pending;
+      } catch (_) {
+        _pendingInvoiceIds = <String>{};
+      }
       setState(() {
         _invoices = invList;
         _loading = false;
@@ -199,6 +216,9 @@ class _TenantBillListPageState extends State<TenantBillListPage>
     final roomNumber = (inv['room_number'] ?? '-').toString();
     final roomcate = (inv['roomcate_name'] ?? '-').toString();
     final invoiceNumber = (inv['invoice_number'] ?? '-').toString();
+    final bool isPendingReview = _pendingInvoiceIds.contains(invoiceId) &&
+        status != 'paid' &&
+        status != 'cancelled';
 
     Color statusColor;
     String statusLabel;
@@ -268,6 +288,25 @@ class _TenantBillListPageState extends State<TenantBillListPage>
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: statusColor)),
+                const SizedBox(width: 8),
+                if (isPendingReview)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFEDD5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFF59E0B)),
+                    ),
+                    child: const Text(
+                      'รอตรวจสอบ',
+                      style: TextStyle(
+                        color: Color(0xFFB45309),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 const Spacer(),
                 const Icon(Icons.chevron_right, color: Colors.black38),
               ],
