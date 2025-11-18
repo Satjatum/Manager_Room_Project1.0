@@ -62,51 +62,60 @@ class TenantBillDetailUi extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: FutureBuilder<Map<String, dynamic>?>(
-        future: _load(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _load(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Colors.white,
+            body: Center(
               child: CircularProgressIndicator(
                 color: AppTheme.primary,
                 strokeWidth: 3,
               ),
-            );
-          }
-          final data = snapshot.data;
-          if (data == null) {
-            return const Center(child: Text('ไม่พบบิล'));
-          }
+            ),
+          );
+        }
+        final data = snapshot.data;
+        if (data == null) {
+          return const Scaffold(
+            backgroundColor: Colors.white,
+            body: Center(child: Text('ไม่พบบิล')),
+          );
+        }
 
-          final status = (data['invoice_status'] ?? '').toString();
-          final latestSlip =
-              (data['latest_slip'] as Map<String, dynamic>?) ?? const {};
-          final slipStatus = (latestSlip['slip_status'] ?? '').toString();
-          final hasPendingSlip = slipStatus == 'pending';
-          final isRejectedSlip = slipStatus == 'rejected';
-          final rental = _asDouble(data['rental_amount']);
-          final utilities = _asDouble(data['utilities_amount']);
-          final others = _asDouble(data['other_charges']);
-          final discount = _asDouble(data['discount_amount']);
-          final lateFee = _asDouble(data['late_fee_amount']);
-          final subtotal = _asDouble(data['subtotal']);
-          final total = _asDouble(data['total_amount']);
-          final paid = _asDouble(data['paid_amount']);
-          final remain = (total - paid);
+        final status = (data['invoice_status'] ?? '').toString();
+        final latestSlip =
+            (data['latest_slip'] as Map<String, dynamic>?) ?? const {};
+        // สคีมาใหม่: ไม่มี slip_status แล้ว
+        final isRejectedSlip =
+            ((latestSlip['rejection_reason'] ?? '').toString()).isNotEmpty;
+        final hasPendingSlip = latestSlip.isNotEmpty &&
+            latestSlip['payment_id'] == null &&
+            !isRejectedSlip;
+        final rental = _asDouble(data['rental_amount']);
+        final utilities = _asDouble(data['utilities_amount']);
+        final others = _asDouble(data['other_charges']);
+        final discount = _asDouble(data['discount_amount']);
+        final lateFee = _asDouble(data['late_fee_amount']);
+        final subtotal = _asDouble(data['subtotal']);
+        final total = _asDouble(data['total_amount']);
+        final paid = _asDouble(data['paid_amount']);
+        final remain = (total - paid);
 
-          final utilLines =
-              (data['utilities'] as List?)?.cast<Map<String, dynamic>>() ??
-                  const [];
-          final otherLines = (data['other_charge_lines'] as List?)
-                  ?.cast<Map<String, dynamic>>() ??
-              const [];
-          final payments =
-              (data['payments'] as List?)?.cast<Map<String, dynamic>>() ??
-                  const [];
+        final utilLines =
+            (data['utilities'] as List?)?.cast<Map<String, dynamic>>() ??
+                const [];
+        final otherLines = (data['other_charge_lines'] as List?)
+                ?.cast<Map<String, dynamic>>() ??
+            const [];
+        final payments =
+            (data['payments'] as List?)?.cast<Map<String, dynamic>>() ??
+                const [];
 
-          return SafeArea(
+        return Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
               children: [
@@ -221,7 +230,8 @@ class TenantBillDetailUi extends StatelessWidget {
                     ),
                     child: const Text(
                       'สลิปล่าสุดถูกปฏิเสธ กรุณาอัปโหลดใหม่',
-                      style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          color: Colors.red, fontWeight: FontWeight.w600),
                     ),
                   ),
 
@@ -339,48 +349,60 @@ class TenantBillDetailUi extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    if (status != 'paid' && !hasPendingSlip)
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => TenantPayBillUi(
-                                  invoiceId: invoiceId,
-                                ),
-                              ),
-                            );
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                            }
-                          },
-                          child: const Text('ชำระเงิน/อัปโหลดสลิป'),
-                        ),
-                      ),
-                    if (status == 'paid')
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('ดาวน์โหลดสลิป: ยังไม่รองรับ')),
-                            );
-                          },
-                          child: const Text('ดาวน์โหลดสลิป'),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 80),
               ],
             ),
-          );
-        },
-      ),
+          ),
+          bottomNavigationBar: (status != 'paid' && !hasPendingSlip)
+              ? SafeArea(
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 8,
+                          offset: const Offset(0, -2),
+                        )
+                      ],
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF22C55E),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TenantPayBillUi(
+                                invoiceId: invoiceId,
+                              ),
+                            ),
+                          );
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                          }
+                        },
+                        child: const Text(
+                          'ชำระเงิน/อัปโหลดสลิป',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              : null,
+        );
+      },
     );
   }
 
@@ -435,7 +457,8 @@ class _StatusChip extends StatelessWidget {
   final String status;
   final String? overrideLabel;
   final Color? overrideColor;
-  const _StatusChip({required this.status, this.overrideLabel, this.overrideColor});
+  const _StatusChip(
+      {required this.status, this.overrideLabel, this.overrideColor});
 
   Color _color() {
     if (overrideColor != null) return overrideColor!;
