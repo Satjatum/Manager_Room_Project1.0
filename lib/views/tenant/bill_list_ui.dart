@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿﻿import 'package:flutter/material.dart';
 import 'package:manager_room_project/middleware/auth_middleware.dart';
 import 'package:manager_room_project/services/invoice_service.dart';
 import 'package:manager_room_project/services/payment_service.dart';
@@ -41,7 +41,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
         ascending: false,
       );
 
-      // à¸•à¸´à¸”à¸˜à¸‡à¸§à¹ˆà¸²à¸šà¸´à¸¥à¹ƒà¸”à¸¡à¸µà¸ªà¸¥à¸´à¸›à¸£à¸­à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¸­à¸¢à¸¹à¹ˆ
+      // Ã Â¸â€¢Ã Â¸Â´Ã Â¸â€Ã Â¸ËœÃ Â¸â€¡Ã Â¸Â§Ã Â¹Ë†Ã Â¸Â²Ã Â¸Å¡Ã Â¸Â´Ã Â¸Â¥Ã Â¹Æ’Ã Â¸â€Ã Â¸Â¡Ã Â¸ÂµÃ Â¸ÂªÃ Â¸Â¥Ã Â¸Â´Ã Â¸â€ºÃ Â¸Â£Ã Â¸Â­Ã Â¸â€¢Ã Â¸Â£Ã Â¸Â§Ã Â¸Ë†Ã Â¸ÂªÃ Â¸Â­Ã Â¸Å¡Ã Â¸Â­Ã Â¸Â¢Ã Â¸Â¹Ã Â¹Ë†
       final invoiceIds = bills
           .map((b) => (b['invoice_id'] ?? '').toString())
           .where((id) => id.isNotEmpty)
@@ -60,7 +60,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('à¹‚à¸«à¸¥à¸”à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ: $e')),
+          SnackBar(content: Text('โหลดข้อมูลไม่สำเร็จ: $e')),
         );
       }
       return [];
@@ -70,20 +70,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
   }
 
   String _getMonthName(int month) {
-    const monthNames = [
-      'à¸¡à¸à¸£à¸²à¸„à¸¡',
-      'à¸à¸¸à¸¡à¸ à¸²à¸žà¸±à¸™à¸˜à¹Œ',
-      'à¸¡à¸µà¸™à¸²à¸„à¸¡',
-      'à¹€à¸¡à¸©à¸²à¸¢à¸™',
-      'à¸žà¸¤à¸©à¸ à¸²à¸„à¸¡',
-      'à¸¡à¸´à¸–à¸¸à¸™à¸²à¸¢à¸™',
-      'à¸à¸£à¸à¸Žà¸²à¸„à¸¡',
-      'à¸ªà¸´à¸‡à¸«à¸²à¸„à¸¡',
-      'à¸à¸±à¸™à¸¢à¸²à¸¢à¸™',
-      'à¸•à¸¸à¸¥à¸²à¸„à¸¡',
-      'à¸žà¸¤à¸¨à¸ˆà¸´à¸à¸²à¸¢à¸™',
-      'à¸˜à¸±à¸™à¸§à¸²à¸„à¸¡'
-    ];
+    const monthNames = [\r\n      'มกราคม',\r\n      'กุมภาพันธ์',\r\n      'มีนาคม',\r\n      'เมษายน',\r\n      'พฤษภาคม',\r\n      'มิถุนายน',\r\n      'กรกฎาคม',\r\n      'สิงหาคม',\r\n      'กันยายน',\r\n      'ตุลาคม',\r\n      'พฤศจิกายน',\r\n      'ธันวาคม'\r\n    ];
     return monthNames[(month.clamp(1, 12)) - 1];
   }
 
@@ -118,7 +105,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                         Navigator.of(context).pop();
                       }
                     },
-                    tooltip: 'à¸¢à¹‰à¸­à¸™à¸à¸¥à¸±à¸š',
+                    tooltip: 'ย้อนกลับ',
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -126,7 +113,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
                         Text(
-                          'à¸£à¸²à¸¢à¸à¸²à¸£à¸šà¸´à¸¥à¸„à¹ˆà¸²à¹€à¸Šà¹ˆà¸²',
+                          'Ã Â¸Â£Ã Â¸Â²Ã Â¸Â¢Ã Â¸ÂÃ Â¸Â²Ã Â¸Â£Ã Â¸Å¡Ã Â¸Â´Ã Â¸Â¥Ã Â¸â€žÃ Â¹Ë†Ã Â¸Â²Ã Â¹â‚¬Ã Â¸Å Ã Â¹Ë†Ã Â¸Â²',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -135,7 +122,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¹à¸¥à¸°à¸ˆà¸±à¸”à¸à¸²à¸£à¸šà¸´à¸¥à¸„à¹ˆà¸²à¹€à¸Šà¹ˆà¸²à¸‚à¸­à¸‡à¸„à¸¸à¸“',
+                          'Ã Â¸â€¢Ã Â¸Â£Ã Â¸Â§Ã Â¸Ë†Ã Â¸ÂªÃ Â¸Â­Ã Â¸Å¡Ã Â¹ÂÃ Â¸Â¥Ã Â¸Â°Ã Â¸Ë†Ã Â¸Â±Ã Â¸â€Ã Â¸ÂÃ Â¸Â²Ã Â¸Â£Ã Â¸Å¡Ã Â¸Â´Ã Â¸Â¥Ã Â¸â€žÃ Â¹Ë†Ã Â¸Â²Ã Â¹â‚¬Ã Â¸Å Ã Â¹Ë†Ã Â¸Â²Ã Â¸â€šÃ Â¸Â­Ã Â¸â€¡Ã Â¸â€žÃ Â¸Â¸Ã Â¸â€œ',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.black54,
@@ -155,7 +142,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                 children: [
                   Row(
                     children: [
-                      // à¹€à¸”à¸·à¸­à¸™
+                      // Ã Â¹â‚¬Ã Â¸â€Ã Â¸Â·Ã Â¸Â­Ã Â¸â„¢
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -197,7 +184,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // à¸›à¸µ (à¸ž.à¸¨.)
+                      // Ã Â¸â€ºÃ Â¸Âµ (Ã Â¸Å¾.Ã Â¸Â¨.)
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -264,21 +251,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                                   size: 20),
                               style: const TextStyle(
                                   fontSize: 14, color: Colors.black87),
-                              items: const [
-                                DropdownMenuItem(
-                                    value: 'all', child: Text('à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”')),
-                                DropdownMenuItem(
-                                    value: 'pending', child: Text('à¸„à¹‰à¸²à¸‡à¸Šà¸³à¸£à¸°')),
-                                DropdownMenuItem(
-                                    value: 'partial',
-                                    child: Text('à¸Šà¸³à¸£à¸°à¸šà¸²à¸‡à¸ªà¹ˆà¸§à¸™')),
-                                DropdownMenuItem(
-                                    value: 'paid', child: Text('à¸Šà¸³à¸£à¸°à¹à¸¥à¹‰à¸§')),
-                                DropdownMenuItem(
-                                    value: 'overdue', child: Text('à¹€à¸à¸´à¸™à¸à¸³à¸«à¸™à¸”')),
-                                DropdownMenuItem(
-                                    value: 'cancelled', child: Text('à¸¢à¸à¹€à¸¥à¸´à¸')),
-                              ],
+                              items: const [\r\n                                DropdownMenuItem(\r\n                                    value: 'all', child: Text('ทั้งหมด')),\r\n                                DropdownMenuItem(\r\n                                    value: 'pending', child: Text('ค้างชำระ')),\r\n                                DropdownMenuItem(\r\n                                    value: 'partial', child: Text('ชำระบางส่วน')),\r\n                                DropdownMenuItem(\r\n                                    value: 'paid', child: Text('ชำระแล้ว')),\r\n                                DropdownMenuItem(\r\n                                    value: 'overdue', child: Text('เกินกำหนด')),\r\n                                DropdownMenuItem(\r\n                                    value: 'cancelled', child: Text('ยกเลิก')),\r\n                              ],
                               onChanged: (val) {
                                 setState(() {
                                   _status = val ?? _status;
@@ -360,7 +333,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'à¹„à¸¡à¹ˆà¸žà¸šà¸£à¸²à¸¢à¸à¸²à¸£à¸šà¸´à¸¥',
+              'Ã Â¹â€žÃ Â¸Â¡Ã Â¹Ë†Ã Â¸Å¾Ã Â¸Å¡Ã Â¸Â£Ã Â¸Â²Ã Â¸Â¢Ã Â¸ÂÃ Â¸Â²Ã Â¸Â£Ã Â¸Å¡Ã Â¸Â´Ã Â¸Â¥',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -369,7 +342,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'à¹„à¸¡à¹ˆà¸¡à¸µà¸šà¸´à¸¥à¸ªà¸³à¸«à¸£à¸±à¸š ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
+              'Ã Â¹â€žÃ Â¸Â¡Ã Â¹Ë†Ã Â¸Â¡Ã Â¸ÂµÃ Â¸Å¡Ã Â¸Â´Ã Â¸Â¥Ã Â¸ÂªÃ Â¸Â³Ã Â¸Â«Ã Â¸Â£Ã Â¸Â±Ã Â¸Å¡ ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[500],
@@ -397,45 +370,31 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
     switch (status) {
       case 'paid':
         statusColor = const Color(0xFF22C55E);
-        statusLabel = 'à¸Šà¸³à¸£à¸°à¹à¸¥à¹‰à¸§';
+        statusLabel = 'ชำระแล้ว';
         break;
       case 'overdue':
         statusColor = const Color(0xFFEF4444);
-        statusLabel = 'à¹€à¸à¸´à¸™à¸à¸³à¸«à¸™à¸”';
+        statusLabel = 'เกินกำหนด';
         break;
       case 'partial':
         statusColor = const Color(0xFFF59E0B);
-        statusLabel = 'à¸Šà¸³à¸£à¸°à¸šà¸²à¸‡à¸ªà¹ˆà¸§à¸™';
+        statusLabel = 'ชำระบางส่วน';
         break;
       case 'cancelled':
         statusColor = Colors.grey;
-        statusLabel = 'à¸¢à¸à¹€à¸¥à¸´à¸';
+        statusLabel = 'ยกเลิก';
         break;
       case 'pending':
       default:
         statusColor = const Color(0xFF3B82F6);
-        statusLabel = 'à¸„à¹‰à¸²à¸‡à¸Šà¸³à¸£à¸°';
+        statusLabel = 'ค้างชำระ';
     }
 
     String _formatThaiDate(String iso) {
       if (iso.isEmpty) return '-';
       DateTime? dt = DateTime.tryParse(iso);
       dt ??= DateTime.now();
-      const thMonths = [
-        '',
-        'à¸¡.à¸„.',
-        'à¸.à¸ž.',
-        'à¸¡à¸µ.à¸„.',
-        'à¹€à¸¡.à¸¢.',
-        'à¸ž.à¸„.',
-        'à¸¡à¸´.à¸¢.',
-        'à¸.à¸„.',
-        'à¸ª.à¸„.',
-        'à¸.à¸¢.',
-        'à¸•.à¸„.',
-        'à¸ž.à¸¢.',
-        'à¸˜.à¸„.'
-      ];
+      const thMonths = [\r\n        '',\r\n        'ม.ค.',\r\n        'ก.พ.',\r\n        'มี.ค.',\r\n        'เม.ย.',\r\n        'พ.ค.',\r\n        'มิ.ย.',\r\n        'ก.ค.',\r\n        'ส.ค.',\r\n        'ก.ย.',\r\n        'ต.ค.',\r\n        'พ.ย.',\r\n        'ธ.ค.'\r\n      ];
       final y = dt.year + 543;
       final m = thMonths[dt.month];
       final d = dt.day.toString();
@@ -507,9 +466,9 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
 
             const SizedBox(height: 8),
 
-            // Title: tenant - roomcate à¹€à¸¥à¸‚à¸—à¸µà¹ˆà¸«à¹‰à¸­à¸‡
+            // Title: tenant - roomcate Ã Â¹â‚¬Ã Â¸Â¥Ã Â¸â€šÃ Â¸â€”Ã Â¸ÂµÃ Â¹Ë†Ã Â¸Â«Ã Â¹â€°Ã Â¸Â­Ã Â¸â€¡
             Text(
-              '$tenantName - $roomcate à¹€à¸¥à¸‚à¸—à¸µà¹ˆ $roomNumber',
+              '$tenantName - $roomcate Ã Â¹â‚¬Ã Â¸Â¥Ã Â¸â€šÃ Â¸â€”Ã Â¸ÂµÃ Â¹Ë† $roomNumber',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -520,9 +479,9 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
             ),
 
             const SizedBox(height: 4),
-            // Sub: Bill #... â€¢ due date (à¸ž.à¸¨.)
+            // Sub: Bill #... Ã¢â‚¬Â¢ due date (Ã Â¸Å¾.Ã Â¸Â¨.)
             Text(
-              'Bill #$number â€¢ ${_formatThaiDate(due)}',
+              'Bill #$number Ã¢â‚¬Â¢ ${_formatThaiDate(due)}',
               style: TextStyle(fontSize: 12, color: Colors.grey[700]),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -531,11 +490,11 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
             const SizedBox(height: 10),
             Row(
               children: [
-                const Text('à¸¢à¸­à¸”à¸£à¸§à¸¡',
+                const Text('ยอดรวม',
                     style: TextStyle(fontSize: 12, color: Colors.black54)),
                 const Spacer(),
                 Text(
-                  '${_formatMoney(total)} à¸šà¸²à¸—',
+                  '${_formatMoney(total)} บาท',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -580,15 +539,15 @@ class _StatusChip extends StatelessWidget {
     }
     switch (status) {
       case 'paid':
-        return 'à¸Šà¸³à¸£à¸°à¹à¸¥à¹‰à¸§';
+        return 'Ã Â¸Å Ã Â¸Â³Ã Â¸Â£Ã Â¸Â°Ã Â¹ÂÃ Â¸Â¥Ã Â¹â€°Ã Â¸Â§';
       case 'partial':
-        return 'à¸Šà¸³à¸£à¸°à¸šà¸²à¸‡à¸ªà¹ˆà¸§à¸™';
+        return 'Ã Â¸Å Ã Â¸Â³Ã Â¸Â£Ã Â¸Â°Ã Â¸Å¡Ã Â¸Â²Ã Â¸â€¡Ã Â¸ÂªÃ Â¹Ë†Ã Â¸Â§Ã Â¸â„¢';
       case 'overdue':
-        return 'à¹€à¸à¸´à¸™à¸à¸³à¸«à¸™à¸”';
+        return 'Ã Â¹â‚¬Ã Â¸ÂÃ Â¸Â´Ã Â¸â„¢Ã Â¸ÂÃ Â¸Â³Ã Â¸Â«Ã Â¸â„¢Ã Â¸â€';
       case 'cancelled':
-        return 'à¸¢à¸à¹€à¸¥à¸´à¸';
+        return 'Ã Â¸Â¢Ã Â¸ÂÃ Â¹â‚¬Ã Â¸Â¥Ã Â¸Â´Ã Â¸Â';
       case 'pending':
-        return 'à¸„à¹‰à¸²à¸‡à¸Šà¸³à¸£à¸°';
+        return 'Ã Â¸â€žÃ Â¹â€°Ã Â¸Â²Ã Â¸â€¡Ã Â¸Å Ã Â¸Â³Ã Â¸Â£Ã Â¸Â°';
       default:
         return status;
     }
