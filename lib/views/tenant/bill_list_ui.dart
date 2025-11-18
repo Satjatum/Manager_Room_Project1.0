@@ -13,6 +13,7 @@ class TenantBillsListPage extends StatefulWidget {
 }
 
 class _TenantBillsListPageState extends State<TenantBillsListPage> {
+  Future<List<Map<String, dynamic>>>? _billsFuture;
   String _status = 'all';
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
@@ -40,7 +41,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
         ascending: false,
       );
 
-      // ติดธงว่าบิลใดมีสลิปรอตรวจสอบอยู่
+      // à¸•à¸´à¸”à¸˜à¸‡à¸§à¹ˆà¸²à¸šà¸´à¸¥à¹ƒà¸”à¸¡à¸µà¸ªà¸¥à¸´à¸›à¸£à¸­à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¸­à¸¢à¸¹à¹ˆ
       final invoiceIds = bills
           .map((b) => (b['invoice_id'] ?? '').toString())
           .where((id) => id.isNotEmpty)
@@ -59,7 +60,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('โหลดข้อมูลไม่สำเร็จ: $e')),
+          SnackBar(content: Text('à¹‚à¸«à¸¥à¸”à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¹„à¸¡à¹ˆà¸ªà¸³à¹€à¸£à¹‡à¸ˆ: $e')),
         );
       }
       return [];
@@ -70,18 +71,18 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
 
   String _getMonthName(int month) {
     const monthNames = [
-      'มกราคม',
-      'กุมภาพันธ์',
-      'มีนาคม',
-      'เมษายน',
-      'พฤษภาคม',
-      'มิถุนายน',
-      'กรกฎาคม',
-      'สิงหาคม',
-      'กันยายน',
-      'ตุลาคม',
-      'พฤศจิกายน',
-      'ธันวาคม'
+      'à¸¡à¸à¸£à¸²à¸„à¸¡',
+      'à¸à¸¸à¸¡à¸ à¸²à¸žà¸±à¸™à¸˜à¹Œ',
+      'à¸¡à¸µà¸™à¸²à¸„à¸¡',
+      'à¹€à¸¡à¸©à¸²à¸¢à¸™',
+      'à¸žà¸¤à¸©à¸ à¸²à¸„à¸¡',
+      'à¸¡à¸´à¸–à¸¸à¸™à¸²à¸¢à¸™',
+      'à¸à¸£à¸à¸Žà¸²à¸„à¸¡',
+      'à¸ªà¸´à¸‡à¸«à¸²à¸„à¸¡',
+      'à¸à¸±à¸™à¸¢à¸²à¸¢à¸™',
+      'à¸•à¸¸à¸¥à¸²à¸„à¸¡',
+      'à¸žà¸¤à¸¨à¸ˆà¸´à¸à¸²à¸¢à¸™',
+      'à¸˜à¸±à¸™à¸§à¸²à¸„à¸¡'
     ];
     return monthNames[(month.clamp(1, 12)) - 1];
   }
@@ -94,7 +95,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
   @override
   void initState() {
     super.initState();
-    _loadBills();
+    _billsFuture = _loadBills();
   }
 
   @override
@@ -117,7 +118,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                         Navigator.of(context).pop();
                       }
                     },
-                    tooltip: 'ย้อนกลับ',
+                    tooltip: 'à¸¢à¹‰à¸­à¸™à¸à¸¥à¸±à¸š',
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -125,7 +126,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
                         Text(
-                          'รายการบิลค่าเช่า',
+                          'à¸£à¸²à¸¢à¸à¸²à¸£à¸šà¸´à¸¥à¸„à¹ˆà¸²à¹€à¸Šà¹ˆà¸²',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -134,7 +135,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'ตรวจสอบและจัดการบิลค่าเช่าของคุณ',
+                          'à¸•à¸£à¸§à¸ˆà¸ªà¸­à¸šà¹à¸¥à¸°à¸ˆà¸±à¸”à¸à¸²à¸£à¸šà¸´à¸¥à¸„à¹ˆà¸²à¹€à¸Šà¹ˆà¸²à¸‚à¸­à¸‡à¸„à¸¸à¸“',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.black54,
@@ -154,7 +155,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                 children: [
                   Row(
                     children: [
-                      // เดือน
+                      // à¹€à¸”à¸·à¸­à¸™
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -195,7 +196,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // ปี (พ.ศ.)
+                      // à¸›à¸µ (à¸ž.à¸¨.)
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -263,18 +264,18 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                                   fontSize: 14, color: Colors.black87),
                               items: const [
                                 DropdownMenuItem(
-                                    value: 'all', child: Text('ทั้งหมด')),
+                                    value: 'all', child: Text('à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”')),
                                 DropdownMenuItem(
-                                    value: 'pending', child: Text('ค้างชำระ')),
+                                    value: 'pending', child: Text('à¸„à¹‰à¸²à¸‡à¸Šà¸³à¸£à¸°')),
                                 DropdownMenuItem(
                                     value: 'partial',
-                                    child: Text('ชำระบางส่วน')),
+                                    child: Text('à¸Šà¸³à¸£à¸°à¸šà¸²à¸‡à¸ªà¹ˆà¸§à¸™')),
                                 DropdownMenuItem(
-                                    value: 'paid', child: Text('ชำระแล้ว')),
+                                    value: 'paid', child: Text('à¸Šà¸³à¸£à¸°à¹à¸¥à¹‰à¸§')),
                                 DropdownMenuItem(
-                                    value: 'overdue', child: Text('เกินกำหนด')),
+                                    value: 'overdue', child: Text('à¹€à¸à¸´à¸™à¸à¸³à¸«à¸™à¸”')),
                                 DropdownMenuItem(
-                                    value: 'cancelled', child: Text('ยกเลิก')),
+                                    value: 'cancelled', child: Text('à¸¢à¸à¹€à¸¥à¸´à¸')),
                               ],
                               onChanged: (val) async {
                                 setState(() => _status = val ?? _status);
@@ -306,7 +307,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
                           }
 
                           return RefreshIndicator(
-                            onRefresh: _loadBills,
+                            onRefresh: () { setState(() { _billsFuture = _loadBills(); }); return _billsFuture!; },
                             color: AppTheme.primary,
                             child: ListView.builder(
                               itemCount: items.length,
@@ -350,7 +351,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'ไม่พบรายการบิล',
+              'à¹„à¸¡à¹ˆà¸žà¸šà¸£à¸²à¸¢à¸à¸²à¸£à¸šà¸´à¸¥',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -359,7 +360,7 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'ไม่มีบิลสำหรับ ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
+              'à¹„à¸¡à¹ˆà¸¡à¸µà¸šà¸´à¸¥à¸ªà¸³à¸«à¸£à¸±à¸š ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[500],
@@ -387,24 +388,24 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
     switch (status) {
       case 'paid':
         statusColor = const Color(0xFF22C55E);
-        statusLabel = 'ชำระแล้ว';
+        statusLabel = 'à¸Šà¸³à¸£à¸°à¹à¸¥à¹‰à¸§';
         break;
       case 'overdue':
         statusColor = const Color(0xFFEF4444);
-        statusLabel = 'เกินกำหนด';
+        statusLabel = 'à¹€à¸à¸´à¸™à¸à¸³à¸«à¸™à¸”';
         break;
       case 'partial':
         statusColor = const Color(0xFFF59E0B);
-        statusLabel = 'ชำระบางส่วน';
+        statusLabel = 'à¸Šà¸³à¸£à¸°à¸šà¸²à¸‡à¸ªà¹ˆà¸§à¸™';
         break;
       case 'cancelled':
         statusColor = Colors.grey;
-        statusLabel = 'ยกเลิก';
+        statusLabel = 'à¸¢à¸à¹€à¸¥à¸´à¸';
         break;
       case 'pending':
       default:
         statusColor = const Color(0xFF3B82F6);
-        statusLabel = 'ค้างชำระ';
+        statusLabel = 'à¸„à¹‰à¸²à¸‡à¸Šà¸³à¸£à¸°';
     }
 
     String _formatThaiDate(String iso) {
@@ -413,18 +414,18 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
       dt ??= DateTime.now();
       const thMonths = [
         '',
-        'ม.ค.',
-        'ก.พ.',
-        'มี.ค.',
-        'เม.ย.',
-        'พ.ค.',
-        'มิ.ย.',
-        'ก.ค.',
-        'ส.ค.',
-        'ก.ย.',
-        'ต.ค.',
-        'พ.ย.',
-        'ธ.ค.'
+        'à¸¡.à¸„.',
+        'à¸.à¸ž.',
+        'à¸¡à¸µ.à¸„.',
+        'à¹€à¸¡.à¸¢.',
+        'à¸ž.à¸„.',
+        'à¸¡à¸´.à¸¢.',
+        'à¸.à¸„.',
+        'à¸ª.à¸„.',
+        'à¸.à¸¢.',
+        'à¸•.à¸„.',
+        'à¸ž.à¸¢.',
+        'à¸˜.à¸„.'
       ];
       final y = dt.year + 543;
       final m = thMonths[dt.month];
@@ -497,9 +498,9 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
 
             const SizedBox(height: 8),
 
-            // Title: tenant - roomcate เลขที่ห้อง
+            // Title: tenant - roomcate à¹€à¸¥à¸‚à¸—à¸µà¹ˆà¸«à¹‰à¸­à¸‡
             Text(
-              '$tenantName - $roomcate เลขที่ $roomNumber',
+              '$tenantName - $roomcate à¹€à¸¥à¸‚à¸—à¸µà¹ˆ $roomNumber',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -510,9 +511,9 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
             ),
 
             const SizedBox(height: 4),
-            // Sub: Bill #... • due date (พ.ศ.)
+            // Sub: Bill #... â€¢ due date (à¸ž.à¸¨.)
             Text(
-              'Bill #$number • ${_formatThaiDate(due)}',
+              'Bill #$number â€¢ ${_formatThaiDate(due)}',
               style: TextStyle(fontSize: 12, color: Colors.grey[700]),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -521,11 +522,11 @@ class _TenantBillsListPageState extends State<TenantBillsListPage> {
             const SizedBox(height: 10),
             Row(
               children: [
-                const Text('ยอดรวม',
+                const Text('à¸¢à¸­à¸”à¸£à¸§à¸¡',
                     style: TextStyle(fontSize: 12, color: Colors.black54)),
                 const Spacer(),
                 Text(
-                  '${_formatMoney(total)} บาท',
+                  '${_formatMoney(total)} à¸šà¸²à¸—',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -570,15 +571,15 @@ class _StatusChip extends StatelessWidget {
     }
     switch (status) {
       case 'paid':
-        return 'ชำระแล้ว';
+        return 'à¸Šà¸³à¸£à¸°à¹à¸¥à¹‰à¸§';
       case 'partial':
-        return 'ชำระบางส่วน';
+        return 'à¸Šà¸³à¸£à¸°à¸šà¸²à¸‡à¸ªà¹ˆà¸§à¸™';
       case 'overdue':
-        return 'เกินกำหนด';
+        return 'à¹€à¸à¸´à¸™à¸à¸³à¸«à¸™à¸”';
       case 'cancelled':
-        return 'ยกเลิก';
+        return 'à¸¢à¸à¹€à¸¥à¸´à¸';
       case 'pending':
-        return 'ค้างชำระ';
+        return 'à¸„à¹‰à¸²à¸‡à¸Šà¸³à¸£à¸°';
       default:
         return status;
     }
