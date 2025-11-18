@@ -206,7 +206,7 @@ class PaymentService {
 
   // List payment slips for admin review (no DB joins to avoid schema-cache relationship issues)
   static Future<List<Map<String, dynamic>>> listPaymentSlips({
-    String status = 'all',
+    String status = 'all', // slip filter: all | pending | rejected | verified
     String? branchId,
     DateTime? startDate,
     DateTime? endDate,
@@ -288,7 +288,29 @@ class PaymentService {
 
       var query = _supabase.from('payment_slips').select('*');
 
-      // status filter removed (slip_status dropped); rely on invoice_status in enrichment
+      // slip status filter (based on columns instead of slip_status)
+      switch (status) {
+        case 'pending':
+          // waiting for admin: not linked to payment and not rejected
+          query = query
+              .isFilter('payment_id', null)
+              .isFilter('rejection_reason', null);
+          break;
+        case 'rejected':
+          // explicitly rejected
+          query = query.not('rejection_reason', 'is', null);
+          break;
+        case 'verified':
+          // linked to a payment
+          query = query.not('payment_id', 'is', null);
+          break;
+        case 'all':
+        default:
+          // no extra filter
+          break;
+      }
+
+      // additional relational filters
       if (invoiceIdFilter != null) {
         query = query.inFilter('invoice_id', invoiceIdFilter);
       }
@@ -904,8 +926,10 @@ class PaymentService {
         q = q.inFilter('invoice_id', invoiceIds);
       }
 
-      // ถือเป็น "รอตรวจสอบ" หากยังไม่มีการผูกกับ payment
-      q = q.isFilter('payment_id', null);
+      // ถือเป็น "รอตรวจสอบ" เฉพาะสลิปที่ยังไม่ถูกผูกกับ payment และยังไม่ถูกปฏิเสธ
+      q = q
+          .isFilter('payment_id', null)
+          .isFilter('rejection_reason', null);
 
       final rows = await q;
       final list = List<Map<String, dynamic>>.from(rows);

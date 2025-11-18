@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:manager_room_project/services/payment_service.dart';
 import 'package:manager_room_project/services/invoice_service.dart';
@@ -7,7 +8,7 @@ import 'package:manager_room_project/models/user_models.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/views/sadmin/payment_verification_detail_ui.dart';
 import 'package:manager_room_project/services/receipt_print_service.dart';
-import 'package:manager_room_project/views/tenant/bill_detail_ui.dart';
+// import removed: tenant bill detail is not used from this page
 
 class PaymentVerificationPage extends StatefulWidget {
   final String? branchId;
@@ -28,6 +29,10 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   UserModel? _currentUser;
   List<Map<String, dynamic>> _branches = [];
   String? _selectedBranchId; // null = all (for superadmin)
+  final TextEditingController _searchCtrl = TextEditingController();
+  Timer? _debounce;
+  String _search = '';
+  String _slipFilter = 'all'; // all | pending | rejected | verified
 
   @override
   void initState() {
@@ -38,7 +43,25 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
       if (_tabController.indexIsChanging) return;
       _load();
     });
+    _searchCtrl.addListener(() {
+      final val = _searchCtrl.text.trim();
+      _debounce?.cancel();
+      _debounce = Timer(const Duration(milliseconds: 300), () {
+        if (_search != val) {
+          setState(() => _search = val);
+          _load();
+        }
+      });
+    });
     _initialize();
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchCtrl.dispose();
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _initialize() async {
@@ -79,9 +102,11 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     try {
       // โหลดสลิปทั้งหมด แล้วค่อยกรองตามสถานะบิล (pending/partial/paid/overdue/cancelled)
       final invStatus = _invoiceTabStatus();
+      // ดึง "ทั้งหมด" มาก่อน เพื่อให้สามารถ dedupe ตาม invoice และคัดล่าสุดได้
       final res = await PaymentService.listPaymentSlips(
         status: 'all',
         branchId: _currentBranchFilter(),
+        search: _search.isEmpty ? null : _search,
       );
       // แสดงเฉพาะวิธีโอนธนาคารเท่านั้น (PromptPay ถูกถอดออก)
       final filtered = res
@@ -91,26 +116,30 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
       final byInvoiceStatus = filtered
           .where((e) => (e['invoice_status'] ?? '').toString() == invStatus)
           .toList();
-      // โหลดบิลตามสถานะเพื่อให้แสดงแม้ยังไม่มีสลิป
-      final invList = await InvoiceService.getAllInvoices(
-        branchId: _currentBranchFilter(),
-        status: invStatus,
-        limit: 500,
-        orderBy: 'due_date',
-        ascending: true,
-      );
-      final slipInvIds = byInvoiceStatus
-          .map((e) => (e['invoice_id'] ?? '').toString())
-          .where((id) => id.isNotEmpty)
-          .toSet();
-      final invoicesNoSlip = invList
-          .where((inv) =>
-              !slipInvIds.contains((inv['invoice_id'] ?? '').toString()))
-          .toList();
+
+      // จัดระเบียบ: แสดงสลิปล่าสุดต่อใบแจ้งหนี้เพียง 1 รายการ
+      // และทำเครื่องหมายถ้าเคยมีสลิปถูกปฏิเสธก่อนหน้า (เพื่อไม่ให้ดูซับซ้อน)
+      List<Map<String, dynamic>> deduped = _latestPerInvoice(byInvoiceStatus);
+
+      // นำตัวกรองสลิป (all/pending/rejected) มาวางหลัง dedupe
+      if (_slipFilter == 'pending') {
+        deduped = deduped
+            .where((s) =>
+                (s['payment_id'] == null || s['payment_id'].toString().isEmpty) &&
+                ((s['rejection_reason'] == null) ||
+                    s['rejection_reason'].toString().isEmpty))
+            .toList();
+      } else if (_slipFilter == 'rejected') {
+        // แสดงเฉพาะใบแจ้งหนี้ที่ "สลิปล่าสุด" เป็นสถานะถูกปฏิเสธ
+        deduped = deduped
+            .where((s) => (s['rejection_reason'] != null &&
+                s['rejection_reason'].toString().isNotEmpty))
+            .toList();
+      }
 
       setState(() {
-        _slips = byInvoiceStatus;
-        _invoices = invoicesNoSlip;
+        _slips = deduped;
+        _invoices = const [];
         _loading = false;
       });
     } catch (e) {
@@ -121,6 +150,45 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
         );
       }
     }
+  }
+
+  // คืนสลิปล่าสุดต่อ invoice_id เพียง 1 รายการ พร้อมระบุว่าเคยมีสลิปถูกปฏิเสธก่อนหน้าหรือไม่
+  List<Map<String, dynamic>> _latestPerInvoice(
+      List<Map<String, dynamic>> list) {
+    // จัดเรียงล่าสุดมาก่อน (อิง created_at)
+    int _cmpDesc(Map a, Map b) {
+      DateTime _parse(dynamic v) {
+        final s = (v ?? '').toString();
+        return DateTime.tryParse(s) ?? DateTime.fromMillisecondsSinceEpoch(0);
+      }
+      final da = _parse(a['created_at'] ?? a['payment_date']);
+      final db = _parse(b['created_at'] ?? b['payment_date']);
+      return db.compareTo(da); // desc
+    }
+
+    final sorted = [...list]..sort(_cmpDesc);
+    final Map<String, Map<String, dynamic>> latest = {};
+    final Map<String, bool> priorRejected = {};
+
+    for (final s in sorted) {
+      final invId = (s['invoice_id'] ?? '').toString();
+      if (invId.isEmpty) continue;
+      if (!latest.containsKey(invId)) {
+        latest[invId] = Map<String, dynamic>.from(s);
+      } else {
+        // พบสลิปเดิมของ invoice เดียวกัน — ถ้าอันเก่ามี rejection ให้ทำเครื่องหมาย
+        final rej = (s['rejection_reason'] ?? '').toString();
+        if (rej.isNotEmpty) priorRejected[invId] = true;
+      }
+    }
+
+    return latest.entries.map((e) {
+      final row = Map<String, dynamic>.from(e.value);
+      if (priorRejected[e.key] == true) {
+        row['has_prior_rejected'] = true;
+      }
+      return row;
+    }).toList();
   }
 
   String? _currentBranchFilter() {
@@ -346,6 +414,43 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
               ),
             ),
 
+            // Branch filter (for SuperAdmin/Admin)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _buildBranchFilter(),
+            ),
+
+            // Search box
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+              child: TextField(
+                controller: _searchCtrl,
+                decoration: InputDecoration(
+                  hintText: 'ค้นหา: เลขบิล / ชื่อผู้เช่า / เบอร์โทร / จำนวนเงิน',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  isDense: true,
+                ),
+              ),
+            ),
+            // Slip status filter chips
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+              child: Wrap(
+                spacing: 8,
+                children: [
+                  _slipFilterChip('ทั้งหมด', 'all'),
+                  _slipFilterChip('รอตรวจสอบ', 'pending'),
+                  _slipFilterChip('ถูกปฏิเสธ', 'rejected'),
+                ],
+              ),
+            ),
+
             // แท็บตัวกรองตามสถานะบิลจาก Database
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -386,10 +491,31 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     );
   }
 
+  Widget _slipFilterChip(String label, String value) {
+    final selected = _slipFilter == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (v) async {
+        if (!v) return;
+        setState(() => _slipFilter = value);
+        await _load();
+      },
+      selectedColor: AppTheme.primary.withOpacity(0.12),
+      labelStyle: TextStyle(
+        color: selected ? AppTheme.primary : Colors.black87,
+        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+      ),
+      shape: StadiumBorder(
+        side: BorderSide(
+            color: selected ? AppTheme.primary : Colors.grey[300]!),
+      ),
+    );
+  }
+
   // List builders (mobile/narrow)
   Widget _buildSlipListView() {
-    final totalCount = _slips.length + _invoices.length;
-    if (totalCount == 0) {
+    if (_slips.isEmpty) {
       return ListView(
         children: const [
           SizedBox(height: 120),
@@ -399,13 +525,9 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     }
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-      itemCount: totalCount,
+      itemCount: _slips.length,
       itemBuilder: (context, index) {
-        if (index < _slips.length) {
-          return _slipCard(_slips[index]);
-        }
-        final invIndex = index - _slips.length;
-        return _invoiceCard(_invoices[invIndex]);
+        return _slipCard(_slips[index]);
       },
     );
   }
@@ -583,6 +705,25 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: statusColor)),
+                const SizedBox(width: 8),
+                if ((s['has_prior_rejected'] ?? false) == true)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFEBEE),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFEF5350)),
+                    ),
+                    child: const Text(
+                      'เคยถูกปฏิเสธ',
+                      style: TextStyle(
+                        color: Color(0xFFD32F2F),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 const Spacer(),
                 const Icon(Icons.chevron_right, color: Colors.black38),
               ],

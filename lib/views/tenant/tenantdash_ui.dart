@@ -83,7 +83,7 @@ class _TenantdashUiState extends State<TenantdashUi> {
         label: 'บิลของฉัน',
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const TenantBillsListPage()),
+          MaterialPageRoute(builder: (_) => const TenantBillListPage()),
         ),
       ),
       _GridItem(
