@@ -58,7 +58,14 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
   Future<void> _init() async {
     setState(() => _loading = true);
     try {
-      final inv = await InvoiceService.getInvoiceById(widget.invoiceId);
+      var inv = await InvoiceService.getInvoiceById(widget.invoiceId);
+      // Hybrid: รีคอมพิวต์ค่าปรับล่าช้า ก่อนกรอกจำนวนเงินเริ่มต้น
+      try {
+        final changed = await InvoiceService.recomputeLateFeeFromSettings(widget.invoiceId);
+        if (changed) {
+          inv = await InvoiceService.getInvoiceById(widget.invoiceId);
+        }
+      } catch (_) {}
       if (inv == null) {
         if (!mounted) return;
         ScaffoldMessenger.of(context)

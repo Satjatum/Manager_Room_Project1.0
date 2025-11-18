@@ -63,6 +63,10 @@ class _TenantBillListPageState extends State<TenantBillListPage>
         });
         return;
       }
+      // อัปเดตสถานะบิลที่เกินกำหนดอัตโนมัติเมื่อเปิดหน้า
+      try {
+        await InvoiceService.updateOverdueInvoices();
+      } catch (_) {}
       final status = _invoiceTabStatus();
       final invList = await InvoiceService.getAllInvoices(
         tenantId: user.tenantId,
