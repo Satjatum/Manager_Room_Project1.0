@@ -332,10 +332,10 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+          content: ConstrainedBox(constraints: BoxConstraints(maxWidth: 360), child: Column(mainAxisSize: MainAxisSize.min,
             children: [
               const Text('QR สำหรับโอน',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
@@ -347,14 +347,11 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey[300]!),
                 ),
-                child: QrImageView(
-                  data: accNum,
-                  version: QrVersions.auto,
-                  size: 220,
-                ),
+                child: SizedBox(width: 240, height: 240, child: QrImageView(data: accNum, version: QrVersions.auto)),
               ),
               const SizedBox(height: 8),
-              Text('$bankName • $accNum', style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text('$bankName • $accNum',
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
               if (accName.isNotEmpty)
                 Text(accName, style: const TextStyle(color: Colors.black54)),
               const SizedBox(height: 8),
@@ -371,6 +368,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       },
     );
   }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -403,21 +401,21 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                             title: 'เลือกบัญชีธนาคารเพื่อโอน',
                             icon: Icons.account_balance_outlined,
                             child: Column(
-  children: [
-    _buildBankList(),
-    const SizedBox(height: 8),
-    SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: _selectedQrId == null
-            ? null
-            : _showQrDialog,
-        icon: const Icon(Icons.qr_code_2_outlined),
-        label: const Text('แสดง QR'),
-      ),
-    ),
-  ],
-),
+                              children: [
+                                _buildBankList(),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: _selectedQrId == null
+                                        ? null
+                                        : _showQrDialog,
+                                    icon: const Icon(Icons.qr_code_2_outlined),
+                                    label: const Text('แสดง QR'),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 12),
                           _buildSection(
@@ -585,7 +583,9 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     }).toList();
 
     return DropdownButtonFormField<String>(
-      value: (_selectedQrId != null && _selectedQrId!.isNotEmpty) ? _selectedQrId : null,
+      value: (_selectedQrId != null && _selectedQrId!.isNotEmpty)
+          ? _selectedQrId
+          : null,
       items: items,
       onChanged: (v) {
         if (v == null || v.isEmpty) return;
@@ -601,6 +601,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       ),
     );
   }
+
   Widget _buildPaymentDetails() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -791,6 +792,4 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     );
   }
 }
-
-
 
