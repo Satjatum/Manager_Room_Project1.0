@@ -262,6 +262,7 @@ class _PaymentVerificationDetailPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -402,6 +403,12 @@ class _PaymentVerificationDetailPageState
         const [];
 
     return Card(
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade300),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -636,6 +643,12 @@ class _PaymentVerificationDetailPageState
     final dueDate = (inv['due_date'] ?? '').toString();
 
     return Card(
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade300),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -692,6 +705,12 @@ class _PaymentVerificationDetailPageState
     final hasAny = files.isNotEmpty ||
         ((_slip?['slip_image'] ?? '').toString().isNotEmpty);
     return Card(
+      color: Colors.white,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade300),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -714,8 +733,10 @@ class _PaymentVerificationDetailPageState
               Container(
                 height: 220,
                 decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8)),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
                 child: const Center(child: Text('ไม่มีรูปสลิป')),
               )
             else ...[
