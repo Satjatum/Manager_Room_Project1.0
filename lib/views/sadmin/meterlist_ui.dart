@@ -1586,6 +1586,7 @@ class _MeterListUiState extends State<MeterListUi> {
     }
 
     final curMap = _dynCurCtrls[roomId];
+    final prevMap = _dynPrevCtrls[roomId];
     // Prefill current values from existing
     if (waterRateId != null && curMap != null) {
       final cvW = curMap[waterRateId!];
@@ -1594,6 +1595,22 @@ class _MeterListUiState extends State<MeterListUi> {
     if (electricRateId != null && curMap != null) {
       final cvE = curMap[electricRateId!];
       cvE?.text = (existing['electric_current_reading'] ?? '').toString();
+    }
+    // Decide if previous can be edited (only current period AND no previous data)
+    final prevWComputed = (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
+    final prevEComputed = (_prevElecByRoom[roomId] ?? 0.0).toDouble();
+    final allowPrevWaterEdit = _isCurrentPeriod &&
+        (_needsPrevWaterInput.contains(roomId) || prevWComputed == 0.0);
+    final allowPrevElecEdit = _isCurrentPeriod &&
+        (_needsPrevElecInput.contains(roomId) || prevEComputed == 0.0);
+    // Prefill previous controllers with existing values if editable
+    if (allowPrevWaterEdit && waterRateId != null && prevMap != null) {
+      final pvW = prevMap[waterRateId!];
+      pvW?.text = (existing['water_previous_reading'] ?? '').toString();
+    }
+    if (allowPrevElecEdit && electricRateId != null && prevMap != null) {
+      final pvE = prevMap[electricRateId!];
+      pvE?.text = (existing['electric_previous_reading'] ?? '').toString();
     }
 
     await showDialog(
@@ -1631,46 +1648,77 @@ class _MeterListUiState extends State<MeterListUi> {
                   SizedBox(
                     height: 10,
                   ),
-                  SizedBox(
-                    width: double.infinity,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.1),
-                          border: Border.all(
-                            color: Colors.blue.withOpacity(0.3),
+                  if (allowPrevWaterEdit)
+                    TextField(
+                      controller: waterRateId != null && prevMap != null
+                          ? prevMap[waterRateId!]
+                          : null,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'ค่าน้ำเดือนก่อน',
+                        helperText:
+                            'อนุญาตแก้ไขได้ เนื่องจากไม่มีข้อมูลเดือนก่อนของรอบนี้',
+                        border: const OutlineInputBorder(),
+                        focusedBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Color(0xff10B981),
+                            width: 2,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey[300]!,
                             width: 1,
                           ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'ค่าน้ำเดือนก่อน',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.blue,
-                              ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        isDense: true,
+                      ),
+                    )
+                  else
+                    SizedBox(
+                      width: double.infinity,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.1),
+                            border: Border.all(
+                              color: Colors.blue.withOpacity(0.3),
+                              width: 1,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              (existing['water_previous_reading'] ?? 0)
-                                  .toString(),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.blue,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'ค่าน้ำเดือนก่อน',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue,
+                                ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 2),
+                              Text(
+                                (existing['water_previous_reading'] ?? 0)
+                                    .toString(),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
                   const SizedBox(height: 5),
                   TextField(
                     controller: waterRateId != null && curMap != null
@@ -1713,46 +1761,77 @@ class _MeterListUiState extends State<MeterListUi> {
                   SizedBox(
                     height: 10,
                   ),
-                  SizedBox(
-                    width: double.infinity,
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1),
-                          border: Border.all(
-                            color: Colors.orange.withOpacity(0.3),
+                  if (allowPrevElecEdit)
+                    TextField(
+                      controller: electricRateId != null && prevMap != null
+                          ? prevMap[electricRateId!]
+                          : null,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: 'ค่าไฟเดือนก่อน',
+                        helperText:
+                            'อนุญาตแก้ไขได้ เนื่องจากไม่มีข้อมูลเดือนก่อนของรอบนี้',
+                        border: const OutlineInputBorder(),
+                        focusedBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Color(0xff10B981),
+                            width: 2,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey[300]!,
                             width: 1,
                           ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'ค่าไฟเดือนก่อน',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.orange,
-                              ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        isDense: true,
+                      ),
+                    )
+                  else
+                    SizedBox(
+                      width: double.infinity,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            border: Border.all(
+                              color: Colors.orange.withOpacity(0.3),
+                              width: 1,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              (existing['electric_previous_reading'] ?? 0)
-                                  .toString(),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.orange,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'ค่าไฟเดือนก่อน',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.orange,
+                                ),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 2),
+                              Text(
+                                (existing['electric_previous_reading'] ?? 0)
+                                    .toString(),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
                   const SizedBox(height: 5),
                   TextField(
                     controller: electricRateId != null && curMap != null
@@ -2342,8 +2421,8 @@ class _MeterListUiState extends State<MeterListUi> {
     }
     final nCtrl = _noteCtrl[roomId]!;
 
-    final prevW = (existing['water_previous_reading'] ?? 0.0).toDouble();
-    final prevE = (existing['electric_previous_reading'] ?? 0.0).toDouble();
+    final prevWExisting = (existing['water_previous_reading'] ?? 0.0).toDouble();
+    final prevEExisting = (existing['electric_previous_reading'] ?? 0.0).toDouble();
     // Resolve current from dynamic controllers
     String? waterRateId;
     String? electricRateId;
@@ -2360,12 +2439,32 @@ class _MeterListUiState extends State<MeterListUi> {
       return;
     }
     final _curMapForUpdate = _dynCurCtrls[roomId];
+    final _prevMapForUpdate = _dynPrevCtrls[roomId];
     final cvWCtrl =
         _curMapForUpdate != null ? _curMapForUpdate[waterRateId!] : null;
     final cvECtrl =
         _curMapForUpdate != null ? _curMapForUpdate[electricRateId!] : null;
     final curW = double.tryParse((cvWCtrl?.text ?? '').trim());
     final curE = double.tryParse((cvECtrl?.text ?? '').trim());
+    // Determine if previous can be edited this period
+    final allowPrevWaterEdit = _isCurrentPeriod &&
+        (_needsPrevWaterInput.contains(roomId) ||
+            (_prevWaterByRoom[roomId] ?? 0.0) == 0.0);
+    final allowPrevElecEdit = _isCurrentPeriod &&
+        (_needsPrevElecInput.contains(roomId) ||
+            (_prevElecByRoom[roomId] ?? 0.0) == 0.0);
+    final pvWCtrl =
+        _prevMapForUpdate != null ? _prevMapForUpdate[waterRateId!] : null;
+    final pvECtrl =
+        _prevMapForUpdate != null ? _prevMapForUpdate[electricRateId!] : null;
+    final prevWParsed = double.tryParse((pvWCtrl?.text ?? '').trim());
+    final prevEParsed = double.tryParse((pvECtrl?.text ?? '').trim());
+    final prevW = allowPrevWaterEdit && prevWParsed != null
+        ? prevWParsed
+        : prevWExisting;
+    final prevE = allowPrevElecEdit && prevEParsed != null
+        ? prevEParsed
+        : prevEExisting;
 
     if (curW == null || curE == null) {
       _showErrorSnackBar('กรุณากรอกตัวเลขให้ถูกต้อง');
