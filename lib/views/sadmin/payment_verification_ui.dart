@@ -129,7 +129,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
       if (_slipFilter == 'pending') {
         deduped = deduped
             .where((s) =>
-                (s['payment_id'] == null || s['payment_id'].toString().isEmpty) &&
+                (s['payment_id'] == null ||
+                    s['payment_id'].toString().isEmpty) &&
                 ((s['rejection_reason'] == null) ||
                     s['rejection_reason'].toString().isEmpty))
             .toList();
@@ -165,6 +166,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
         final s = (v ?? '').toString();
         return DateTime.tryParse(s) ?? DateTime.fromMillisecondsSinceEpoch(0);
       }
+
       final da = _parse(a['created_at'] ?? a['payment_date']);
       final db = _parse(b['created_at'] ?? b['payment_date']);
       return db.compareTo(da); // desc
@@ -433,42 +435,18 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
               ),
             ),
 
-            // Branch filter (for SuperAdmin/Admin)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: _buildBranchFilter(),
-            ),
-
-            // Search box
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-              child: TextField(
-                controller: _searchCtrl,
-                decoration: InputDecoration(
-                  hintText: 'ค้นหา: เลขบิล / ชื่อผู้เช่า / เบอร์โทร / จำนวนเงิน',
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  isDense: true,
-                ),
-              ),
-            ),
             // Slip status filter chips
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
-              child: Wrap(
-                spacing: 8,
-                children: [
-                  _slipFilterChip('ทั้งหมด', 'all'),
-                  _slipFilterChip('รอตรวจสอบ', 'pending'),
-                  _slipFilterChip('ถูกปฏิเสธ', 'rejected'),
-                ],
-              ),
-            ),
+            // Padding(
+            //   padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+            //   child: Wrap(
+            //     spacing: 8,
+            //     children: [
+            //       _slipFilterChip('ทั้งหมด', 'all'),
+            //       _slipFilterChip('รอตรวจสอบ', 'pending'),
+            //       _slipFilterChip('ถูกปฏิเสธ', 'rejected'),
+            //     ],
+            //   ),
+            // ),
 
             // แท็บตัวกรองตามสถานะบิลจาก Database
             Padding(
@@ -526,8 +504,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
         fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
       ),
       shape: StadiumBorder(
-        side: BorderSide(
-            color: selected ? AppTheme.primary : Colors.grey[300]!),
+        side:
+            BorderSide(color: selected ? AppTheme.primary : Colors.grey[300]!),
       ),
     );
   }
