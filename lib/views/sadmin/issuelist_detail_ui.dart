@@ -1712,28 +1712,29 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.blue.shade100,
-                shape: BoxShape.circle,
+                color: Color(0xFF10B981).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                Icons.person_add,
-                color: Colors.blue.shade700,
-              ),
+              child: Icon(Icons.person_add_outlined,
+                  color: Color(0xFF10B981), size: 20),
             ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'มอบหมายงาน',
-                style: TextStyle(fontSize: 18),
+            SizedBox(width: 12),
+            Text(
+              'มอบหมายงาน',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
             ),
           ],
         ),
+        backgroundColor: Colors.white,
         content: SizedBox(
           width: double.maxFinite,
-          height: 360,
+          height: 150,
           child: _availableUsers.isEmpty
               ? const Center(
                   child: Padding(
@@ -1835,7 +1836,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
               ),
               const SizedBox(height: 20),
               Text(
-                'ลบปัญหา',
+                'คุณต้องการลบการหัวข้อการแจ้งปัญหาหรือไม่?',
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,

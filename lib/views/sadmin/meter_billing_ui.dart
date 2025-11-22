@@ -386,6 +386,7 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                     child: _loading
                         ? const Center(
                             child: CircularProgressIndicator(
+                                backgroundColor: Colors.white,
                                 color: AppTheme.primary))
                         : _getFilteredReadings().isEmpty
                             ? _buildEmpty()
@@ -448,22 +449,9 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
         borderRadius: BorderRadius.circular(12),
         onTap: () => _goToInvoice(r),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Leading icon/avatar
-              Container(
-                width: 48,
-                height: 48,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withOpacity(0.08),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.meeting_room, color: AppTheme.primary),
-              ),
-              const SizedBox(width: 16),
               // Details
               Expanded(
                 child: Column(
@@ -472,54 +460,45 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                     // Tenant name
                     Text(
                       tenant,
-                      style: TextStyle(
-                        color: Colors.grey[800],
-                        fontSize: 16,
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 17,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    // A wrap of info chips to adapt to various widths
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 6,
-                      children: [
-                        _infoItem(Icons.tag, '$roomCateเลขที่ $roomNo'),
-                        _infoItem(Icons.calendar_today,
-                            'รอบบิลเดือน$monthName $yearDisplay'),
-                      ],
+                    const SizedBox(height: 8),
+                    // Room category + number
+                    Text(
+                      '$roomCateเลขที่ $roomNo',
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    // Billing period
+                    Text(
+                      'รอบบิลเดือน$monthName $yearDisplay',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               // Trailing arrow
               Icon(
                 Icons.chevron_right,
-                color: Colors.grey[500],
-                size: 24,
+                color: Colors.grey[400],
+                size: 28,
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  /// Builds a small info item with an icon and text used inside the reading
-  /// tile. This widget uses a Row with minimal spacing and a smaller font size
-  /// to display secondary details. It helps keep `_buildReadingTile` concise.
-  Widget _infoItem(IconData icon, String text) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: Colors.grey[600], size: 14),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(color: Colors.grey[700], fontSize: 12.5),
-        ),
-      ],
     );
   }
 

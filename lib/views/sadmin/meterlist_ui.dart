@@ -693,6 +693,14 @@ class _MeterListUiState extends State<MeterListUi> {
         .length;
     final totalCount = filtered.length;
     final pendingCount = totalCount - savedCount;
+    // นับจำนวนบิลที่ออกแล้ว
+    final billedCount = filtered.where((r) {
+      final roomId = (r['room_id'] ?? '').toString();
+      if (!_existingByRoom.containsKey(roomId)) return false;
+      final status =
+          (_existingByRoom[roomId]?['reading_status'] ?? '').toString();
+      return status == 'billed';
+    }).length;
 
     // DataTable view with tabs: น้ำ และ ไฟ
     return DefaultTabController(
@@ -702,17 +710,24 @@ class _MeterListUiState extends State<MeterListUi> {
           // Summary bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              children: [
-                _buildCountChip(Icons.list_alt, 'ทั้งหมด', totalCount,
-                    color: Colors.blueGrey),
-                const SizedBox(width: 8),
-                _buildCountChip(Icons.check_circle, 'บันทึกแล้ว', savedCount,
-                    color: AppTheme.second),
-                const SizedBox(width: 8),
-                _buildCountChip(Icons.edit_note, 'รอกรอก', pendingCount,
-                    color: Colors.orange),
-              ],
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildCountChip(Icons.list_alt, 'ทั้งหมด', totalCount,
+                      color: Colors.blueGrey),
+                  const SizedBox(width: 8),
+                  _buildCountChip(Icons.edit_note, 'รอกรอก', pendingCount,
+                      color: Colors.orange),
+                  const SizedBox(width: 8),
+                  _buildCountChip(Icons.check_circle, 'บันทึกแล้ว', savedCount,
+                      color: AppTheme.second),
+                  const SizedBox(width: 8),
+                  _buildCountChip(
+                      Icons.save_alt_outlined, 'ออกบิล', billedCount,
+                      color: const Color.fromARGB(255, 158, 21, 158)),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 8),
@@ -2245,8 +2260,8 @@ class _MeterListUiState extends State<MeterListUi> {
         bg = AppTheme.primary.withOpacity(0.10);
         break;
       case 'ออกบิลแล้ว':
-        fg = Colors.orange.shade700;
-        bg = Colors.orange.withOpacity(0.12);
+        fg = Colors.purple.shade700;
+        bg = Colors.purple.withOpacity(0.12);
         break;
       default: // 'ยังไม่บันทึก' or others
         fg = Colors.blueGrey.shade700;
@@ -2421,8 +2436,10 @@ class _MeterListUiState extends State<MeterListUi> {
     }
     final nCtrl = _noteCtrl[roomId]!;
 
-    final prevWExisting = (existing['water_previous_reading'] ?? 0.0).toDouble();
-    final prevEExisting = (existing['electric_previous_reading'] ?? 0.0).toDouble();
+    final prevWExisting =
+        (existing['water_previous_reading'] ?? 0.0).toDouble();
+    final prevEExisting =
+        (existing['electric_previous_reading'] ?? 0.0).toDouble();
     // Resolve current from dynamic controllers
     String? waterRateId;
     String? electricRateId;
@@ -2459,12 +2476,10 @@ class _MeterListUiState extends State<MeterListUi> {
         _prevMapForUpdate != null ? _prevMapForUpdate[electricRateId!] : null;
     final prevWParsed = double.tryParse((pvWCtrl?.text ?? '').trim());
     final prevEParsed = double.tryParse((pvECtrl?.text ?? '').trim());
-    final prevW = allowPrevWaterEdit && prevWParsed != null
-        ? prevWParsed
-        : prevWExisting;
-    final prevE = allowPrevElecEdit && prevEParsed != null
-        ? prevEParsed
-        : prevEExisting;
+    final prevW =
+        allowPrevWaterEdit && prevWParsed != null ? prevWParsed : prevWExisting;
+    final prevE =
+        allowPrevElecEdit && prevEParsed != null ? prevEParsed : prevEExisting;
 
     if (curW == null || curE == null) {
       _showErrorSnackBar('กรุณากรอกตัวเลขให้ถูกต้อง');

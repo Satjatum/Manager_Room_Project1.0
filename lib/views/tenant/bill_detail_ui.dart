@@ -3,6 +3,7 @@ import 'package:manager_room_project/services/invoice_service.dart';
 import 'package:manager_room_project/services/meter_service.dart';
 import 'package:manager_room_project/middleware/auth_middleware.dart';
 import 'package:manager_room_project/services/payment_service.dart';
+import 'package:manager_room_project/views/tenant/tenant_pay_history_ui.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/views/tenant/tenant_pay_bill_ui.dart';
 
@@ -72,7 +73,8 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
       var invRaw = await InvoiceService.getInvoiceById(widget.invoiceId);
       // Hybrid: รีคอมพิวต์ค่าปรับล่าช้าเมื่อเปิดดูบิล
       try {
-        final changed = await InvoiceService.recomputeLateFeeFromSettings(widget.invoiceId);
+        final changed =
+            await InvoiceService.recomputeLateFeeFromSettings(widget.invoiceId);
         if (changed) {
           invRaw = await InvoiceService.getInvoiceById(widget.invoiceId);
         }
@@ -110,7 +112,8 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
             final paymentId = (slip?['payment_id'] ?? '').toString();
             final rejection = (slip?['rejection_reason'] ?? '').toString();
             _rejectionReason = rejection;
-            _rejectedSlip = slip != null && paymentId.isEmpty && rejection.isNotEmpty;
+            _rejectedSlip =
+                slip != null && paymentId.isEmpty && rejection.isNotEmpty;
             _pendingVerification =
                 slip != null && paymentId.isEmpty && rejection.isEmpty;
           } else {
@@ -133,8 +136,8 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('โหลดรายละเอียดไม่สำเร็จ: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('โหลดรายละเอียดไม่สำเร็จ: $e')));
       }
     }
   }
@@ -235,7 +238,9 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
                                 Expanded(
                                   child: Text(
                                     _rejectionReason.isNotEmpty
-                                        ? 'สลิปถูกปฏิเสธ: ' + _rejectionReason + '\nกรุณาส่งสลิปใหม่'
+                                        ? 'สลิปถูกปฏิเสธ: ' +
+                                            _rejectionReason +
+                                            '\nกรุณาส่งสลิปใหม่'
                                         : 'สลิปถูกปฏิเสธ กรุณาส่งสลิปใหม่',
                                     style: const TextStyle(
                                         color: Color(0xFFB71C1C)),
@@ -245,6 +250,8 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
                             ),
                           ),
                         ],
+                        const SizedBox(height: 12),
+                        _buildPaymentHistoryButton(),
                       ],
                     ),
                   ),
@@ -322,7 +329,6 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
             _kv('ผู้เช่า', tenantName),
             _kv('เบอร์', tenantPhone),
             _kv('ห้อง', roomNumber),
-
             const Divider(height: 24),
             const Text('ค่าใช้จ่าย',
                 style: TextStyle(fontWeight: FontWeight.w700)),
@@ -364,8 +370,8 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
                       padding: const EdgeInsets.only(top: 2, bottom: 4),
                       child: Text(
                         sub,
-                        style:
-                            const TextStyle(fontSize: 14, color: Colors.black54),
+                        style: const TextStyle(
+                            fontSize: 14, color: Colors.black54),
                         textAlign: TextAlign.right,
                       ),
                     ),
@@ -389,11 +395,11 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
               _moneyRow('ส่วนลด', -discountAmount, emphasis: true),
             if (lateFeeAmount > 0)
               _moneyRow('ค่าปรับล่าช้า', lateFeeAmount, emphasis: true),
-
             const Divider(height: 24),
             _moneyRow('ยอดรวม', totalAmount, bold: true),
             _moneyRow('ชำระแล้ว', paidAmount, color: Colors.green),
-            _moneyRow('คงเหลือ', remaining, bold: true, color: Colors.redAccent),
+            _moneyRow('คงเหลือ', remaining,
+                bold: true, color: Colors.redAccent),
           ],
         ),
       ),
@@ -470,6 +476,33 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
     );
   }
 
+  Widget _buildPaymentHistoryButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TenantPayHistoryUi(invoiceId: widget.invoiceId),
+            ),
+          );
+        },
+        icon: const Icon(Icons.history, size: 18),
+        label: const Text('ดูประวัติการแจ้งชำระ'),
+        style: OutlinedButton.styleFrom(
+          backgroundColor: const Color(0xFFF8FAFC),
+          side: BorderSide(color: Colors.grey[400]!),
+          foregroundColor: Colors.black87,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBottomBar() {
     if (_invoice == null) return const SizedBox.shrink();
     final inv = _asMap(_invoice);
@@ -498,7 +531,8 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
                   final res = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => TenantPayBillUi(invoiceId: widget.invoiceId),
+                      builder: (_) =>
+                          TenantPayBillUi(invoiceId: widget.invoiceId),
                     ),
                   );
                   if (res == true) {

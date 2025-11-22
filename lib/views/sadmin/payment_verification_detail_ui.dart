@@ -93,7 +93,8 @@ class _PaymentVerificationDetailPageState
           var invRaw = await InvoiceService.getInvoiceById(invId);
           // Hybrid: รีคอมพิวต์ค่าปรับล่าช้าเมื่อเปิดดูรายละเอียด
           try {
-            final changed = await InvoiceService.recomputeLateFeeFromSettings(invId);
+            final changed =
+                await InvoiceService.recomputeLateFeeFromSettings(invId);
             if (changed) {
               invRaw = await InvoiceService.getInvoiceById(invId);
             }
@@ -125,7 +126,8 @@ class _PaymentVerificationDetailPageState
         var invRaw = await InvoiceService.getInvoiceById(widget.invoiceId!);
         try {
           // Hybrid: รีคอมพิวต์ค่าปรับล่าช้าเมื่อเปิดดูรายละเอียด
-          final changed = await InvoiceService.recomputeLateFeeFromSettings(widget.invoiceId!);
+          final changed = await InvoiceService.recomputeLateFeeFromSettings(
+              widget.invoiceId!);
           if (changed) {
             invRaw = await InvoiceService.getInvoiceById(widget.invoiceId!);
           }
@@ -254,6 +256,23 @@ class _PaymentVerificationDetailPageState
       return;
     }
 
+    // ตรวจสอบจำนวนเงินที่อนุมัติไม่เกินบิล
+    final invFull = _asMap(_invoice ?? _slip!['invoices']);
+    final totalAmount = _asDouble(invFull['total_amount']);
+    final paidAmount =
+        _asDouble(invFull['paid_amount'] ?? _slip!['invoice_paid']);
+    final remaining =
+        (totalAmount - paidAmount).clamp(0.0, double.infinity).toDouble();
+
+    if (amount > remaining) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                'จำนวนเงินที่อนุมัติ (${amount.toStringAsFixed(2)}) ไม่สามารถเกินยอดคงเหลือ (${remaining.toStringAsFixed(2)}) ได้')),
+      );
+      return;
+    }
+
     try {
       setState(() => _loading = true);
       // Hybrid: ใช้ส่วนลดยอดชำระก่อนกำหนดจาก Payment Settings ก่อนอนุมัติ
@@ -302,7 +321,7 @@ class _PaymentVerificationDetailPageState
           controller: reasonCtrl,
           maxLines: 3,
           decoration: const InputDecoration(
-            hintText: 'ระบุเหตุผล',
+            hintText: 'ระบุเหตุผล (ไม่บังคับ)',
             border: OutlineInputBorder(),
           ),
         ),
@@ -324,7 +343,7 @@ class _PaymentVerificationDetailPageState
       setState(() => _loading = true);
       final result = await PaymentService.rejectSlip(
         slipId: _slip!['slip_id'],
-        reason: reasonCtrl.text.trim(),
+        reason: reasonCtrl.text.trim().isEmpty ? null : reasonCtrl.text.trim(),
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

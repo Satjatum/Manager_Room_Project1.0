@@ -502,66 +502,12 @@ class _IssueListUiState extends State<IssueListUi>
                     : RefreshIndicator(
                         onRefresh: _loadData,
                         color: AppTheme.primary,
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            final width = constraints.maxWidth;
-                            int cols = 1;
-                            if (width >= 2560) {
-                              cols = 5;
-                            } else if (width >= 1920) {
-                              cols = 4;
-                            } else if (width >= 1440) {
-                              cols = 4;
-                            } else if (width >= 1200) {
-                              cols = 4;
-                            } else if (width >= 992) {
-                              cols = 3;
-                            } else if (width >= 768) {
-                              cols = 2;
-                            }
-
-                            if (cols == 1) {
-                              return ListView.builder(
-                                padding:
-                                    const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                                itemCount: _filteredIssues.length,
-                                itemBuilder: (context, index) {
-                                  final issue = _filteredIssues[index];
-                                  return _buildIssueCard(issue);
-                                },
-                              );
-                            }
-
-                            double aspect;
-                            if (width >= 2560) {
-                              aspect = 1.70;
-                            } else if (width >= 1920) {
-                              aspect = 1.50;
-                            } else if (width >= 1440) {
-                              aspect = 1.10;
-                            } else if (width >= 1200) {
-                              aspect = 1.50;
-                            } else if (width >= 992) {
-                              aspect = 1.05;
-                            } else {
-                              aspect = 1.20;
-                            }
-
-                            return GridView.builder(
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: cols,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                                childAspectRatio: aspect,
-                              ),
-                              itemCount: _filteredIssues.length,
-                              itemBuilder: (context, index) {
-                                final issue = _filteredIssues[index];
-                                return _buildIssueCard(issue);
-                              },
-                            );
+                        child: ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                          itemCount: _filteredIssues.length,
+                          itemBuilder: (context, index) {
+                            final issue = _filteredIssues[index];
+                            return _buildIssueCard(issue);
                           },
                         ),
                       ),

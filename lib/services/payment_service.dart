@@ -843,11 +843,12 @@ class PaymentService {
 
   static Future<Map<String, dynamic>> rejectSlip({
     required String slipId,
-    required String reason,
+    String? reason,
   }) async {
     try {
-      if (reason.trim().isEmpty) {
-        return {'success': false, 'message': 'กรุณาระบุเหตุผลในการปฏิเสธ'};
+      // ไม่บังคับเหตุผล แต่ถ้ามี ต้องไม่ว่าง
+      if (reason != null && reason.trim().isEmpty) {
+        reason = null; // ถ้าส่งมาเป็นสตริงว่าง ให้เป็น null
       }
 
       final currentUser = await AuthService.getCurrentUser();
@@ -927,9 +928,7 @@ class PaymentService {
       }
 
       // ถือเป็น "รอตรวจสอบ" เฉพาะสลิปที่ยังไม่ถูกผูกกับ payment และยังไม่ถูกปฏิเสธ
-      q = q
-          .isFilter('payment_id', null)
-          .isFilter('rejection_reason', null);
+      q = q.isFilter('payment_id', null).isFilter('rejection_reason', null);
 
       final rows = await q;
       final list = List<Map<String, dynamic>>.from(rows);

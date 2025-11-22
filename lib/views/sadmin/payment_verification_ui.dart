@@ -25,19 +25,18 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   List<Map<String, dynamic>> _slips = [];
   List<Map<String, dynamic>> _invoices = [];
   late TabController
-      _tabController; // ตัวกรองตามสถานะบิล: pending/partial/paid/overdue/cancelled
+      _tabController; // ตัวกรองตามสถานะการชำระ: all/pending/approved/rejected/cancelled
   UserModel? _currentUser;
   List<Map<String, dynamic>> _branches = [];
   String? _selectedBranchId; // null = all (for superadmin)
   final TextEditingController _searchCtrl = TextEditingController();
   Timer? _debounce;
   String _search = '';
-  String _slipFilter = 'all'; // all | pending | rejected | verified
 
   @override
   void initState() {
     super.initState();
-    // มี 5 แท็บตามสถานะใน Database ของบิล: pending, partial, paid, overdue, cancelled
+    // มี 5 แท็บตามสถานะการชำระ: all, pending, approved, rejected, cancelled
     _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
@@ -104,29 +103,28 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
       try {
         await InvoiceService.updateOverdueInvoices();
       } catch (_) {}
-      // โหลดสลิปทั้งหมด แล้วค่อยกรองตามสถานะบิล (pending/partial/paid/overdue/cancelled)
-      final invStatus = _invoiceTabStatus();
-      // ดึง "ทั้งหมด" มาก่อน เพื่อให้สามารถ dedupe ตาม invoice และคัดล่าสุดได้
+
+      // โหลดสลิปทั้งหมด แล้วค่อยกรองตามสถานะการชำระ
+      final paymentStatus = _getPaymentTabStatus();
+
+      // ดึงข้อมูลสลิป
       final res = await PaymentService.listPaymentSlips(
         status: 'all',
         branchId: _currentBranchFilter(),
         search: _search.isEmpty ? null : _search,
       );
+
       // แสดงเฉพาะวิธีโอนธนาคารเท่านั้น (PromptPay ถูกถอดออก)
       final filtered = res
           .where((e) => (e['payment_method'] ?? 'transfer') == 'transfer')
           .toList();
-      // กรองตามสถานะของบิล
-      final byInvoiceStatus = filtered
-          .where((e) => (e['invoice_status'] ?? '').toString() == invStatus)
-          .toList();
 
       // จัดระเบียบ: แสดงสลิปล่าสุดต่อใบแจ้งหนี้เพียง 1 รายการ
-      // และทำเครื่องหมายถ้าเคยมีสลิปถูกปฏิเสธก่อนหน้า (เพื่อไม่ให้ดูซับซ้อน)
-      List<Map<String, dynamic>> deduped = _latestPerInvoice(byInvoiceStatus);
+      // และทำเครื่องหมายถ้าเคยมีสลิปถูกปฏิเสธก่อนหน้า
+      List<Map<String, dynamic>> deduped = _latestPerInvoice(filtered);
 
-      // นำตัวกรองสลิป (all/pending/rejected) มาวางหลัง dedupe
-      if (_slipFilter == 'pending') {
+      // กรองตามสถานะการชำระ (all/pending/approved/rejected/cancelled)
+      if (paymentStatus == 'pending') {
         deduped = deduped
             .where((s) =>
                 (s['payment_id'] == null ||
@@ -134,13 +132,25 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                 ((s['rejection_reason'] == null) ||
                     s['rejection_reason'].toString().isEmpty))
             .toList();
-      } else if (_slipFilter == 'rejected') {
-        // แสดงเฉพาะใบแจ้งหนี้ที่ "สลิปล่าสุด" เป็นสถานะถูกปฏิเสธ
+      } else if (paymentStatus == 'approved') {
+        // แสดงเฉพาะสลิปที่อนุมัติแล้ว (มี payment_id)
+        deduped = deduped
+            .where((s) => (s['payment_id'] != null &&
+                s['payment_id'].toString().isNotEmpty))
+            .toList();
+      } else if (paymentStatus == 'rejected') {
+        // แสดงเฉพาะสลิปที่ถูกปฏิเสธ
         deduped = deduped
             .where((s) => (s['rejection_reason'] != null &&
                 s['rejection_reason'].toString().isNotEmpty))
             .toList();
+      } else if (paymentStatus == 'cancelled') {
+        // แสดงเฉพาะบิลที่ถูกยกเลิก (invoice_status = 'cancelled')
+        deduped = deduped
+            .where((s) => (s['invoice_status'] ?? '').toString() == 'cancelled')
+            .toList();
       }
+      // ถ้า paymentStatus == 'all' จะไม่กรองเพิ่ม
 
       setState(() {
         _slips = deduped;
@@ -211,21 +221,21 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     return null;
   }
 
-  // แปลง index แท็บ ไปเป็นสถานะบิลที่ต้องการ
-  String _invoiceTabStatus() {
+  // แปลง index แท็บ ไปเป็นสถานะการชำระที่ต้องการ
+  String _getPaymentTabStatus() {
     switch (_tabController.index) {
       case 0:
-        return 'pending';
+        return 'all';
       case 1:
-        return 'partial';
+        return 'pending';
       case 2:
-        return 'paid';
+        return 'approved';
       case 3:
-        return 'overdue';
+        return 'rejected';
       case 4:
         return 'cancelled';
       default:
-        return 'pending';
+        return 'all';
     }
   }
 
@@ -435,22 +445,48 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
               ),
             ),
 
-            // Slip status filter chips
-            // Padding(
-            //   padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
-            //   child: Wrap(
-            //     spacing: 8,
-            //     children: [
-            //       _slipFilterChip('ทั้งหมด', 'all'),
-            //       _slipFilterChip('รอตรวจสอบ', 'pending'),
-            //       _slipFilterChip('ถูกปฏิเสธ', 'rejected'),
-            //     ],
-            //   ),
-            // ),
-
-            // แท็บตัวกรองตามสถานะบิลจาก Database
+            // Search bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: TextField(
+                  controller: _searchCtrl,
+                  onChanged: (value) {
+                    // Update the search query and apply filters whenever the user types.
+                    // Note: debounce logic is already handled in initState
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'ค้นหา',
+                    hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                    prefixIcon:
+                        Icon(Icons.search, color: Colors.grey[600], size: 20),
+                    suffixIcon: _search.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(Icons.clear,
+                                color: Colors.grey[600], size: 20),
+                            onPressed: () {
+                              _searchCtrl.clear();
+                              setState(() => _search = '');
+                              _load();
+                            },
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                  ),
+                ),
+              ),
+            ),
+
+            // แท็บตัวกรองตามสถานะการชำระ
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: TabBar(
@@ -461,10 +497,10 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                   indicatorColor: AppTheme.primary,
                   indicatorWeight: 3,
                   tabs: const [
-                    Tab(text: 'ค้างชำระ'),
-                    Tab(text: 'ชำระบางส่วน'),
-                    Tab(text: 'ชำระแล้ว'),
-                    Tab(text: 'เกินกำหนด'),
+                    Tab(text: 'ทั้งหมด'),
+                    Tab(text: 'รอตรวจสอบ'),
+                    Tab(text: 'อนุมัติ'),
+                    Tab(text: 'ปฏิเสธ'),
                     Tab(text: 'ยกเลิก'),
                   ],
                 ),
@@ -484,28 +520,6 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _slipFilterChip(String label, String value) {
-    final selected = _slipFilter == value;
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (v) async {
-        if (!v) return;
-        setState(() => _slipFilter = value);
-        await _load();
-      },
-      selectedColor: AppTheme.primary.withOpacity(0.12),
-      labelStyle: TextStyle(
-        color: selected ? AppTheme.primary : Colors.black87,
-        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-      ),
-      shape: StadiumBorder(
-        side:
-            BorderSide(color: selected ? AppTheme.primary : Colors.grey[300]!),
       ),
     );
   }

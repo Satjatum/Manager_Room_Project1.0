@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:manager_room_project/views/sadmin/invoicelist_ui.dart';
 import 'package:manager_room_project/views/sadmin/roomlist_ui.dart';
 import 'package:manager_room_project/views/sadmin/tenantlist_ui.dart';
 import 'package:manager_room_project/views/sadmin/issuelist_ui.dart';
@@ -137,6 +138,18 @@ class BranchDashboardPage extends StatelessWidget {
               branchId: branchId,
               branchName: branchName,
               hideBottomNav: true,
+            ),
+          ),
+        ),
+      ),
+      _DashItem(
+        icon: Icons.document_scanner_outlined,
+        label: 'รายการบิล',
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => InvoiceListUi(
+              branchId: branchId,
             ),
           ),
         ),
@@ -402,14 +415,46 @@ class _StatsSection extends StatelessWidget {
         const SizedBox(height: 8),
         LayoutBuilder(
           builder: (context, constraints) {
-            // Requirement:
-            // - Remove progress bars (handled in _StatCard)
-            // - If stats > 4, use horizontal SingleChildScrollView
             const double spacing = 14;
-            if (stats.length > 4) {
-              final double tileW = constraints.maxWidth < 600
-                  ? 200
-                  : (constraints.maxWidth < 1200 ? 220 : 240);
+            final bool isMobile = constraints.maxWidth < 600;
+
+            // สำหรับมือถือ: แสดง 2 บรรทัด แต่ละคอลัมน์มี 2 cards (บน-ล่าง)
+            if (isMobile) {
+              final double cardWidth = (constraints.maxWidth - spacing) / 2;
+              final int columns = (stats.length / 2).ceil();
+
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (int col = 0; col < columns; col++) ...[
+                      Column(
+                        children: [
+                          // Card บน
+                          SizedBox(
+                            width: cardWidth,
+                            child: _StatCard(item: stats[col * 2]),
+                          ),
+                          // Card ล่าง (ถ้ามี)
+                          if (col * 2 + 1 < stats.length) ...[
+                            SizedBox(height: spacing),
+                            SizedBox(
+                              width: cardWidth,
+                              child: _StatCard(item: stats[col * 2 + 1]),
+                            ),
+                          ],
+                        ],
+                      ),
+                      if (col != columns - 1) SizedBox(width: spacing),
+                    ],
+                  ],
+                ),
+              );
+            }
+            // สำหรับหน้าจอใหญ่ที่มี stats > 4
+            else if (stats.length > 4) {
+              final double tileW = constraints.maxWidth < 1200 ? 220 : 240;
               return SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -421,7 +466,9 @@ class _StatsSection extends StatelessWidget {
                   ],
                 ),
               );
-            } else {
+            }
+            // สำหรับกรณีที่มี stats <= 4 บนหน้าจอใหญ่
+            else {
               final int columns = stats.isEmpty ? 1 : stats.length;
               final double itemW =
                   (constraints.maxWidth - spacing * (columns - 1)) / columns;
@@ -551,7 +598,6 @@ class _QuickActionsWrap extends StatelessWidget {
     );
   }
 }
-
 
 class _DashItem {
   final IconData icon;

@@ -1086,24 +1086,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                       : RefreshIndicator(
                           onRefresh: _loadBranches,
                           color: Color(0xFF10B981),
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final platform = Theme.of(context).platform;
-                              final bool isMobileApp = !kIsWeb &&
-                                  (platform == TargetPlatform.android ||
-                                      platform == TargetPlatform.iOS);
-
-                              // ทำตามแพทเทิร์นของ settingbranch_ui: ถ้าเป็นแอปมือถือ ให้ใช้ List เสมอ
-                              if (isMobileApp) {
-                                return _buildListView();
-                              }
-
-                              if (constraints.maxWidth > 600) {
-                                return _buildGridView(constraints.maxWidth);
-                              }
-                              return _buildListView();
-                            },
-                          ),
+                          child: _buildListView(),
                         ),
             ),
           ],
@@ -1131,7 +1114,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
     );
   }
 
-  // Build ListView for small screens
+  // Build ListView
   Widget _buildListView() {
     return ListView.builder(
       padding: EdgeInsets.symmetric(
@@ -1147,53 +1130,6 @@ class _BranchlistUiState extends State<BranchlistUi> {
             SizedBox(height: 16),
           ],
         );
-      },
-    );
-  }
-
-  // Build GridView for large screens
-  Widget _buildGridView(double screenWidth) {
-    // คำนวณจำนวนคอลัมน์ตามขนาดหน้าจอ
-    int crossAxisCount = 2;
-    if (screenWidth > 1200) {
-      crossAxisCount = 4;
-    } else if (screenWidth > 900) {
-      crossAxisCount = 3;
-    }
-
-    // คำนวณ childAspectRatio แบบไดนามิกเพื่อลดปัญหา overflow
-    const double horizontalPadding = 24; // ซ้าย/ขวา ของ GridView
-    const double crossSpacing = 16; // ระยะห่างคอลัมน์
-    final double availableWidth = screenWidth -
-        (horizontalPadding * 2) -
-        (crossSpacing * (crossAxisCount - 1));
-    final double tileWidth = availableWidth / crossAxisCount;
-
-    // imageHeight คิดแบบอนุรักษ์นิยมขึ้นเล็กน้อย เพื่อกัน overflow
-    final double imageHeight = (tileWidth * 0.45).clamp(120.0, 200.0);
-    // ประมาณความสูงส่วน header และ info ให้เผื่อเคสข้อความยาว
-    final double estHeader = tileWidth < 300 ? 120 : 100;
-    final double estInfo = tileWidth < 300 ? 180 : 150;
-    final double estimatedTileHeight = estHeader + imageHeight + estInfo;
-    double dynamicAspect = tileWidth / estimatedTileHeight; // width / height
-    // กันกรณีแคบ/กว้างเกินไป
-    dynamicAspect = dynamicAspect.clamp(0.55, 1.00);
-
-    return GridView.builder(
-      padding: EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: 8,
-      ),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: dynamicAspect,
-      ),
-      itemCount: _filteredBranches.length,
-      itemBuilder: (context, index) {
-        final branch = _filteredBranches[index];
-        return _buildCompactBranchCard(branch);
       },
     );
   }
