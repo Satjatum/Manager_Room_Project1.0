@@ -25,7 +25,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   List<Map<String, dynamic>> _slips = [];
   List<Map<String, dynamic>> _invoices = [];
   late TabController
-      _tabController; // ตัวกรองตามสถานะการชำระ: all/pending/approved/rejected/cancelled
+      _tabController; // ตัวกรองตามสถานะการชำระ: all/pending/approved/rejected
   UserModel? _currentUser;
   List<Map<String, dynamic>> _branches = [];
   String? _selectedBranchId; // null = all (for superadmin)
@@ -36,8 +36,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
   @override
   void initState() {
     super.initState();
-    // มี 5 แท็บตามสถานะการชำระ: all, pending, approved, rejected, cancelled
-    _tabController = TabController(length: 5, vsync: this);
+    // มี 4 แท็บเฉพาะสลิป: all, pending, approved, rejected
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
       _load();
@@ -104,53 +104,22 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
         await InvoiceService.updateOverdueInvoices();
       } catch (_) {}
 
-      // โหลดสลิปทั้งหมด แล้วค่อยกรองตามสถานะการชำระ
-      final paymentStatus = _getPaymentTabStatus();
+      // โหลดสลิปทั้งหมด แยกตามแท็บ (ไม่ dedupe อีกต่อไป — แสดงเป็นประวัติครบ)
+      final uiStatus =
+          _getPaymentTabStatus(); // all | pending | approved | rejected
+      final serviceStatus = (uiStatus == 'approved')
+          ? 'verified'
+          : uiStatus; // map ไป status ใน service
 
-      // ดึงข้อมูลสลิป
+      // ดึงข้อมูลสลิปตามสถานะจาก service และกรองเฉพาะโอนธนาคาร
       final res = await PaymentService.listPaymentSlips(
-        status: 'all',
+        status: serviceStatus,
         branchId: _currentBranchFilter(),
         search: _search.isEmpty ? null : _search,
       );
-
-      // แสดงเฉพาะวิธีโอนธนาคารเท่านั้น (PromptPay ถูกถอดออก)
-      final filtered = res
+      final deduped = res
           .where((e) => (e['payment_method'] ?? 'transfer') == 'transfer')
           .toList();
-
-      // จัดระเบียบ: แสดงสลิปล่าสุดต่อใบแจ้งหนี้เพียง 1 รายการ
-      // และทำเครื่องหมายถ้าเคยมีสลิปถูกปฏิเสธก่อนหน้า
-      List<Map<String, dynamic>> deduped = _latestPerInvoice(filtered);
-
-      // กรองตามสถานะการชำระ (all/pending/approved/rejected/cancelled)
-      if (paymentStatus == 'pending') {
-        deduped = deduped
-            .where((s) =>
-                (s['payment_id'] == null ||
-                    s['payment_id'].toString().isEmpty) &&
-                ((s['rejection_reason'] == null) ||
-                    s['rejection_reason'].toString().isEmpty))
-            .toList();
-      } else if (paymentStatus == 'approved') {
-        // แสดงเฉพาะสลิปที่อนุมัติแล้ว (มี payment_id)
-        deduped = deduped
-            .where((s) => (s['payment_id'] != null &&
-                s['payment_id'].toString().isNotEmpty))
-            .toList();
-      } else if (paymentStatus == 'rejected') {
-        // แสดงเฉพาะสลิปที่ถูกปฏิเสธ
-        deduped = deduped
-            .where((s) => (s['rejection_reason'] != null &&
-                s['rejection_reason'].toString().isNotEmpty))
-            .toList();
-      } else if (paymentStatus == 'cancelled') {
-        // แสดงเฉพาะบิลที่ถูกยกเลิก (invoice_status = 'cancelled')
-        deduped = deduped
-            .where((s) => (s['invoice_status'] ?? '').toString() == 'cancelled')
-            .toList();
-      }
-      // ถ้า paymentStatus == 'all' จะไม่กรองเพิ่ม
 
       setState(() {
         _slips = deduped;
@@ -167,45 +136,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     }
   }
 
-  // คืนสลิปล่าสุดต่อ invoice_id เพียง 1 รายการ พร้อมระบุว่าเคยมีสลิปถูกปฏิเสธก่อนหน้าหรือไม่
-  List<Map<String, dynamic>> _latestPerInvoice(
-      List<Map<String, dynamic>> list) {
-    // จัดเรียงล่าสุดมาก่อน (อิง created_at)
-    int _cmpDesc(Map a, Map b) {
-      DateTime _parse(dynamic v) {
-        final s = (v ?? '').toString();
-        return DateTime.tryParse(s) ?? DateTime.fromMillisecondsSinceEpoch(0);
-      }
-
-      final da = _parse(a['created_at'] ?? a['payment_date']);
-      final db = _parse(b['created_at'] ?? b['payment_date']);
-      return db.compareTo(da); // desc
-    }
-
-    final sorted = [...list]..sort(_cmpDesc);
-    final Map<String, Map<String, dynamic>> latest = {};
-    final Map<String, bool> priorRejected = {};
-
-    for (final s in sorted) {
-      final invId = (s['invoice_id'] ?? '').toString();
-      if (invId.isEmpty) continue;
-      if (!latest.containsKey(invId)) {
-        latest[invId] = Map<String, dynamic>.from(s);
-      } else {
-        // พบสลิปเดิมของ invoice เดียวกัน — ถ้าอันเก่ามี rejection ให้ทำเครื่องหมาย
-        final rej = (s['rejection_reason'] ?? '').toString();
-        if (rej.isNotEmpty) priorRejected[invId] = true;
-      }
-    }
-
-    return latest.entries.map((e) {
-      final row = Map<String, dynamic>.from(e.value);
-      if (priorRejected[e.key] == true) {
-        row['has_prior_rejected'] = true;
-      }
-      return row;
-    }).toList();
-  }
+  // ยกเลิก dedupe: แสดงทุกสลิปตามตัวกรอง เพื่อคงประวัติย้อนหลังครบถ้วน
 
   String? _currentBranchFilter() {
     if (_currentUser == null) return null;
@@ -232,8 +163,6 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
         return 'approved';
       case 3:
         return 'rejected';
-      case 4:
-        return 'cancelled';
       default:
         return 'all';
     }
@@ -501,7 +430,6 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                     Tab(text: 'รอตรวจสอบ'),
                     Tab(text: 'อนุมัติ'),
                     Tab(text: 'ปฏิเสธ'),
-                    Tab(text: 'ยกเลิก'),
                   ],
                 ),
               ),
@@ -640,35 +568,30 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     final roomcate = (s['roomcate_name'] ?? '-').toString();
     final roomNumber = (s['room_number'] ?? '-').toString();
     final invoiceNumber = (s['invoice_number'] ?? '-').toString();
-    final status = (s['invoice_status'] ?? '').toString();
+    final invoiceStatus = (s['invoice_status'] ?? '').toString();
     final dateStr = _formatThaiDate(
         (s['payment_date'] ?? s['created_at'] ?? '').toString());
     final amount =
         _asDouble(s['invoice_total'] ?? s['total_amount'] ?? s['paid_amount']);
 
+    // Slip-level status (separated from invoice status)
+    final bool isVerified =
+        (s['payment_id'] != null && s['payment_id'].toString().isNotEmpty);
+    final bool isRejected = (!isVerified &&
+        (s['rejection_reason'] != null ||
+            (s['verified_at'] != null &&
+                s['verified_at'].toString().isNotEmpty)));
     Color statusColor;
     String statusLabel;
-    switch (status) {
-      case 'paid':
-        statusColor = const Color(0xFF22C55E);
-        statusLabel = 'ชำระแล้ว';
-        break;
-      case 'overdue':
-        statusColor = const Color(0xFFEF4444);
-        statusLabel = 'เกินกำหนด';
-        break;
-      case 'partial':
-        statusColor = const Color(0xFFF59E0B);
-        statusLabel = 'ชำระบางส่วน';
-        break;
-      case 'cancelled':
-        statusColor = Colors.grey;
-        statusLabel = 'ยกเลิก';
-        break;
-      case 'pending':
-      default:
-        statusColor = const Color(0xFF3B82F6);
-        statusLabel = 'ค้างชำระ';
+    if (isVerified) {
+      statusColor = const Color(0xFF22C55E);
+      statusLabel = 'อนุมัติแล้ว';
+    } else if (isRejected) {
+      statusColor = const Color(0xFFEF4444);
+      statusLabel = 'ถูกปฏิเสธ';
+    } else {
+      statusColor = const Color(0xFF3B82F6);
+      statusLabel = 'รอตรวจสอบ';
     }
 
     return InkWell(
@@ -716,25 +639,6 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: statusColor)),
-                const SizedBox(width: 8),
-                if ((s['has_prior_rejected'] ?? false) == true)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFEBEE),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFEF5350)),
-                    ),
-                    child: const Text(
-                      'เคยถูกปฏิเสธ',
-                      style: TextStyle(
-                        color: Color(0xFFD32F2F),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
                 const Spacer(),
                 const Icon(Icons.chevron_right, color: Colors.black38),
               ],
@@ -883,6 +787,25 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: statusColor)),
+                const SizedBox(width: 6),
+                if (status == 'cancelled')
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.withOpacity(0.4)),
+                    ),
+                    child: const Text(
+                      'บิลยกเลิก',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 const Spacer(),
                 const Icon(Icons.chevron_right, color: Colors.black38),
               ],

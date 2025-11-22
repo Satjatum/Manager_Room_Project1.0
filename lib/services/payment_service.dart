@@ -143,6 +143,44 @@ class PaymentService {
         return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
       }
 
+      // Business Rule C: Block resubmission when there is a PENDING or APPROVED slip
+      // - Pending: payment_id IS NULL AND verified_at IS NULL
+      // - Approved: payment_id IS NOT NULL
+      try {
+        final pending = await _supabase
+            .from('payment_slips')
+            .select('slip_id')
+            .eq('invoice_id', invoiceId)
+            .eq('tenant_id', tenantId)
+            .isFilter('payment_id', null)
+            .isFilter('verified_at', null)
+            .limit(1)
+            .maybeSingle();
+        if (pending != null) {
+          return {
+            'success': false,
+            'message': 'มีสลิปรอตรวจสอบอยู่สำหรับบิลนี้ กรุณารอผลการตรวจสอบ',
+          };
+        }
+
+        final approved = await _supabase
+            .from('payment_slips')
+            .select('slip_id')
+            .eq('invoice_id', invoiceId)
+            .eq('tenant_id', tenantId)
+            .not('payment_id', 'is', null)
+            .limit(1)
+            .maybeSingle();
+        if (approved != null) {
+          return {
+            'success': false,
+            'message': 'บิลนี้มีสลิปที่อนุมัติแล้ว ไม่สามารถส่งซ้ำได้',
+          };
+        }
+      } catch (_) {
+        // If pre-check fails, continue to avoid blocking unexpectedly; server will still enforce constraints later if any
+      }
+
       // Insert payment_slips (no slip_status; invoice-level verification)
       final data = {
         'invoice_id': invoiceId,
@@ -203,6 +241,22 @@ class PaymentService {
   // ======================
   // ADMIN: Slip Review APIs
   // ======================
+
+  // Fetch slip verification history entries for a slip
+  static Future<List<Map<String, dynamic>>> listSlipHistory(
+      String slipId) async {
+    try {
+      if (slipId.isEmpty) return const [];
+      final rows = await _supabase
+          .from('slip_verification_history')
+          .select('slip_id, action, new_status, notes, action_by, created_at')
+          .eq('slip_id', slipId)
+          .order('created_at', ascending: true);
+      return List<Map<String, dynamic>>.from(rows);
+    } catch (e) {
+      throw Exception('โหลดประวัติการตรวจสลิปไม่สำเร็จ: $e');
+    }
+  }
 
   // List payment slips for admin review (no DB joins to avoid schema-cache relationship issues)
   static Future<List<Map<String, dynamic>>> listPaymentSlips({
@@ -291,17 +345,17 @@ class PaymentService {
       // slip status filter (based on columns instead of slip_status)
       switch (status) {
         case 'pending':
-          // waiting for admin: not linked to payment and not rejected
-          query = query
-              .isFilter('payment_id', null)
-              .isFilter('rejection_reason', null);
+          // ยังไม่ได้ตรวจ: ยังไม่มีการเชื่อม payment และยังไม่มี verified_at
+          query =
+              query.isFilter('payment_id', null).isFilter('verified_at', null);
           break;
         case 'rejected':
-          // explicitly rejected
-          query = query.not('rejection_reason', 'is', null);
+          // ถูกปฏิเสธ: ยังไม่มี payment แต่มีการตรวจแล้ว (verified_at)
+          query =
+              query.isFilter('payment_id', null).not('verified_at', 'is', null);
           break;
         case 'verified':
-          // linked to a payment
+          // อนุมัติแล้ว: มี payment แล้ว
           query = query.not('payment_id', 'is', null);
           break;
         case 'all':
@@ -927,8 +981,8 @@ class PaymentService {
         q = q.inFilter('invoice_id', invoiceIds);
       }
 
-      // ถือเป็น "รอตรวจสอบ" เฉพาะสลิปที่ยังไม่ถูกผูกกับ payment และยังไม่ถูกปฏิเสธ
-      q = q.isFilter('payment_id', null).isFilter('rejection_reason', null);
+      // ถือเป็น "รอตรวจสอบ" เมื่อยังไม่มีการตรวจ (ยังไม่มี verified_at) และยังไม่ผูก payment
+      q = q.isFilter('payment_id', null).isFilter('verified_at', null);
 
       final rows = await q;
       final list = List<Map<String, dynamic>>.from(rows);
@@ -938,6 +992,35 @@ class PaymentService {
           .toSet();
     } catch (e) {
       throw Exception('โหลดสถานะสลิปที่รอตรวจสอบไม่สำเร็จ: $e');
+    }
+  }
+
+  // คืนชุด invoice_id ที่มีสลิปล่าสุดสถานะถูกปฏิเสธ (ยังไม่มี payment แต่มี verified_at)
+  static Future<Set<String>> getInvoicesWithRejectedSlip({
+    List<String>? invoiceIds,
+    String? tenantId,
+  }) async {
+    try {
+      var q = _supabase.from('payment_slips').select('invoice_id');
+
+      if (tenantId != null && tenantId.isNotEmpty) {
+        q = q.eq('tenant_id', tenantId);
+      }
+      if (invoiceIds != null && invoiceIds.isNotEmpty) {
+        q = q.inFilter('invoice_id', invoiceIds);
+      }
+
+      // ถูกปฏิเสธ = ยังไม่มี payment แต่มีการตรวจแล้ว
+      q = q.isFilter('payment_id', null).not('verified_at', 'is', null);
+
+      final rows = await q;
+      final list = List<Map<String, dynamic>>.from(rows);
+      return list
+          .map((r) => (r['invoice_id'] ?? '').toString())
+          .where((id) => id.isNotEmpty)
+          .toSet();
+    } catch (e) {
+      throw Exception('โหลดสถานะสลิปที่ถูกปฏิเสธไม่สำเร็จ: $e');
     }
   }
 }

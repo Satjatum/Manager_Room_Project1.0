@@ -518,7 +518,7 @@ class _PaymentVerificationDetailPageState
                   ),
                 ),
                 const SizedBox(width: 8),
-                _invoiceStatusChip(invoiceStatus),
+                _slipStatusChip(_slip),
               ],
             ),
             const SizedBox(height: 8),
@@ -789,7 +789,7 @@ class _PaymentVerificationDetailPageState
                   ),
                 ),
                 const SizedBox(width: 8),
-                _invoiceStatusChip(invoiceStatus),
+                // แสดงเฉพาะสถานะสลิปในหน้านี้ หากเปิดด้วย invoice อย่างเดียวจะไม่มีป้ายสถานะ
               ],
             ),
             const Divider(height: 20),
@@ -985,9 +985,22 @@ class _PaymentVerificationDetailPageState
     final invoiceStatus =
         (_slip?['invoice_status'] ?? inv['invoice_status'] ?? 'pending')
             .toString();
-    final canAction = invoiceStatus != 'paid' && invoiceStatus != 'cancelled';
+    final isVerified = (_slip?['payment_id'] != null &&
+        _slip!['payment_id'].toString().isNotEmpty);
+    final isRejected = (!isVerified &&
+        (_slip?['rejection_reason'] != null ||
+            (_slip?['verified_at'] != null &&
+                _slip!['verified_at'].toString().isNotEmpty)));
+    final slipPending = !isVerified &&
+        !isRejected; // = ยังไม่มี payment และยังไม่มี verified_at
+    final canAction =
+        slipPending && invoiceStatus != 'paid' && invoiceStatus != 'cancelled';
     String? bannerText;
-    if (!canAction) {
+    if (!slipPending) {
+      bannerText = isVerified
+          ? 'สลิปนี้อนุมัติแล้ว ไม่สามารถดำเนินการซ้ำได้'
+          : 'สลิปนี้ถูกปฏิเสธแล้ว ผู้เช่าสามารถส่งใหม่ได้';
+    } else if (invoiceStatus == 'paid' || invoiceStatus == 'cancelled') {
       bannerText = invoiceStatus == 'paid'
           ? 'บิลนี้ชำระแล้ว ไม่สามารถดำเนินการได้'
           : 'บิลนี้ถูกยกเลิกแล้ว ไม่สามารถดำเนินการได้';
@@ -1044,31 +1057,27 @@ class _PaymentVerificationDetailPageState
     );
   }
 
-  // ป้ายสถานะของบิลตาม Database
-  Widget _invoiceStatusChip(String status) {
+  // ยกเลิกป้ายสถานะบิล: ในหน้านี้แสดงเฉพาะสถานะของสลิป
+
+  // ป้ายสถานะของสลิป (pending/approved/rejected)
+  Widget _slipStatusChip(Map<String, dynamic>? slip) {
+    final isVerified = (slip?['payment_id'] != null &&
+        slip!['payment_id'].toString().isNotEmpty);
+    final isRejected = (!isVerified &&
+        (slip?['rejection_reason'] != null ||
+            (slip?['verified_at'] != null &&
+                slip!['verified_at'].toString().isNotEmpty)));
     Color c;
     String t;
-    switch (status) {
-      case 'paid':
-        c = const Color(0xFF22C55E);
-        t = 'ชำระแล้ว';
-        break;
-      case 'overdue':
-        c = const Color(0xFFEF4444);
-        t = 'เกินกำหนด';
-        break;
-      case 'partial':
-        c = const Color(0xFFF59E0B);
-        t = 'ชำระบางส่วน';
-        break;
-      case 'cancelled':
-        c = Colors.grey;
-        t = 'ยกเลิก';
-        break;
-      case 'pending':
-      default:
-        c = const Color(0xFF3B82F6);
-        t = 'รอดำเนินการ';
+    if (isVerified) {
+      c = const Color(0xFF22C55E);
+      t = 'สลิป: อนุมัติแล้ว';
+    } else if (isRejected) {
+      c = const Color(0xFFEF4444);
+      t = 'สลิป: ถูกปฏิเสธ';
+    } else {
+      c = const Color(0xFF3B82F6);
+      t = 'สลิป: รอตรวจสอบ';
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -1083,6 +1092,4 @@ class _PaymentVerificationDetailPageState
       ),
     );
   }
-
-  // slip status chip removed (invoice-level verification only)
 }

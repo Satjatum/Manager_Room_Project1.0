@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+﻿﻿﻿import 'package:flutter/material.dart';
 import 'package:manager_room_project/middleware/auth_middleware.dart';
 import 'package:manager_room_project/services/invoice_service.dart';
 import 'package:manager_room_project/services/payment_service.dart';
@@ -18,6 +18,7 @@ class _TenantBillListPageState extends State<TenantBillListPage>
   List<Map<String, dynamic>> _invoices = [];
   late TabController _tabController; // pending/partial/paid/overdue/cancelled
   Set<String> _pendingInvoiceIds = <String>{};
+  Set<String> _rejectedInvoiceIds = <String>{};
 
   @override
   void initState() {
@@ -88,9 +89,15 @@ class _TenantBillListPageState extends State<TenantBillListPage>
           invoiceIds: ids,
           tenantId: user.tenantId,
         );
+        final rejected = await PaymentService.getInvoicesWithRejectedSlip(
+          invoiceIds: ids,
+          tenantId: user.tenantId,
+        );
         _pendingInvoiceIds = pending;
+        _rejectedInvoiceIds = rejected;
       } catch (_) {
         _pendingInvoiceIds = <String>{};
+        _rejectedInvoiceIds = <String>{};
       }
       setState(() {
         _invoices = invList;
@@ -223,6 +230,10 @@ class _TenantBillListPageState extends State<TenantBillListPage>
     final bool isPendingReview = _pendingInvoiceIds.contains(invoiceId) &&
         status != 'paid' &&
         status != 'cancelled';
+    final bool isRejected = !isPendingReview &&
+        _rejectedInvoiceIds.contains(invoiceId) &&
+        status != 'paid' &&
+        status != 'cancelled';
 
     Color statusColor;
     String statusLabel;
@@ -311,6 +322,24 @@ class _TenantBillListPageState extends State<TenantBillListPage>
                       ),
                     ),
                   ),
+                if (isRejected)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFEBEE),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Color(0xFFEF5350)),
+                    ),
+                    child: const Text(
+                      'ถูกปฏิเสธ',
+                      style: TextStyle(
+                        color: Color(0xFFD32F2F),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 const Spacer(),
                 const Icon(Icons.chevron_right, color: Colors.black38),
               ],
@@ -320,7 +349,7 @@ class _TenantBillListPageState extends State<TenantBillListPage>
 
             // Title: ชื่อผู้เช่า - ประเภทห้อง เลขที่ห้อง
             Text(
-              '$tenantName - $roomcate เลขที่ $roomNumber',
+              '$tenantName - $roomcateเลขที่ $roomNumber',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(

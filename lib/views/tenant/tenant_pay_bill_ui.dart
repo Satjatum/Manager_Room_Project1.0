@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+﻿﻿import 'dart:io';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -61,7 +61,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       var inv = await InvoiceService.getInvoiceById(widget.invoiceId);
       // Hybrid: รีคอมพิวต์ค่าปรับล่าช้า ก่อนกรอกจำนวนเงินเริ่มต้น
       try {
-        final changed = await InvoiceService.recomputeLateFeeFromSettings(widget.invoiceId);
+        final changed =
+            await InvoiceService.recomputeLateFeeFromSettings(widget.invoiceId);
         if (changed) {
           inv = await InvoiceService.getInvoiceById(widget.invoiceId);
         }
@@ -240,6 +241,31 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     }
     setState(() => _submitting = true);
     try {
+      // Pre-check resubmission rule (Option C) to avoid uploading files unnecessarily
+      try {
+        final latest = await PaymentService.getLatestSlipForInvoice(
+          widget.invoiceId,
+          tenantId: (_invoice!['tenant_id'] ?? '').toString(),
+        );
+        final paymentId = (latest?['payment_id'] ?? '').toString();
+        final verifiedAt = (latest?['verified_at'] ?? '').toString();
+        if (paymentId.isNotEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content:
+                    Text('บิลนี้มีสลิปที่อนุมัติแล้ว ไม่สามารถส่งซ้ำได้')));
+          }
+          return;
+        }
+        if (latest != null && verifiedAt.isEmpty && paymentId.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text('มีสลิปรอตรวจสอบอยู่ กรุณารอผลก่อนส่งใหม่')));
+          }
+          return;
+        }
+      } catch (_) {}
+
       // Upload all images first
       final urls = <String>[];
       for (final f in _slipFiles) {
@@ -426,8 +452,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                           ),
                           const SizedBox(height: 12),
                           _buildSection(
-                            title:
-                                'อัปโหลดสลิป (ได้หลายรูป สูงสุด $_maxFiles รูป)',
+                            title: 'อัปโหลดสลิป (สูงสุด $_maxFiles รูป)',
                             icon: Icons.upload_file_outlined,
                             child: _buildSlipUploader(),
                           ),

@@ -110,12 +110,13 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
             );
             _latestSlip = slip;
             final paymentId = (slip?['payment_id'] ?? '').toString();
+            final verifiedAt = (slip?['verified_at'] ?? '').toString();
             final rejection = (slip?['rejection_reason'] ?? '').toString();
             _rejectionReason = rejection;
+            final isVerified = paymentId.isNotEmpty;
             _rejectedSlip =
-                slip != null && paymentId.isEmpty && rejection.isNotEmpty;
-            _pendingVerification =
-                slip != null && paymentId.isEmpty && rejection.isEmpty;
+                !isVerified && verifiedAt.isNotEmpty; // ไม่พึ่งเฉพาะเหตุผล
+            _pendingVerification = !isVerified && verifiedAt.isEmpty;
           } else {
             _latestSlip = null;
             _pendingVerification = false;

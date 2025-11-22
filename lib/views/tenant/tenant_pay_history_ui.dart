@@ -296,8 +296,12 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
     final tenantNotes = slip['tenant_notes']?.toString() ?? '';
     final rejectionReason = slip['rejection_reason']?.toString() ?? '';
     final slipImage = slip['slip_image']?.toString() ?? '';
-    final isVerified = slip['payment_id'] != null;
-    final isRejected = rejectionReason.isNotEmpty;
+    final isVerified =
+        slip['payment_id'] != null && slip['payment_id'].toString().isNotEmpty;
+    final isRejected = !isVerified &&
+        (slip['rejection_reason'] != null ||
+            (slip['verified_at'] != null &&
+                slip['verified_at'].toString().isNotEmpty));
 
     // กำหนดสีและสถานะ
     Color statusColor;
@@ -310,7 +314,7 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
       statusIcon = Icons.check_circle;
     } else if (isRejected) {
       statusColor = const Color(0xFFEF4444);
-      statusText = 'ปฏิเสธ';
+      statusText = 'ถูกปฏิเสธ';
       statusIcon = Icons.cancel;
     } else {
       statusColor = const Color(0xFFF59E0B);
