@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>ต้องการใช้กล้องเพื่อถ่ายรูปภาพสำหรับรายงานปัญหาและเพิ่มรูปภาพสาขา</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ต้องการเข้าถึงคลังรูปภาพเพื่อเลือกรูปภาพสำหรับรายงานปัญหาและเพิ่มรูปภาพสาขา</string>
 </dict>
 </plist>

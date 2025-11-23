@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import '../../services/issue_service.dart';
 import '../../services/image_service.dart';
 import '../../services/auth_service.dart';
@@ -38,7 +39,8 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
 
   String _selectedIssueType = 'repair';
 
-  List<XFile> _selectedImageFiles = [];
+  List<XFile> _selectedImages = [];
+  static const int maxImages = 10;
   UserModel? _currentUser;
 
   @override
@@ -136,139 +138,200 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
   }
 
   Future<void> _pickImages() async {
+    if (_selectedImages.length >= maxImages) {
+      _showErrorSnackBar('สามารถเลือกรูปภาพได้สูงสุด $maxImages รูป');
+      return;
+    }
+
     try {
-      final ImagePicker picker = ImagePicker();
-
       if (kIsWeb) {
-        final List<XFile> images = await picker.pickMultiImage(
-          maxWidth: 1920,
-          maxHeight: 1080,
-          imageQuality: 85,
-        );
-
-        if (images.isNotEmpty) {
-          setState(() {
-            _selectedImageFiles.addAll(images);
-          });
-          _showSuccessSnackBar('เลือกรูปภาพ ${images.length} รูป');
-        }
+        await _pickImagesForWeb();
       } else {
-        final source = await showDialog<ImageSource>(
-          context: context,
-          builder: (context) => AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppTheme.primary.withOpacity(0.8),
-                        AppTheme.primary,
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.photo_camera,
-                      color: Colors.white, size: 24),
-                ),
-                const SizedBox(width: 12),
-                const Text('เลือกรูปภาพจาก'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Colors.grey.shade200),
-                  ),
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child:
-                          Icon(Icons.camera_alt, color: Colors.blue.shade700),
-                    ),
-                    title: const Text('ถ่ายรูป'),
-                    subtitle: Text('ใช้กล้องถ่ายภาพ',
-                        style:
-                            TextStyle(fontSize: 12, color: Colors.grey[600])),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => Navigator.pop(context, ImageSource.camera),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Colors.grey.shade200),
-                  ),
-                  child: ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(Icons.photo_library,
-                          color: Colors.green.shade700),
-                    ),
-                    title: const Text('คลังรูปภาพ'),
-                    subtitle: Text('เลือกจากคลังภาพ',
-                        style:
-                            TextStyle(fontSize: 12, color: Colors.grey[600])),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => Navigator.pop(context, ImageSource.gallery),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-
-        if (source != null) {
-          if (source == ImageSource.camera) {
-            final XFile? photo = await picker.pickImage(
-              source: ImageSource.camera,
-              maxWidth: 1920,
-              maxHeight: 1080,
-              imageQuality: 85,
-            );
-
-            if (photo != null) {
-              setState(() {
-                _selectedImageFiles.add(photo);
-              });
-              _showSuccessSnackBar('ถ่ายรูปสำเร็จ');
-            }
-          } else {
-            final List<XFile> images = await picker.pickMultiImage(
-              maxWidth: 1920,
-              maxHeight: 1080,
-              imageQuality: 85,
-            );
-
-            if (images.isNotEmpty) {
-              setState(() {
-                _selectedImageFiles.addAll(images);
-              });
-              _showSuccessSnackBar('เลือกรูปภาพ ${images.length} รูป');
-            }
-          }
-        }
+        await _pickImagesForMobile();
       }
     } catch (e) {
-      _showErrorSnackBar('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e');
+      if (mounted) {
+        _showErrorSnackBar('เกิดข้อผิดพลาดในการเลือกภาพ: $e');
+      }
     }
+  }
+
+  Future<void> _pickImagesForWeb() async {
+    final ImagePicker picker = ImagePicker();
+    final List<XFile> images = await picker.pickMultiImage(
+      maxWidth: 1920,
+      maxHeight: 1080,
+      imageQuality: 85,
+    );
+
+    if (images.isNotEmpty) {
+      int remainingSlots = maxImages - _selectedImages.length;
+      List<XFile> imagesToAdd = images.take(remainingSlots).toList();
+
+      setState(() {
+        _selectedImages.addAll(imagesToAdd);
+      });
+
+      if (images.length > remainingSlots) {
+        _showErrorSnackBar(
+            'เลือกได้เพียง $remainingSlots รูป (สูงสุด $maxImages รูป)');
+      } else {
+        _showSuccessSnackBar('เลือกรูปภาพ ${imagesToAdd.length} รูป');
+      }
+    }
+  }
+
+  Future<void> _pickImagesForMobile() async {
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    Text(
+                      'เลือกภาพ',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () =>
+                                Navigator.pop(context, ImageSource.camera),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.camera_alt,
+                                      size: 40, color: Color(0xFF10B981)),
+                                  SizedBox(height: 8),
+                                  Text('กล้อง',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w500)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () =>
+                                Navigator.pop(context, ImageSource.gallery),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.photo_library,
+                                      size: 40, color: Color(0xFF10B981)),
+                                  SizedBox(height: 8),
+                                  Text('แกลเลอรี่',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w500)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text('ยกเลิก',
+                            style: TextStyle(color: Colors.grey[600])),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    final ImagePicker picker = ImagePicker();
+
+    if (source == ImageSource.camera) {
+      final XFile? photo = await picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (photo != null) {
+        setState(() {
+          _selectedImages.add(photo);
+        });
+        _showSuccessSnackBar('ถ่ายรูปสำเร็จ');
+      }
+    } else {
+      final List<XFile> images = await picker.pickMultiImage(
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (images.isNotEmpty) {
+        int remainingSlots = maxImages - _selectedImages.length;
+        List<XFile> imagesToAdd = images.take(remainingSlots).toList();
+
+        setState(() {
+          _selectedImages.addAll(imagesToAdd);
+        });
+
+        if (images.length > remainingSlots) {
+          _showErrorSnackBar(
+              'เลือกได้เพียง $remainingSlots รูป (สูงสุด $maxImages รูป)');
+        } else {
+          _showSuccessSnackBar('เลือกรูปภาพ ${imagesToAdd.length} รูป');
+        }
+      }
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+    });
+    _showSuccessSnackBar('ลบรูปภาพแล้ว');
   }
 
   Future<void> _submitIssue() async {
@@ -335,9 +398,8 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                   _buildSummaryRow('หัวข้อ', _titleController.text),
                   _buildSummaryRow(
                       'ประเภท', _getIssueTypeText(_selectedIssueType)),
-                  if (_selectedImageFiles.isNotEmpty)
-                    _buildSummaryRow(
-                        'รูปภาพ', '${_selectedImageFiles.length} รูป'),
+                  if (_selectedImages.isNotEmpty)
+                    _buildSummaryRow('รูปภาพ', '${_selectedImages.length} รูป'),
                 ],
               ),
             ),
@@ -382,9 +444,9 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
       if (result['success']) {
         final issueId = result['data']['issue_id'];
 
-        if (_selectedImageFiles.isNotEmpty) {
-          for (int i = 0; i < _selectedImageFiles.length; i++) {
-            final imageFile = _selectedImageFiles[i];
+        if (_selectedImages.isNotEmpty) {
+          for (int i = 0; i < _selectedImages.length; i++) {
+            final imageFile = _selectedImages[i];
 
             // Prepare naming parts
             final now = DateTime.now();
@@ -448,7 +510,6 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                 uploadResult['url'],
               );
             } else {
-              // Surface upload error to user for quick diagnosis
               _showErrorSnackBar(
                   uploadResult['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
             }
@@ -566,48 +627,88 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          'รายงานปัญหา',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
-      ),
-      body: _isLoadingData
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            // Custom Header
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
                 children: [
-                  CircularProgressIndicator(color: AppTheme.primary),
-                  const SizedBox(height: 16),
-                  Text(
-                    'กำลังโหลดข้อมูล...',
-                    style: TextStyle(color: Colors.grey[600]),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        color: Colors.black87),
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    tooltip: 'ย้อนกลับ',
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          'แจ้งปัญหา',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'สำหรับแจ้งปัญหา',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-            )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // ไม่ต้องแสดงข้อมูลห้องพักตามคำขอ
-                    // เพิ่มฟอร์มให้ครบตาม schema issue_reports: issue_type, issue_title, issue_desc
-                    _buildTypeAndPriorityCard(),
-                    const SizedBox(height: 16),
-                    _buildImagesCard(),
-                    const SizedBox(height: 16),
-                    _buildSubmitButton(),
-                    const SizedBox(height: 16),
-                  ],
-                ),
-              ),
             ),
+
+            // Content
+            Expanded(
+              child: _isLoadingData
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(color: AppTheme.primary),
+                          const SizedBox(height: 16),
+                          Text(
+                            'กำลังโหลดข้อมูล...',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildTypeAndPriorityCard(),
+                            const SizedBox(height: 16),
+                            _buildImagesCard(),
+                          ],
+                        ),
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _buildBottomNavBar(),
     );
   }
 
@@ -717,9 +818,9 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
 
   Widget _buildTypeAndPriorityCard() {
     return _buildModernCard(
-      'ประเภทและความสำคัญ',
+      'หัวเรื่องการแจ้งปัญหา',
       Icons.category_outlined,
-      Colors.green,
+      AppTheme.primary,
       Column(
         children: [
           TextFormField(
@@ -751,6 +852,7 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
           ),
           SizedBox(height: 16),
           DropdownButtonFormField<String>(
+            dropdownColor: Colors.white,
             value: _selectedIssueType,
             decoration: InputDecoration(
               labelText: 'ประเภทปัญหา',
@@ -819,12 +921,12 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
 
   Widget _buildImagesCard() {
     return _buildModernCard(
-      'รูปภาพประกอบ (${_selectedImageFiles.length})',
+      'รูปภาพประกอบ (${_selectedImages.length}/$maxImages)',
       Icons.photo_library_outlined,
-      Colors.purple,
+      AppTheme.primary,
       Column(
         children: [
-          if (_selectedImageFiles.isEmpty)
+          if (_selectedImages.isEmpty)
             InkWell(
               onTap: _pickImages,
               borderRadius: BorderRadius.circular(12),
@@ -841,13 +943,13 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.purple.shade50,
+                        color: Colors.white,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.add_photo_alternate,
                         size: 48,
-                        color: Colors.purple.shade400,
+                        color: AppTheme.primary,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -870,6 +972,15 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                       ),
                       textAlign: TextAlign.center,
                     ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'สูงสุด $maxImages รูป',
+                      style: TextStyle(
+                        color: Colors.blue.shade700,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -885,9 +996,9 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
                   ),
-                  itemCount: _selectedImageFiles.length,
+                  itemCount: _selectedImages.length,
                   itemBuilder: (context, index) {
-                    final imageFile = _selectedImageFiles[index];
+                    final imageFile = _selectedImages[index];
 
                     return Stack(
                       children: [
@@ -927,11 +1038,7 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                           top: 4,
                           right: 4,
                           child: InkWell(
-                            onTap: () {
-                              setState(() {
-                                _selectedImageFiles.removeAt(index);
-                              });
-                            },
+                            onTap: () => _removeImage(index),
                             child: Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
@@ -957,23 +1064,24 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: _pickImages,
-                  icon: Icon(
-                      kIsWeb ? Icons.add_photo_alternate : Icons.camera_alt),
-                  label: const Text('เพิ่มรูปเพิ่มเติม'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.primary,
-                    side: BorderSide(color: AppTheme.primary),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                if (_selectedImages.length < maxImages)
+                  OutlinedButton.icon(
+                    onPressed: _pickImages,
+                    icon: Icon(
+                        kIsWeb ? Icons.add_photo_alternate : Icons.camera_alt),
+                    label: const Text('เพิ่มรูปเพิ่มเติม'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primary,
+                      side: BorderSide(color: AppTheme.primary),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
         ],
@@ -981,55 +1089,68 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
     );
   }
 
-  Widget _buildSubmitButton() {
-    return ElevatedButton(
-      onPressed: _isLoading ? null : _submitIssue,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        elevation: 2,
-        disabledBackgroundColor: Colors.grey[300],
+  Widget _buildBottomNavBar() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: Offset(0, -2),
+          ),
+        ],
       ),
-      child: _isLoading
-          ? Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'กำลังส่งข้อมูล...',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            )
-          : Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.send, size: 20),
-                const SizedBox(width: 8),
-                const Text(
-                  'รายงานปัญหา',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+      child: SafeArea(
+        child: ElevatedButton(
+          onPressed: _isLoading ? null : _submitIssue,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primary,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
+            elevation: 0,
+            disabledBackgroundColor: Colors.grey[300],
+          ),
+          child: _isLoading
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'กำลังส่งข้อมูล...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'รายงานปัญหา',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      ),
     );
   }
 

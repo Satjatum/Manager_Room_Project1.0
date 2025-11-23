@@ -1219,7 +1219,7 @@ class _TenantListUIState extends State<TenantListUI> {
       statusLabel = 'ค้างชำระ';
       statusColor = Colors.orange.shade700;
     } else {
-      statusLabel = isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน';
+      statusLabel = isActive ? 'เปิดใช้งาน' : 'ปิดใช้งาน';
       statusColor = isActive ? const Color(0xFF10B981) : Colors.grey;
     }
 

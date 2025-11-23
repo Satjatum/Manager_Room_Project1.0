@@ -1673,8 +1673,6 @@ class _MeterListUiState extends State<MeterListUi> {
                       ),
                       decoration: InputDecoration(
                         labelText: 'ค่าน้ำเดือนก่อน',
-                        helperText:
-                            'อนุญาตแก้ไขได้ เนื่องจากไม่มีข้อมูลเดือนก่อนของรอบนี้',
                         border: const OutlineInputBorder(),
                         focusedBorder: const OutlineInputBorder(
                           borderSide: BorderSide(
@@ -1734,7 +1732,7 @@ class _MeterListUiState extends State<MeterListUi> {
                         ),
                       ),
                     ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: waterRateId != null && curMap != null
                         ? curMap[waterRateId!]
@@ -1786,8 +1784,6 @@ class _MeterListUiState extends State<MeterListUi> {
                       ),
                       decoration: InputDecoration(
                         labelText: 'ค่าไฟเดือนก่อน',
-                        helperText:
-                            'อนุญาตแก้ไขได้ เนื่องจากไม่มีข้อมูลเดือนก่อนของรอบนี้',
                         border: const OutlineInputBorder(),
                         focusedBorder: const OutlineInputBorder(
                           borderSide: BorderSide(
@@ -1847,7 +1843,7 @@ class _MeterListUiState extends State<MeterListUi> {
                         ),
                       ),
                     ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: electricRateId != null && curMap != null
                         ? curMap[electricRateId!]
@@ -1880,42 +1876,48 @@ class _MeterListUiState extends State<MeterListUi> {
             ),
           ),
           actions: [
-            Column(
+            Row(
               children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary, // เขียว
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    onPressed: () async {
-                      await _updateRow(roomId);
-                      if (context.mounted) Navigator.pop(context);
-                    },
-                    child: const Text(
-                      'บันทึก',
+                    child: Text(
+                      'ยกเลิก',
                       style: TextStyle(
-                        fontSize: 16,
+                        color: Colors.grey.shade700,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 5),
                 SizedBox(
-                  width: double.infinity,
+                  width: 8,
+                ),
+                Expanded(
                   child: ElevatedButton(
+                    onPressed: () async {
+                      await _updateRow(roomId);
+                      if (context.mounted) Navigator.pop(context);
+                    },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppTheme.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'ยกเลิก',
+                    child: Text(
+                      'บันทึก',
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
                         color: Colors.white,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -2162,48 +2164,54 @@ class _MeterListUiState extends State<MeterListUi> {
             ),
           ),
           actions: [
-            Column(
+            Row(
               children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary, // เขียว
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    onPressed: () async {
-                      await _updateRow(roomId);
-                      if (context.mounted) Navigator.pop(context);
-                    },
-                    child: const Text(
-                      'บันทึก',
+                    child: Text(
+                      'ยกเลิก',
                       style: TextStyle(
-                        fontSize: 16,
+                        color: Colors.grey.shade700,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 5),
                 SizedBox(
-                  width: double.infinity,
+                  width: 8,
+                ),
+                Expanded(
                   child: ElevatedButton(
+                    onPressed: () async {
+                      await _updateRow(roomId);
+                      if (context.mounted) Navigator.pop(context);
+                    },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppTheme.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'ยกเลิก',
+                    child: Text(
+                      'บันทึก',
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
                         color: Colors.white,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
                 ),
               ],
-            )
+            ),
           ],
         );
       },

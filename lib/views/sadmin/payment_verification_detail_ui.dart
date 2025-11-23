@@ -685,19 +685,6 @@ class _PaymentVerificationDetailPageState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Text('หลักฐานการชำระ',
-                style: TextStyle(fontWeight: FontWeight.w700)),
-            const Spacer(),
-            IconButton(
-              onPressed: _openSlip,
-              icon: const Icon(Icons.open_in_new),
-              tooltip: 'เปิดในเบราว์เซอร์',
-            )
-          ],
-        ),
-        const SizedBox(height: 8),
         if (files.isNotEmpty)
           SizedBox(
             height: 80,
