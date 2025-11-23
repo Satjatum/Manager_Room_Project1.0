@@ -573,15 +573,140 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
         return StatefulBuilder(
           builder: (context, setLocalState) {
             Future<void> pickImages() async {
+              // Check if already have 10 images
+              if (localImages.length >= 10) {
+                _showErrorSnackBar('สามารถแนบรูปภาพได้สูงสุด 10 รูปเท่านั้น');
+                return;
+              }
+
               try {
                 final picker = ImagePicker();
-                final picked = await picker.pickMultiImage(
-                    maxWidth: 1920, maxHeight: 1080, imageQuality: 85);
-                if (picked.isNotEmpty) {
-                  final remaining = 10 - localImages.length;
-                  if (remaining > 0) {
+                ImageSource? source;
+
+                // For web, use gallery only
+                if (kIsWeb) {
+                  source = ImageSource.gallery;
+                } else {
+                  // For mobile, show bottom sheet to select camera or gallery
+                  source = await showModalBottomSheet<ImageSource>(
+                    context: context,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    builder: (BuildContext context) {
+                      return SafeArea(
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              const Text(
+                                'เลือกรูปภาพ',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: () => Navigator.pop(
+                                          context, ImageSource.camera),
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(20),
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                              color: Colors.grey.shade300),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Icon(Icons.camera_alt,
+                                                size: 40,
+                                                color: Color(0xFF10B981)),
+                                            const SizedBox(height: 8),
+                                            const Text('ถ่ายรูป',
+                                                style: TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.w500)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: () => Navigator.pop(
+                                          context, ImageSource.gallery),
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(20),
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                              color: Colors.grey.shade300),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Icon(Icons.photo_library,
+                                                size: 40,
+                                                color: Color(0xFF10B981)),
+                                            const SizedBox(height: 8),
+                                            const Text('แกลเลอรี่',
+                                                style: TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.w500)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              SizedBox(
+                                width: double.infinity,
+                                child: TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('ยกเลิก',
+                                      style: TextStyle(color: Colors.grey)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }
+
+                if (source != null) {
+                  final picked = await picker.pickImage(
+                    source: source,
+                    maxWidth: 1920,
+                    maxHeight: 1080,
+                    imageQuality: 85,
+                  );
+
+                  if (picked != null) {
                     setLocalState(() {
-                      localImages.addAll(picked.take(remaining));
+                      localImages.add(picked);
                     });
                   }
                 }

@@ -324,6 +324,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           padding: EdgeInsets.all(24),
@@ -355,10 +356,10 @@ class _BranchlistUiState extends State<BranchlistUi> {
               // Title
               Text(
                 currentStatus
-                    ? 'คุณต้องการปิดใช้งานสาขานี้หรือไม่?'
-                    : 'คุณต้องการเปิดใช้งานสาขานี้หรือไม่?',
+                    ? 'ปิดใช้งานสาขานี้หรือไม่?'
+                    : 'เปิดใช้งานสาขานี้หรือไม่?',
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -380,7 +381,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                     SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        branchName,
+                        'สาขา$branchName',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -483,13 +484,6 @@ class _BranchlistUiState extends State<BranchlistUi> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            currentStatus
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            size: 18,
-                          ),
-                          SizedBox(width: 8),
                           Text(
                             currentStatus ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
                             style: TextStyle(
@@ -643,6 +637,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           padding: EdgeInsets.all(24),
@@ -667,9 +662,9 @@ class _BranchlistUiState extends State<BranchlistUi> {
 
               // Title
               Text(
-                'คุณต้องการลบสาขานี้หรือไม่?',
+                'ลบสาขานี้หรือไม่?',
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -777,7 +772,6 @@ class _BranchlistUiState extends State<BranchlistUi> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.delete_outline, size: 18),
                           SizedBox(width: 8),
                           Text(
                             'ลบ',

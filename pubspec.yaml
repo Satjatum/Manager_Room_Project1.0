@@ -38,6 +38,10 @@ dependencies:
   # Shared Preferences
   shared_preferences: ^2.2.2
 
+    # permission handler
+  permission_handler: ^11.3.1
+
+
   # file picker
   file_picker: ^10.3.3
 

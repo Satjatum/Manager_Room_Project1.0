@@ -2107,12 +2107,8 @@ class _TenantAddUIState extends State<TenantAddUI>
             // อัปโหลดเอกสาร
             OutlinedButton.icon(
               onPressed: _pickDocument,
-              icon: Icon(
-                Icons.upload_file,
-                color: Colors.black,
-              ),
               label: Text(
-                _documentName ?? 'อัปโหลดเอกสารสัญญา (PDF, DOC, รูปภาพ)',
+                _documentName ?? 'อัปโหลดเอกสารสัญญา',
                 style: TextStyle(
                   color: Colors.black,
                 ),

@@ -327,11 +327,9 @@ class _RoomListUIState extends State<RoomListUI> {
 
               // Title
               Text(
-                currentActive
-                    ? 'คุณต้องการปิดใช้งานหรือไม่?'
-                    : 'คุณต้องการเปิดใช้งานหรือไม่?',
+                currentActive ? 'ปิดใช้งานหรือไม่?' : 'เปิดใช้งานหรือไม่?',
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -456,13 +454,6 @@ class _RoomListUIState extends State<RoomListUI> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            currentActive
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            size: 18,
-                          ),
-                          SizedBox(width: 8),
                           Text(
                             currentActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
                             style: TextStyle(
@@ -637,9 +628,9 @@ class _RoomListUIState extends State<RoomListUI> {
               SizedBox(height: 20),
               // Title
               Text(
-                'คุณต้องการลบ$categoryNameหรือไม่?',
+                'ลบ$categoryNameหรือไม่?',
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -744,8 +735,6 @@ class _RoomListUIState extends State<RoomListUI> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.delete_outline, size: 18),
-                          SizedBox(width: 8),
                           Text(
                             'ลบ',
                             style: TextStyle(
@@ -1672,22 +1661,22 @@ class _RoomListUIState extends State<RoomListUI> {
                           ),
                         ),
                       ),
-                    ],
-                  ),
-
-                  SizedBox(height: spacing * 1.2),
-
-                  Row(
-                    children: [
-                      // Room Type
                       if (room['room_type_name'] != null) ...[
-                        SizedBox(width: 8),
-                        _buildInfoChipResponsive(
-                          Icons.category,
-                          room['room_type_name'],
-                          Color(0xFF14B8A6),
-                          iconSize,
-                          chipFontSize,
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: spacing, vertical: spacing * 0.6),
+                          decoration: BoxDecoration(
+                            color: Colors.orange,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            room['room_type_name'],
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: chipFontSize,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ],
                     ],

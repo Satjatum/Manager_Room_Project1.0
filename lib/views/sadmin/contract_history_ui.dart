@@ -237,7 +237,7 @@ class _ContractHistoryUIState extends State<ContractHistoryUI> {
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                'สัญญา: ${c['contract_num'] ?? '-'}  | ${c['roomcate_name']}เลขที่${c['room_number'] ?? '-'}',
+                                                'สัญญา: ${c['contract_num'] ?? '-'} ',
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.w600,
                                                   fontSize: 15,

@@ -423,7 +423,7 @@ class _ContractAddUIState extends State<ContractAddUI> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'แก้ไขข้อมูลผู้เช่า',
+                      'เพิ่มสัญญาผู้เช่า',
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
@@ -432,7 +432,7 @@ class _ContractAddUIState extends State<ContractAddUI> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'สำหรับแก้ไขข้อมูลผู้เช่า',
+                      'สำหรับเพิ่มสัญญาผู้เช่า',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.black54,
@@ -856,9 +856,8 @@ class _ContractAddUIState extends State<ContractAddUI> {
             // อัปโหลดเอกสาร
             OutlinedButton.icon(
               onPressed: _saving ? null : _pickDocument,
-              icon: Icon(Icons.upload_file, color: Colors.black),
               label: Text(
-                _documentName ?? 'อัปโหลดเอกสารสัญญา (PDF, DOC, รูปภาพ)',
+                _documentName ?? 'อัปโหลดเอกสารสัญญา',
                 style: TextStyle(color: Colors.black),
               ),
               style: OutlinedButton.styleFrom(

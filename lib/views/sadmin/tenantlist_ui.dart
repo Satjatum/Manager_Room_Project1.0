@@ -271,6 +271,7 @@ class _TenantListUIState extends State<TenantListUI> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
@@ -310,6 +311,7 @@ class _TenantListUIState extends State<TenantListUI> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           padding: const EdgeInsets.all(24),
@@ -340,11 +342,9 @@ class _TenantListUIState extends State<TenantListUI> {
 
               // Title
               Text(
-                currentStatus
-                    ? 'คุณต้องการปิดใช้งานหรือไม่'
-                    : 'คุณต้องการเปิดใช้งานหรือไม่',
+                currentStatus ? 'ปิดใช้งานหรือไม่?' : 'เปิดใช้งานหรือไม่?',
                 style: const TextStyle(
-                  fontSize: 22,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -470,13 +470,6 @@ class _TenantListUIState extends State<TenantListUI> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            currentStatus
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
                           Text(
                             currentStatus ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
                             style: const TextStyle(
@@ -633,6 +626,7 @@ class _TenantListUIState extends State<TenantListUI> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           padding: const EdgeInsets.all(24),
@@ -657,9 +651,9 @@ class _TenantListUIState extends State<TenantListUI> {
 
               // Title
               const Text(
-                'คุณต้องการลบผู้เช่าหรือไม่?',
+                'ลบผู้เช่าหรือไม่?',
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -775,10 +769,8 @@ class _TenantListUIState extends State<TenantListUI> {
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.delete_outline, size: 18),
-                          SizedBox(width: 8),
                           Text(
-                            'ยืนยันการลบ',
+                            'ลบ',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,

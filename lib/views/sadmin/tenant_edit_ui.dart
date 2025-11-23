@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../services/tenant_service.dart';
 import '../../services/image_service.dart';
 import '../../services/user_service.dart';
@@ -10,6 +11,7 @@ import '../../middleware/auth_middleware.dart';
 import '../../models/user_models.dart';
 import '../widgets/colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:path/path.dart' as path;
 
 class TenantEditUI extends StatefulWidget {
   final String tenantId;
@@ -73,6 +75,13 @@ class _TenantEditUIState extends State<TenantEditUI>
   DateTime? _contractEndDate;
   int _paymentDay = 1;
   bool _contractPaid = true;
+
+  // Contract document
+  String? _documentPath;
+  String? _documentName;
+  Uint8List? _documentBytes;
+  String? _currentDocumentUrl;
+  bool _documentChanged = false;
 
   UserModel? _currentUser;
 
@@ -190,6 +199,7 @@ class _TenantEditUIState extends State<TenantEditUI>
             _contractNotesController.text = result['contract_note'] ?? '';
             _contractPaid = result['contract_paid'] ?? false;
             _paymentDay = result['payment_day'] ?? 1;
+            _currentDocumentUrl = result['contract_document'];
 
             if (result['start_date'] != null) {
               _contractStartDate = DateTime.parse(result['start_date']);
@@ -466,6 +476,50 @@ class _TenantEditUIState extends State<TenantEditUI>
           _contractEndDate = picked;
         }
       });
+    }
+  }
+
+  // เลือกไฟล์เอกสารสัญญา
+  Future<void> _pickDocument() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+        withData: true,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        setState(() {
+          _documentPath = file.path ?? '';
+          _documentName = file.name;
+          _documentBytes = file.bytes;
+          _documentChanged = true;
+        });
+      }
+    } catch (e) {
+      if (mounted && context.mounted) {
+        _showErrorSnackBar('เกิดข้อผิดพลาดในการเลือกไฟล์: $e');
+      }
+    }
+  }
+
+  // Helper function to get content type from extension
+  String _getContentType(String extension) {
+    switch (extension.toLowerCase()) {
+      case 'pdf':
+        return 'application/pdf';
+      case 'doc':
+        return 'application/msword';
+      case 'docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      default:
+        return 'application/octet-stream';
     }
   }
 
@@ -748,6 +802,80 @@ class _TenantEditUIState extends State<TenantEditUI>
     }
 
     try {
+      String? documentUrl = _currentDocumentUrl;
+
+      // Upload new document if changed
+      if (_documentChanged && _documentBytes != null && _documentName != null) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: AppTheme.primary),
+                const SizedBox(height: 16),
+                const Text('กำลังอัปโหลดเอกสาร...'),
+              ],
+            ),
+          ),
+        );
+
+        try {
+          // ดึง extension ของไฟล์เอกสาร
+          final extension =
+              path.extension(_documentName!).toLowerCase().replaceAll('.', '');
+
+          // ดึงชื่อจากเลขสัญญา
+          final contractNum = _activeContract!['contract_num'] ?? 'contract';
+
+          // สร้างชื่อไฟล์แบบ sequential
+          final now = DateTime.now();
+          final dateStr =
+              '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+
+          // หาเลขลำดับถัดไป
+          final files = await _supabase.storage.from('contracts').list();
+          int maxSeq = 0;
+          final pattern = RegExp(
+              '^contracts_${dateStr}_${RegExp.escape(contractNum)}_\\d{3}\\.$extension\$');
+
+          for (final f in files) {
+            if (pattern.hasMatch(f.name)) {
+              final parts = f.name.split('_');
+              if (parts.length >= 4) {
+                final seqWithExt = parts.last;
+                final seqStr = seqWithExt.split('.').first;
+                final seq = int.tryParse(seqStr) ?? 0;
+                if (seq > maxSeq) maxSeq = seq;
+              }
+            }
+          }
+
+          final nextSeq = (maxSeq + 1).toString().padLeft(3, '0');
+          final fileName =
+              'contracts_${dateStr}_${contractNum}_$nextSeq.$extension';
+
+          // อัปโหลดไฟล์
+          await _supabase.storage.from('contracts').uploadBinary(
+                fileName,
+                _documentBytes!,
+                fileOptions: FileOptions(
+                  upsert: false,
+                  contentType: _getContentType(extension),
+                ),
+              );
+
+          documentUrl =
+              _supabase.storage.from('contracts').getPublicUrl(fileName);
+
+          if (mounted) Navigator.of(context).pop();
+        } catch (e) {
+          if (mounted) Navigator.of(context).pop();
+          throw Exception('ไม่สามารถอัปโหลดเอกสารได้: $e');
+        }
+      }
+
       final contractData = {
         'start_date': _contractStartDate!.toIso8601String().split('T')[0],
         'end_date': _contractEndDate!.toIso8601String().split('T')[0],
@@ -760,6 +888,7 @@ class _TenantEditUIState extends State<TenantEditUI>
         'contract_note': _contractNotesController.text.trim().isEmpty
             ? null
             : _contractNotesController.text.trim(),
+        'contract_document': documentUrl,
         'updated_at': DateTime.now().toIso8601String(),
       };
 
@@ -1476,6 +1605,135 @@ class _TenantEditUIState extends State<TenantEditUI>
             ),
             maxLines: 3,
           ),
+          const SizedBox(height: 24),
+
+          // อัปโหลดเอกสารสัญญา
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.upload_file_outlined,
+                    color: Color(0xFF10B981), size: 20),
+              ),
+              SizedBox(width: 12),
+              Text(
+                'เอกสารสัญญา',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // แสดง document ปัจจุบัน หรือปุ่มอัปโหลด
+          if (_currentDocumentUrl != null && !_documentChanged) ...[
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.insert_drive_file, color: Colors.blue, size: 24),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'มีเอกสารแนบแล้ว',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          _currentDocumentUrl!.split('/').last,
+                          style:
+                              TextStyle(fontSize: 12, color: Colors.grey[700]),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.swap_horiz, color: Colors.blue),
+                    onPressed: _pickDocument,
+                    tooltip: 'เปลี่ยนเอกสาร',
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            OutlinedButton.icon(
+              onPressed: _pickDocument,
+              icon: Icon(
+                _documentChanged ? Icons.check_circle : Icons.upload_file,
+                color: _documentChanged ? Colors.green : Colors.black,
+              ),
+              label: Text(
+                _documentName ?? 'อัปโหลดเอกสารสัญญา',
+                style: TextStyle(
+                  color: _documentChanged ? Colors.green : Colors.black,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                minimumSize: Size(double.infinity, 50),
+                side: BorderSide(
+                  color: _documentChanged ? Colors.green : Colors.grey.shade300,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+            if (_documentName != null) ...[
+              SizedBox(height: 8),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _documentName!,
+                        style: TextStyle(fontSize: 13),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, size: 20),
+                      onPressed: () {
+                        setState(() {
+                          _documentPath = null;
+                          _documentName = null;
+                          _documentBytes = null;
+                          _documentChanged = false;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ],
       ),
     );

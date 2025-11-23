@@ -123,6 +123,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           padding: const EdgeInsets.all(24),
@@ -150,11 +151,9 @@ class _TenantDetailUIState extends State<TenantDetailUI>
               ),
               const SizedBox(height: 20),
               Text(
-                currentStatus
-                    ? 'คุณต้องการปิดใช้งานหรือไม่'
-                    : 'คุณต้องการเปิดใช้งานหรือไม่',
+                currentStatus ? 'ปิดใช้งานหรือไม่?' : 'เปิดใช้งานหรือไม่?',
                 style: const TextStyle(
-                  fontSize: 22,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -274,13 +273,6 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            currentStatus
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
                           Text(
                             currentStatus ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
                             style: const TextStyle(
@@ -351,6 +343,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           padding: const EdgeInsets.all(24),
@@ -375,9 +368,9 @@ class _TenantDetailUIState extends State<TenantDetailUI>
 
               // Title
               const Text(
-                'คุณต้องการลบผู้เช่าหรือไม่',
+                'ลบผู้เช่าหรือไม่?',
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -493,10 +486,8 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.delete_outline, size: 18),
-                          SizedBox(width: 8),
                           Text(
-                            'ยืนยันการลบ',
+                            'ลบ',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -1387,7 +1378,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'สัญญา: ${latest['contract_num'] ?? '-'}  | ${latest['roomcate_name']}เลขที่ ${latest['room_number'] ?? '-'}',
+                              'สัญญา: ${latest['contract_num'] ?? '-'} ',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey[700],
