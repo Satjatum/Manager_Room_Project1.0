@@ -2,7 +2,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path/path.dart' as path;
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:math';
 import 'package:uuid/uuid.dart'; // เพิ่ม UUID package
 
 class ImageService {
@@ -373,7 +372,8 @@ class ImageService {
     final ext = extension.toLowerCase().replaceAll('.', '');
 
     final safeFolder = _normalizePath(folder);
-    final listPath = (safeFolder != null && safeFolder.isNotEmpty) ? safeFolder : '';
+    final listPath =
+        (safeFolder != null && safeFolder.isNotEmpty) ? safeFolder : '';
 
     int maxSeq = 0;
     try {
@@ -475,14 +475,6 @@ class ImageService {
     }
   }
 
-  /// Generate random string for filename
-  static String _generateRandomString(int length) {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    final random = Random();
-    return List.generate(length, (index) => chars[random.nextInt(chars.length)])
-        .join();
-  }
-
   /// Map file extension to MIME content type
   static String _contentTypeFromExt(String ext) {
     switch (ext.toLowerCase().replaceAll('.', '')) {
@@ -553,16 +545,19 @@ class ImageService {
     var f = folder.trim();
     if (f.isEmpty) return '';
     final parts = f.split('/');
-    final safeParts = parts.map((seg) {
-      var s = seg.trim();
-      if (s.isEmpty) return '';
-      s = s.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
-      s = s.replaceAll(RegExp(r'_+'), '_');
-      s = s.replaceAll(RegExp(r'^[._]+|[._]+$'), '');
-      if (s.isEmpty) s = 'folder';
-      if (s.length > 64) s = s.substring(0, 64);
-      return s;
-    }).where((e) => e.isNotEmpty).toList();
+    final safeParts = parts
+        .map((seg) {
+          var s = seg.trim();
+          if (s.isEmpty) return '';
+          s = s.replaceAll(RegExp(r'[^A-Za-z0-9._-]+'), '_');
+          s = s.replaceAll(RegExp(r'_+'), '_');
+          s = s.replaceAll(RegExp(r'^[._]+|[._]+$'), '');
+          if (s.isEmpty) s = 'folder';
+          if (s.length > 64) s = s.substring(0, 64);
+          return s;
+        })
+        .where((e) => e.isNotEmpty)
+        .toList();
     return safeParts.join('/');
   }
 }

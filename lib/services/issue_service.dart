@@ -1,4 +1,3 @@
-import 'package:printing/printing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import '../models/user_models.dart';
@@ -60,7 +59,8 @@ class IssueService {
         return {
           ...issue,
           'room_number': issue['rooms']?['room_number'],
-          'room_category_name': issue['rooms']?['room_categories']?['roomcate_name'],
+          'room_category_name': issue['rooms']?['room_categories']
+              ?['roomcate_name'],
           'branch_id': issue['rooms']?['branches']?['branch_id'],
           'branch_name': issue['rooms']?['branches']?['branch_name'],
           'branch_code': issue['rooms']?['branches']?['branch_code'],
@@ -141,7 +141,8 @@ class IssueService {
           return {
             ...issue,
             'room_number': issue['rooms']?['room_number'],
-            'room_category_name': issue['rooms']?['room_categories']?['roomcate_name'],
+            'room_category_name': issue['rooms']?['room_categories']
+                ?['roomcate_name'],
             'branch_name': issue['rooms']?['branches']?['branch_name'],
             'assigned_user_name': issue['assigned_user']?['user_name'],
           };

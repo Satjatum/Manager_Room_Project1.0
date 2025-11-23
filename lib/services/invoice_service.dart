@@ -1,6 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
-import 'package:manager_room_project/services/meter_service.dart';
 import '../models/user_models.dart';
 import 'package:manager_room_project/services/payment_rate_service.dart';
 
@@ -80,7 +79,8 @@ class InvoiceService {
           'tenant_phone': invoice['tenants']?['tenant_phone'] ?? '-',
           'room_number': invoice['rooms']?['room_number'] ?? '-',
           'branch_name': invoice['rooms']?['branches']?['branch_name'] ?? '-',
-          'roomcate_name': invoice['rooms']?['room_categories']?['roomcate_name'] ?? '-',
+          'roomcate_name':
+              invoice['rooms']?['room_categories']?['roomcate_name'] ?? '-',
           'contract_num': invoice['rental_contracts']?['contract_num'] ?? '-',
         };
       }).toList();
@@ -128,7 +128,8 @@ class InvoiceService {
           'room_number': result['rooms']?['room_number'] ?? '-',
           'room_price': result['rooms']?['room_price'] ?? 0,
           'branch_name': result['rooms']?['branches']?['branch_name'] ?? '-',
-          'branch_address': result['rooms']?['branches']?['branch_address'] ?? '-',
+          'branch_address':
+              result['rooms']?['branches']?['branch_address'] ?? '-',
           'branch_phone': result['rooms']?['branches']?['branch_phone'] ?? '-',
           'contract_num': result['rental_contracts']?['contract_num'] ?? '-',
           'utilities': utilities,
@@ -267,8 +268,9 @@ class InvoiceService {
         "invoice_month": invoiceData["invoice_month"],
         "invoice_year": invoiceData["invoice_year"],
         // รองรับทั้งคีย์ issue_date และ invoice_date
-        "issue_date": (invoiceData["issue_date"] ?? invoiceData["invoice_date"]) ??
-            DateTime.now().toIso8601String().split('T')[0],
+        "issue_date":
+            (invoiceData["issue_date"] ?? invoiceData["invoice_date"]) ??
+                DateTime.now().toIso8601String().split('T')[0],
         "due_date": invoiceData["due_date"],
 
         // ✅ ค่าเช่า
@@ -299,10 +301,8 @@ class InvoiceService {
       };
 
       // ✅ สร้าง invoice หลักก่อน (เลือกคอลัมน์ที่ต้องการอย่างชัดเจน เพื่อหลีกเลี่ยงคอลัมน์ที่ไม่มี เช่น 'subtotal')
-      final result = await _supabase
-          .from('invoices')
-          .insert(insertData)
-          .select('''
+      final result =
+          await _supabase.from('invoices').insert(insertData).select('''
             invoice_id,
             invoice_number,
             room_id,
@@ -321,8 +321,7 @@ class InvoiceService {
             invoice_status,
             due_date,
             issue_date
-          ''')
-          .single();
+          ''').single();
 
       final invoiceId = result['invoice_id'];
 
@@ -496,8 +495,7 @@ class InvoiceService {
             invoice_status,
             due_date,
             issue_date
-          ''')
-          .single();
+          ''').single();
 
       return {
         'success': true,
@@ -648,8 +646,8 @@ class InvoiceService {
         if (readings.isNotEmpty) {
           await _supabase
               .from('meter_readings')
-              .update({'invoice_id': null, 'reading_status': 'confirmed'})
-              .eq('invoice_id', invoiceId);
+              .update({'invoice_id': null, 'reading_status': 'confirmed'}).eq(
+                  'invoice_id', invoiceId);
         }
       } catch (_) {
         // non-fatal
@@ -809,7 +807,8 @@ class InvoiceService {
       final branchId = room['branch_id']?.toString();
       if (branchId == null || branchId.isEmpty) return false;
 
-      final settings = await PaymentSettingsService.getActivePaymentSettings(branchId);
+      final settings =
+          await PaymentSettingsService.getActivePaymentSettings(branchId);
 
       final dueStr = (invoice['due_date'] ?? '').toString();
       final dueDate = DateTime.tryParse(dueStr);
@@ -859,11 +858,13 @@ class InvoiceService {
       final branchId = room['branch_id']?.toString();
       if (branchId == null || branchId.isEmpty) return false;
 
-      final settings = await PaymentSettingsService.getActivePaymentSettings(branchId);
+      final settings =
+          await PaymentSettingsService.getActivePaymentSettings(branchId);
       if (settings == null) return false;
 
       // ตรวจเงื่อนไขเปิดใช้ส่วนลด
-      final enable = (settings['enable_discount'] == true) && (settings['is_active'] == true);
+      final enable = (settings['enable_discount'] == true) &&
+          (settings['is_active'] == true);
       if (!enable) return false;
 
       final dueStr = (invoice['due_date'] ?? '').toString();
@@ -876,7 +877,8 @@ class InvoiceService {
       final subtotal = rental + utilities + others;
 
       final paidDate = paymentDate ?? DateTime.now();
-      final discountAmount = PaymentSettingsService.calculateEarlyDiscountManual(
+      final discountAmount =
+          PaymentSettingsService.calculateEarlyDiscountManual(
         settings: settings,
         dueDate: dueDate,
         subtotal: subtotal,
@@ -889,7 +891,8 @@ class InvoiceService {
       final existingDiscount = (invoice['discount_amount'] ?? 0).toDouble();
       if (existingDiscount > 0) return false;
 
-      final discountType = (settings['early_payment_type'] ?? 'percentage').toString();
+      final discountType =
+          (settings['early_payment_type'] ?? 'percentage').toString();
       final result = await applyDiscount(
         invoiceId: invoiceId,
         discountType: discountType,

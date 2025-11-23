@@ -38,7 +38,6 @@ dependencies:
   # Shared Preferences
   shared_preferences: ^2.2.2
 
-
   # file picker
   file_picker: ^10.3.3
 

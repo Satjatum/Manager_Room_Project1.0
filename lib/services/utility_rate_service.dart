@@ -1,6 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../services/auth_service.dart';
-import '../models/user_models.dart';
 
 class UtilityRatesService {
   static final SupabaseClient _supabase = Supabase.instance.client;
