@@ -396,124 +396,32 @@ class _ContractEditUIState extends State<ContractEditUI> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildWhiteHeader(),
+            // Content
+            Expanded(
+              child: _isLoading
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF10B981),
+                      ),
+                    )
+                  : Form(
+                      key: _formKey,
+                      child: ListView(
+                        padding: EdgeInsets.all(20),
+                        children: [
+                          _buildContractEditSection(),
+                        ],
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
       bottomNavigationBar: _buildBottomBar(),
-      body: Column(
-        children: [
-          // Header moved from AppBar to body
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new,
-                        color: Colors.black87),
-                    onPressed: () {
-                      if (Navigator.of(context).canPop()) {
-                        Navigator.of(context).pop();
-                      }
-                    },
-                    tooltip: 'ย้อนกลับ',
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        Text(
-                          'แก้ไขสัญญา',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'สำหรับแก้ไขข้อมูลสัญญา',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Content
-          Expanded(
-            child: _isLoading
-                ? Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF10B981),
-                    ),
-                  )
-                : Form(
-                    key: _formKey,
-                    child: ListView(
-                      padding: EdgeInsets.all(20),
-                      children: [
-                        // _buildContractInfoCard(),
-                        // SizedBox(height: 16),
-                        _buildContractEditSection(),
-                        SizedBox(height: 100),
-                      ],
-                    ),
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContractInfoCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Icon(Icons.info_outline, color: Color(0xFF10B981)),
-              SizedBox(width: 8),
-              Text(
-                'ข้อมูลสัญญาปัจจุบัน',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildInfoRow(
-            icon: Icons.assignment,
-            label: 'เลขที่สัญญา',
-            value: _contract?['contract_num']?.toString() ?? '-',
-          ),
-          const Divider(height: 24),
-          _buildInfoRow(
-            icon: Icons.home,
-            label: _contract?['roomcate_name']?.toString() ?? 'ประเภทห้อง',
-            value: _contract?['room_number']?.toString() ?? '-',
-          ),
-          const Divider(height: 24),
-        ],
-      ),
     );
   }
 
@@ -549,6 +457,61 @@ class _ContractEditUIState extends State<ContractEditUI> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildWhiteHeader() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+      ),
+      child: Column(
+        children: [
+          // Top bar with back button
+          Padding(
+            padding: EdgeInsets.all(24),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new,
+                      color: Colors.black87),
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  tooltip: 'ย้อนกลับ',
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'แก้ไขข้อมูลสัญญา',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'สำหรับแก้ไขข้อมูลผู้เช่า',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

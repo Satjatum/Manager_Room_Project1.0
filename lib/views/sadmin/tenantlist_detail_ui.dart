@@ -355,12 +355,12 @@ class _TenantDetailUIState extends State<TenantDetailUI>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: Colors.orange.shade50,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.delete_outline,
-                  color: Colors.red.shade600,
+                  color: Colors.orange.shade600,
                   size: 40,
                 ),
               ),
@@ -413,10 +413,10 @@ class _TenantDetailUIState extends State<TenantDetailUI>
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: Colors.orange.shade50,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: Colors.red.shade100,
+                    color: Colors.orange.shade100,
                     width: 1.5,
                   ),
                 ),
@@ -424,22 +424,18 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
-                      Icons.warning_rounded,
-                      color: Colors.red.shade600,
+                      Icons.info_rounded,
+                      color: Colors.orange.shade600,
                       size: 22,
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'ข้อมูลทั้งหมดจะถูกลบถาวร',
-                            style: TextStyle(
-                              color: Colors.red,
-                            ),
-                          ),
-                        ],
+                    Expanded(
+                      child: Text(
+                        'ผู้เช่านี้จะถูกปิดใช้งานและไม่แสดงในรายการ',
+                        style: TextStyle(
+                          color: Colors.orange.shade800,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],
@@ -475,7 +471,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                     child: ElevatedButton(
                       onPressed: () => Navigator.of(context).pop(true),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade600,
+                        backgroundColor: Colors.orange.shade600,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -532,23 +528,23 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade50,
+                      color: Colors.orange.shade50,
                       shape: BoxShape.circle,
                     ),
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        const SizedBox(
+                        SizedBox(
                           width: 50,
                           height: 50,
                           child: CircularProgressIndicator(
-                            color: Colors.red,
+                            color: Colors.orange.shade600,
                             strokeWidth: 3,
                           ),
                         ),
                         Icon(
                           Icons.delete_outline,
-                          color: Colors.red.shade600,
+                          color: Colors.orange.shade600,
                           size: 28,
                         ),
                       ],
@@ -574,8 +570,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
           ),
         );
 
-        final result =
-            await TenantService.deleteTenantWithRelatedData(widget.tenantId);
+        final result = await TenantService.deleteTenant(widget.tenantId);
 
         if (mounted) Navigator.of(context).pop();
 

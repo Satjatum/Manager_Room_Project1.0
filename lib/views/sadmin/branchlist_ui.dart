@@ -653,7 +653,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.delete_forever_rounded,
+                  Icons.delete_outline,
                   color: Colors.red.shade600,
                   size: 40,
                 ),
@@ -713,7 +713,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                 child: Row(
                   children: [
                     Icon(
-                      Icons.warning_rounded,
+                      Icons.warning,
                       color: Colors.red.shade600,
                       size: 22,
                     ),
@@ -835,7 +835,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                           ),
                         ),
                         Icon(
-                          Icons.delete_sweep_rounded,
+                          Icons.delete_outline,
                           color: Colors.red.shade600,
                           size: 28,
                         ),
@@ -846,7 +846,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
 
                   // Loading Text
                   Text(
-                    'ลบสาขา',
+                    'กำลังลบสาขา',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -867,7 +867,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
           ),
         );
 
-        final result = await BranchService.permanentDeleteBranch(branchId);
+        final result = await BranchService.deleteBranch(branchId);
         if (mounted) Navigator.of(context).pop();
 
         if (mounted) {
@@ -1510,8 +1510,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                                               '${branch['manager_count'] ?? 1} ผู้จัดการ'),
                                       if (branch['manager_count'] != null &&
                                           branch['manager_count'] > 1)
-                                        TextSpan(text: 's'),
-                                      TextSpan(text: 'หลัก: '),
+                                        TextSpan(text: 'หลัก: '),
                                       TextSpan(
                                         text: branch['primary_manager_name'],
                                         style: TextStyle(

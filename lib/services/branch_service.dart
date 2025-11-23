@@ -54,7 +54,8 @@ class BranchService {
       if (row == null) return false;
       final desc = row['branch_desc'];
       if (desc is Map && desc['pp_test_mode'] == true) return true;
-      if (desc is Map<String, dynamic> && desc['pp_test_mode'] == true) return true;
+      if (desc is Map<String, dynamic> && desc['pp_test_mode'] == true)
+        return true;
       return false;
     } catch (_) {
       return false;
@@ -92,13 +93,18 @@ class BranchService {
 
       final res = await _supabase
           .from('branches')
-          .update({'branch_desc': desc, 'updated_at': DateTime.now().toIso8601String()})
+          .update({
+            'branch_desc': desc,
+            'updated_at': DateTime.now().toIso8601String()
+          })
           .eq('branch_id', branchId)
           .select()
           .single();
       return {
         'success': true,
-        'message': enabled ? 'เปิดโหมดทดสอบ PromptPay แล้ว' : 'ปิดโหมดทดสอบ PromptPay แล้ว',
+        'message': enabled
+            ? 'เปิดโหมดทดสอบ PromptPay แล้ว'
+            : 'ปิดโหมดทดสอบ PromptPay แล้ว',
         'data': res,
       };
     } on PostgrestException catch (e) {
@@ -546,7 +552,7 @@ class BranchService {
         return {
           'success': false,
           'message':
-              'ไม่สามารถปิดใช้งานสาขาได้ เนื่องจากยังมีห้องเช่าที่ใช้งานอยู่ ${activeRooms.length} ห้อง',
+              'ไม่สามารถลบสาขาได้ เนื่องจากยังมีห้องเช่าที่ใช้งานอยู่ ${activeRooms.length} ห้อง',
         };
       }
 
@@ -569,7 +575,7 @@ class BranchService {
           return {
             'success': false,
             'message':
-                'ไม่สามารถปิดใช้งานสาขาได้ เนื่องจากยังมีสัญญาเช่าที่ใช้งานอยู่ ${activeContracts.length} สัญญา',
+                'ไม่สามารถลบสาขาได้ เนื่องจากยังมีสัญญาเช่าที่ใช้งานอยู่ ${activeContracts.length} สัญญา',
           };
         }
       }
@@ -587,7 +593,7 @@ class BranchService {
 
       return {
         'success': true,
-        'message': 'ปิดใช้งานสาขา "${existingBranch['branch_name']}" สำเร็จ',
+        'message': 'ลบสาขา "${existingBranch['branch_name']}" สำเร็จ',
         'data': result,
       };
     } on PostgrestException catch (e) {
@@ -597,7 +603,7 @@ class BranchService {
         message = 'ไม่พบสาขาที่ต้องการลบ';
       } else if (e.code == '23503') {
         // Foreign key constraint
-        message = 'ไม่สามารถปิดใช้งานสาขาได้ เนื่องจากยังมีข้อมูลที่เกี่ยวข้อง';
+        message = 'ไม่สามารถลบสาขาได้ เนื่องจากยังมีข้อมูลที่เกี่ยวข้อง';
       }
 
       return {
@@ -607,7 +613,7 @@ class BranchService {
     } catch (e) {
       return {
         'success': false,
-        'message': 'เกิดข้อผิดพลาดในการปิดใช้งานสาขา: ${e.toString()}',
+        'message': 'เกิดข้อผิดพลาดในการลบสาขา: ${e.toString()}',
       };
     }
   }
@@ -656,8 +662,8 @@ class BranchService {
       // ==========================
       // Begin code-level cascading
       // ==========================
-      final List<Map<String, dynamic>> roomRows = List<Map<String, dynamic>>.from(
-          await _supabase
+      final List<Map<String, dynamic>> roomRows =
+          List<Map<String, dynamic>>.from(await _supabase
               .from('rooms')
               .select('room_id')
               .eq('branch_id', branchId));
@@ -667,8 +673,8 @@ class BranchService {
           .map<String>((v) => v.toString())
           .toList();
 
-      final List<Map<String, dynamic>> tenantRows = List<Map<String, dynamic>>.from(
-          await _supabase
+      final List<Map<String, dynamic>> tenantRows =
+          List<Map<String, dynamic>>.from(await _supabase
               .from('tenants')
               .select('tenant_id, user_id')
               .eq('branch_id', branchId));
@@ -694,8 +700,14 @@ class BranchService {
                 .select('contract_id')
                 .inFilter('tenant_id', tenantIds));
         contractIds = [
-          ...contractsByRoom.map((r) => r['contract_id']).where((v) => v != null).map<String>((v) => v.toString()),
-          ...contractsByTenant.map((r) => r['contract_id']).where((v) => v != null).map<String>((v) => v.toString()),
+          ...contractsByRoom
+              .map((r) => r['contract_id'])
+              .where((v) => v != null)
+              .map<String>((v) => v.toString()),
+          ...contractsByTenant
+              .map((r) => r['contract_id'])
+              .where((v) => v != null)
+              .map<String>((v) => v.toString()),
         ].toSet().toList();
       } catch (_) {}
 
@@ -734,10 +746,10 @@ class BranchService {
       // 1.2) Unlink meter_readings from those invoices
       try {
         if (invoiceIds.isNotEmpty) {
-          await _supabase
-              .from('meter_readings')
-              .update({'invoice_id': null, 'reading_status': 'confirmed'})
-              .inFilter('invoice_id', invoiceIds);
+          await _supabase.from('meter_readings').update({
+            'invoice_id': null,
+            'reading_status': 'confirmed'
+          }).inFilter('invoice_id', invoiceIds);
         }
       } catch (_) {}
 
@@ -846,10 +858,7 @@ class BranchService {
               .from('room_amenities')
               .delete()
               .inFilter('room_id', roomIds);
-          await _supabase
-              .from('rooms')
-              .delete()
-              .inFilter('room_id', roomIds);
+          await _supabase.from('rooms').delete().inFilter('room_id', roomIds);
         }
       } catch (_) {}
 

@@ -575,7 +575,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
             Future<void> pickImages() async {
               // Check if already have 10 images
               if (localImages.length >= 10) {
-                _showErrorSnackBar('สามารถแนบรูปภาพได้สูงสุด 10 รูปเท่านั้น');
+                _showErrorSnackBar('สามารถแนบรูปภาพได้สูงสุด 10');
                 return;
               }
 
@@ -810,8 +810,8 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
-                    child: Text('บันทึกการแก้ไขเสร็จสิ้น',
-                        style: TextStyle(fontSize: 16)),
+                    child:
+                        Text('บันทึกการแก้ไข', style: TextStyle(fontSize: 16)),
                   ),
                 ],
               ),
@@ -830,68 +830,96 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12)),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
                           borderSide:
-                              BorderSide(color: AppTheme.primary, width: 2),
+                              BorderSide(color: Color(0xFF10B981), width: 2),
                         ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide:
+                              BorderSide(color: Colors.grey[300]!, width: 1),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
                       ),
                       maxLines: 4,
                     ),
                     const SizedBox(height: 12),
                     imagePreviews(),
                     const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        OutlinedButton.icon(
-                          onPressed:
-                              localImages.length >= 10 ? null : pickImages,
-                          icon: const Icon(Icons.add_photo_alternate),
-                          label: Text('แนบรูป (${localImages.length}/10)'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppTheme.primary,
-                            side: BorderSide(color: AppTheme.primary),
-                          ),
+
+                    OutlinedButton(
+                      onPressed: localImages.length >= 10 ? null : pickImages,
+                      child: Text(
+                        'แนบรูป (${localImages.length}/10)',
+                        style: TextStyle(
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w600,
                         ),
-                        if (localImages.isNotEmpty)
-                          TextButton.icon(
-                            onPressed: () =>
-                                setLocalState(() => localImages.clear()),
-                            icon: const Icon(Icons.delete_sweep,
-                                color: Colors.red),
-                            label: const Text('ล้างรูป',
-                                style: TextStyle(color: Colors.red)),
-                          ),
-                      ],
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        side: BorderSide(color: Colors.grey.shade300),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
-              actionsPadding: const EdgeInsets.all(16),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, null),
-                  child: const Text('ยกเลิก'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final text = textController.text.trim();
-                    Navigator.pop(
-                        context,
-                        _ResolvePayload(
-                            text: text.isEmpty ? null : text,
-                            images: List<XFile>.from(localImages)));
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _getStatusColor('resolved'),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('ยืนยัน'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(color: Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          'ยกเลิก',
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final text = textController.text.trim();
+                          Navigator.pop(
+                              context,
+                              _ResolvePayload(
+                                  text: text.isEmpty ? null : text,
+                                  images: List<XFile>.from(localImages)));
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _getStatusColor('resolved'),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          'บันทึก',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             );
@@ -1010,50 +1038,120 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildWhiteHeader(),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _issue == null
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.error_outline,
+                                  size: 64, color: Colors.grey[400]),
+                              const SizedBox(height: 16),
+                              Text(
+                                'ไม่พบข้อมูล',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _loadData,
+                          color: AppTheme.primary,
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Actions Card
+                                if (_currentUser != null &&
+                                    _currentUser!.hasAnyPermission([
+                                      DetailedPermission.all,
+                                      DetailedPermission.manageIssues,
+                                    ])) ...[
+                                  _buildActionsCard(),
+                                  const SizedBox(height: 16),
+                                ],
+
+                                // Header Card
+                                _buildHeaderCard(),
+                                const SizedBox(height: 16),
+
+                                // Details Card
+                                _buildDetailsCard(),
+                                const SizedBox(height: 16),
+
+                                // Images Section
+                                if (_images.isNotEmpty) ...[
+                                  _buildImagesSection(),
+                                  const SizedBox(height: 16),
+                                ],
+
+                                // Timeline Section
+                                _buildTimelineSection(),
+                              ],
+                            ),
+                          ),
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWhiteHeader() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+      ),
+      child: Column(
         children: [
-          // Custom Header
-          Container(
-            color: Colors.white,
-            child: Column(
+          // Top bar with back button
+          Padding(
+            padding: EdgeInsets.all(24),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new,
-                            color: Colors.black87),
-                        onPressed: () {
-                          if (Navigator.of(context).canPop()) {
-                            Navigator.of(context).pop();
-                          }
-                        },
-                        tooltip: 'ย้อนกลับ',
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new,
+                      color: Colors.black87),
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  tooltip: 'ย้อนกลับ',
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'รายละเอียดปัญหา',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              'รายละเอียดปัญหา',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'รายละเอียดและสถานะของปัญหาที่แจ้ง',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.black54,
-                              ),
-                            ),
-                          ],
+                      SizedBox(height: 4),
+                      Text(
+                        'สำหรับดูรายละเอียดปัญหา',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
                         ),
                       ),
                     ],
@@ -1061,69 +1159,6 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                 ),
               ],
             ),
-          ),
-          // Body Content
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _issue == null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.error_outline,
-                                size: 64, color: Colors.grey[400]),
-                            const SizedBox(height: 16),
-                            Text(
-                              'ไม่พบข้อมูล',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _loadData,
-                        color: AppTheme.primary,
-                        child: SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Actions Card
-                              if (_currentUser != null &&
-                                  _currentUser!.hasAnyPermission([
-                                    DetailedPermission.all,
-                                    DetailedPermission.manageIssues,
-                                  ])) ...[
-                                _buildActionsCard(),
-                                const SizedBox(height: 16),
-                              ],
-
-                              // Header Card
-                              _buildHeaderCard(),
-                              const SizedBox(height: 16),
-
-                              // Details Card
-                              _buildDetailsCard(),
-                              const SizedBox(height: 16),
-
-                              // Images Section
-                              if (_images.isNotEmpty) ...[
-                                _buildImagesSection(),
-                                const SizedBox(height: 16),
-                              ],
-
-                              // Timeline Section
-                              _buildTimelineSection(),
-                            ],
-                          ),
-                        ),
-                      ),
           ),
         ],
       ),
@@ -1265,17 +1300,11 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
             value: _issue!['issue_desc'] ?? 'ไม่มีคำอธิบาย',
           ),
           const SizedBox(height: 12),
-          // _buildDetailRow(
-          //   icon: Icons.business_outlined,
-          //   label: 'สาขา',
-          //   value: _issue!['branch_name'] ?? 'ไม่ระบุ',
-          // ),
-          const SizedBox(height: 12),
           _buildDetailRow(
             icon: Icons.person_outline,
             label: 'ผู้แจ้ง',
             value:
-                'คุณ${_issue!['created_user_name']} ${_issue!['room_category_name']}เลขที่ ${_issue!['room_number'] ?? 'ไม่ระบุ'}',
+                '${_issue!['created_user_name']} | ${_issue!['room_category_name']}เลขที่ ${_issue!['room_number'] ?? 'ไม่ระบุ'}',
           ),
           const SizedBox(height: 12),
           _buildDetailRow(
@@ -1911,10 +1940,33 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                 ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ปิด'),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(
+                    'ปิด',
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
+          // TextButton(
+          //   onPressed: () => Navigator.pop(context),
+          //   child: const Text('ปิด'),
+          // ),
         ],
       ),
     );
@@ -1940,6 +1992,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
     showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           padding: const EdgeInsets.all(24),
@@ -1961,9 +2014,9 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
               ),
               const SizedBox(height: 20),
               Text(
-                'คุณต้องการลบการหัวข้อการแจ้งปัญหาหรือไม่?',
+                'ลบหัวข้อแจ้งปัญหาหรือไม่?',
                 style: const TextStyle(
-                  fontSize: 22,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -2010,15 +2063,12 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.warning_rounded,
-                      color: Colors.red.shade600,
-                      size: 22,
-                    ),
-                    const SizedBox(width: 12),
+                    Icon(Icons.warning_rounded,
+                        color: Colors.red.shade600, size: 22),
+                    SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'การดำเนินการนี้ไม่สามารถย้อนกลับได้\nข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
+                        'ข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
                         style: TextStyle(
                           color: Colors.red.shade800,
                           fontSize: 13,
@@ -2068,8 +2118,6 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
-                          Icon(Icons.delete_outline, size: 18),
-                          SizedBox(width: 8),
                           Text(
                             'ลบ',
                             style: TextStyle(

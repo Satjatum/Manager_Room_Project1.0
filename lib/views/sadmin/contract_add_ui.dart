@@ -346,105 +346,107 @@ class _ContractAddUIState extends State<ContractAddUI> {
     if (_loading) {
       return Scaffold(
         backgroundColor: Colors.white,
-        body: Column(
-          children: [
-            _buildHeader(),
-            const Expanded(
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          ],
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildWhiteHeader(),
+              const Expanded(
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: _buildBottomBar(),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ข้อมูลห้องพัก
-                    _buildRoomSection(),
-                    const SizedBox(height: 16),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildWhiteHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ข้อมูลห้องพัก
+                      _buildRoomSection(),
+                      const SizedBox(height: 16),
 
-                    // รายละเอียดสัญญา
-                    _buildContractDetailsSection(),
-                    const SizedBox(height: 16),
+                      // รายละเอียดสัญญา
+                      _buildContractDetailsSection(),
+                      const SizedBox(height: 16),
 
-                    // เอกสารสัญญา
-                    _buildDocumentSection(),
-                    const SizedBox(height: 16),
-                  ],
+                      // เอกสารสัญญา
+                      _buildDocumentSection(),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _buildBottomBar(),
+    );
+  }
+
+  Widget _buildWhiteHeader() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+      ),
+      child: Column(
+        children: [
+          // Top bar with back button
+          Padding(
+            padding: EdgeInsets.all(24),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new,
+                      color: Colors.black87),
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  tooltip: 'ย้อนกลับ',
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'เพิ่มสัญญาผู้เช่า',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'สำหรับเพิ่มสัญญาผู้เช่า',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Colors.grey[300]!, width: 1),
-        ),
-      ),
-      child: Column(children: [
-        // Top bar with back button
-        Padding(
-          padding: EdgeInsets.all(24),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              IconButton(
-                icon:
-                    const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
-                onPressed: () {
-                  if (Navigator.of(context).canPop()) {
-                    Navigator.of(context).pop();
-                  }
-                },
-                tooltip: 'ย้อนกลับ',
-              ),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'เพิ่มสัญญาผู้เช่า',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'สำหรับเพิ่มสัญญาผู้เช่า',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ]),
     );
   }
 
@@ -862,6 +864,9 @@ class _ContractAddUIState extends State<ContractAddUI> {
               ),
               style: OutlinedButton.styleFrom(
                 minimumSize: Size(double.infinity, 50),
+                side: BorderSide(
+                  color: Colors.grey.shade300,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),

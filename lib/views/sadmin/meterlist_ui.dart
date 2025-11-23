@@ -1975,7 +1975,7 @@ class _MeterListUiState extends State<MeterListUi> {
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(color: Colors.grey.shade300),
           ),
-          title: const Text('กรอกข้อมูลค่ามิเตอร์เดือนนี้'),
+          title: const Text('กรอกมิเตอร์เดือนนี้'),
           content: SizedBox(
             width: 420,
             child: Container(

@@ -707,22 +707,18 @@ class _TenantListUIState extends State<TenantListUI> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
-                      Icons.warning_rounded,
+                      Icons.info_rounded,
                       color: Colors.red.shade600,
                       size: 22,
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'ข้อมูลทั้งหมดจะถูกลบถาวร',
-                            style: TextStyle(
-                              color: Colors.red,
-                            ),
-                          ),
-                        ],
+                    Expanded(
+                      child: Text(
+                        'ข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
+                        style: TextStyle(
+                          color: Colors.red.shade800,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],
@@ -815,23 +811,23 @@ class _TenantListUIState extends State<TenantListUI> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade50,
+                      color: Colors.orange.shade50,
                       shape: BoxShape.circle,
                     ),
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        const SizedBox(
+                        SizedBox(
                           width: 50,
                           height: 50,
                           child: CircularProgressIndicator(
-                            color: Colors.red,
+                            color: Colors.orange.shade600,
                             strokeWidth: 3,
                           ),
                         ),
                         Icon(
                           Icons.delete_outline,
-                          color: Colors.red.shade600,
+                          color: Colors.orange.shade600,
                           size: 28,
                         ),
                       ],
@@ -857,8 +853,7 @@ class _TenantListUIState extends State<TenantListUI> {
           ),
         );
 
-        final result =
-            await TenantService.deleteTenantWithRelatedData(tenantId);
+        final result = await TenantService.deleteTenant(tenantId);
 
         if (mounted) Navigator.of(context).pop();
 
@@ -1439,35 +1434,19 @@ class _TenantListUIState extends State<TenantListUI> {
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                                color: statusColor.withOpacity(0.35)),
+                            color: statusColor,
+                            borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: statusColor,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                statusLabel,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: statusColor,
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            statusLabel,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
