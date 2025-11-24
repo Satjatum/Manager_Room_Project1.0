@@ -357,14 +357,14 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
                         Text(
                           'ตรวจสอบสลิปชำระเงิน',
                           style: TextStyle(
-                            fontSize: 28,
+                            fontSize: 22,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'ตรวจสอบ อนุมัติ/ปฏิเสธ และติดตามสถานะการชำระ',
+                          'ตรวจสอบและติดตามสถานะการชำระ',
                           style: TextStyle(fontSize: 14, color: Colors.black54),
                         ),
                       ],

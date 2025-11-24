@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:manager_room_project/views/sadmin/invoicelist_ui.dart';
 import 'package:manager_room_project/views/sadmin/issuelist_ui.dart';
 import 'package:manager_room_project/views/setting_ui.dart';
-import 'package:manager_room_project/views/tenant/bill_list_ui.dart';
-import 'package:manager_room_project/views/tenant/tenant_pay_history_ui.dart';
-
 import '../widgets/colors.dart';
 
 class TenantdashUi extends StatefulWidget {
@@ -33,7 +31,7 @@ class _TenantdashUiState extends State<TenantdashUi> {
         description: 'ชำระค่าห้องพัก',
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const TenantBillListPage()),
+          MaterialPageRoute(builder: (_) => const InvoiceListUi()),
         ),
       ),
       _DashItem(
@@ -42,7 +40,7 @@ class _TenantdashUiState extends State<TenantdashUi> {
         description: 'ดูรายการย้อนหลัง',
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const TenantBillListPage()),
+          MaterialPageRoute(builder: (_) => const InvoiceListUi()),
         ),
       ),
       _DashItem(

@@ -2861,59 +2861,293 @@ class _MeterListUiState extends State<MeterListUi> {
 
   Future<void> _confirmDeleteBilled(
       String readingId, String invoiceId, String roomId) async {
-    final ok = await showDialog<bool>(
+    // ดึงข้อมูลห้องเพื่อแสดงชื่อ
+    final room = _rooms.firstWhere(
+      (r) => r['room_id'] == roomId,
+      orElse: () => {'room_name': 'ห้อง'},
+    );
+    final roomName = room['room_name'] ?? 'ห้อง';
+
+    final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('ยืนยันการลบ (รวมบิลเดือนนี้)'),
-        content: const Text(
-            'ต้องการลบข้อมูลค่ามิเตอร์และใบแจ้งหนี้ของเดือนนี้ใช่หรือไม่?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('ยกเลิก')),
-          ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('ลบทั้งหมด')),
-        ],
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: EdgeInsets.all(24),
+          constraints: BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon Header
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.delete_outline,
+                  color: Colors.red.shade600,
+                  size: 40,
+                ),
+              ),
+              SizedBox(height: 20),
+
+              // Title
+              Text(
+                'ลบข้อมูลมิเตอร์หรือไม่?',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              SizedBox(height: 12),
+
+              // Room Name
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.meeting_room, size: 18, color: Colors.grey[700]),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        roomName,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 16),
+
+              // Warning Box
+              Container(
+                padding: EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.shade100, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning,
+                      color: Colors.red.shade600,
+                      size: 22,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'ข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
+                        style: TextStyle(
+                          color: Colors.red.shade800,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 24),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(width: 8),
+                          Text(
+                            'ลบ',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
 
-    if (ok != true) return;
+    if (confirm != true) return;
 
-    setState(() => _savingRoomIds.add(roomId));
     try {
+      // แสดง Loading Dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            padding: EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Animated Icon Container
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 50,
+                        height: 50,
+                        child: CircularProgressIndicator(
+                          color: Colors.red.shade600,
+                          strokeWidth: 3,
+                        ),
+                      ),
+                      Icon(
+                        Icons.delete_outline,
+                        color: Colors.red.shade600,
+                        size: 28,
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 20),
+
+                // Loading Text
+                Text(
+                  'กำลังลบข้อมูล',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'กรุณารอสักครู่...',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      setState(() => _savingRoomIds.add(roomId));
+
       // 1) ลบบิลก่อน เพื่อปลดสถานะ billed ของ reading
       if (invoiceId.isNotEmpty) {
         final delInv = await InvoiceService.deleteInvoice(invoiceId);
         if (delInv['success'] != true) {
+          if (mounted) Navigator.of(context).pop(); // ปิด loading dialog
           _showErrorSnackBar(delInv['message'] ?? 'ลบใบแจ้งหนี้ไม่สำเร็จ');
           return;
         }
       }
+
       // 2) ลบค่ามิเตอร์ของเดือนนี้
       final delRead = await MeterReadingService.deleteMeterReading(readingId);
-      if (delRead['success'] == true) {
-        _showSuccessSnackBar('ลบข้อมูลและบิลของเดือนนี้สำเร็จ');
-        _existingByRoom.remove(roomId);
-        _savedRoomIds.remove(roomId);
-        _editingRoomIds.remove(roomId);
-        _invoiceUtilsByRoom.remove(roomId);
-        _invoiceIdByRoom.remove(roomId);
-        // Refresh previous suggestions
-        try {
-          final prev = await MeterReadingService.getPreviousForMonth(
-              roomId, _selectedMonth, _selectedYear);
-          _prevWaterByRoom[roomId] =
-              (prev?['water_previous'] ?? 0.0).toDouble();
-          _prevElecByRoom[roomId] =
-              (prev?['electric_previous'] ?? 0.0).toDouble();
-        } catch (_) {}
-        setState(() {});
-      } else {
-        _showErrorSnackBar(delRead['message'] ?? 'ลบค่ามิเตอร์ไม่สำเร็จ');
+      if (mounted) Navigator.of(context).pop(); // ปิด loading dialog
+
+      if (mounted) {
+        if (delRead['success'] == true) {
+          _showSuccessSnackBar('ลบข้อมูลและบิลของเดือนนี้สำเร็จ');
+          _existingByRoom.remove(roomId);
+          _savedRoomIds.remove(roomId);
+          _editingRoomIds.remove(roomId);
+          _invoiceUtilsByRoom.remove(roomId);
+          _invoiceIdByRoom.remove(roomId);
+          // Refresh previous suggestions
+          try {
+            final prev = await MeterReadingService.getPreviousForMonth(
+                roomId, _selectedMonth, _selectedYear);
+            _prevWaterByRoom[roomId] =
+                (prev?['water_previous'] ?? 0.0).toDouble();
+            _prevElecByRoom[roomId] =
+                (prev?['electric_previous'] ?? 0.0).toDouble();
+          } catch (_) {}
+          setState(() {});
+        } else {
+          _showErrorSnackBar(delRead['message'] ?? 'ลบค่ามิเตอร์ไม่สำเร็จ');
+        }
       }
     } catch (e) {
-      _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop(); // ปิด loading dialog
+      }
+      if (mounted) {
+        _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+      }
     } finally {
       if (mounted) setState(() => _savingRoomIds.remove(roomId));
     }

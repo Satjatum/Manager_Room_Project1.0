@@ -159,7 +159,7 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'ออกบิล',
+                          'ออกบิลค่าเช่า',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -168,7 +168,7 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'เลือกเดือนและปีเพื่อแสดงรายการที่พร้อมออกบิล',
+                          'สำหรับเลือกรายการบิล',
                           style:
                               TextStyle(fontSize: 14, color: Colors.grey[600]),
                         ),
@@ -431,9 +431,7 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
   }
 
   Widget _buildReadingTile(Map<String, dynamic> r) {
-    final roomNo = (r['room_number'] ?? '-').toString();
     final tenant = (r['tenant_name'] ?? '-').toString();
-    final roomCate = (r['room_category_name'] ?? '-').toString();
     final monthName = _getMonthName(r['reading_month'] ?? _selectedMonth);
     final yearDisplay = (_selectedYear + 543).toString();
     return Container(
@@ -452,6 +450,21 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Row(
             children: [
+              // Icon
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.receipt_long,
+                  color: AppTheme.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
               // Details
               Expanded(
                 child: Column(
@@ -466,20 +479,10 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    // Room category + number
-                    Text(
-                      '$roomCateเลขที่ $roomNo',
-                      style: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
                     const SizedBox(height: 4),
                     // Billing period
                     Text(
-                      'รอบบิลเดือน$monthName $yearDisplay',
+                      'รอบบิลเดือน $monthName $yearDisplay',
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 13,

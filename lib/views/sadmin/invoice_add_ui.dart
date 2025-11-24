@@ -660,9 +660,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _isFromMeterReading
-                                    ? 'รายการบิลจากมิเตอร์'
-                                    : 'รายการบิลค่าเช่า',
+                                'ออกบิลค่าเช่า',
                                 style: const TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
@@ -671,9 +669,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                _isFromMeterReading
-                                    ? 'ตรวจสอบและจัดการใบแจ้งหนี้จากข้อมูลมิเตอร์'
-                                    : 'ตรวจสอบและจัดการบิลค่าเช่าของคุณ',
+                                'สำหรับออกบิลค่าเช่า',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: Colors.black54,
