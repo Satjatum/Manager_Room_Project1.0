@@ -175,6 +175,22 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     return 0;
   }
 
+  // Sanitize input to prevent injection attacks (OWASP A03:2021)
+  String _sanitizeInput(String input) {
+    if (input.isEmpty) return input;
+    return input.replaceAll(RegExp(r'[<>\\";\-\-\/\*\*\/=]'), '').trim();
+  }
+
+  // Validate input length (OWASP best practice)
+  String? _validateInputLength(String? value, int maxLength,
+      {String fieldName = 'ฟิลด์นี้'}) {
+    if (value == null || value.isEmpty) return null;
+    if (value.length > maxLength) {
+      return '$fieldName ไม่ควรเกิน $maxLength ตัวอักษร';
+    }
+    return null;
+  }
+
   Future<void> _approveSlip(Map<String, dynamic> slip) async {
     final controller = TextEditingController(
       text: (_asDouble(slip['paid_amount'])).toStringAsFixed(2),
@@ -202,10 +218,14 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
             TextFormField(
               controller: noteCtrl,
               maxLines: 2,
+              maxLength: 500,
+              validator: (value) =>
+                  _validateInputLength(value, 500, fieldName: 'หมายเหตุ'),
               decoration: const InputDecoration(
                 labelText: 'หมายเหตุ (ถ้ามี)',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.notes),
+                helperText: 'จำกัด 500 ตัวอักษร',
               ),
             ),
           ],
@@ -252,11 +272,16 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
           );
         }
       } catch (_) {}
+      // Sanitize admin notes before sending (OWASP A03:2021)
+      final sanitizedNotes = noteCtrl.text.trim().isEmpty
+          ? null
+          : _sanitizeInput(noteCtrl.text.trim());
+
       final result = await PaymentService.verifySlip(
         slipId: slip['slip_id'],
         approvedAmount: amount,
         paymentMethod: 'transfer',
-        adminNotes: noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
+        adminNotes: sanitizedNotes,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -276,16 +301,25 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
 
   Future<void> _rejectSlip(Map<String, dynamic> slip) async {
     final reasonCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('ปฏิเสธสลิป'),
-        content: TextField(
-          controller: reasonCtrl,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'ระบุเหตุผล',
-            border: OutlineInputBorder(),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: reasonCtrl,
+            maxLines: 3,
+            maxLength: 500,
+            validator: (value) =>
+                _validateInputLength(value, 500, fieldName: 'เหตุผล'),
+            decoration: const InputDecoration(
+              hintText: 'ระบุเหตุผล',
+              border: OutlineInputBorder(),
+              helperText: 'จำกัด 500 ตัวอักษร',
+            ),
           ),
         ),
         actions: [
@@ -293,7 +327,11 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
               onPressed: () => Navigator.pop(context, false),
               child: const Text('ยกเลิก')),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () {
+              if (formKey.currentState?.validate() ?? false) {
+                Navigator.pop(context, true);
+              }
+            },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('ปฏิเสธ', style: TextStyle(color: Colors.white)),
           ),
@@ -304,9 +342,14 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
 
     try {
       setState(() => _loading = true);
+      // Sanitize rejection reason before sending (OWASP A03:2021)
+      final sanitizedReason = reasonCtrl.text.trim().isEmpty
+          ? null
+          : _sanitizeInput(reasonCtrl.text.trim());
+
       final result = await PaymentService.rejectSlip(
         slipId: slip['slip_id'],
-        reason: reasonCtrl.text.trim(),
+        reason: sanitizedReason,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -568,11 +611,6 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     final roomcate = (s['roomcate_name'] ?? '-').toString();
     final roomNumber = (s['room_number'] ?? '-').toString();
     final invoiceNumber = (s['invoice_number'] ?? '-').toString();
-    final invoiceStatus = (s['invoice_status'] ?? '').toString();
-    final dateStr = _formatThaiDate(
-        (s['payment_date'] ?? s['created_at'] ?? '').toString());
-    final amount =
-        _asDouble(s['invoice_total'] ?? s['total_amount'] ?? s['paid_amount']);
 
     // Slip-level status (separated from invoice status)
     final bool isVerified =
@@ -624,63 +662,75 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Status row (dot + label) — match _invoiceCard
+            // บรรทัดแรก: ไอคอน + ชื่อผู้เช่า | ประเภทห้อง เลขที่ห้อง + Badge สถานะ
             Row(
               children: [
                 Container(
-                  width: 8,
-                  height: 8,
-                  decoration:
-                      BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.receipt_long,
+                    size: 20,
+                    color: AppTheme.primary,
+                  ),
                 ),
-                const SizedBox(width: 6),
-                Text(statusLabel,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '$tenantName | $roomcate เลขที่ $roomNumber',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Badge สถานะ
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    border: Border.all(color: statusColor.withOpacity(0.4)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    statusLabel,
                     style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: statusColor)),
-                const Spacer(),
-                const Icon(Icons.chevron_right, color: Colors.black38),
+                      color: statusColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ],
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
 
-            // Title: ชื่อผู้เช่า - ประเภทห้อง เลขที่ห้อง
-            Text(
-              '$tenantName - $roomcate เลขที่ $roomNumber',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: Colors.black87,
-              ),
-            ),
-
-            const SizedBox(height: 4),
-            // Sub: Bill #... • วันที่ พ.ศ.
-            Text(
-              'Bill #$invoiceNumber • $dateStr',
-              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-
-            const SizedBox(height: 10),
-            // Amount block
+            // บรรทัดที่สอง: เลขที่บิล + ลูกศร
             Row(
               children: [
-                const Text('ยอดรวม',
-                    style: TextStyle(fontSize: 12, color: Colors.black54)),
-                const Spacer(),
-                Text(
-                  '${_formatMoney(amount)} บาท',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.black,
+                Expanded(
+                  child: Text(
+                    'เลขที่บิล: $invoiceNumber',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: Colors.grey[400],
                 ),
               ],
             ),

@@ -174,6 +174,8 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
             : (_invoice == null)
                 ? const Center(child: Text('ไม่พบบิล'))
                 : RefreshIndicator(
+                    backgroundColor: Colors.white,
+                    color: AppTheme.primary,
                     onRefresh: _load,
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
@@ -379,7 +381,7 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
               if (unitPrice > 0) parts.add(unitPrice.toStringAsFixed(2));
               final sub = parts.join(' • ');
               return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _moneyRow(name, total),
                   if (sub.isNotEmpty)
@@ -388,7 +390,7 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
                       child: Text(
                         sub,
                         style: const TextStyle(
-                            fontSize: 14, color: Colors.black54),
+                            fontSize: 12, color: Colors.black54),
                         textAlign: TextAlign.right,
                       ),
                     ),

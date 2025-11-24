@@ -30,10 +30,19 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
   }
 
   Future<void> _loadHistory() async {
+    // Check if widget is still mounted before updating state
+    if (!mounted) return;
+
     setState(() => _loading = true);
+
     try {
       final user = await AuthMiddleware.getCurrentUser();
+
+      // Check mounted after async operation
+      if (!mounted) return;
+
       if (user == null || user.tenantId == null) {
+        if (!mounted) return;
         setState(() => _loading = false);
         return;
       }
@@ -44,6 +53,9 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
         limit: 100,
       );
 
+      // Check mounted after async operation
+      if (!mounted) return;
+
       // กรองเฉพาะสลิปของบิลนี้และผู้เช่านี้
       final filteredSlips = allSlips
           .where((slip) =>
@@ -53,19 +65,32 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
 
       // ดึงข้อมูลไฟล์เพิ่มเติมสำหรับแต่ละสลิป
       for (var slip in filteredSlips) {
+        // Check mounted in loop to prevent memory leak
+        if (!mounted) return;
+
         try {
           final slipId = slip['slip_id']?.toString() ?? '';
           if (slipId.isNotEmpty) {
             final slipDetail = await PaymentService.getSlipById(slipId);
+
+            // Check mounted after each async call
+            if (!mounted) return;
+
             if (slipDetail != null) {
               slip['files'] = slipDetail['files'] ?? [];
             }
           }
         } catch (e) {
-          print('Error loading files for slip: $e');
+          // OWASP A09:2021 - Security Logging and Monitoring
+          // Log with context but don't expose sensitive data
+          print(
+              '[SECURITY_LOG] Error loading slip files - SlipID: ${slip['slip_id']}, Error: ${e.runtimeType}');
           slip['files'] = [];
         }
       }
+
+      // Check mounted before sorting (CPU intensive operation)
+      if (!mounted) return;
 
       // เรียงจากใหม่ไปเก่า
       filteredSlips.sort((a, b) {
@@ -89,16 +114,31 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
         };
       }
 
+      // Final mounted check before setState
+      if (!mounted) return;
+
       setState(() {
         _slipHistory = filteredSlips;
         _invoiceInfo = invoiceInfo;
         _loading = false;
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
+      // OWASP A09:2021 - Comprehensive error logging
+      print(
+          '[SECURITY_LOG] Failed to load payment history - InvoiceID: ${widget.invoiceId}, Error: ${e.runtimeType}');
+      print('[DEBUG] Stack trace: $stackTrace');
+
+      // Check mounted before setState in catch block
+      if (!mounted) return;
+
       setState(() => _loading = false);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('โหลดประวัติไม่สำเร็จ: $e')),
+          const SnackBar(
+            content: Text('โหลดประวัติไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'),
+            duration: Duration(seconds: 3),
+          ),
         );
       }
     }

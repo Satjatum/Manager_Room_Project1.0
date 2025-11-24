@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:manager_room_project/middleware/auth_middleware.dart';
 import 'package:manager_room_project/services/invoice_service.dart';
 import 'package:manager_room_project/services/payment_service.dart';
 import 'package:manager_room_project/services/auth_service.dart';
@@ -9,10 +8,6 @@ import 'package:manager_room_project/views/sadmin/invoicelist_detail_ui.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'dart:async';
 
-/// หน้ารายการบิล (Invoice List) ที่รองรับทั้ง 3 บทบาท:
-/// - Tenant: เห็นแค่บิลของตัวเอง
-/// - Admin: เห็นแค่บิลในสาขาที่ตัวเองดูแล
-/// - SuperAdmin: เห็นบิลทั้งหมด
 class InvoiceListUi extends StatefulWidget {
   final String? branchId;
   const InvoiceListUi({super.key, this.branchId});
@@ -227,13 +222,6 @@ class _InvoiceListUiState extends State<InvoiceListUi>
       default:
         return 'pending';
     }
-  }
-
-  double _asDouble(dynamic v) {
-    if (v == null) return 0;
-    if (v is num) return v.toDouble();
-    if (v is String) return double.tryParse(v) ?? 0;
-    return 0;
   }
 
   @override
@@ -456,18 +444,18 @@ class _InvoiceListUiState extends State<InvoiceListUi>
     if (invoiceMonth > 0 && invoiceYear > 0) {
       const monthNames = [
         '',
-        'ม.ค.',
-        'ก.พ.',
-        'มี.ค.',
-        'เม.ย.',
-        'พ.ค.',
-        'มิ.ย.',
-        'ก.ค.',
-        'ส.ค.',
-        'ก.ย.',
-        'ต.ค.',
-        'พ.ย.',
-        'ธ.ค.'
+        'มกราคม',
+        'กุมภาพันธ์',
+        'มีนาคม',
+        'เมษายน',
+        'พฤษภาคม',
+        'มิถุนายน',
+        'กรกฎาคม',
+        'สิงหาคม',
+        'กันยายน',
+        'ตุลาคม',
+        'พฤศจิกายน',
+        'ธันวาคม'
       ];
       final monthName = invoiceMonth <= 12 ? monthNames[invoiceMonth] : '-';
       final yearBE = invoiceYear + 543;
@@ -524,7 +512,7 @@ class _InvoiceListUiState extends State<InvoiceListUi>
                 children: [
                   // Title: ชื่อผู้เช่า | ประเภทห้องเลขที่ห้อง
                   Text(
-                    '$tenantName | $roomcate เลขที่ $roomNumber',
+                    '$tenantName | $roomcateเลขที่ $roomNumber',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(

@@ -105,6 +105,14 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
   }
 
   Future<void> _pickSlips() async {
+    if (kIsWeb) {
+      await _pickSlipsWeb();
+    } else {
+      await _pickSlipsMobile();
+    }
+  }
+
+  Future<void> _pickSlipsWeb() async {
     final picker = ImagePicker();
     try {
       final List<XFile> files = await picker.pickMultiImage(
@@ -129,6 +137,157 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     }
   }
 
+  Future<void> _pickSlipsMobile() async {
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    Text(
+                      'เลือกภาพสลิป',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () =>
+                                Navigator.pop(context, ImageSource.camera),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.camera_alt,
+                                      size: 40, color: AppTheme.primary),
+                                  SizedBox(height: 8),
+                                  Text('กล้อง',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w500)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () =>
+                                Navigator.pop(context, ImageSource.gallery),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.photo_library,
+                                      size: 40, color: AppTheme.primary),
+                                  SizedBox(height: 8),
+                                  Text('แกลเลอรี่',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w500)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text('ยกเลิก',
+                            style: TextStyle(color: Colors.grey[600])),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    final picker = ImagePicker();
+    try {
+      if (source == ImageSource.gallery) {
+        // For gallery, allow multiple selection
+        final List<XFile> files = await picker.pickMultiImage(
+          imageQuality: 85,
+          maxWidth: 2000,
+          maxHeight: 2000,
+        );
+        if (files.isEmpty) return;
+        if (_slipFiles.length + files.length > _maxFiles) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล')),
+            );
+          }
+        }
+        final space = _maxFiles - _slipFiles.length;
+        setState(() => _slipFiles.addAll(files.take(space)));
+      } else {
+        // For camera, allow single image
+        if (_slipFiles.length >= _maxFiles) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล')),
+            );
+          }
+          return;
+        }
+        final XFile? image = await picker.pickImage(
+          source: source,
+          imageQuality: 85,
+          maxWidth: 2000,
+          maxHeight: 2000,
+        );
+        if (image != null) {
+          setState(() => _slipFiles.add(image));
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('เลือกภาพไม่สำเร็จ: $e')));
+    }
+  }
+
   void _removeSlip(int index) {
     setState(() => _slipFiles.removeAt(index));
   }
@@ -136,9 +295,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
   Future<void> _pickTimeBottomSheet() async {
     int h = _selectedTime?.hour ?? TimeOfDay.now().hour;
     int m = _selectedTime?.minute ?? TimeOfDay.now().minute;
-    m = (m ~/ 5) * 5; // snap to 5 minutes
     final hours = List<int>.generate(24, (i) => i);
-    final minutes = List<int>.generate(12, (i) => i * 5);
+    final minutes = List<int>.generate(60, (i) => i);
     final hourCtrl = FixedExtentScrollController(initialItem: h);
     final minCtrl =
         FixedExtentScrollController(initialItem: minutes.indexOf(m));
@@ -363,6 +521,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       context: context,
       builder: (ctx) {
         return AlertDialog(
+          backgroundColor: Colors.white,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -371,7 +530,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('QR สำหรับโอน',
+                const Text('QrCode',
                     style:
                         TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 12),
@@ -456,12 +615,11 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                           ),
                           const SizedBox(height: 12),
                           _buildSection(
-                            title: 'หมายเหตุ (ถ้ามี)',
+                            title: 'หมายเหตุ',
                             icon: Icons.sticky_note_2_outlined,
                             child: _buildNoteBox(),
                           ),
                           const SizedBox(height: 16),
-                          _buildSubmitButton(),
                         ],
                       ),
                     ),
@@ -469,6 +627,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
                 ],
               ),
       ),
+      bottomNavigationBar: _buildSubmitButton(),
     );
   }
 
@@ -565,87 +724,6 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     );
   }
 
-  Widget _buildBankList() {
-    if (_bankAccounts.isEmpty) {
-      return const Text('ยังไม่มีบัญชีธนาคารให้เลือก');
-    }
-    return Column(
-      children: _bankAccounts.map((q) {
-        final id = q['qr_id'].toString();
-        final title = '${q['bank_name'] ?? ''} • ${q['account_number'] ?? ''}';
-        final sub = (q['account_name'] ?? '').toString();
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          decoration: BoxDecoration(
-            border: Border.all(
-                color:
-                    _selectedQrId == id ? AppTheme.primary : Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: RadioListTile<String>(
-            value: id,
-            groupValue: _selectedQrId,
-            onChanged: (v) => setState(() => _selectedQrId = v),
-            title: Text(title),
-            subtitle: Row(
-              children: [
-                Expanded(child: Text(sub)),
-                TextButton.icon(
-                  onPressed: () async {
-                    final acc = (q['account_number'] ?? '').toString();
-                    if (acc.isEmpty) return;
-                    await Clipboard.setData(ClipboardData(text: acc));
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('คัดลอกเลขบัญชีแล้ว')),
-                    );
-                  },
-                  icon: const Icon(Icons.copy, size: 16),
-                  label: const Text('คัดลอกเลขบัญชี'),
-                  style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8)),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildBankListDropdown() {
-    if (_bankAccounts.isEmpty) {
-      return const Text('ยังไม่มีบัญชีธนาคารให้เลือก');
-    }
-    final items = _bankAccounts.map((q) {
-      final id = (q['qr_id'] ?? '').toString();
-      final title = "${q['bank_name'] ?? ''} • ${q['account_number'] ?? ''}";
-      return DropdownMenuItem<String>(
-        value: id,
-        child: Text(title, overflow: TextOverflow.ellipsis),
-      );
-    }).toList();
-
-    return DropdownButtonFormField<String>(
-      value: (_selectedQrId != null && _selectedQrId!.isNotEmpty)
-          ? _selectedQrId
-          : null,
-      items: items,
-      onChanged: (v) {
-        if (v == null || v.isEmpty) return;
-        setState(() => _selectedQrId = v);
-        WidgetsBinding.instance.addPostFrameCallback((_) => _showQrDialog());
-      },
-      decoration: const InputDecoration(
-        border: OutlineInputBorder(),
-        filled: true,
-        fillColor: Colors.white,
-        prefixIcon: Icon(Icons.account_balance),
-        hintText: 'เลือกบัญชีธนาคาร',
-      ),
-    );
-  }
-
   // Dropdown + QR button (popup)
   Widget _buildBankDropdownWithQrButton() {
     if (_bankAccounts.isEmpty) {
@@ -668,12 +746,22 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
               ? _selectedQrId
               : null,
           items: items,
+          dropdownColor: Colors.white,
           onChanged: (v) {
             if (v == null || v.isEmpty) return;
             setState(() => _selectedQrId = v);
           },
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            border: OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey[400]!),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey[400]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: AppTheme.primary, width: 2),
+            ),
             filled: true,
             fillColor: Colors.white,
             prefixIcon: Icon(Icons.account_balance),
@@ -685,8 +773,10 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
           width: double.infinity,
           child: OutlinedButton.icon(
             onPressed: _selectedQrId == null ? null : _showQrDialog,
-            icon: const Icon(Icons.qr_code_2_outlined),
-            label: const Text('แสดง QR'),
+            label: const Text(
+              'แสดง QR',
+              style: TextStyle(color: Colors.black),
+            ),
           ),
         ),
       ],
@@ -703,10 +793,17 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         TextFormField(
           controller: _amountCtrl,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             prefixIcon: Icon(Icons.payments),
-            border: OutlineInputBorder(),
-            hintText: 'เช่น 5000.00',
+            border: OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey[400]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.grey[400]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: AppTheme.primary, width: 2),
+            ),
             filled: true,
             fillColor: Colors.white,
           ),
@@ -721,24 +818,42 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
               child: OutlinedButton.icon(
                 onPressed: () async {
                   final now = DateTime.now();
+
                   final picked = await showDatePicker(
                     context: context,
                     initialDate: _selectedDate ?? now,
                     firstDate: DateTime(now.year - 1),
                     lastDate: DateTime(now.year + 1),
+                    builder: (context, child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: ColorScheme.light(
+                            primary: AppTheme.primary, // สีไฮไลต์วันที่เลือก
+                            onPrimary: Colors.white, // สีตัวอักษรบนวันที่เลือก
+                            onSurface: Colors.black, // สีตัวอักษรปกติ
+                          ),
+                          dialogBackgroundColor:
+                              Colors.white, // สีพื้นหลัง dialog
+                        ),
+                        child: child!,
+                      );
+                    },
                   );
-                  if (picked != null) setState(() => _selectedDate = picked);
+
+                  if (picked != null) {
+                    setState(() => _selectedDate = picked);
+                  }
                 },
-                icon: const Icon(Icons.calendar_today),
+                icon: const Icon(Icons.calendar_today, color: Colors.grey),
                 label: Text(
                   _selectedDate == null
                       ? 'เลือกวันที่'
                       : '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}',
+                  style: TextStyle(color: Colors.black),
                 ),
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  side: BorderSide(color: Colors.grey[300]!),
-                  foregroundColor: Colors.black87,
+                  side: BorderSide(color: Colors.grey[400]!),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
@@ -747,16 +862,16 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: _pickTimeBottomSheet,
-                icon: const Icon(Icons.schedule),
+                icon: const Icon(Icons.schedule, color: Colors.grey),
                 label: Text(
                   _selectedTime == null
                       ? 'เลือกเวลา'
                       : '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}',
+                  style: TextStyle(color: Colors.black),
                 ),
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  side: BorderSide(color: Colors.grey[300]!),
-                  foregroundColor: Colors.black87,
+                  side: BorderSide(color: Colors.grey[400]!),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
@@ -775,11 +890,13 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
           width: double.infinity,
           child: OutlinedButton.icon(
             onPressed: _slipFiles.length >= _maxFiles ? null : _pickSlips,
-            icon: const Icon(Icons.add_photo_alternate_outlined),
+            icon: const Icon(Icons.add_photo_alternate_outlined,
+                color: Colors.grey),
             label: Text(
               _slipFiles.isEmpty
                   ? 'เลือกภาพสลิป'
                   : 'เพิ่มภาพ (เหลือ ${_maxFiles - _slipFiles.length})',
+              style: TextStyle(color: Colors.black),
             ),
           ),
         ),
@@ -842,9 +959,16 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     return TextField(
       controller: _noteCtrl,
       maxLines: 3,
-      decoration: const InputDecoration(
-        border: OutlineInputBorder(),
-        hintText: 'เช่น โอนผ่านบัญชี xxx เวลา xx:xx น.',
+      decoration: InputDecoration(
+        border: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.grey[400]!),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.grey[400]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: AppTheme.primary, width: 2),
+        ),
         filled: true,
         fillColor: Colors.white,
       ),
@@ -858,26 +982,52 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         _selectedTime != null &&
         _slipFiles.isNotEmpty &&
         _selectedQrId != null;
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: OutlinedButton.icon(
-        onPressed: (_submitting || !isValid) ? null : _submit,
-        icon: _submitting
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : const Icon(Icons.upload),
-        label: Text(_submitting ? 'กำลังส่ง...' : 'ส่งสลิปเพื่อรอตรวจสอบ'),
-        style: OutlinedButton.styleFrom(
-          backgroundColor: Colors.white,
-          side: BorderSide(color: Colors.grey[300]!),
-          foregroundColor: Colors.black87,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: (_submitting || !isValid) ? null : _submit,
+            icon: _submitting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Icon(Icons.upload, color: Colors.white),
+            label: Text(
+              _submitting ? 'กำลังส่ง...' : 'ส่งสลิปเพื่อรอตรวจสอบ',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              disabledBackgroundColor: Colors.grey[300],
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+          ),
         ),
       ),
     );

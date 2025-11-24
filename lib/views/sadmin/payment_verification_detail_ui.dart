@@ -209,6 +209,7 @@ class _PaymentVerificationDetailPageState
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         title: const Text('อนุมัติการชำระเงิน'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -218,7 +219,7 @@ class _PaymentVerificationDetailPageState
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
-                labelText: 'จำนวนเงินที่อนุมัติ',
+                labelText: 'จำนวนเงิน',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -227,21 +228,66 @@ class _PaymentVerificationDetailPageState
               controller: noteCtrl,
               maxLines: 2,
               decoration: const InputDecoration(
-                labelText: 'หมายเหตุ (ถ้ามี)',
+                labelText: 'หมายเหตุ',
                 border: OutlineInputBorder(),
               ),
             )
           ],
         ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('ยกเลิก')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
-            child: const Text('ยืนยัน', style: TextStyle(color: Colors.white)),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(
+                    'ยกเลิก',
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1ABC9C),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(
+                    'ยืนยัน',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
+          // TextButton(
+          //     onPressed: () => Navigator.pop(context, false),
+          //     child: const Text('ยกเลิก')),
+          // ElevatedButton(
+          //   onPressed: () => Navigator.pop(context, true),
+          //   style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
+          //   child: const Text('ยืนยัน', style: TextStyle(color: Colors.white)),
+          // ),
         ],
       ),
     );
@@ -316,23 +362,61 @@ class _PaymentVerificationDetailPageState
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         title: const Text('ปฏิเสธสลิป'),
         content: TextField(
           controller: reasonCtrl,
           maxLines: 3,
           decoration: const InputDecoration(
-            hintText: 'ระบุเหตุผล (ไม่บังคับ)',
+            hintText: 'ระบุเหตุผล',
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('ยกเลิก')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('ปฏิเสธ', style: TextStyle(color: Colors.white)),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(
+                    'ยกเลิก',
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(
+                    'ปฏิเสธ',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -389,16 +473,16 @@ class _PaymentVerificationDetailPageState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'ตรวจสอบสลิปชำระเงิน',
+                          'รายละเอียดสลิปชำระเงิน',
                           style: TextStyle(
-                            fontSize: 28,
+                            fontSize: 22,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'ตรวจสอบ อนุมัติ/ปฏิเสธ และติดตามสถานะการชำระ',
+                          'ตรวจสอบและติดตามสถานะการชำระ',
                           style: TextStyle(fontSize: 14, color: Colors.black54),
                         ),
                       ],
@@ -475,12 +559,6 @@ class _PaymentVerificationDetailPageState
             room['room_number'] ??
             '-')
         .toString();
-    final branchName =
-        (s['branch_name'] ?? invFull['branch_name'] ?? br['branch_name'] ?? '-')
-            .toString();
-    final invoiceStatus =
-        (s['invoice_status'] ?? invFull['invoice_status'] ?? '-').toString();
-
     // Amounts
     double rentalAmount = _asDouble(invFull['rental_amount']);
     double discountAmount = _asDouble(invFull['discount_amount']);
@@ -521,11 +599,7 @@ class _PaymentVerificationDetailPageState
                 _slipStatusChip(_slip),
               ],
             ),
-            const SizedBox(height: 8),
-            // ช่องรูปที่ผู้เช่าแนบมา (thumbnail)
-            _buildInlineSlipThumbnails(),
             const Divider(height: 20),
-
             // รายละเอียด #หัวเรื่อง
             const Text('รายละเอียดบิล',
                 style: TextStyle(fontWeight: FontWeight.w700)),
@@ -534,7 +608,7 @@ class _PaymentVerificationDetailPageState
             _kv('รอบบิลเดือน', '$invoiceMonth/$invoiceYear'),
             _kv('ออกบิลวันที่', issueDate.toString().split('T').first),
             _kv('ครบกำหนดชำระ', dueDate.toString().split('T').first),
-            const SizedBox(height: 8),
+            // const SizedBox(height: 8),
 
             // ผู้เช่า/ห้อง/สาขา
             _kv('ผู้เช่า', tenantName),
@@ -578,7 +652,7 @@ class _PaymentVerificationDetailPageState
               }
               final sub = parts.join(' • ');
               return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _moneyRow(name, total),
                   if (sub.isNotEmpty)
@@ -587,7 +661,7 @@ class _PaymentVerificationDetailPageState
                       child: Text(
                         sub,
                         style: const TextStyle(
-                            fontSize: 14, color: Colors.black54),
+                            fontSize: 12, color: Colors.black54),
                         textAlign: TextAlign.right,
                       ),
                     ),
@@ -673,48 +747,6 @@ class _PaymentVerificationDetailPageState
           Text('${amount.toStringAsFixed(2)} บาท', style: style),
         ],
       ),
-    );
-  }
-
-  // แสดง thumbnail ของสลิปใน Header (กดเพื่อเปิดเต็ม)
-  Widget _buildInlineSlipThumbnails() {
-    final files = _asListOfMap(_slip?['files']);
-    final hasAny = files.isNotEmpty ||
-        ((_slip?['slip_image'] ?? '').toString().isNotEmpty);
-    if (!hasAny) return const SizedBox.shrink();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (files.isNotEmpty)
-          SizedBox(
-            height: 80,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemBuilder: (context, i) {
-                final fu = (files[i]['file_url'] ?? '').toString();
-                return GestureDetector(
-                  onTap: _openSlip,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(fu,
-                        height: 80, width: 80, fit: BoxFit.cover),
-                  ),
-                );
-              },
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemCount: files.length,
-            ),
-          )
-        else
-          GestureDetector(
-            onTap: _openSlip,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network((_slip?['slip_image'] ?? '').toString(),
-                  height: 100, fit: BoxFit.cover),
-            ),
-          ),
-      ],
     );
   }
 
@@ -1058,13 +1090,13 @@ class _PaymentVerificationDetailPageState
     String t;
     if (isVerified) {
       c = const Color(0xFF22C55E);
-      t = 'สลิป: อนุมัติแล้ว';
+      t = 'อนุมัติแล้ว';
     } else if (isRejected) {
       c = const Color(0xFFEF4444);
-      t = 'สลิป: ถูกปฏิเสธ';
+      t = 'ถูกปฏิเสธ';
     } else {
       c = const Color(0xFF3B82F6);
-      t = 'สลิป: รอตรวจสอบ';
+      t = 'รอตรวจสอบ';
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
