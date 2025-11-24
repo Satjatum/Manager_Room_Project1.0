@@ -3,19 +3,20 @@ import 'package:manager_room_project/services/invoice_service.dart';
 import 'package:manager_room_project/services/meter_service.dart';
 import 'package:manager_room_project/middleware/auth_middleware.dart';
 import 'package:manager_room_project/services/payment_service.dart';
-import 'package:manager_room_project/views/tenant/tenant_pay_history_ui.dart';
+import 'package:manager_room_project/services/auth_service.dart';
+import 'package:manager_room_project/models/user_models.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/views/tenant/tenant_pay_bill_ui.dart';
 
-class TenantBillDetailUi extends StatefulWidget {
+class InvoiceListDetailUi extends StatefulWidget {
   final String invoiceId;
-  const TenantBillDetailUi({super.key, required this.invoiceId});
+  const InvoiceListDetailUi({super.key, required this.invoiceId});
 
   @override
-  State<TenantBillDetailUi> createState() => _TenantBillDetailUiState();
+  State<InvoiceListDetailUi> createState() => _InvoiceListDetailUiState();
 }
 
-class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
+class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
   bool _loading = true;
   Map<String, dynamic>? _invoice;
   final Map<String, Map<String, dynamic>> _readingById = {};
@@ -23,6 +24,7 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
   bool _pendingVerification = false;
   bool _rejectedSlip = false;
   String _rejectionReason = '';
+  UserModel? _currentUser;
 
   @override
   void initState() {
@@ -70,6 +72,10 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
+      // โหลดข้อมูล user ปัจจุบัน
+      final user = await AuthService.getCurrentUser();
+      _currentUser = user;
+
       var invRaw = await InvoiceService.getInvoiceById(widget.invoiceId);
       // Hybrid: รีคอมพิวต์ค่าปรับล่าช้าเมื่อเปิดดูบิล
       try {
@@ -97,6 +103,7 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
           }
         } catch (_) {}
 
+        // สำหรับทุก role: ตรวจสอบสถานะสลิปล่าสุด
         try {
           final user = await AuthMiddleware.getCurrentUser();
           final tenantId = (invRaw['tenant_id'] ??
@@ -109,14 +116,26 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
               tenantId: tenantId,
             );
             _latestSlip = slip;
-            final paymentId = (slip?['payment_id'] ?? '').toString();
-            final verifiedAt = (slip?['verified_at'] ?? '').toString();
-            final rejection = (slip?['rejection_reason'] ?? '').toString();
-            _rejectionReason = rejection;
-            final isVerified = paymentId.isNotEmpty;
-            _rejectedSlip =
-                !isVerified && verifiedAt.isNotEmpty; // ไม่พึ่งเฉพาะเหตุผล
-            _pendingVerification = !isVerified && verifiedAt.isEmpty;
+
+            // ตรวจสอบสถานะสลิปเฉพาะเมื่อมีสลิปจริงๆ
+            if (slip != null) {
+              final paymentId = (slip['payment_id'] ?? '').toString();
+              final verifiedAt = (slip['verified_at'] ?? '').toString();
+              final rejection = (slip['rejection_reason'] ?? '').toString();
+              _rejectionReason = rejection;
+              final isVerified = paymentId.isNotEmpty;
+
+              // สลิปถูกปฏิเสธ: ไม่มี payment_id แต่มี verified_at
+              _rejectedSlip = !isVerified && verifiedAt.isNotEmpty;
+
+              // สลิปรอตรวจสอบ: ไม่มี payment_id และไม่มี verified_at
+              _pendingVerification = !isVerified && verifiedAt.isEmpty;
+            } else {
+              // ไม่มีสลิป: รีเซ็ตทุกค่า
+              _pendingVerification = false;
+              _rejectedSlip = false;
+              _rejectionReason = '';
+            }
           } else {
             _latestSlip = null;
             _pendingVerification = false;
@@ -172,22 +191,22 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
                               tooltip: 'ย้อนกลับ',
                             ),
                             const SizedBox(width: 8),
-                            const Expanded(
+                            Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     'รายละเอียดบิลค่าเช่า',
-                                    style: TextStyle(
-                                      fontSize: 28,
+                                    style: const TextStyle(
+                                      fontSize: 22,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.black87,
                                     ),
                                   ),
-                                  SizedBox(height: 4),
+                                  const SizedBox(height: 4),
                                   Text(
-                                    'ตรวจสอบรายละเอียดบิลค่าเช่าของคุณ',
-                                    style: TextStyle(
+                                    'ตรวจสอบรายละเอียดบิล',
+                                    style: const TextStyle(
                                         fontSize: 14, color: Colors.black54),
                                   ),
                                 ],
@@ -202,9 +221,10 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Color(0xFFFFFBEB),
+                              color: const Color(0xFFFFFBEB),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Color(0xFFF59E0B)),
+                              border:
+                                  Border.all(color: const Color(0xFFF59E0B)),
                             ),
                             child: const Row(
                               children: [
@@ -213,7 +233,7 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
                                 SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'คุณได้ส่งสลิปแล้ว ระบบกำลังรอตรวจสอบ',
+                                    'กำลังตรวจสอบ - รอผู้ดูแลอนุมัติการชำระเงิน',
                                     style: TextStyle(color: Color(0xFF92400E)),
                                   ),
                                 ),
@@ -226,9 +246,10 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Color(0xFFFFEBEE),
+                              color: const Color(0xFFFFEBEE),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Color(0xFFEF5350)),
+                              border:
+                                  Border.all(color: const Color(0xFFEF5350)),
                             ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,9 +260,7 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
                                 Expanded(
                                   child: Text(
                                     _rejectionReason.isNotEmpty
-                                        ? 'สลิปถูกปฏิเสธ: ' +
-                                            _rejectionReason +
-                                            '\nกรุณาส่งสลิปใหม่'
+                                        ? 'สลิปถูกปฏิเสธ: $_rejectionReason\nกรุณาส่งสลิปใหม่'
                                         : 'สลิปถูกปฏิเสธ กรุณาส่งสลิปใหม่',
                                     style: const TextStyle(
                                         color: Color(0xFFB71C1C)),
@@ -251,8 +270,6 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
                             ),
                           ),
                         ],
-                        const SizedBox(height: 12),
-                        _buildPaymentHistoryButton(),
                       ],
                     ),
                   ),
@@ -264,7 +281,6 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
   Widget _buildInvoiceHeaderCard() {
     final inv = _asMap(_invoice);
     final room = inv['rooms'] ?? {};
-    final br = room['branches'] ?? {};
     final tenant = inv['tenants'] ?? {};
 
     final invoiceNumber = (inv['invoice_number'] ?? '-').toString();
@@ -477,33 +493,6 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
     );
   }
 
-  Widget _buildPaymentHistoryButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => TenantPayHistoryUi(invoiceId: widget.invoiceId),
-            ),
-          );
-        },
-        icon: const Icon(Icons.history, size: 18),
-        label: const Text('ดูประวัติการแจ้งชำระ'),
-        style: OutlinedButton.styleFrom(
-          backgroundColor: const Color(0xFFF8FAFC),
-          side: BorderSide(color: Colors.grey[400]!),
-          foregroundColor: Colors.black87,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildBottomBar() {
     if (_invoice == null) return const SizedBox.shrink();
     final inv = _asMap(_invoice);
@@ -524,7 +513,6 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
       child: SizedBox(
         width: double.infinity,
-        height: 52,
         child: OutlinedButton.icon(
           onPressed: disabled
               ? null
@@ -540,12 +528,14 @@ class _TenantBillDetailUiState extends State<TenantBillDetailUi> {
                     await _load();
                   }
                 },
-          icon: const Icon(Icons.payments_outlined),
-          label: Text(disabled
-              ? (_pendingVerification ? 'รอตรวจสอบ' : 'ชำระแล้ว')
-              : 'ชำระเงิน'),
+          label: Text(
+            disabled
+                ? (_pendingVerification ? 'กำลังตรวจสอบ' : 'ชำระแล้ว')
+                : 'ชำระเงิน',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          ),
           style: OutlinedButton.styleFrom(
-            backgroundColor: Colors.white,
+            backgroundColor: AppTheme.primary,
             side: BorderSide(color: Colors.grey[300]!),
             foregroundColor: Colors.black87,
             padding: const EdgeInsets.symmetric(vertical: 14),

@@ -5,7 +5,7 @@ import 'package:manager_room_project/services/payment_service.dart';
 import 'package:manager_room_project/services/auth_service.dart';
 import 'package:manager_room_project/services/branch_service.dart';
 import 'package:manager_room_project/models/user_models.dart';
-import 'package:manager_room_project/views/tenant/bill_detail_ui.dart';
+import 'package:manager_room_project/views/sadmin/invoicelist_detail_ui.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'dart:async';
 
@@ -477,15 +477,13 @@ class _InvoiceListUiState extends State<InvoiceListUi>
     return InkWell(
       onTap: () async {
         if (invoiceId.isEmpty) return;
-        if (_currentUser?.userRole == UserRole.tenant) {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => TenantBillDetailUi(invoiceId: invoiceId),
-            ),
-          );
-          _load();
-        }
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => InvoiceListDetailUi(invoiceId: invoiceId),
+          ),
+        );
+        _load();
       },
       child: Container(
         decoration: BoxDecoration(

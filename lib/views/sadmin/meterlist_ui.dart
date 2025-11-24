@@ -2320,7 +2320,7 @@ class _MeterListUiState extends State<MeterListUi> {
           const SizedBox(width: 8),
           const Expanded(
             child: Text(
-              'ยังไม่ได้ตั้งค่าค่าน้ำ - ค่าไฟ',
+              'ยังไม่ได้ตั้งค่าค่าน้ำค่าไฟ',
               style: TextStyle(color: Colors.black87),
             ),
           ),
@@ -2349,8 +2349,7 @@ class _MeterListUiState extends State<MeterListUi> {
       if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
     }
     if (waterRateId == null || electricRateId == null) {
-      _showErrorSnackBar(
-          'กรุณาตั้งค่าเรตค่าน้ำและค่าไฟใน Utility Settings ก่อน');
+      _showErrorSnackBar('กรุณาตั้งค่าเรตค่าน้ำและค่าไฟ');
       return;
     }
     final _prevMapForSave = _dynPrevCtrls[roomId];

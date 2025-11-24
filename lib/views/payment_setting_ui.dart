@@ -4,7 +4,6 @@ import '../services/payment_rate_service.dart';
 import '../services/branch_service.dart';
 import '../services/auth_service.dart';
 import '../models/user_models.dart';
-import 'widgets/colors.dart';
 
 class PaymentSettingsUi extends StatefulWidget {
   final String? branchId;
@@ -41,8 +40,6 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
 
   final TextEditingController settingDescController = TextEditingController();
   bool isActive = true;
-  // PromptPay Test Mode flag (global via branches.branch_desc)
-  bool enablePromptPayTestMode = false;
 
   @override
   void initState() {
@@ -92,12 +89,6 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
         return;
       }
 
-      // Load PromptPay test mode from branch JSON (global effect)
-      final initBranchId = widget.branchId ?? selectedBranchId;
-      if (initBranchId != null) {
-        enablePromptPayTestMode = await BranchService.getPromptPayTestMode(initBranchId);
-      }
-
       if (branchesData.isEmpty) {
         if (mounted) {
           setState(() {
@@ -109,7 +100,8 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
         return;
       }
 
-      final branchId = widget.branchId ?? selectedBranchId ?? branchesData[0]['branch_id'];
+      final branchId =
+          widget.branchId ?? selectedBranchId ?? branchesData[0]['branch_id'];
       final settings =
           await PaymentSettingsService.getPaymentSettings(branchId);
 
@@ -414,10 +406,6 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                             const SizedBox(height: 16),
                             _buildDiscountCard(),
                             const SizedBox(height: 16),
-                            // Toggle visible for Admin & SuperAdmin
-                            if (currentUser != null && (currentUser!.userRole == UserRole.admin || currentUser!.userRole == UserRole.superAdmin))
-                              _buildPromptPayTestModeCard(),
-                            const SizedBox(height: 24),
                             SizedBox(
                               width: double.infinity,
                               height: 50,
@@ -447,62 +435,6 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                   ],
                 ),
               ),
-      ),
-    );
-  }
-
-  Widget _buildPromptPayTestModeCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.science_rounded, color: Colors.blue.shade700, size: 22),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'โหมดทดสอบ PromptPay',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                Switch(
-                  value: enablePromptPayTestMode,
-                  onChanged: (v) async {
-                    if (selectedBranchId == null) return;
-                    final res = await BranchService.setPromptPayTestMode(
-                      branchId: selectedBranchId!,
-                      enabled: v,
-                    );
-                    if (!mounted) return;
-                    if (res['success'] == true) {
-                      setState(() => enablePromptPayTestMode = v);
-                      _showSuccessSnackBar(res['message'] ?? 'อัปเดตโหมดทดสอบเรียบร้อย');
-                    } else {
-                      _showError(res['message'] ?? 'ไม่สามารถอัปเดตโหมดทดสอบได้');
-                    }
-                  },
-                  activeColor: const Color(0xff10B981),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'สำหรับผู้ดูแลเท่านั้น • จะมีปุ่ม "ทดสอบโอนสำเร็จ" บนหน้าชำระด้วย PromptPay เพื่อจำลองการชำระเงินและตัดบิลทันที',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -642,8 +574,8 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                 ),
               ),
             ],
-              const SizedBox(height: 16),
-              _buildLateFeeExampleBox(),
+            const SizedBox(height: 16),
+            _buildLateFeeExampleBox(),
           ],
         ),
       ),
@@ -718,7 +650,8 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                         horizontal: 14, vertical: 14),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'percentage', child: Text('เปอร์เซ็นต์')),
+                    DropdownMenuItem(
+                        value: 'percentage', child: Text('เปอร์เซ็นต์')),
                     DropdownMenuItem(value: 'fixed', child: Text('จำนวนเงิน')),
                   ],
                   onChanged: (v) {
@@ -737,13 +670,17 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                 children: [
                   Expanded(
                     child: _buildFormField(
-                      label: discountType == 'fixed' ? 'จำนวนเงินส่วนลด' : 'เปอร์เซ็นต์ส่วนลด',
+                      label: discountType == 'fixed'
+                          ? 'จำนวนเงินส่วนลด'
+                          : 'เปอร์เซ็นต์ส่วนลด',
                       child: _buildTextField(
                         controller: discountType == 'fixed'
                             ? earlyPaymentAmountController
                             : earlyPaymentDiscountController,
                         hint: '0.00',
-                        icon: discountType == 'fixed' ? Icons.attach_money : Icons.percent,
+                        icon: discountType == 'fixed'
+                            ? Icons.attach_money
+                            : Icons.percent,
                         isNumeric: true,
                         onChanged: (_) => setState(() {}),
                       ),
@@ -873,8 +810,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
       enableLateFee: false,
       enableDiscount: enableDiscount,
       earlyPaymentType: discountType,
-      earlyPaymentAmount:
-          double.tryParse(earlyPaymentAmountController.text),
+      earlyPaymentAmount: double.tryParse(earlyPaymentAmountController.text),
       earlyPaymentDiscount:
           double.tryParse(earlyPaymentDiscountController.text),
       earlyPaymentDays: int.tryParse(earlyPaymentDaysController.text),

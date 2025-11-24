@@ -956,7 +956,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                   Text(
                     'จัดการสาขา',
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
