@@ -285,7 +285,7 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
               ),
             ),
             const SizedBox(width: 8),
-            // Year filter
+            // Year filter (แสดงเป็นปี พ.ศ.)
             Expanded(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -294,17 +294,22 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: DropdownButton<int?>(
-                  value: _filterYear,
+                  // ป้องกัน assertion: ถ้าค่า value ไม่มีใน items ให้เป็น null
+                  value: _availableYears.contains(_filterYear) ? _filterYear : null,
                   isExpanded: true,
                   underline: const SizedBox.shrink(),
-                  items: [
-                    const DropdownMenuItem(
+                  items: <DropdownMenuItem<int?>>[
+                    const DropdownMenuItem<int?>(
                       value: null,
                       child: Text('ทุกปี'),
                     ),
                     ..._availableYears.map(
-                      (y) => DropdownMenuItem(value: y, child: Text('$y')),
-                    )
+                      (y) => DropdownMenuItem<int?>(
+                        value: y,
+                        // แสดงปี พ.ศ. แต่ค่าที่ใช้กรองเก็บเป็น ค.ศ.
+                        child: Text('${y + 543}'),
+                      ),
+                    ),
                   ],
                   onChanged: (v) {
                     setState(() {
@@ -458,117 +463,116 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
 
               if (expanded) const SizedBox(height: 12),
 
-            if (expanded) ...[
-              // ข้อมูลบิล
-              if (invoiceNumber.isNotEmpty || dueDate.isNotEmpty) ...[
-                _infoRow('เลขบิล',
-                    invoiceNumber.isNotEmpty ? '#$invoiceNumber' : '-'),
-                if (dueDate.isNotEmpty)
-                  _infoRow('รอบบิล', _formatCycleFromDueDate(dueDate)),
-                const SizedBox(height: 8),
-              ],
+              if (expanded) ...[
+                // ข้อมูลบิล
+                if (invoiceNumber.isNotEmpty || dueDate.isNotEmpty) ...[
+                  _infoRow('เลขบิล',
+                      invoiceNumber.isNotEmpty ? '#$invoiceNumber' : '-'),
+                  if (dueDate.isNotEmpty)
+                    _infoRow('รอบบิล', _formatCycleFromDueDate(dueDate)),
+                  const SizedBox(height: 8),
+                ],
 
-              // จำนวนเงินที่ส่ง
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: statusColor.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.payments, size: 20, color: statusColor),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'จำนวนเงินที่ส่ง: ',
-                      style: TextStyle(fontSize: 14, color: Colors.black87),
-                    ),
-                    Expanded(
-                      child: Text(
-                        '${_formatMoney(paidAmount)} บาท',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: statusColor,
-                        ),
-                        textAlign: TextAlign.right,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // วันที่และเวลาที่ส่ง
-              _infoRow(
-                  'วันที่ส่งสลิป', _formatSlipDate(paymentDate, paymentTime)),
-              if (createdAt.isNotEmpty)
-                _infoRow('บันทึกเมื่อ', _formatCreatedDate(createdAt)),
-
-              // หมายเหตุผู้เช่า
-              if (tenantNotes.isNotEmpty) ...[
-                const SizedBox(height: 8),
+                // จำนวนเงินที่ส่ง
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0F9FF),
+                    color: statusColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF0EA5E9)),
+                    border: Border.all(color: statusColor.withOpacity(0.3)),
                   ),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.note_outlined,
-                          size: 16, color: Color(0xFF0284C7)),
+                      Icon(Icons.payments, size: 20, color: statusColor),
                       const SizedBox(width: 8),
+                      const Text(
+                        'จำนวนเงินที่ส่ง: ',
+                        style: TextStyle(fontSize: 14, color: Colors.black87),
+                      ),
                       Expanded(
                         child: Text(
-                          tenantNotes,
-                          style: const TextStyle(
-                              fontSize: 14, color: Color(0xFF0C4A6E)),
+                          '${_formatMoney(paidAmount)} บาท',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: statusColor,
+                          ),
+                          textAlign: TextAlign.right,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
 
-              // เหตุผลปฏิเสธ
-              if (isRejected && rejectionReason.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFEF2F2),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFEF4444)),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.error_outline,
-                          size: 16, color: Color(0xFFDC2626)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'เหตุผลปฏิเสธ: $rejectionReason',
-                          style: const TextStyle(
-                              fontSize: 14, color: Color(0xFFB91C1C)),
+                const SizedBox(height: 12),
+
+                // วันที่และเวลาที่ส่ง
+                _infoRow(
+                    'วันที่ส่งสลิป', _formatSlipDate(paymentDate, paymentTime)),
+                if (createdAt.isNotEmpty)
+                  _infoRow('บันทึกเมื่อ', _formatCreatedDate(createdAt)),
+
+                // หมายเหตุผู้เช่า
+                if (tenantNotes.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0F9FF),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF0EA5E9)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.note_outlined,
+                            size: 16, color: Color(0xFF0284C7)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            tenantNotes,
+                            style: const TextStyle(
+                                fontSize: 14, color: Color(0xFF0C4A6E)),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
 
-              // รูปสลิป (รองรับหลายรูป)
-              _buildSlipImages(slip),
+                // เหตุผลปฏิเสธ
+                if (isRejected && rejectionReason.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFEF4444)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.error_outline,
+                            size: 16, color: Color(0xFFDC2626)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'เหตุผลปฏิเสธ: $rejectionReason',
+                            style: const TextStyle(
+                                fontSize: 14, color: Color(0xFFB91C1C)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // รูปสลิป (รองรับหลายรูป)
+                _buildSlipImages(slip),
+              ],
             ],
-          ],
-        ),
-      ),
+          ),
         ),
       ),
     );
