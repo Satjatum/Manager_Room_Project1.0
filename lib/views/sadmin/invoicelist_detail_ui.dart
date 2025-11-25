@@ -4,6 +4,7 @@ import 'package:manager_room_project/services/meter_service.dart';
 import 'package:manager_room_project/middleware/auth_middleware.dart';
 import 'package:manager_room_project/services/payment_service.dart';
 import 'package:manager_room_project/services/auth_service.dart';
+import 'package:manager_room_project/services/payment_rate_service.dart';
 import 'package:manager_room_project/models/user_models.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/views/tenant/tenant_pay_bill_ui.dart';
@@ -21,6 +22,7 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
   Map<String, dynamic>? _invoice;
   final Map<String, Map<String, dynamic>> _readingById = {};
   Map<String, dynamic>? _latestSlip;
+  Map<String, dynamic>? _paymentSettings;
   bool _pendingVerification = false;
   bool _rejectedSlip = false;
   String _rejectionReason = '';
@@ -86,6 +88,31 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
         }
       } catch (_) {}
       if (invRaw != null) {
+        // โหลด payment_settings ถ้ามี
+        try {
+          final paymentSettingId = invRaw['payment_setting_id']?.toString();
+          if (paymentSettingId != null && paymentSettingId.isNotEmpty) {
+            // ดึงข้อมูล payment_settings โดยตรงจาก setting_id
+            try {
+              final settings =
+                  await PaymentSettingsService.getPaymentSettingById(
+                      paymentSettingId);
+              if (settings != null) {
+                _paymentSettings = settings;
+                debugPrint('✅ โหลด payment_settings สำเร็จ: $paymentSettingId');
+              } else {
+                debugPrint('⚠️ ไม่พบ payment_settings: $paymentSettingId');
+              }
+            } catch (e) {
+              debugPrint('❌ Error loading payment_settings: $e');
+            }
+          } else {
+            debugPrint('ℹ️ บิลนี้ไม่มี payment_setting_id');
+          }
+        } catch (e) {
+          debugPrint('❌ โหลด payment_settings ไม่สำเร็จ: $e');
+        }
+
         // preload meter readings for utilities
         try {
           final utils = _asListOfMap(invRaw['utilities']);
@@ -410,10 +437,16 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
                 return _moneyRow(label, amt);
               }).toList(),
             ],
-            if (discountAmount > 0)
-              _moneyRow('ส่วนลด', -discountAmount, emphasis: true),
-            if (lateFeeAmount > 0)
-              _moneyRow('ค่าปรับล่าช้า', lateFeeAmount, emphasis: true),
+            // แสดงส่วนลดถ้ามีนโยบายหรือมีจำนวนเงิน
+            if (_shouldShowDiscount(inv, discountAmount)) ...[
+              const SizedBox(height: 8),
+              _buildDiscountSection(inv, discountAmount),
+            ],
+            // แสดงค่าปรับถ้ามีนโยบายหรือมีจำนวนเงิน
+            if (_shouldShowLateFee(inv, lateFeeAmount)) ...[
+              const SizedBox(height: 8),
+              _buildLateFeeSection(inv, lateFeeAmount),
+            ],
             const Divider(height: 24),
             _moneyRow('ยอดรวม', totalAmount, bold: true),
             _moneyRow('ชำระแล้ว', paidAmount, color: Colors.green),
@@ -453,6 +486,238 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
           Text('${amount.toStringAsFixed(2)} บาท', style: style),
         ],
       ),
+    );
+  }
+
+  // ตรวจสอบว่าควรแสดงส่วนลดหรือไม่
+  bool _shouldShowDiscount(Map<String, dynamic> inv, double discountAmount) {
+    // แสดงถ้ามีจำนวนเงินส่วนลด
+    if (discountAmount > 0) return true;
+
+    // แสดงถ้ามีนโยบายส่วนลด (early_payment หรือ custom)
+    final discountType = (inv['discount_type'] ?? 'none').toString();
+    if (discountType == 'early_payment' && _paymentSettings != null) {
+      // ตรวจสอบว่ามีการเปิดใช้งานส่วนลดหรือไม่
+      final enableDiscount = _paymentSettings!['enable_discount'] == true;
+      return enableDiscount;
+    }
+
+    // แสดงถ้าเป็น custom discount (แม้จำนวนเงินเป็น 0)
+    if (discountType == 'custom') return true;
+
+    return false;
+  }
+
+  // ตรวจสอบว่าควรแสดงค่าปรับหรือไม่
+  bool _shouldShowLateFee(Map<String, dynamic> inv, double lateFeeAmount) {
+    // แสดงถ้ามีจำนวนเงินค่าปรับ
+    if (lateFeeAmount > 0) return true;
+
+    // แสดงถ้ามีนโยบายค่าปรับ
+    if (_paymentSettings != null) {
+      final enableLateFee = _paymentSettings!['enable_late_fee'] == true;
+      return enableLateFee;
+    }
+
+    return false;
+  }
+
+  Widget _buildDiscountSection(
+      Map<String, dynamic> inv, double discountAmount) {
+    final discountType = (inv['discount_type'] ?? 'none').toString();
+    String discountLabel = 'ส่วนลด';
+    String? discountDesc;
+
+    if (discountType == 'early_payment' && _paymentSettings != null) {
+      final earlyType =
+          (_paymentSettings!['early_payment_type'] ?? 'percentage').toString();
+      final earlyDays = _paymentSettings!['early_payment_days'] ?? 0;
+
+      if (earlyType == 'fixed') {
+        final amount =
+            (_paymentSettings!['early_payment_amount'] ?? 0).toDouble();
+        if (discountAmount > 0) {
+          discountDesc =
+              'ชำระก่อนกำหนด $earlyDays วัน (ได้ส่วนลด ${amount.toStringAsFixed(2)} บาท)';
+        } else {
+          discountDesc =
+              'ชำระก่อนกำหนด $earlyDays วัน จะได้ส่วนลด ${amount.toStringAsFixed(2)} บาท';
+        }
+      } else {
+        final percent =
+            (_paymentSettings!['early_payment_discount'] ?? 0).toDouble();
+        if (discountAmount > 0) {
+          discountDesc = 'ชำระก่อนกำหนด $earlyDays วัน (ได้ส่วนลด $percent%)';
+        } else {
+          discountDesc = 'ชำระก่อนกำหนด $earlyDays วัน จะได้ส่วนลด $percent%';
+        }
+      }
+      discountLabel =
+          discountAmount > 0 ? 'ส่วนลดชำระก่อนกำหนด' : 'นโยบายส่วนลด';
+    } else if (discountType == 'custom') {
+      discountLabel = 'ส่วนลดพิเศษ';
+      discountDesc = discountAmount > 0
+          ? 'ส่วนลดที่ผู้ดูแลให้'
+          : 'มีส่วนลดพิเศษจากผู้ดูแล';
+    }
+
+    // ถ้ายังไม่มีจำนวนเงิน แสดงเป็น info box
+    if (discountAmount == 0) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.green.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.green.shade200),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline, size: 18, color: Colors.green.shade700),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    discountLabel,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green.shade900,
+                    ),
+                  ),
+                  if (discountDesc != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      discountDesc,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.green.shade700,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // ถ้ามีจำนวนเงินแล้ว แสดงเป็น money row
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _moneyRow(discountLabel, -discountAmount,
+            emphasis: true, color: Colors.green),
+        if (discountDesc != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 0, top: 2, bottom: 4),
+            child: Text(
+              discountDesc,
+              style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.black54,
+                  fontStyle: FontStyle.italic),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildLateFeeSection(Map<String, dynamic> inv, double lateFeeAmount) {
+    final lateFeeDays = (inv['late_fee_days'] ?? 0) as int;
+    String lateFeeDesc = '';
+
+    if (_paymentSettings != null) {
+      final lateFeeType =
+          (_paymentSettings!['late_fee_type'] ?? 'fixed').toString();
+      final startDay = _paymentSettings!['late_fee_start_day'] ?? 1;
+
+      if (lateFeeType == 'percentage') {
+        final percent = (_paymentSettings!['late_fee_amount'] ?? 0).toDouble();
+        lateFeeDesc = 'เกิน $startDay วัน คิดค่าปรับ $percent%';
+      } else if (lateFeeType == 'daily') {
+        final amountPerDay =
+            (_paymentSettings!['late_fee_amount'] ?? 0).toDouble();
+        lateFeeDesc =
+            'เกิน $startDay วัน คิด ${amountPerDay.toStringAsFixed(2)} บาท/วัน';
+      } else {
+        final amount = (_paymentSettings!['late_fee_amount'] ?? 0).toDouble();
+        lateFeeDesc =
+            'เกิน $startDay วัน คิดค่าปรับ ${amount.toStringAsFixed(2)} บาท';
+      }
+
+      if (lateFeeDays > 0) {
+        lateFeeDesc += ' (ล่าช้า $lateFeeDays วัน)';
+      }
+    } else if (lateFeeDays > 0) {
+      lateFeeDesc = 'ล่าช้า $lateFeeDays วัน';
+    }
+
+    // ถ้ายังไม่มีจำนวนเงิน แสดงเป็น info box
+    if (lateFeeAmount == 0) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.orange.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange.shade200),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline, size: 18, color: Colors.orange.shade700),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'นโยบายค่าปรับชำระล่าช้า',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.orange.shade900,
+                    ),
+                  ),
+                  if (lateFeeDesc.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      lateFeeDesc,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.orange.shade700,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // ถ้ามีจำนวนเงินแล้ว แสดงเป็น money row
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _moneyRow('ค่าปรับชำระล่าช้า', lateFeeAmount,
+            emphasis: true, color: Colors.red),
+        if (lateFeeDesc.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 0, top: 2, bottom: 4),
+            child: Text(
+              lateFeeDesc,
+              style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.black54,
+                  fontStyle: FontStyle.italic),
+            ),
+          ),
+      ],
     );
   }
 

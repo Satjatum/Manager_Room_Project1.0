@@ -283,7 +283,15 @@ class InvoiceService {
         "other_charges": otherExpenses,
 
         // ✅ ส่วนลด
+        "discount_type": invoiceData["discount_type"] ?? "none",
         "discount_amount": discount,
+
+        // ✅ ค่าปรับล่าช้า (ตอนสร้างบิลจะเป็น 0 เสมอ จะคำนวณตอนชำระเงิน)
+        "late_fee_amount": (invoiceData["late_fee_amount"] ?? 0.0).toDouble(),
+        "late_fee_days": invoiceData["late_fee_days"] ?? 0,
+
+        // ✅ เชื่อมโยงกับ payment_settings (เก็บ snapshot ของนโยบาย)
+        "payment_setting_id": invoiceData["payment_setting_id"],
 
         // ✅ ยอดรวมย่อย (subtotal) และยอดรวมสุทธิ
         "subtotal": baseTotal,
@@ -313,8 +321,11 @@ class InvoiceService {
             rental_amount,
             utilities_amount,
             other_charges,
+            discount_type,
             discount_amount,
             late_fee_amount,
+            late_fee_days,
+            payment_setting_id,
             subtotal,
             total_amount,
             paid_amount,

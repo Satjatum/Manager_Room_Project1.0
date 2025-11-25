@@ -40,6 +40,22 @@ class PaymentSettingsService {
     }
   }
 
+  /// ดึงการตั้งค่าการชำระเงินจาก setting_id
+  static Future<Map<String, dynamic>?> getPaymentSettingById(
+      String settingId) async {
+    try {
+      final response = await _supabase
+          .from('payment_settings')
+          .select()
+          .eq('setting_id', settingId)
+          .maybeSingle();
+
+      return response;
+    } catch (e) {
+      throw Exception('ไม่สามารถดึงข้อมูลการตั้งค่าการชำระเงินได้: $e');
+    }
+  }
+
   // ============================================
   // CREATE/UPDATE OPERATION (UPSERT)
   // ============================================
@@ -115,9 +131,11 @@ class PaymentSettingsService {
         'late_fee_start_day': enableLateFee ? lateFeeStartDay : 1,
         'late_fee_max_amount': enableLateFee ? lateFeeMaxAmount : null,
         'enable_discount': enableDiscount,
-        'early_payment_type': enableDiscount ? (earlyPaymentType ?? 'percentage') : null,
+        'early_payment_type':
+            enableDiscount ? (earlyPaymentType ?? 'percentage') : null,
         'early_payment_amount': enableDiscount ? (earlyPaymentAmount ?? 0) : 0,
-        'early_payment_discount': enableDiscount ? (earlyPaymentDiscount ?? 0) : 0,
+        'early_payment_discount':
+            enableDiscount ? (earlyPaymentDiscount ?? 0) : 0,
         'early_payment_days': enableDiscount ? earlyPaymentDays : 0,
         'setting_desc': settingDesc?.trim(),
         'is_active': isActive,

@@ -1991,6 +1991,19 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
   Widget _buildSummaryStep() {
     final grandTotal = _calculateGrandTotal();
 
+    // ดึงข้อมูลผู้เช่าและห้อง
+    final contract = _contracts.firstWhere(
+      (c) => c['contract_id'] == _selectedContractId,
+      orElse: () => {},
+    );
+    final room = _rooms.firstWhere(
+      (r) => r['room_id'] == _selectedRoomId,
+      orElse: () => {},
+    );
+    final tenantName = contract['tenant_name'] ?? '-';
+    final tenantPhone = contract['tenant_phone'] ?? '-';
+    final roomNumber = room['room_number'] ?? '-';
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -2025,6 +2038,10 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   _buildSummaryRow('เดือน-ปี',
                       '${_getMonthName(_invoiceMonth)} ${_invoiceYear + 543}'),
                   _buildSummaryRow('วันครบกำหนด', _formatDate(_dueDate)),
+                  const SizedBox(height: 8),
+                  _buildSummaryRow('ผู้เช่า', tenantName),
+                  _buildSummaryRow('เบอร์', tenantPhone),
+                  _buildSummaryRow('ห้อง', roomNumber),
                 ],
               ),
             ),
@@ -2057,36 +2074,53 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                       'ค่าห้อง', '${_rentalAmount.toStringAsFixed(2)} บาท'),
 
                   // ค่าน้ำ
-                  _buildSummaryRow(
-                      'ค่าน้ำ (${_waterUsage.toStringAsFixed(0)} หน่วย)',
-                      '${_waterCost.toStringAsFixed(2)} บาท'),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSummaryRow(
+                          'ค่าน้ำ', '${_waterCost.toStringAsFixed(2)} บาท'),
+                      if (_waterUsage > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2, bottom: 4),
+                          child: Text(
+                            '${_waterPreviousReading.toStringAsFixed(2)} - ${_waterCurrentReading.toStringAsFixed(2)} = ${_waterUsage.toStringAsFixed(2)} • ${_waterRate.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.black54),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                    ],
+                  ),
 
                   // ค่าไฟ
-                  _buildSummaryRow(
-                      'ค่าไฟ (${_electricUsage.toStringAsFixed(0)} หน่วย)',
-                      '${_electricCost.toStringAsFixed(2)} บาท'),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSummaryRow(
+                          'ค่าไฟ', '${_electricCost.toStringAsFixed(2)} บาท'),
+                      if (_electricUsage > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2, bottom: 4),
+                          child: Text(
+                            '${_electricPreviousReading.toStringAsFixed(2)} - ${_electricCurrentReading.toStringAsFixed(2)} = ${_electricUsage.toStringAsFixed(2)} • ${_electricRate.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.black54),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                    ],
+                  ),
 
                   // ⭐ แสดงค่าใช้จ่ายอื่นๆแบบแยกรายการ
                   if (_selectedFixedRates.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     const Divider(height: 1),
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.receipt_long,
-                            size: 16, color: Colors.grey[600]),
-                        const SizedBox(width: 6),
-                        Text(
-                          'ค่าใช้จ่ายอื่นๆ:',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                      ],
+                    const Text(
+                      'ค่าใช้จ่ายอื่นๆ',
+                      style: TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     ...List.generate(_selectedFixedRates.length, (index) {
                       final rate = _selectedFixedRates[index];
                       final fixedAmount =
@@ -2096,37 +2130,12 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                       final unit = fixedAmount + additionalCharge;
                       final qty = (rate['quantity'] ?? 1) as int;
                       final lineTotal = unit * (qty <= 0 ? 1 : qty);
+                      final desc = (rate['description'] ?? '').toString();
+                      final title = rate['rate_name'];
+                      final label = desc.isNotEmpty ? '$title ($desc)' : title;
 
-                      return Padding(
-                        padding: const EdgeInsets.only(left: 24, bottom: 6),
-                        child: Row(
-                          children: [
-                            Icon(
-                              _getIconForRate(rate['rate_name']),
-                              size: 14,
-                              color: Colors.purple[400],
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                rate['rate_name'],
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                            ),
-                            Text(
-                              '${unit.toStringAsFixed(2)} × $qty = ${lineTotal.toStringAsFixed(2)} บาท',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.purple[700],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
+                      return _buildSummaryRow(
+                          label, '${lineTotal.toStringAsFixed(2)} บาท');
                     }),
                   ],
 
