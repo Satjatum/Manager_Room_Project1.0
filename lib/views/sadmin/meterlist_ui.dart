@@ -6,6 +6,7 @@ import '../../services/invoice_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_models.dart';
 import '../widgets/colors.dart';
+import 'package:manager_room_project/utils/formatMonthy.dart';
 
 class MeterListUi extends StatefulWidget {
   final bool hideBottomNav;
@@ -304,23 +305,7 @@ class _MeterListUiState extends State<MeterListUi> {
     }
   }
 
-  String _getMonthName(int month) {
-    const monthNames = [
-      'มกราคม',
-      'กุมภาพันธ์',
-      'มีนาคม',
-      'เมษายน',
-      'พฤษภาคม',
-      'มิถุนายน',
-      'กรกฎาคม',
-      'สิงหาคม',
-      'กันยายน',
-      'ตุลาคม',
-      'พฤศจิกายน',
-      'ธันวาคม'
-    ];
-    return monthNames[(month.clamp(1, 12)) - 1];
-  }
+  // use Formatmonthy for month names and billing cycle formatting
 
   @override
   Widget build(BuildContext context) {
@@ -369,7 +354,10 @@ class _MeterListUiState extends State<MeterListUi> {
                                 size: 16, color: Colors.black54),
                             const SizedBox(width: 6),
                             Text(
-                              'รอบเดือน: ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
+                              'รอบเดือน: ' +
+                                  Formatmonthy.formatBillingCycleTh(
+                                      month: _selectedMonth,
+                                      year: _selectedYear),
                               style: const TextStyle(
                                   fontSize: 14, color: Colors.black54),
                             ),
@@ -511,7 +499,8 @@ class _MeterListUiState extends State<MeterListUi> {
                                         items: List.generate(12, (i) => i + 1)
                                             .map((m) => DropdownMenuItem(
                                                 value: m,
-                                                child: Text(_getMonthName(m))))
+                                                child: Text(
+                                                    Formatmonthy.monthName(m))))
                                             .toList(),
                                         onChanged: (val) async {
                                           setState(() => _selectedMonth =

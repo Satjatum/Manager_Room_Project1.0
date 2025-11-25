@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../widgets/colors.dart';
+import 'package:manager_room_project/utils/formatMonthy.dart';
 import '../../services/meter_service.dart';
 import 'invoice_add_ui.dart';
 
@@ -112,23 +113,7 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
     }).toList();
   }
 
-  String _getMonthName(int month) {
-    const monthNames = [
-      'มกราคม',
-      'กุมภาพันธ์',
-      'มีนาคม',
-      'เมษายน',
-      'พฤษภาคม',
-      'มิถุนายน',
-      'กรกฎาคม',
-      'สิงหาคม',
-      'กันยายน',
-      'ตุลาคม',
-      'พฤศจิกายน',
-      'ธันวาคม'
-    ];
-    return monthNames[(month.clamp(1, 12)) - 1];
-  }
+  // use Formatmonthy.monthName instead of local helper
 
   @override
   Widget build(BuildContext context) {
@@ -315,8 +300,8 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                                           items: List.generate(12, (i) => i + 1)
                                               .map((m) => DropdownMenuItem(
                                                   value: m,
-                                                  child:
-                                                      Text(_getMonthName(m))))
+                                                  child: Text(
+                                                      Formatmonthy.monthName(m))))
                                               .toList(),
                                           onChanged: (val) async {
                                             setState(() => _selectedMonth =
@@ -422,7 +407,7 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
           Icon(Icons.receipt_long, color: Colors.grey[400], size: 56),
           const SizedBox(height: 8),
           Text(
-            'ไม่มีรายการพร้อมออกบิลสำหรับ ${_getMonthName(_selectedMonth)} ${_selectedYear + 543}',
+            'ไม่มีรายการพร้อมออกบิลสำหรับ ${Formatmonthy.formatBillingCycleTh(month: _selectedMonth, year: _selectedYear)}',
             style: TextStyle(color: Colors.grey[600]),
           ),
         ],
@@ -432,8 +417,9 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
 
   Widget _buildReadingTile(Map<String, dynamic> r) {
     final tenant = (r['tenant_name'] ?? '-').toString();
-    final monthName = _getMonthName(r['reading_month'] ?? _selectedMonth);
-    final yearDisplay = (_selectedYear + 543).toString();
+    final int month = (r['reading_month'] ?? _selectedMonth) as int;
+    final int year = (r['reading_year'] ?? _selectedYear) as int;
+    final cycle = Formatmonthy.formatBillingCycleTh(month: month, year: year);
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -482,7 +468,7 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                     const SizedBox(height: 4),
                     // Billing period
                     Text(
-                      'รอบบิลเดือน $monthName $yearDisplay',
+                      'รอบบิลเดือน $cycle',
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 13,
