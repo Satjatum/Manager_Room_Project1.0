@@ -9,6 +9,7 @@ import '../../services/auth_service.dart';
 import '../../services/payment_rate_service.dart';
 import '../../models/user_models.dart';
 import '../widgets/colors.dart';
+import 'package:manager_room_project/utils/invoice_format.dart';
 
 class InvoiceAddPage extends StatefulWidget {
   final Map<String, dynamic>? initialData;
@@ -2033,7 +2034,10 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   const Text('รายละเอียดบิล',
                       style: TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 6),
-                  _kv('รอบบิลเดือน', '${_invoiceMonth}/${_invoiceYear}'),
+                  _kv(
+                      'รอบบิลเดือน',
+                      InvoiceFormat.formatBillingCycleTh(
+                          month: _invoiceMonth, year: _invoiceYear)),
                   _kv('ออกบิลวันที่', _formatDate(issueDate)),
                   _kv('ครบกำหนดชำระ', _formatDate(_dueDate)),
                   const SizedBox(height: 8),
@@ -2056,7 +2060,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                           Padding(
                             padding: const EdgeInsets.only(top: 2, bottom: 4),
                             child: Text(
-                              '${_waterPreviousReading.toStringAsFixed(2)} - ${_waterCurrentReading.toStringAsFixed(2)} = ${_waterUsage.toStringAsFixed(2)} • ${_waterRate.toStringAsFixed(2)}',
+                              '${_waterPreviousReading.toStringAsFixed(0)} - ${_waterCurrentReading.toStringAsFixed(0)} = ${_waterUsage.toStringAsFixed(0)} (${_waterCost.toStringAsFixed(2)})',
                               style: const TextStyle(
                                   fontSize: 12, color: Colors.black54),
                               textAlign: TextAlign.right,
@@ -2075,7 +2079,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                           Padding(
                             padding: const EdgeInsets.only(top: 2, bottom: 4),
                             child: Text(
-                              '${_electricPreviousReading.toStringAsFixed(2)} - ${_electricCurrentReading.toStringAsFixed(2)} = ${_electricUsage.toStringAsFixed(2)} • ${_electricRate.toStringAsFixed(2)}',
+                              '${_electricPreviousReading.toStringAsFixed(0)} - ${_electricCurrentReading.toStringAsFixed(0)} = ${_electricUsage.toStringAsFixed(0)} (${_electricCost.toStringAsFixed(2)})',
                               style: const TextStyle(
                                   fontSize: 12, color: Colors.black54),
                               textAlign: TextAlign.right,
@@ -2103,13 +2107,32 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                       final desc = (rate['description'] ?? '').toString();
                       final label = desc.isNotEmpty ? '$title ($desc)' : title;
 
-                      return _moneyRow(label, lineTotal);
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _moneyRow(label, lineTotal),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2, bottom: 4),
+                            child: Text(
+                              '$title x $qty (${lineTotal.toStringAsFixed(2)})',
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.black54),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                        ],
+                      );
                     }),
                   ],
 
-                  if (_discountAmount > 0)
+                  // แสดงส่วนลด/ค่าปรับเฉพาะเมื่อเปิดใช้งานใน Payment Settings
+                  if (_paymentSettings != null &&
+                      _paymentSettings!['is_active'] == true &&
+                      _paymentSettings!['enable_discount'] == true)
                     _moneyRow('ส่วนลด', _discountAmount, emphasis: true),
-                  if (_lateFeeAmount > 0)
+                  if (_paymentSettings != null &&
+                      _paymentSettings!['is_active'] == true &&
+                      _paymentSettings!['enable_late_fee'] == true)
                     _moneyRow('ค่าปรับล่าช้า', _lateFeeAmount, emphasis: true),
                   const Divider(height: 24),
                   _moneyRow('ยอดรวม', grandTotal, bold: true),
