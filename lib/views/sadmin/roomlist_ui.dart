@@ -1868,39 +1868,6 @@ class _RoomListUIState extends State<RoomListUI> {
     );
   }
 
-  // Helper method for responsive info chip
-  Widget _buildInfoChipResponsive(
-    IconData icon,
-    String label,
-    Color color,
-    double iconSize,
-    double fontSize,
-  ) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: iconSize * 0.88, color: color),
-          SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: fontSize,
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildRoomMenu(
       Map<String, dynamic> room, bool canManage, bool isActive) {
     return PopupMenuButton<String>(

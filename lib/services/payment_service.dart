@@ -219,7 +219,7 @@ class PaymentService {
         'data': result,
       };
     } on PostgrestException catch (e) {
-      final msg = (e.message ?? '').toString();
+      final msg = (e.message).toString();
       if (msg.contains('ERR_MAX_5_SLIPS')) {
         return {
           'success': false,

@@ -680,8 +680,7 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                   children: [
                     Icon(Icons.check_circle, color: Colors.white),
                     SizedBox(width: 12),
-                    Expanded(
-                        child: Text(result['message'] ?? 'ลบสำเร็จ')),
+                    Expanded(child: Text(result['message'] ?? 'ลบสำเร็จ')),
                   ],
                 ),
                 backgroundColor: Colors.green.shade600,
@@ -1279,89 +1278,6 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
         backgroundColor: AppTheme.primary,
         child: Icon(Icons.add, color: Colors.white),
         tooltip: 'เพิ่มประเภทห้อง',
-      ),
-    );
-  }
-
-  Widget _typeCard(BuildContext context, Map<String, dynamic> t) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: () => _showAddEditDialog(roomType: t),
-      child: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
-            ),
-            padding: EdgeInsets.all(12),
-            child: Column(
-              children: [
-                SizedBox(height: 6),
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue.withOpacity(0.25)),
-                  ),
-                  child: Icon(
-                    _getIconData(t['roomtype_icon']?.toString()),
-                    color: Colors.blue,
-                    size: 40,
-                  ),
-                ),
-                SizedBox(height: 12),
-                Text(
-                  t['roomtype_name'] ?? '',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            right: 4,
-            top: 4,
-            child: PopupMenuButton<String>(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              onSelected: (value) {
-                if (value == 'edit') {
-                  _showAddEditDialog(roomType: t);
-                } else if (value == 'delete') {
-                  _deleteRoomType(t);
-                }
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'edit',
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit, color: Colors.blue),
-                      SizedBox(width: 8),
-                      Text('แก้ไข'),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('ลบ'),
-                    ],
-                  ),
-                ),
-              ],
-              icon: Icon(Icons.more_vert, color: Colors.grey[700]),
-            ),
-          ),
-        ],
       ),
     );
   }

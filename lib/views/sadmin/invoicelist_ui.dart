@@ -442,8 +442,10 @@ class _InvoiceListUiState extends State<InvoiceListUi>
     }
 
     String billingPeriod = '-';
-    if (invoiceMonth is int && invoiceYear is int &&
-        invoiceMonth >= 1 && invoiceMonth <= 12) {
+    if (invoiceMonth is int &&
+        invoiceYear is int &&
+        invoiceMonth >= 1 &&
+        invoiceMonth <= 12) {
       billingPeriod =
           'รอบบิลเดือน ${Formatmonthy.formatBillingCycleTh(month: invoiceMonth, year: invoiceYear)}';
     }

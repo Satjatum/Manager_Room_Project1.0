@@ -1137,38 +1137,38 @@ class MeterReadingService {
   }
 
   /// หาเดือนถัดไปของห้องเดียวกัน (ไม่นับ Initial)
-  static Future<Map<String, dynamic>?> _getNextReading(
-      String roomId, int month, int year) async {
-    try {
-      // ลองหาในปีเดียวกัน เดือนที่มากกว่า
-      final sameYear = await _supabase
-          .from('meter_readings')
-          .select('*')
-          .eq('room_id', roomId)
-          .eq('is_initial_reading', false)
-          .eq('reading_year', year)
-          .gt('reading_month', month)
-          .order('reading_month', ascending: true)
-          .limit(1)
-          .maybeSingle();
-      if (sameYear != null) return sameYear;
+  // static Future<Map<String, dynamic>?> _getNextReading(
+  //     String roomId, int month, int year) async {
+  //   try {
+  //     // ลองหาในปีเดียวกัน เดือนที่มากกว่า
+  //     final sameYear = await _supabase
+  //         .from('meter_readings')
+  //         .select('*')
+  //         .eq('room_id', roomId)
+  //         .eq('is_initial_reading', false)
+  //         .eq('reading_year', year)
+  //         .gt('reading_month', month)
+  //         .order('reading_month', ascending: true)
+  //         .limit(1)
+  //         .maybeSingle();
+  //     if (sameYear != null) return sameYear;
 
-      // ถ้าไม่มี ให้หาในปีถัดไป
-      final nextYear = await _supabase
-          .from('meter_readings')
-          .select('*')
-          .eq('room_id', roomId)
-          .eq('is_initial_reading', false)
-          .gt('reading_year', year)
-          .order('reading_year', ascending: true)
-          .order('reading_month', ascending: true)
-          .limit(1)
-          .maybeSingle();
-      return nextYear;
-    } catch (e) {
-      return null;
-    }
-  }
+  //     // ถ้าไม่มี ให้หาในปีถัดไป
+  //     final nextYear = await _supabase
+  //         .from('meter_readings')
+  //         .select('*')
+  //         .eq('room_id', roomId)
+  //         .eq('is_initial_reading', false)
+  //         .gt('reading_year', year)
+  //         .order('reading_year', ascending: true)
+  //         .order('reading_month', ascending: true)
+  //         .limit(1)
+  //         .maybeSingle();
+  //     return nextYear;
+  //   } catch (e) {
+  //     return null;
+  //   }
+  // }
 
   /// หาเดือนก่อนหน้าของห้องเดียวกันที่อยู่ก่อน (ไม่นับ Initial)
   static Future<Map<String, dynamic>?> _getPrevReading(

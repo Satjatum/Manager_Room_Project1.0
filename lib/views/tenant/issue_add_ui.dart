@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
-import 'dart:typed_data';
 import '../../services/issue_service.dart';
 import '../../services/image_service.dart';
 import '../../services/auth_service.dart';

@@ -269,8 +269,7 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border:
-                          Border.all(color: Colors.grey[300]!, width: 1.5),
+                      border: Border.all(color: Colors.grey[300]!, width: 1.5),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -383,15 +382,14 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                                   );
 
                                   final payload = {
-                                    'roomcate_name':
-                                        nameController.text.trim(),
+                                    'roomcate_name': nameController.text.trim(),
                                     'roomcate_icon': iconController.text,
                                   };
 
                                   Map<String, dynamic> resp;
                                   if (isEdit) {
                                     resp = await RoomService.updateRoomCategory(
-                                      category!['roomcate_id'],
+                                      category['roomcate_id'],
                                       payload,
                                     );
                                   } else {
@@ -401,7 +399,8 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                                   }
 
                                   if (mounted && Navigator.canPop(context)) {
-                                    Navigator.of(context).pop(); // close spinner
+                                    Navigator.of(context)
+                                        .pop(); // close spinner
                                   }
 
                                   if (mounted) {
@@ -409,12 +408,13 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
                                         SnackBar(
-                                          content: Text(
-                                              resp['message'] ?? 'สำเร็จ'),
+                                          content:
+                                              Text(resp['message'] ?? 'สำเร็จ'),
                                           backgroundColor: Colors.green,
                                         ),
                                       );
-                                      Navigator.of(context).pop(); // close dialog
+                                      Navigator.of(context)
+                                          .pop(); // close dialog
                                       await _loadCategories();
                                     } else {
                                       throw Exception(
@@ -423,10 +423,10 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                                   }
                                 } catch (e) {
                                   if (mounted && Navigator.canPop(context)) {
-                                    Navigator.of(context).pop(); // ensure closed
+                                    Navigator.of(context)
+                                        .pop(); // ensure closed
                                   }
-                                  setDialogState(
-                                      () => isSubmitting = false);
+                                  setDialogState(() => isSubmitting = false);
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
@@ -454,10 +454,7 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             if (!isSubmitting)
-                              Icon(
-                                  isEdit
-                                      ? Icons.save_outlined
-                                      : Icons.add),
+                              Icon(isEdit ? Icons.save_outlined : Icons.add),
                             if (!isSubmitting) SizedBox(width: 8),
                             isSubmitting
                                 ? SizedBox(
@@ -722,8 +719,7 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
                   children: [
                     Icon(Icons.check_circle, color: Colors.white),
                     SizedBox(width: 12),
-                    Expanded(
-                        child: Text(result['message'] ?? 'ลบสำเร็จ')),
+                    Expanded(child: Text(result['message'] ?? 'ลบสำเร็จ')),
                   ],
                 ),
                 backgroundColor: Colors.green.shade600,
@@ -742,8 +738,7 @@ class _RoomCategoriesUIState extends State<RoomCategoriesUI> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content:
-                  Text(e.toString().replaceAll('Exception: ', '')),
+              content: Text(e.toString().replaceAll('Exception: ', '')),
               backgroundColor: Colors.red.shade600,
               behavior: SnackBarBehavior.floating,
             ),

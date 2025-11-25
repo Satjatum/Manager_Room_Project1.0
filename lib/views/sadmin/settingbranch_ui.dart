@@ -95,174 +95,111 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
         (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
 
     return Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header สไตล์เดียวกับ branchlist_ui
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new,
-                          color: Colors.black87),
-                      onPressed: () {
-                        if (Navigator.of(context).canPop()) {
-                          Navigator.of(context).pop();
-                        }
-                      },
-                      tooltip: 'ย้อนกลับ',
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'ตั้งค่าสาขา',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            widget.branchName?.isNotEmpty == true
-                                ? 'สาขา: ${widget.branchName}'
-                                : 'ปรับการตั้งค่าที่สำคัญของสาขา',
-                            style: TextStyle(
-                                fontSize: 14, color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // รายการการ์ด (responsive)
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    // ถ้าเป็น Mobile (Android/iOS) ให้แสดงแบบคอลัมน์ (List) เสมอ
-                    if (isMobileApp) {
-                      return ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                        itemCount: items.length,
-                        itemBuilder: (context, index) => Column(
-                          children: [
-                            _SettingGridCard(item: items[index]),
-                            const SizedBox(height: 16),
-                          ],
-                        ),
-                      );
-                    }
-
-                    int crossAxisCount = 1;
-                    if (constraints.maxWidth > 1200) {
-                      crossAxisCount = 4;
-                    } else if (constraints.maxWidth > 900) {
-                      crossAxisCount = 3;
-                    } else if (constraints.maxWidth > 600) {
-                      crossAxisCount = 2;
-                    }
-
-                    if (crossAxisCount == 1) {
-                      return ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                        itemCount: items.length,
-                        itemBuilder: (context, index) => Column(
-                          children: [
-                            _SettingGridCard(item: items[index]),
-                            const SizedBox(height: 16),
-                          ],
-                        ),
-                      );
-                    }
-
-                    return GridView.builder(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 1.25,
-                      ),
-                      itemCount: items.length,
-                      itemBuilder: (context, index) => _SettingGridCard(
-                        item: items[index],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-  }
-}
-
-class _SettingCard extends StatelessWidget {
-  const _SettingCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    const primary = Color(0xff10B981);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.black12),
-          boxShadow: const [
-            BoxShadow(
-                blurRadius: 10, spreadRadius: -2, color: Color(0x11000000)),
-          ],
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Row(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: primary.withOpacity(.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: primary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // Header สไตล์เดียวกับ branchlist_ui
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 4),
-                  Text(subtitle,
-                      style: TextStyle(color: Colors.grey[700], fontSize: 12)),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        color: Colors.black87),
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    tooltip: 'ย้อนกลับ',
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'ตั้งค่าสาขา',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.branchName?.isNotEmpty == true
+                              ? 'สาขา: ${widget.branchName}'
+                              : 'ปรับการตั้งค่าที่สำคัญของสาขา',
+                          style:
+                              TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios,
-                size: 16, color: Colors.black45),
+
+            // รายการการ์ด (responsive)
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // ถ้าเป็น Mobile (Android/iOS) ให้แสดงแบบคอลัมน์ (List) เสมอ
+                  if (isMobileApp) {
+                    return ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                      itemCount: items.length,
+                      itemBuilder: (context, index) => Column(
+                        children: [
+                          _SettingGridCard(item: items[index]),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                    );
+                  }
+
+                  int crossAxisCount = 1;
+                  if (constraints.maxWidth > 1200) {
+                    crossAxisCount = 4;
+                  } else if (constraints.maxWidth > 900) {
+                    crossAxisCount = 3;
+                  } else if (constraints.maxWidth > 600) {
+                    crossAxisCount = 2;
+                  }
+
+                  if (crossAxisCount == 1) {
+                    return ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                      itemCount: items.length,
+                      itemBuilder: (context, index) => Column(
+                        children: [
+                          _SettingGridCard(item: items[index]),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return GridView.builder(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 1.25,
+                    ),
+                    itemCount: items.length,
+                    itemBuilder: (context, index) => _SettingGridCard(
+                      item: items[index],
+                    ),
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),

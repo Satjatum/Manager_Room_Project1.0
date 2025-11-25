@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../services/contract_service.dart';
 import '../../middleware/auth_middleware.dart';
 import '../../models/user_models.dart';
-import 'contract_edit_ui.dart';
 import '../widgets/colors.dart';
 
 class ContractDetailUI extends StatefulWidget {

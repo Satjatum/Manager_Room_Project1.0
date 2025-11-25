@@ -71,7 +71,6 @@ class ReceiptPrintService {
     final sarabunBold = await _loadThaiBold();
     final notoThai = await PdfGoogleFonts.notoSansThaiRegular();
     final kanit = await PdfGoogleFonts.kanitRegular();
-    final kanitBold = await PdfGoogleFonts.kanitBold();
 
     final doc = pw.Document(
       theme: pw.ThemeData.withFont(
@@ -194,13 +193,13 @@ class ReceiptPrintService {
           // Show calculation line under the item
           double prev = 0, curr = 0, usage = qty;
           if (isElectric) {
-            prev = _d(reading?['electric_previous_reading']);
-            curr = _d(reading?['electric_current_reading']);
-            usage = _d(reading?['electric_usage']);
+            prev = _d(reading['electric_previous_reading']);
+            curr = _d(reading['electric_current_reading']);
+            usage = _d(reading['electric_usage']);
           } else if (isWater) {
-            prev = _d(reading?['water_previous_reading']);
-            curr = _d(reading?['water_current_reading']);
-            usage = _d(reading?['water_usage']);
+            prev = _d(reading['water_previous_reading']);
+            curr = _d(reading['water_current_reading']);
+            usage = _d(reading['water_usage']);
           }
           rows.add(
             pw.Padding(

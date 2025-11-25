@@ -229,22 +229,32 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
     return Column(
       children: [
         // Search bar
-        TextField(
-          decoration: InputDecoration(
-            hintText: 'ค้นหาเลขบิล/หมายเหตุ/จำนวนเงิน',
-            prefixIcon: const Icon(Icons.search),
-            isDense: true,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+
+        // Search Bar
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: TextField(
+            onChanged: (v) {
+              setState(() {
+                _search = v.trim();
+                _applyClientFilters();
+              });
+            },
+            decoration: InputDecoration(
+              hintText: 'ค้นหา',
+              hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+              prefixIcon: Icon(Icons.search, color: Colors.grey[600], size: 20),
+              border: InputBorder.none,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             ),
           ),
-          onChanged: (v) {
-            setState(() {
-              _search = v.trim();
-              _applyClientFilters();
-            });
-          },
         ),
+
         const SizedBox(height: 8),
         // Filters row
         Row(
@@ -252,12 +262,14 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
             // Month filter
             Expanded(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: DropdownButton<int>(
+                  dropdownColor: Colors.white,
                   value: _filterMonth,
                   isExpanded: true,
                   underline: const SizedBox.shrink(),
@@ -288,14 +300,17 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
             // Year filter (แสดงเป็นปี พ.ศ.)
             Expanded(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: DropdownButton<int?>(
-                  // ป้องกัน assertion: ถ้าค่า value ไม่มีใน items ให้เป็น null
-                  value: _availableYears.contains(_filterYear) ? _filterYear : null,
+                  dropdownColor: Colors.white,
+                  value: _availableYears.contains(_filterYear)
+                      ? _filterYear
+                      : null,
                   isExpanded: true,
                   underline: const SizedBox.shrink(),
                   items: <DropdownMenuItem<int?>>[
@@ -361,7 +376,7 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
     final dueDate = slip['due_date']?.toString() ?? '';
     final tenantNotes = slip['tenant_notes']?.toString() ?? '';
     final rejectionReason = slip['rejection_reason']?.toString() ?? '';
-    final slipImage = slip['slip_image']?.toString() ?? '';
+    //final slipImage = slip['slip_image']?.toString() ?? '';
     final isVerified =
         slip['payment_id'] != null && slip['payment_id'].toString().isNotEmpty;
     final isRejected = !isVerified &&
@@ -371,20 +386,20 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
 
     // กำหนดสีและสถานะ
     Color statusColor;
-    String statusText;
+
     IconData statusIcon;
 
     if (isVerified) {
       statusColor = const Color(0xFF22C55E);
-      statusText = 'อนุมัติแล้ว';
+      //statusText = 'อนุมัติแล้ว';
       statusIcon = Icons.check_circle;
     } else if (isRejected) {
       statusColor = const Color(0xFFEF4444);
-      statusText = 'ถูกปฏิเสธ';
+      // statusText = 'ถูกปฏิเสธ';
       statusIcon = Icons.cancel;
     } else {
       statusColor = const Color(0xFFF59E0B);
-      statusText = 'รอตรวจสอบ';
+      //statusText = 'รอตรวจสอบ';
       statusIcon = Icons.schedule;
     }
 
@@ -461,18 +476,22 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
                 ],
               ),
 
-              if (expanded) const SizedBox(height: 12),
-
               if (expanded) ...[
                 // ข้อมูลบิล
                 if (invoiceNumber.isNotEmpty || dueDate.isNotEmpty) ...[
-                  _infoRow('เลขบิล',
-                      invoiceNumber.isNotEmpty ? '#$invoiceNumber' : '-'),
                   if (dueDate.isNotEmpty)
                     _infoRow('รอบบิล', _formatCycleFromDueDate(dueDate)),
-                  const SizedBox(height: 8),
                 ],
 
+                // วันที่และเวลาที่ส่ง
+                _infoRow(
+                    'วันที่ส่งสลิป', _formatSlipDate(paymentDate, paymentTime)),
+                if (createdAt.isNotEmpty)
+                  _infoRow('บันทึกเมื่อ', _formatCreatedDate(createdAt)),
+
+                SizedBox(
+                  height: 12,
+                ),
                 // จำนวนเงินที่ส่ง
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -505,12 +524,6 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
                 ),
 
                 const SizedBox(height: 12),
-
-                // วันที่และเวลาที่ส่ง
-                _infoRow(
-                    'วันที่ส่งสลิป', _formatSlipDate(paymentDate, paymentTime)),
-                if (createdAt.isNotEmpty)
-                  _infoRow('บันทึกเมื่อ', _formatCreatedDate(createdAt)),
 
                 // หมายเหตุผู้เช่า
                 if (tenantNotes.isNotEmpty) ...[
