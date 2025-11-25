@@ -5,8 +5,8 @@ import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/utils/formatMonthy.dart';
 
 class TenantPayHistoryUi extends StatefulWidget {
-  final String invoiceId;
-  const TenantPayHistoryUi({super.key, required this.invoiceId});
+  final String? invoiceId; // ถ้าไม่ระบุ จะแสดงประวัติทั้งหมดของผู้เช่า
+  const TenantPayHistoryUi({super.key, this.invoiceId});
 
   @override
   State<TenantPayHistoryUi> createState() => _TenantPayHistoryUiState();
@@ -48,7 +48,7 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
         return;
       }
 
-      // ดึงประวัติสลิปทั้งหมดของบิลนี้
+      // ดึงประวัติสลิปทั้งหมด (แล้วไปกรองผู้เช่า/บิลภายหลังฝั่งไคลเอนต์)
       final allSlips = await PaymentService.listPaymentSlips(
         status: 'all',
         limit: 100,
@@ -57,12 +57,13 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
       // Check mounted after async operation
       if (!mounted) return;
 
-      // กรองเฉพาะสลิปของบิลนี้และผู้เช่านี้
-      final filteredSlips = allSlips
-          .where((slip) =>
-              slip['invoice_id']?.toString() == widget.invoiceId &&
-              slip['tenant_id']?.toString() == user.tenantId)
-          .toList();
+      // กรองเฉพาะสลิปของผู้เช่านี้ (+ ตัวเลือกกรองตามบิลถ้ามี)
+      final filteredSlips = allSlips.where((slip) {
+        final isMine = slip['tenant_id']?.toString() == user.tenantId;
+        if (!isMine) return false;
+        if ((widget.invoiceId ?? '').isEmpty) return true;
+        return slip['invoice_id']?.toString() == widget.invoiceId;
+      }).toList();
 
       // ดึงข้อมูลไฟล์เพิ่มเติมสำหรับแต่ละสลิป
       for (var slip in filteredSlips) {
@@ -79,6 +80,11 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
 
             if (slipDetail != null) {
               slip['files'] = slipDetail['files'] ?? [];
+              // ดึง due_date ของบิลเพื่อใช้คำนวณ "รอบบิล"
+              final inv = slipDetail['invoices'];
+              if (inv is Map && inv['due_date'] != null) {
+                slip['due_date'] = inv['due_date'];
+              }
             }
           }
         } catch (e) {
@@ -334,6 +340,8 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
     final paymentDate = slip['payment_date']?.toString() ?? '';
     final paymentTime = slip['payment_time']?.toString() ?? '';
     final createdAt = slip['created_at']?.toString() ?? '';
+    final invoiceNumber = slip['invoice_number']?.toString() ?? '';
+    final dueDate = slip['due_date']?.toString() ?? '';
     final tenantNotes = slip['tenant_notes']?.toString() ?? '';
     final rejectionReason = slip['rejection_reason']?.toString() ?? '';
     final slipImage = slip['slip_image']?.toString() ?? '';
@@ -398,6 +406,14 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
             ),
 
             const SizedBox(height: 12),
+
+            // ข้อมูลบิล
+            if (invoiceNumber.isNotEmpty || dueDate.isNotEmpty) ...[
+              _infoRow('เลขบิล', invoiceNumber.isNotEmpty ? '#$invoiceNumber' : '-'),
+              if (dueDate.isNotEmpty)
+                _infoRow('รอบบิล', _formatCycleFromDueDate(dueDate)),
+              const SizedBox(height: 8),
+            ],
 
             // จำนวนเงินที่ส่ง
             Container(
@@ -682,6 +698,13 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
     return '$dateStr เวลา $hour:$minute น.';
+  }
+
+  String _formatCycleFromDueDate(String dueIso) {
+    // ใช้ due_date ของใบแจ้งหนี้เพื่อแสดงรอบบิล (เดือน/ปี แบบ พ.ศ.)
+    final dt = DateTime.tryParse(dueIso);
+    if (dt == null) return '-';
+    return Formatmonthy.formatBillingCycleTh(month: dt.month, year: dt.year);
   }
 
   String _formatMoney(double v) {
