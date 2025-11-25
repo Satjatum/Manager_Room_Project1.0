@@ -6,6 +6,7 @@ import 'package:manager_room_project/services/auth_service.dart';
 import 'package:manager_room_project/services/branch_service.dart';
 import 'package:manager_room_project/models/user_models.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
+import 'package:manager_room_project/utils/formatMonthy.dart';
 import 'package:manager_room_project/views/sadmin/payment_verification_detail_ui.dart';
 import 'package:manager_room_project/services/receipt_print_service.dart';
 // import removed: tenant bill detail is not used from this page
@@ -878,7 +879,7 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
             const SizedBox(height: 4),
             // Sub: Bill #... • วันที่ พ.ศ.
             Text(
-              'Bill #$invoiceNumber • ${_formatThaiDate(due)}',
+              'Bill #$invoiceNumber • ${Formatmonthy.formatThaiDateStr(due, shortMonth: true)}',
               style: TextStyle(fontSize: 12, color: Colors.grey[700]),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -971,32 +972,5 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     return buf.toString() + '.' + dec;
   }
 
-  // แปลง ISO date เป็นรูปแบบไทย (พ.ศ.) "วัน-เดือน-ปี"
-  String _formatThaiDate(String iso) {
-    if (iso.isEmpty) return '-';
-    DateTime? dt;
-    try {
-      dt = DateTime.tryParse(iso);
-    } catch (_) {}
-    dt ??= DateTime.now();
-    const thMonths = [
-      '',
-      'ม.ค.',
-      'ก.พ.',
-      'มี.ค.',
-      'เม.ย.',
-      'พ.ค.',
-      'มิ.ย.',
-      'ก.ค.',
-      'ส.ค.',
-      'ก.ย.',
-      'ต.ค.',
-      'พ.ย.',
-      'ธ.ค.'
-    ];
-    final y = dt.year + 543;
-    final m = thMonths[dt.month];
-    final d = dt.day.toString();
-    return '$d $m $y';
-  }
+  // centralize: use Formatmonthy for Thai date formatting
 }

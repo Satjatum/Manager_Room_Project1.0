@@ -1265,7 +1265,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                     final month = index + 1;
                     return DropdownMenuItem<int>(
                       value: month,
-                      child: Text(_getMonthName(month)),
+                      child: Text(Formatmonthy.monthName(month)),
                     );
                   }),
                   onChanged: _isFromMeterReading
@@ -1330,7 +1330,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
               fillColor: Colors.grey.shade50,
             ),
             readOnly: true,
-            controller: TextEditingController(text: _formatDate(_dueDate)),
+            controller: TextEditingController(
+                text: Formatmonthy.formatThaiDate(_dueDate)),
             onTap: () async {
               final date = await showDatePicker(
                 context: context,
@@ -2038,8 +2039,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                       'รอบบิลเดือน',
                       Formatmonthy.formatBillingCycleTh(
                           month: _invoiceMonth, year: _invoiceYear)),
-                  _kv('ออกบิลวันที่', _formatDate(issueDate)),
-                  _kv('ครบกำหนดชำระ', _formatDate(_dueDate)),
+                  _kv('ออกบิลวันที่', Formatmonthy.formatThaiDate(issueDate)),
+                  _kv('ครบกำหนดชำระ', Formatmonthy.formatThaiDate(_dueDate)),
                   const SizedBox(height: 8),
                   _kv('ผู้เช่า', tenantName),
                   _kv('เบอร์', tenantPhone),
@@ -2344,33 +2345,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     );
   }
 
-  String _getMonthName(int month) {
-    const months = [
-      'มกราคม',
-      'กุมภาพันธ์',
-      'มีนาคม',
-      'เมษายน',
-      'พฤษภาคม',
-      'มิถุนายน',
-      'กรกฎาคม',
-      'สิงหาคม',
-      'กันยายน',
-      'ตุลาคม',
-      'พฤศจิกายน',
-      'ธันวาคม'
-    ];
-    return months[month - 1];
-  }
-
-  String _formatDate(DateTime date) {
-    // แปลงวันที่ให้อยู่ในรูปแบบภาษาไทย พร้อมปี พ.ศ.
-    // ตัวอย่าง: 15 พฤศจิกายน 2566
-    final day = date.day;
-    final monthName = _getMonthName(date.month);
-    // ปี พ.ศ. (บวก 543 จากปี ค.ศ.)
-    final thaiYear = date.year + 543;
-    return '$day $monthName $thaiYear';
-  }
+  // ใช้จาก Formatmonthy แทน (monthName/formatThaiDate)
 
   void _showErrorSnackBar(String message) {
     if (!mounted) return;

@@ -6,6 +6,7 @@ import 'package:manager_room_project/services/branch_service.dart';
 import 'package:manager_room_project/models/user_models.dart';
 import 'package:manager_room_project/views/sadmin/invoicelist_detail_ui.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
+import 'package:manager_room_project/utils/formatMonthy.dart';
 import 'dart:async';
 
 class InvoiceListUi extends StatefulWidget {
@@ -441,25 +442,10 @@ class _InvoiceListUiState extends State<InvoiceListUi>
     }
 
     String billingPeriod = '-';
-    if (invoiceMonth > 0 && invoiceYear > 0) {
-      const monthNames = [
-        '',
-        'มกราคม',
-        'กุมภาพันธ์',
-        'มีนาคม',
-        'เมษายน',
-        'พฤษภาคม',
-        'มิถุนายน',
-        'กรกฎาคม',
-        'สิงหาคม',
-        'กันยายน',
-        'ตุลาคม',
-        'พฤศจิกายน',
-        'ธันวาคม'
-      ];
-      final monthName = invoiceMonth <= 12 ? monthNames[invoiceMonth] : '-';
-      final yearBE = invoiceYear + 543;
-      billingPeriod = 'รอบบิลเดือน $monthName $yearBE';
+    if (invoiceMonth is int && invoiceYear is int &&
+        invoiceMonth >= 1 && invoiceMonth <= 12) {
+      billingPeriod =
+          'รอบบิลเดือน ${Formatmonthy.formatBillingCycleTh(month: invoiceMonth, year: invoiceYear)}';
     }
 
     return InkWell(
