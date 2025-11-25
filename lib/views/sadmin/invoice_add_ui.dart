@@ -2108,7 +2108,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   ],
 
                   if (_discountAmount > 0)
-                    _moneyRow('ส่วนลด', -_discountAmount, emphasis: true),
+                    _moneyRow('ส่วนลด', _discountAmount, emphasis: true),
                   if (_lateFeeAmount > 0)
                     _moneyRow('ค่าปรับล่าช้า', _lateFeeAmount, emphasis: true),
                   const Divider(height: 24),

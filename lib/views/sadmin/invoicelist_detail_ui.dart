@@ -276,7 +276,7 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
                                 SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'กำลังตรวจสอบ - รอผู้ดูแลอนุมัติการชำระเงิน',
+                                    'กำลังตรวจสอบรอผู้ดูแลอนุมัติการชำระเงิน',
                                     style: TextStyle(color: Color(0xFF92400E)),
                                   ),
                                 ),
@@ -458,12 +458,11 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
                 return _moneyRow(label, amt);
               }).toList(),
             ],
-            // แสดงเฉพาะบรรทัดเงินอย่างเดียว เมื่อเปิดใช้งานใน Payment Settings
+            const Divider(height: 24),
             if (_isDiscountEnabled())
-              _moneyRow('ส่วนลด', -discountAmount, emphasis: true),
+              _moneyRow('ส่วนลด', discountAmount, emphasis: true),
             if (_isLateFeeEnabled())
               _moneyRow('ค่าปรับชำระล่าช้า', lateFeeAmount, emphasis: true),
-            const Divider(height: 24),
             _moneyRow('ยอดรวม', totalAmount, bold: true),
             _moneyRow('ชำระแล้ว', paidAmount, color: Colors.green),
             _moneyRow('คงเหลือ', remaining,
@@ -492,7 +491,7 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
       {bool bold = false, bool emphasis = false, Color? color}) {
     final style = TextStyle(
       fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-      color: color ?? (emphasis ? AppTheme.primary : null),
+      color: color ?? (emphasis ? Colors.black : null),
     );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -525,238 +524,6 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
     return _paymentSettings != null &&
         _paymentSettings!['is_active'] == true &&
         _paymentSettings!['enable_late_fee'] == true;
-  }
-
-  // ตรวจสอบว่าควรแสดงส่วนลดหรือไม่
-  bool _shouldShowDiscount(Map<String, dynamic> inv, double discountAmount) {
-    // แสดงถ้ามีจำนวนเงินส่วนลด
-    if (discountAmount > 0) return true;
-
-    // แสดงถ้ามีนโยบายส่วนลด (early_payment หรือ custom)
-    final discountType = (inv['discount_type'] ?? 'none').toString();
-    if (discountType == 'early_payment' && _paymentSettings != null) {
-      // ตรวจสอบว่ามีการเปิดใช้งานส่วนลดหรือไม่
-      final enableDiscount = _paymentSettings!['enable_discount'] == true;
-      return enableDiscount;
-    }
-
-    // แสดงถ้าเป็น custom discount (แม้จำนวนเงินเป็น 0)
-    if (discountType == 'custom') return true;
-
-    return false;
-  }
-
-  // ตรวจสอบว่าควรแสดงค่าปรับหรือไม่
-  bool _shouldShowLateFee(Map<String, dynamic> inv, double lateFeeAmount) {
-    // แสดงถ้ามีจำนวนเงินค่าปรับ
-    if (lateFeeAmount > 0) return true;
-
-    // แสดงถ้ามีนโยบายค่าปรับ
-    if (_paymentSettings != null) {
-      final enableLateFee = _paymentSettings!['enable_late_fee'] == true;
-      return enableLateFee;
-    }
-
-    return false;
-  }
-
-  Widget _buildDiscountSection(
-      Map<String, dynamic> inv, double discountAmount) {
-    final discountType = (inv['discount_type'] ?? 'none').toString();
-    String discountLabel = 'ส่วนลด';
-    String? discountDesc;
-
-    if (discountType == 'early_payment' && _paymentSettings != null) {
-      final earlyType =
-          (_paymentSettings!['early_payment_type'] ?? 'percentage').toString();
-      final earlyDays = _paymentSettings!['early_payment_days'] ?? 0;
-
-      if (earlyType == 'fixed') {
-        final amount =
-            (_paymentSettings!['early_payment_amount'] ?? 0).toDouble();
-        if (discountAmount > 0) {
-          discountDesc =
-              'ชำระก่อนกำหนด $earlyDays วัน (ได้ส่วนลด ${amount.toStringAsFixed(2)} บาท)';
-        } else {
-          discountDesc =
-              'ชำระก่อนกำหนด $earlyDays วัน จะได้ส่วนลด ${amount.toStringAsFixed(2)} บาท';
-        }
-      } else {
-        final percent =
-            (_paymentSettings!['early_payment_discount'] ?? 0).toDouble();
-        if (discountAmount > 0) {
-          discountDesc = 'ชำระก่อนกำหนด $earlyDays วัน (ได้ส่วนลด $percent%)';
-        } else {
-          discountDesc = 'ชำระก่อนกำหนด $earlyDays วัน จะได้ส่วนลด $percent%';
-        }
-      }
-      discountLabel =
-          discountAmount > 0 ? 'ส่วนลดชำระก่อนกำหนด' : 'นโยบายส่วนลด';
-    } else if (discountType == 'custom') {
-      discountLabel = 'ส่วนลดพิเศษ';
-      discountDesc = discountAmount > 0
-          ? 'ส่วนลดที่ผู้ดูแลให้'
-          : 'มีส่วนลดพิเศษจากผู้ดูแล';
-    }
-
-    // ถ้ายังไม่มีจำนวนเงิน แสดงเป็น info box
-    if (discountAmount == 0) {
-      return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.green.shade50,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.green.shade200),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.info_outline, size: 18, color: Colors.green.shade700),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    discountLabel,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.green.shade900,
-                    ),
-                  ),
-                  if (discountDesc != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      discountDesc,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.green.shade700,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // ถ้ามีจำนวนเงินแล้ว แสดงเป็น money row
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _moneyRow(discountLabel, -discountAmount,
-            emphasis: true, color: Colors.green),
-        if (discountDesc != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 0, top: 2, bottom: 4),
-            child: Text(
-              discountDesc,
-              style: const TextStyle(
-                  fontSize: 11,
-                  color: Colors.black54,
-                  fontStyle: FontStyle.italic),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildLateFeeSection(Map<String, dynamic> inv, double lateFeeAmount) {
-    final lateFeeDays = (inv['late_fee_days'] ?? 0) as int;
-    String lateFeeDesc = '';
-
-    if (_paymentSettings != null) {
-      final lateFeeType =
-          (_paymentSettings!['late_fee_type'] ?? 'fixed').toString();
-      final startDay = _paymentSettings!['late_fee_start_day'] ?? 1;
-
-      if (lateFeeType == 'percentage') {
-        final percent = (_paymentSettings!['late_fee_amount'] ?? 0).toDouble();
-        lateFeeDesc = 'เกิน $startDay วัน คิดค่าปรับ $percent%';
-      } else if (lateFeeType == 'daily') {
-        final amountPerDay =
-            (_paymentSettings!['late_fee_amount'] ?? 0).toDouble();
-        lateFeeDesc =
-            'เกิน $startDay วัน คิด ${amountPerDay.toStringAsFixed(2)} บาท/วัน';
-      } else {
-        final amount = (_paymentSettings!['late_fee_amount'] ?? 0).toDouble();
-        lateFeeDesc =
-            'เกิน $startDay วัน คิดค่าปรับ ${amount.toStringAsFixed(2)} บาท';
-      }
-
-      if (lateFeeDays > 0) {
-        lateFeeDesc += ' (ล่าช้า $lateFeeDays วัน)';
-      }
-    } else if (lateFeeDays > 0) {
-      lateFeeDesc = 'ล่าช้า $lateFeeDays วัน';
-    }
-
-    // ถ้ายังไม่มีจำนวนเงิน แสดงเป็น info box
-    if (lateFeeAmount == 0) {
-      return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.orange.shade50,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.orange.shade200),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.info_outline, size: 18, color: Colors.orange.shade700),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'นโยบายค่าปรับชำระล่าช้า',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.orange.shade900,
-                    ),
-                  ),
-                  if (lateFeeDesc.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      lateFeeDesc,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.orange.shade700,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // ถ้ามีจำนวนเงินแล้ว แสดงเป็น money row
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _moneyRow('ค่าปรับชำระล่าช้า', lateFeeAmount,
-            emphasis: true, color: Colors.red),
-        if (lateFeeDesc.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(left: 0, top: 2, bottom: 4),
-            child: Text(
-              lateFeeDesc,
-              style: const TextStyle(
-                  fontSize: 11,
-                  color: Colors.black54,
-                  fontStyle: FontStyle.italic),
-            ),
-          ),
-      ],
-    );
   }
 
   Widget _invoiceStatusChip(String status) {

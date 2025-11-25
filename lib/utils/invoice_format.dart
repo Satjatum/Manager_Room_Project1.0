@@ -1,4 +1,3 @@
-/// Formatting helpers for invoice summary display
 class InvoiceFormat {
   static const List<String> _thaiMonths = [
     'มกราคม',
@@ -15,8 +14,6 @@ class InvoiceFormat {
     'ธันวาคม',
   ];
 
-  /// Format billing cycle as: "{Thai Month} {B.E. Year}"
-  /// Example: พฤศจิกายน 2568
   static String formatBillingCycleTh({required int month, required int year}) {
     final mIdx = month.clamp(1, 12) - 1;
     final monthName = _thaiMonths[mIdx];
@@ -24,7 +21,6 @@ class InvoiceFormat {
     return '$monthName $thaiYear';
   }
 
-  /// Format subtext for utilities: "prev - curr = usage (unitPrice)"
   static String formatUtilitySubtext({
     required num previous,
     required num current,
@@ -35,7 +31,6 @@ class InvoiceFormat {
     return '${f(previous)} - ${f(current)} = ${f(usage)} (${f(unitPrice)})';
   }
 
-  /// Format other charge label: "NAME x QTY (UNIT_PRICE)"
   static String formatOtherChargeLabel({
     required String name,
     required int quantity,

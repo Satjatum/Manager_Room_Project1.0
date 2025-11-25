@@ -2177,8 +2177,8 @@ class _TenantEditUIState extends State<TenantEditUI>
                       SizedBox(height: 2),
                       Text(
                         _isActive
-                            ? 'ผู้เช่านี้จะไม่แสดงในรายการผู้ใช้ทั่วไป'
-                            : 'ผู้เช่านี้จะแสดงในรายการผู้ใช้ทั่วไป',
+                            ? 'ผู้เช่านี้จะแสดงในรายการผู้ใช้ทั่วไป'
+                            : 'ผู้เช่านี้จะไม่แสดงในรายการผู้ใช้ทั่วไป',
                         style: TextStyle(
                           fontSize: 13,
                           color: _isActive

@@ -839,7 +839,7 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
                       Text(
                         'รายละเอียดข้อมูลสาขา',
                         style: TextStyle(
-                          fontSize: 28,
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
                         ),
@@ -1207,15 +1207,19 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
             child: Text(
               label,
               style: TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[700],
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
                 fontSize: 14,
               ),
             ),
           ),
-          Text(': ',
-              style: TextStyle(
-                  fontWeight: FontWeight.w500, color: Colors.grey[700])),
+          Text(
+            ': ',
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[700],
+            ),
+          ),
           Expanded(
             child: Text(
               value,

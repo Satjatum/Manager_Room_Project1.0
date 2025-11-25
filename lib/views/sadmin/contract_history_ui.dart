@@ -93,181 +93,175 @@ class _ContractHistoryUIState extends State<ContractHistoryUI> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          // Header ตามโค้ดที่กำหนด
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-            ),
-            child: Column(children: [
-              // Top bar with back button
-              Padding(
-                padding: EdgeInsets.all(24),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new,
-                          color: Colors.black87),
-                      onPressed: () {
-                        if (Navigator.of(context).canPop()) {
-                          Navigator.of(context).pop();
-                        }
-                      },
-                      tooltip: 'ย้อนกลับ',
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            'ประวัติสัญญา',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Text(
-                            'สำหรับดูประวัติสัญญา',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ]),
-          ),
-
-          // เนื้อหาเดิม
-          Expanded(
-            child: _loading
-                ? Center(
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.all(24),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    tooltip: 'ย้อนกลับ',
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircularProgressIndicator(color: AppTheme.primary),
-                        const SizedBox(height: 12),
-                        const Text('กำลังโหลด...'),
+                        Text(
+                          'ประวัติสัญญา',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'สำหรับดูประวัติสัญญา',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black54,
+                          ),
+                        ),
                       ],
                     ),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _load,
-                    color: AppTheme.primary,
-                    child: _contracts.isEmpty
-                        ? ListView(
-                            children: [
-                              const SizedBox(height: 80),
-                              Icon(Icons.description_outlined,
-                                  size: 64, color: Colors.grey[400]),
-                              const SizedBox(height: 12),
-                              Center(
-                                child: Text(
-                                  'ยังไม่มีประวัติสัญญา',
-                                  style: TextStyle(color: Colors.grey[600]),
-                                ),
-                              )
-                            ],
-                          )
-                        : ListView.separated(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _contracts.length,
-                            separatorBuilder: (_, __) =>
+                  ),
+                ],
+              ),
+            ),
+
+            // เนื้อหาเดิม
+            Expanded(
+              child: _loading
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          CircularProgressIndicator(color: AppTheme.primary),
+                          const SizedBox(height: 12),
+                          const Text('กำลังโหลด...'),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      color: AppTheme.primary,
+                      child: _contracts.isEmpty
+                          ? ListView(
+                              children: [
+                                const SizedBox(height: 80),
+                                Icon(Icons.description_outlined,
+                                    size: 64, color: Colors.grey[400]),
                                 const SizedBox(height: 12),
-                            itemBuilder: (context, index) {
-                              final c = _contracts[index];
-                              return Material(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                child: InkWell(
+                                Center(
+                                  child: Text(
+                                    'ยังไม่มีประวัติสัญญา',
+                                    style: TextStyle(color: Colors.grey[600]),
+                                  ),
+                                )
+                              ],
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: _contracts.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 12),
+                              itemBuilder: (context, index) {
+                                final c = _contracts[index];
+                                return Material(
+                                  color: Colors.white,
                                   borderRadius: BorderRadius.circular(12),
-                                  onTap: () async {
-                                    await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => ContractDetailUI(
-                                          contractId: c['contract_id'],
-                                        ),
-                                      ),
-                                    );
-                                    if (mounted) _load();
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(14),
-                                    decoration: BoxDecoration(
-                                      border:
-                                          Border.all(color: Colors.grey[300]!),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 10, vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: _statusColor(
-                                                    c['contract_status'])
-                                                .withOpacity(0.1),
-                                            borderRadius:
-                                                BorderRadius.circular(20),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(12),
+                                    onTap: () async {
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => ContractDetailUI(
+                                            contractId: c['contract_id'],
                                           ),
-                                          child: Text(
-                                            _statusText(c['contract_status']),
-                                            style: TextStyle(
+                                        ),
+                                      );
+                                      if (mounted) _load();
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(14),
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                            color: Colors.grey[300]!),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 10, vertical: 6),
+                                            decoration: BoxDecoration(
                                               color: _statusColor(
-                                                  c['contract_status']),
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 12,
+                                                      c['contract_status'])
+                                                  .withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              _statusText(c['contract_status']),
+                                              style: TextStyle(
+                                                color: _statusColor(
+                                                    c['contract_status']),
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 12,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'สัญญา: ${c['contract_num'] ?? '-'} ',
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 15,
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'สัญญา: ${c['contract_num'] ?? '-'} ',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 15,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                'ช่วงสัญญา: ${_formatDate(c['start_date'])} - ${_formatDate(c['end_date'])}',
-                                                style: TextStyle(
-                                                  color: Colors.grey[700],
-                                                  fontSize: 12,
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'ช่วงสัญญา: ${_formatDate(c['start_date'])} - ${_formatDate(c['end_date'])}',
+                                                  style: TextStyle(
+                                                    color: Colors.grey[700],
+                                                    fontSize: 12,
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
-                                        ),
-                                        const Icon(Icons.chevron_right,
-                                            color: Colors.grey),
-                                      ],
+                                          const Icon(Icons.chevron_right,
+                                              color: Colors.grey),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-          ),
-        ],
+                                );
+                              },
+                            ),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
