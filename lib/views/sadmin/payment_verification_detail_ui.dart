@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:manager_room_project/services/invoice_service.dart';
 import 'package:manager_room_project/services/meter_service.dart';
+import 'package:manager_room_project/utils/invoice_format.dart';
 
 class PaymentVerificationDetailPage extends StatefulWidget {
   final String? slipId;
@@ -70,15 +71,34 @@ class _PaymentVerificationDetailPageState
 
   String _thaiDate(String s) {
     if (s.isEmpty) return '-';
-    final base =
-        s.split(' ').first; // handle 'YYYY-MM-DD' or ISO 'YYYY-MM-DDTHH:mm'
-    final iso = base.contains('T') ? base : base;
-    final d = DateTime.tryParse(iso);
+    final base = s.split(' ').first; // 'YYYY-MM-DD' or ISO
+    final d = DateTime.tryParse(base);
     if (d == null) return base;
-    final y = d.year + 543;
-    final m = d.month.toString().padLeft(2, '0');
-    final d2 = d.day.toString().padLeft(2, '0');
-    return '$d2/$m/$y';
+    const months = [
+      'มกราคม',
+      'กุมภาพันธ์',
+      'มีนาคม',
+      'เมษายน',
+      'พฤษภาคม',
+      'มิถุนายน',
+      'กรกฎาคม',
+      'สิงหาคม',
+      'กันยายน',
+      'ตุลาคม',
+      'พฤศจิกายน',
+      'ธันวาคม',
+    ];
+    final thaiYear = d.year + 543;
+    return '${d.day} ${months[d.month - 1]} $thaiYear';
+  }
+
+  String _formatBillingCycle(String monthStr, String yearStr) {
+    final m = int.tryParse(monthStr);
+    final y = int.tryParse(yearStr);
+    if (m == null || y == null || m < 1 || m > 12) {
+      return '$monthStr/$yearStr';
+    }
+    return InvoiceFormat.formatBillingCycleTh(month: m, year: y);
   }
 
   Future<void> _load() async {
@@ -514,7 +534,6 @@ class _PaymentVerificationDetailPageState
                                     const SizedBox(height: 12),
                                     _buildSlipFiles(),
                                     const SizedBox(height: 16),
-                                    _buildActionBar(),
                                   ] else ...[
                                     _buildInvoiceHeaderCard(),
                                   ],
@@ -527,6 +546,107 @@ class _PaymentVerificationDetailPageState
           ],
         ),
       ),
+      bottomNavigationBar: _buildBottomBar(),
+    );
+  }
+
+  Widget _buildBottomBar() {
+    if (widget.slipId == null || _slip == null) return const SizedBox.shrink();
+    final inv = _slip?['invoices'] ?? {};
+    final invoiceStatus =
+        (_slip?['invoice_status'] ?? inv['invoice_status'] ?? 'pending')
+            .toString();
+    final isVerified = (_slip?['payment_id'] != null &&
+        _slip!['payment_id'].toString().isNotEmpty);
+    final isRejected = (!isVerified &&
+        (_slip?['rejection_reason'] != null ||
+            (_slip?['verified_at'] != null &&
+                _slip!['verified_at'].toString().isNotEmpty)));
+    final slipPending = !isVerified && !isRejected;
+    final canAction =
+        slipPending && invoiceStatus != 'paid' && invoiceStatus != 'cancelled';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey[300]!, width: 1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: canAction ? _reject : null,
+              icon: const Icon(Icons.close, color: Colors.red),
+              label: const Text('ปฏิเสธ', style: TextStyle(color: Colors.red)),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: Colors.grey[300]!),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: canAction ? _approve : null,
+              icon: const Icon(Icons.check, color: Colors.white),
+              label: const Text('อนุมัติ',
+                  style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                elevation: 2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showZoomViewer(String url) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.9),
+      builder: (_) {
+        return GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Stack(
+            children: [
+              Center(
+                child: InteractiveViewer(
+                  maxScale: 5,
+                  child: Image.network(url, fit: BoxFit.contain),
+                ),
+              ),
+              Positioned(
+                top: 16,
+                right: 16,
+                child: CircleAvatar(
+                  backgroundColor: Colors.black54,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -540,8 +660,8 @@ class _PaymentVerificationDetailPageState
     // ฟิลด์แบบ flat (เผื่อโครงสร้างบางส่วนไม่ครบ)
     final invoiceNumber =
         (invFull['invoice_number'] ?? s['invoice_number'] ?? '-').toString();
-    final invoiceMonth = (invFull['invoice_month'] ?? '-').toString();
-    final invoiceYear = (invFull['invoice_year'] ?? '-').toString();
+    final invoiceMonthStr = (invFull['invoice_month'] ?? '-').toString();
+    final invoiceYearStr = (invFull['invoice_year'] ?? '-').toString();
     final issueDate = (invFull['issue_date'] ?? '').toString();
     final dueDate = (invFull['due_date'] ?? '').toString();
     final tenantName = (s['tenant_name'] ??
@@ -605,9 +725,9 @@ class _PaymentVerificationDetailPageState
                 style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             _kv('เลขบิล', invoiceNumber),
-            _kv('รอบบิลเดือน', '$invoiceMonth/$invoiceYear'),
-            _kv('ออกบิลวันที่', issueDate.toString().split('T').first),
-            _kv('ครบกำหนดชำระ', dueDate.toString().split('T').first),
+            _kv('รอบบิลเดือน', _formatBillingCycle(invoiceMonthStr, invoiceYearStr)),
+            _kv('ออกบิลวันที่', _thaiDate(issueDate)),
+            _kv('ครบกำหนดชำระ', _thaiDate(dueDate)),
             // const SizedBox(height: 8),
 
             // ผู้เช่า/ห้อง/สาขา
@@ -639,18 +759,17 @@ class _PaymentVerificationDetailPageState
                   curr = _asDouble(r['electric_current_reading']);
                 }
               }
-              // subtext ตัวเลขเท่านั้น
-              final parts = <String>[];
+              String sub = '';
               if (prev != null && curr != null) {
-                parts.add(
-                    '${prev.toStringAsFixed(2)} - ${curr.toStringAsFixed(2)} = ${usage.toStringAsFixed(2)}');
-              } else {
-                parts.add(usage.toStringAsFixed(2));
+                sub = InvoiceFormat.formatUtilitySubtext(
+                  previous: prev,
+                  current: curr,
+                  usage: usage,
+                  unitPrice: unitPrice,
+                );
+              } else if (usage > 0 || unitPrice > 0) {
+                sub = '${usage.toStringAsFixed(2)} (${unitPrice.toStringAsFixed(2)})';
               }
-              if (unitPrice > 0) {
-                parts.add(unitPrice.toStringAsFixed(2));
-              }
-              final sub = parts.join(' • ');
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -921,18 +1040,8 @@ class _PaymentVerificationDetailPageState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                const Text('สลิปที่อัปโหลด',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
-                const Spacer(),
-                IconButton(
-                  onPressed: _openSlip,
-                  icon: const Icon(Icons.open_in_new),
-                  tooltip: 'เปิดในเบราว์เซอร์',
-                )
-              ],
-            ),
+            const Text('สลิปที่อัปโหลด',
+                style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             if (!hasAny)
               Container(
@@ -953,22 +1062,7 @@ class _PaymentVerificationDetailPageState
                     final fu = (f['file_url'] ?? '').toString();
                     if (fu.isEmpty) return const SizedBox.shrink();
                     return GestureDetector(
-                      onTap: () async {
-                        final uri = Uri.tryParse(fu);
-                        if (uri != null) {
-                          final ok = fnd.kIsWeb
-                              ? await launchUrl(uri,
-                                  webOnlyWindowName: '_blank')
-                              : await launchUrl(uri,
-                                  mode: LaunchMode.externalApplication);
-                          if (!ok && mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('เปิดลิงก์ไม่สำเร็จ')),
-                            );
-                          }
-                        }
-                      },
+                      onTap: () => _showZoomViewer(fu),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: Image.network(
@@ -983,12 +1077,18 @@ class _PaymentVerificationDetailPageState
                 )
               else ...[
                 // Fallback to legacy single slip_image
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    (_slip?['slip_image'] ?? '').toString(),
-                    height: 300,
-                    fit: BoxFit.contain,
+                GestureDetector(
+                  onTap: () {
+                    final url = (_slip?['slip_image'] ?? '').toString();
+                    if (url.isNotEmpty) _showZoomViewer(url);
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      (_slip?['slip_image'] ?? '').toString(),
+                      height: 300,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
               ]
