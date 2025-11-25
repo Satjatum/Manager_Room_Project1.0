@@ -9,7 +9,7 @@ import '../../services/auth_service.dart';
 import '../../services/payment_rate_service.dart';
 import '../../models/user_models.dart';
 import '../widgets/colors.dart';
-import 'package:manager_room_project/utils/invoice_format.dart';
+import 'package:manager_room_project/utils/formatMonthy.dart';
 
 class InvoiceAddPage extends StatefulWidget {
   final Map<String, dynamic>? initialData;
@@ -2036,7 +2036,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   const SizedBox(height: 6),
                   _kv(
                       'รอบบิลเดือน',
-                      InvoiceFormat.formatBillingCycleTh(
+                      Formatmonthy.formatBillingCycleTh(
                           month: _invoiceMonth, year: _invoiceYear)),
                   _kv('ออกบิลวันที่', _formatDate(issueDate)),
                   _kv('ครบกำหนดชำระ', _formatDate(_dueDate)),
@@ -2124,8 +2124,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                       );
                     }),
                   ],
-
-                  // แสดงส่วนลด/ค่าปรับเฉพาะเมื่อเปิดใช้งานใน Payment Settings
+                  const Divider(height: 24),
                   if (_paymentSettings != null &&
                       _paymentSettings!['is_active'] == true &&
                       _paymentSettings!['enable_discount'] == true)
@@ -2134,7 +2133,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                       _paymentSettings!['is_active'] == true &&
                       _paymentSettings!['enable_late_fee'] == true)
                     _moneyRow('ค่าปรับล่าช้า', _lateFeeAmount, emphasis: true),
-                  const Divider(height: 24),
                   _moneyRow('ยอดรวม', grandTotal, bold: true),
                 ],
               ),
@@ -2191,7 +2189,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
       {bool bold = false, bool emphasis = false, Color? color}) {
     final style = TextStyle(
       fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-      color: color ?? (emphasis ? AppTheme.primary : null),
+      color: color ?? (emphasis ? Colors.black : null),
     );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),

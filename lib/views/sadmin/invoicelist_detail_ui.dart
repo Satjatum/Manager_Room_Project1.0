@@ -8,7 +8,7 @@ import 'package:manager_room_project/services/payment_rate_service.dart';
 import 'package:manager_room_project/models/user_models.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/views/tenant/tenant_pay_bill_ui.dart';
-import 'package:manager_room_project/utils/invoice_format.dart';
+import 'package:manager_room_project/utils/formatMonthy.dart';
 
 class InvoiceListDetailUi extends StatefulWidget {
   final String invoiceId;
@@ -417,7 +417,7 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
               }
               String sub = '';
               if (prev != null && curr != null) {
-                sub = InvoiceFormat.formatUtilitySubtext(
+                sub = Formatmonthy.formatUtilitySubtext(
                   previous: prev,
                   current: curr,
                   usage: usage,
@@ -511,7 +511,7 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
     if (m == null || y == null || m < 1 || m > 12) {
       return '$monthStr/$yearStr';
     }
-    return InvoiceFormat.formatBillingCycleTh(month: m, year: y);
+    return Formatmonthy.formatBillingCycleTh(month: m, year: y);
   }
 
   bool _isDiscountEnabled() {

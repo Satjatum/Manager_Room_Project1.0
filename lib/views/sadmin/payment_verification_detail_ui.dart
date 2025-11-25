@@ -6,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:manager_room_project/services/invoice_service.dart';
 import 'package:manager_room_project/services/meter_service.dart';
-import 'package:manager_room_project/utils/invoice_format.dart';
+import 'package:manager_room_project/utils/formatMonthy.dart';
 
 class PaymentVerificationDetailPage extends StatefulWidget {
   final String? slipId;
@@ -98,7 +98,7 @@ class _PaymentVerificationDetailPageState
     if (m == null || y == null || m < 1 || m > 12) {
       return '$monthStr/$yearStr';
     }
-    return InvoiceFormat.formatBillingCycleTh(month: m, year: y);
+    return Formatmonthy.formatBillingCycleTh(month: m, year: y);
   }
 
   Future<void> _load() async {
@@ -752,7 +752,7 @@ class _PaymentVerificationDetailPageState
               }
               String sub = '';
               if (prev != null && curr != null) {
-                sub = InvoiceFormat.formatUtilitySubtext(
+                sub = Formatmonthy.formatUtilitySubtext(
                   previous: prev,
                   current: curr,
                   usage: usage,

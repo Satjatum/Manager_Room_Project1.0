@@ -1,4 +1,4 @@
-class InvoiceFormat {
+class Formatmonthy {
   static const List<String> _thaiMonths = [
     'มกราคม',
     'กุมภาพันธ์',
