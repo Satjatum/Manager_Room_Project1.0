@@ -185,18 +185,17 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
                             color: Colors.black87,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Text(
-                          _invoiceInfo != null
-                              ? 'บิล #${_invoiceInfo!['invoice_number'] ?? '-'}'
-                              : 'ประวัติการส่งสลิปทั้งหมด',
-                          style: const TextStyle(
-                              fontSize: 14, color: Colors.black54),
+                          'ดูรายการย้อนหลังของผู้เช่า',
+                          style: TextStyle(fontSize: 14, color: Colors.black54),
                         ),
                       ],
                     ),
                   ),
                 ],
+              ),
+            ),
 
             // Search & Filters
             Padding(
@@ -204,8 +203,6 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
               child: _buildSearchAndFilters(),
             ),
             const SizedBox(height: 12),
-              const SizedBox(height: 16),
-            ],
 
             // History List
             Expanded(
@@ -221,6 +218,8 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
           ],
         ),
       ),
+    );
+  }
 
   Widget _buildSearchAndFilters() {
     return Column(
@@ -315,8 +314,6 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
           ],
         ),
       ],
-    );
-  }
     );
   }
 
