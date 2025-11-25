@@ -5,8 +5,8 @@ import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/utils/formatMonthy.dart';
 
 class TenantPayHistoryUi extends StatefulWidget {
-  final String invoiceId;
-  const TenantPayHistoryUi({super.key, required this.invoiceId});
+  final String? invoiceId; // ถ้าไม่ระบุ จะแสดงประวัติทั้งหมดของผู้เช่า
+  const TenantPayHistoryUi({super.key, this.invoiceId});
 
   @override
   State<TenantPayHistoryUi> createState() => _TenantPayHistoryUiState();
@@ -15,11 +15,24 @@ class TenantPayHistoryUi extends StatefulWidget {
 class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
   bool _loading = true;
   List<Map<String, dynamic>> _slipHistory = [];
-  Map<String, dynamic>? _invoiceInfo;
+  List<Map<String, dynamic>> _visibleSlips = [];
+
+  // Search & Filters
+  String _search = '';
+  int _filterMonth = 0; // 0 = ทั้งหมด
+  int? _filterYear; // null = ทั้งหมด
+  List<int> _availableYears = [];
+
+  // Expansion state per slip
+  final Set<String> _expandedIds = {};
 
   @override
   void initState() {
     super.initState();
+    // Default filters: current month and year
+    final now = DateTime.now();
+    _filterMonth = now.month;
+    _filterYear = now.year;
     _loadHistory();
   }
 
@@ -48,7 +61,7 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
         return;
       }
 
-      // ดึงประวัติสลิปทั้งหมดของบิลนี้
+      // ดึงประวัติสลิปทั้งหมด (แล้วไปกรองผู้เช่า/บิลภายหลังฝั่งไคลเอนต์)
       final allSlips = await PaymentService.listPaymentSlips(
         status: 'all',
         limit: 100,
@@ -57,12 +70,13 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
       // Check mounted after async operation
       if (!mounted) return;
 
-      // กรองเฉพาะสลิปของบิลนี้และผู้เช่านี้
-      final filteredSlips = allSlips
-          .where((slip) =>
-              slip['invoice_id']?.toString() == widget.invoiceId &&
-              slip['tenant_id']?.toString() == user.tenantId)
-          .toList();
+      // กรองเฉพาะสลิปของผู้เช่านี้ (+ ตัวเลือกกรองตามบิลถ้ามี)
+      final filteredSlips = allSlips.where((slip) {
+        final isMine = slip['tenant_id']?.toString() == user.tenantId;
+        if (!isMine) return false;
+        if ((widget.invoiceId ?? '').isEmpty) return true;
+        return slip['invoice_id']?.toString() == widget.invoiceId;
+      }).toList();
 
       // ดึงข้อมูลไฟล์เพิ่มเติมสำหรับแต่ละสลิป
       for (var slip in filteredSlips) {
@@ -79,6 +93,11 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
 
             if (slipDetail != null) {
               slip['files'] = slipDetail['files'] ?? [];
+              // ดึง due_date ของบิลเพื่อใช้คำนวณ "รอบบิล"
+              final inv = slipDetail['invoices'];
+              if (inv is Map && inv['due_date'] != null) {
+                slip['due_date'] = inv['due_date'];
+              }
             }
           }
         } catch (e) {
@@ -102,26 +121,14 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
         return dateB.compareTo(dateA);
       });
 
-      // เก็บข้อมูลบิลจากสลิปแรก (ถ้ามี)
-      Map<String, dynamic>? invoiceInfo;
-      if (filteredSlips.isNotEmpty) {
-        final firstSlip = filteredSlips.first;
-        invoiceInfo = {
-          'invoice_number': firstSlip['invoice_number'],
-          'invoice_total': firstSlip['invoice_total'],
-          'invoice_paid': firstSlip['invoice_paid'],
-          'room_number': firstSlip['room_number'],
-          'tenant_name': firstSlip['tenant_name'],
-        };
-      }
-
       // Final mounted check before setState
       if (!mounted) return;
 
       setState(() {
         _slipHistory = filteredSlips;
-        _invoiceInfo = invoiceInfo;
         _loading = false;
+        _rebuildAvailableYears();
+        _applyClientFilters();
       });
     } catch (e, stackTrace) {
       // OWASP A09:2021 - Comprehensive error logging
@@ -182,13 +189,10 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
                             color: Colors.black87,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Text(
-                          _invoiceInfo != null
-                              ? 'บิล #${_invoiceInfo!['invoice_number'] ?? '-'}'
-                              : 'ประวัติการส่งสลิปทั้งหมด',
-                          style: const TextStyle(
-                              fontSize: 14, color: Colors.black54),
+                          'ดูรายการย้อนหลังของผู้เช่า',
+                          style: TextStyle(fontSize: 14, color: Colors.black54),
                         ),
                       ],
                     ),
@@ -197,14 +201,12 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
               ),
             ),
 
-            // Bill Summary (ถ้ามีข้อมูล)
-            if (_invoiceInfo != null) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: _buildBillSummary(),
-              ),
-              const SizedBox(height: 16),
-            ],
+            // Search & Filters
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _buildSearchAndFilters(),
+            ),
+            const SizedBox(height: 12),
 
             // History List
             Expanded(
@@ -223,88 +225,109 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
     );
   }
 
-  Widget _buildBillSummary() {
-    if (_invoiceInfo == null) return const SizedBox.shrink();
-
-    final total = _asDouble(_invoiceInfo!['invoice_total']);
-    final paid = _asDouble(_invoiceInfo!['invoice_paid']);
-    final remaining = (total - paid).clamp(0.0, double.infinity);
-
-    return Card(
-      color: Colors.white,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade300),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.receipt_long,
-                    size: 18, color: AppTheme.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '${_invoiceInfo!['tenant_name'] ?? '-'} - ห้อง ${_invoiceInfo!['room_number'] ?? '-'}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-              ],
+  Widget _buildSearchAndFilters() {
+    return Column(
+      children: [
+        // Search bar
+        TextField(
+          decoration: InputDecoration(
+            hintText: 'ค้นหาเลขบิล/หมายเหตุ/จำนวนเงิน',
+            prefixIcon: const Icon(Icons.search),
+            isDense: true,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _summaryItem('ยอดรวม', '${_formatMoney(total)} บาท'),
+          ),
+          onChanged: (v) {
+            setState(() {
+              _search = v.trim();
+              _applyClientFilters();
+            });
+          },
+        ),
+        const SizedBox(height: 8),
+        // Filters row
+        Row(
+          children: [
+            // Month filter
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                Expanded(
-                  child: _summaryItem('ชำระแล้ว', '${_formatMoney(paid)} บาท',
-                      color: Colors.green),
+                child: DropdownButton<int>(
+                  value: _filterMonth,
+                  isExpanded: true,
+                  underline: const SizedBox.shrink(),
+                  items: [
+                    const DropdownMenuItem(
+                      value: 0,
+                      child: Text('ทุกเดือน'),
+                    ),
+                    ...List.generate(12, (i) {
+                      final m = i + 1;
+                      return DropdownMenuItem(
+                        value: m,
+                        child: Text(Formatmonthy.monthName(m, short: true)),
+                      );
+                    })
+                  ],
+                  onChanged: (v) {
+                    if (v == null) return;
+                    setState(() {
+                      _filterMonth = v;
+                      _applyClientFilters();
+                    });
+                  },
                 ),
-                Expanded(
-                  child: _summaryItem(
-                      'คงเหลือ', '${_formatMoney(remaining)} บาท',
-                      color: Colors.red),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Year filter (แสดงเป็นปี พ.ศ.)
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ],
+                child: DropdownButton<int?>(
+                  // ป้องกัน assertion: ถ้าค่า value ไม่มีใน items ให้เป็น null
+                  value: _availableYears.contains(_filterYear) ? _filterYear : null,
+                  isExpanded: true,
+                  underline: const SizedBox.shrink(),
+                  items: <DropdownMenuItem<int?>>[
+                    const DropdownMenuItem<int?>(
+                      value: null,
+                      child: Text('ทุกปี'),
+                    ),
+                    ..._availableYears.map(
+                      (y) => DropdownMenuItem<int?>(
+                        value: y,
+                        // แสดงปี พ.ศ. แต่ค่าที่ใช้กรองเก็บเป็น ค.ศ.
+                        child: Text('${y + 543}'),
+                      ),
+                    ),
+                  ],
+                  onChanged: (v) {
+                    setState(() {
+                      _filterYear = v;
+                      _applyClientFilters();
+                    });
+                  },
+                ),
+              ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _summaryItem(String label, String value, {Color? color}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: Colors.black54),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: color ?? Colors.black87,
-          ),
         ),
       ],
     );
   }
 
   Widget _buildHistoryList() {
-    if (_slipHistory.isEmpty) {
+    if (_visibleSlips.isEmpty) {
       return ListView(
         children: const [
           SizedBox(height: 120),
@@ -323,9 +346,9 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-      itemCount: _slipHistory.length,
+      itemCount: _visibleSlips.length,
       itemBuilder: (context, index) =>
-          _buildSlipCard(_slipHistory[index], index),
+          _buildSlipCard(_visibleSlips[index], index),
     );
   }
 
@@ -334,6 +357,8 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
     final paymentDate = slip['payment_date']?.toString() ?? '';
     final paymentTime = slip['payment_time']?.toString() ?? '';
     final createdAt = slip['created_at']?.toString() ?? '';
+    final invoiceNumber = slip['invoice_number']?.toString() ?? '';
+    final dueDate = slip['due_date']?.toString() ?? '';
     final tenantNotes = slip['tenant_notes']?.toString() ?? '';
     final rejectionReason = slip['rejection_reason']?.toString() ?? '';
     final slipImage = slip['slip_image']?.toString() ?? '';
@@ -363,6 +388,10 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
       statusIcon = Icons.schedule;
     }
 
+    final slipKey =
+        (slip['slip_id']?.toString() ?? '${invoiceNumber}_${createdAt}_$index');
+    final expanded = _expandedIds.contains(slipKey);
+
     return Card(
       color: Colors.white,
       elevation: 0,
@@ -371,132 +400,179 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
         side: BorderSide(color: statusColor.withOpacity(0.3), width: 1),
       ),
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header: สถานะ + วันที่
-            Row(
-              children: [
-                Icon(statusIcon, size: 18, color: statusColor),
-                const SizedBox(width: 6),
-                Text(
-                  statusText,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: statusColor,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  'ครั้งที่ ${_slipHistory.length - index}',
-                  style: const TextStyle(fontSize: 12, color: Colors.black54),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // จำนวนเงินที่ส่ง
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: statusColor.withOpacity(0.3)),
-              ),
-              child: Row(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          setState(() {
+            if (expanded) {
+              _expandedIds.remove(slipKey);
+            } else {
+              _expandedIds.add(slipKey);
+            }
+          });
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header (tap anywhere on card to expand/collapse)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Icon(Icons.payments, size: 20, color: statusColor),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'จำนวนเงินที่ส่ง: ',
-                    style: TextStyle(fontSize: 14, color: Colors.black87),
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: statusColor.withOpacity(0.12),
+                    child: Icon(statusIcon, size: 16, color: statusColor),
                   ),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          invoiceNumber.isNotEmpty ? '#$invoiceNumber' : '-',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        if (!expanded) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            _formatSlipDate(paymentDate, paymentTime),
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.black54),
+                          ),
+                        ]
+                      ],
+                    ),
+                  ),
+                  if (!expanded && paidAmount > 0)
+                    Text(
                       '${_formatMoney(paidAmount)} บาท',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: statusColor,
                       ),
-                      textAlign: TextAlign.right,
+                    ),
+                ],
+              ),
+
+              if (expanded) const SizedBox(height: 12),
+
+              if (expanded) ...[
+                // ข้อมูลบิล
+                if (invoiceNumber.isNotEmpty || dueDate.isNotEmpty) ...[
+                  _infoRow('เลขบิล',
+                      invoiceNumber.isNotEmpty ? '#$invoiceNumber' : '-'),
+                  if (dueDate.isNotEmpty)
+                    _infoRow('รอบบิล', _formatCycleFromDueDate(dueDate)),
+                  const SizedBox(height: 8),
+                ],
+
+                // จำนวนเงินที่ส่ง
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: statusColor.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.payments, size: 20, color: statusColor),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'จำนวนเงินที่ส่ง: ',
+                        style: TextStyle(fontSize: 14, color: Colors.black87),
+                      ),
+                      Expanded(
+                        child: Text(
+                          '${_formatMoney(paidAmount)} บาท',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: statusColor,
+                          ),
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // วันที่และเวลาที่ส่ง
+                _infoRow(
+                    'วันที่ส่งสลิป', _formatSlipDate(paymentDate, paymentTime)),
+                if (createdAt.isNotEmpty)
+                  _infoRow('บันทึกเมื่อ', _formatCreatedDate(createdAt)),
+
+                // หมายเหตุผู้เช่า
+                if (tenantNotes.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0F9FF),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF0EA5E9)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.note_outlined,
+                            size: 16, color: Color(0xFF0284C7)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            tenantNotes,
+                            style: const TextStyle(
+                                fontSize: 14, color: Color(0xFF0C4A6E)),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
-              ),
-            ),
 
-            const SizedBox(height: 12),
-
-            // วันที่และเวลาที่ส่ง
-            _infoRow(
-                'วันที่ส่งสลิป', _formatSlipDate(paymentDate, paymentTime)),
-            if (createdAt.isNotEmpty)
-              _infoRow('บันทึกเมื่อ', _formatCreatedDate(createdAt)),
-
-            // หมายเหตุผู้เช่า
-            if (tenantNotes.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0F9FF),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF0EA5E9)),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.note_outlined,
-                        size: 16, color: Color(0xFF0284C7)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        tenantNotes,
-                        style: const TextStyle(
-                            fontSize: 14, color: Color(0xFF0C4A6E)),
-                      ),
+                // เหตุผลปฏิเสธ
+                if (isRejected && rejectionReason.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFEF4444)),
                     ),
-                  ],
-                ),
-              ),
-            ],
-
-            // เหตุผลปฏิเสธ
-            if (isRejected && rejectionReason.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFEF2F2),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFEF4444)),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.error_outline,
-                        size: 16, color: Color(0xFFDC2626)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'เหตุผลปฏิเสธ: $rejectionReason',
-                        style: const TextStyle(
-                            fontSize: 14, color: Color(0xFFB91C1C)),
-                      ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.error_outline,
+                            size: 16, color: Color(0xFFDC2626)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'เหตุผลปฏิเสธ: $rejectionReason',
+                            style: const TextStyle(
+                                fontSize: 14, color: Color(0xFFB91C1C)),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            ],
+                  ),
+                ],
 
-            // รูปสลิป (รองรับหลายรูป)
-            _buildSlipImages(slip),
-          ],
+                // รูปสลิป (รองรับหลายรูป)
+                _buildSlipImages(slip),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -682,6 +758,66 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
     return '$dateStr เวลา $hour:$minute น.';
+  }
+
+  String _formatCycleFromDueDate(String dueIso) {
+    // ใช้ due_date ของใบแจ้งหนี้เพื่อแสดงรอบบิล (เดือน/ปี แบบ พ.ศ.)
+    final dt = DateTime.tryParse(dueIso);
+    if (dt == null) return '-';
+    return Formatmonthy.formatBillingCycleTh(month: dt.month, year: dt.year);
+  }
+
+  void _rebuildAvailableYears() {
+    final years = <int>{};
+    for (final slip in _slipHistory) {
+      final d = (slip['payment_date'] ?? slip['created_at'])?.toString() ?? '';
+      final base = d.split(' ').first;
+      final dt = DateTime.tryParse(base);
+      if (dt != null) years.add(dt.year);
+    }
+    // Ensure current and selected years are present for selection
+    final nowYear = DateTime.now().year;
+    years.add(nowYear);
+    if (_filterYear != null) years.add(_filterYear!);
+
+    final list = years.toList()..sort((a, b) => b.compareTo(a));
+    _availableYears = list;
+    // ถ้า filter ปีไม่อยู่ในชุด ให้เป็น null
+    if (_filterYear != null && !_availableYears.contains(_filterYear)) {
+      _filterYear = null;
+    }
+  }
+
+  void _applyClientFilters() {
+    List<Map<String, dynamic>> list = List.from(_slipHistory);
+
+    // Search
+    final s = _search.toLowerCase();
+    if (s.isNotEmpty) {
+      list = list.where((row) {
+        final inv = (row['invoice_number'] ?? '').toString().toLowerCase();
+        final note = (row['tenant_notes'] ?? '').toString().toLowerCase();
+        final rej = (row['rejection_reason'] ?? '').toString().toLowerCase();
+        final amt = _asDouble(row['paid_amount']).toStringAsFixed(2);
+        return inv.contains(s) ||
+            note.contains(s) ||
+            rej.contains(s) ||
+            amt.contains(s);
+      }).toList();
+    }
+
+    // Month/Year filter by payment_date (fallback created_at)
+    list = list.where((row) {
+      final d = (row['payment_date'] ?? row['created_at'])?.toString() ?? '';
+      final base = d.split(' ').first;
+      final dt = DateTime.tryParse(base);
+      if (dt == null) return true; // ปล่อยผ่านถ้า parse ไม่ได้
+      final matchYear = _filterYear == null || dt.year == _filterYear;
+      final matchMonth = _filterMonth == 0 || dt.month == _filterMonth;
+      return matchYear && matchMonth;
+    }).toList();
+
+    _visibleSlips = list;
   }
 
   String _formatMoney(double v) {
