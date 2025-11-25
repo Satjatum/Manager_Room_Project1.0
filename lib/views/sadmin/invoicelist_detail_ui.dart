@@ -8,6 +8,7 @@ import 'package:manager_room_project/services/payment_rate_service.dart';
 import 'package:manager_room_project/models/user_models.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/views/tenant/tenant_pay_bill_ui.dart';
+import 'package:manager_room_project/utils/invoice_format.dart';
 
 class InvoiceListDetailUi extends StatefulWidget {
   final String invoiceId;
@@ -61,14 +62,27 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
   }
 
   String _thaiDate(String s) {
+    // แสดงวันที่แบบไทย: 15 พฤศจิกายน 2568
     if (s.isEmpty) return '-';
     final base = s.split(' ').first;
     final d = DateTime.tryParse(base);
     if (d == null) return base;
-    final y = d.year + 543;
-    final m = d.month.toString().padLeft(2, '0');
-    final d2 = d.day.toString().padLeft(2, '0');
-    return '$d2/$m/$y';
+    const months = [
+      'มกราคม',
+      'กุมภาพันธ์',
+      'มีนาคม',
+      'เมษายน',
+      'พฤษภาคม',
+      'มิถุนายน',
+      'กรกฎาคม',
+      'สิงหาคม',
+      'กันยายน',
+      'ตุลาคม',
+      'พฤศจิกายน',
+      'ธันวาคม',
+    ];
+    final thaiYear = d.year + 543;
+    return '${d.day} ${months[d.month - 1]} $thaiYear';
   }
 
   Future<void> _load() async {
@@ -313,8 +327,8 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
     final tenant = inv['tenants'] ?? {};
 
     final invoiceNumber = (inv['invoice_number'] ?? '-').toString();
-    final invoiceMonth = (inv['invoice_month'] ?? '-').toString();
-    final invoiceYear = (inv['invoice_year'] ?? '-').toString();
+    final invoiceMonthStr = (inv['invoice_month'] ?? '-').toString();
+    final invoiceYearStr = (inv['invoice_year'] ?? '-').toString();
     final issueDate = (inv['issue_date'] ?? '').toString();
     final dueDate = (inv['due_date'] ?? '').toString();
     final tenantName =
@@ -368,7 +382,10 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
                 style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             _kv('เลขบิล', invoiceNumber),
-            _kv('รอบบิลเดือน', '$invoiceMonth/$invoiceYear'),
+            _kv(
+              'รอบบิลเดือน',
+              _formatBillingCycle(invoiceMonthStr, invoiceYearStr),
+            ),
             _kv('ออกบิลวันที่', _thaiDate(issueDate)),
             _kv('ครบกำหนดชำระ', _thaiDate(dueDate)),
             const SizedBox(height: 8),
@@ -398,15 +415,18 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
                   curr = _asDouble(r['electric_current_reading']);
                 }
               }
-              final parts = <String>[];
+              String sub = '';
               if (prev != null && curr != null) {
-                parts.add(
-                    '${prev.toStringAsFixed(2)} - ${curr.toStringAsFixed(2)} = ${usage.toStringAsFixed(2)}');
-              } else {
-                parts.add(usage.toStringAsFixed(2));
+                sub = InvoiceFormat.formatUtilitySubtext(
+                  previous: prev,
+                  current: curr,
+                  usage: usage,
+                  unitPrice: unitPrice,
+                );
+              } else if (usage > 0 || unitPrice > 0) {
+                // กรณีไม่มีตัวเลขก่อน/หลัง ใช้รูปแบบ: "ยูนิต (ราคา)"
+                sub = '${usage.toStringAsFixed(2)} (${unitPrice.toStringAsFixed(2)})';
               }
-              if (unitPrice > 0) parts.add(unitPrice.toStringAsFixed(2));
-              final sub = parts.join(' • ');
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -437,13 +457,13 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
                 return _moneyRow(label, amt);
               }).toList(),
             ],
-            // แสดงส่วนลดถ้ามีนโยบายหรือมีจำนวนเงิน
-            if (_shouldShowDiscount(inv, discountAmount)) ...[
+            // แสดง "ส่วนลด" ต่อเมื่อเปิดใช้งานใน Payment Settings เท่านั้น
+            if (_isDiscountEnabled()) ...[
               const SizedBox(height: 8),
               _buildDiscountSection(inv, discountAmount),
             ],
-            // แสดงค่าปรับถ้ามีนโยบายหรือมีจำนวนเงิน
-            if (_shouldShowLateFee(inv, lateFeeAmount)) ...[
+            // แสดง "ค่าปรับล่าช้า" ต่อเมื่อเปิดใช้งานใน Payment Settings เท่านั้น
+            if (_isLateFeeEnabled()) ...[
               const SizedBox(height: 8),
               _buildLateFeeSection(inv, lateFeeAmount),
             ],
@@ -487,6 +507,28 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
         ],
       ),
     );
+  }
+
+  // รูปแบบรอบบิล: เดือนภาษาไทย + ปี พ.ศ.
+  String _formatBillingCycle(String monthStr, String yearStr) {
+    final m = int.tryParse(monthStr);
+    final y = int.tryParse(yearStr);
+    if (m == null || y == null || m < 1 || m > 12) {
+      return '$monthStr/$yearStr';
+    }
+    return InvoiceFormat.formatBillingCycleTh(month: m, year: y);
+  }
+
+  bool _isDiscountEnabled() {
+    return _paymentSettings != null &&
+        _paymentSettings!['is_active'] == true &&
+        _paymentSettings!['enable_discount'] == true;
+  }
+
+  bool _isLateFeeEnabled() {
+    return _paymentSettings != null &&
+        _paymentSettings!['is_active'] == true &&
+        _paymentSettings!['enable_late_fee'] == true;
   }
 
   // ตรวจสอบว่าควรแสดงส่วนลดหรือไม่
