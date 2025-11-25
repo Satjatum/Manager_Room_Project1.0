@@ -61,29 +61,7 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
     return <String, dynamic>{};
   }
 
-  String _thaiDate(String s) {
-    // แสดงวันที่แบบไทย: 15 พฤศจิกายน 2568
-    if (s.isEmpty) return '-';
-    final base = s.split(' ').first;
-    final d = DateTime.tryParse(base);
-    if (d == null) return base;
-    const months = [
-      'มกราคม',
-      'กุมภาพันธ์',
-      'มีนาคม',
-      'เมษายน',
-      'พฤษภาคม',
-      'มิถุนายน',
-      'กรกฎาคม',
-      'สิงหาคม',
-      'กันยายน',
-      'ตุลาคม',
-      'พฤศจิกายน',
-      'ธันวาคม',
-    ];
-    final thaiYear = d.year + 543;
-    return '${d.day} ${months[d.month - 1]} $thaiYear';
-  }
+  String _thaiDate(String s) => Formatmonthy.formatThaiDateStr(s);
 
   Future<void> _load() async {
     setState(() => _loading = true);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:manager_room_project/middleware/auth_middleware.dart';
 import 'package:manager_room_project/services/payment_service.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
+import 'package:manager_room_project/utils/formatMonthy.dart';
 
 class TenantPayHistoryUi extends StatefulWidget {
   final String invoiceId;
@@ -664,69 +665,23 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
 
   String _formatSlipDate(String date, String time) {
     if (date.isEmpty) return '-';
-    try {
-      final dt = DateTime.tryParse(date);
-      if (dt == null) return date;
-
-      const thMonths = [
-        '',
-        'ม.ค.',
-        'ก.พ.',
-        'มี.ค.',
-        'เม.ย.',
-        'พ.ค.',
-        'มิ.ย.',
-        'ก.ค.',
-        'ส.ค.',
-        'ก.ย.',
-        'ต.ค.',
-        'พ.ย.',
-        'ธ.ค.'
-      ];
-      final y = dt.year + 543;
-      final m = thMonths[dt.month];
-      final d = dt.day.toString();
-
-      final dateStr = '$d $m $y';
-      return time.isNotEmpty
-          ? '$dateStr เวลา ${time.substring(0, 5)} น.'
-          : dateStr;
-    } catch (e) {
-      return date;
+    final dateStr = Formatmonthy.formatThaiDateStr(date, shortMonth: true);
+    if (time.isNotEmpty) {
+      final t = time.length >= 5 ? time.substring(0, 5) : time;
+      return '$dateStr เวลา $t น.';
     }
+    return dateStr;
   }
 
   String _formatCreatedDate(String iso) {
     if (iso.isEmpty) return '-';
-    try {
-      final dt = DateTime.tryParse(iso);
-      if (dt == null) return iso;
-
-      const thMonths = [
-        '',
-        'ม.ค.',
-        'ก.พ.',
-        'มี.ค.',
-        'เม.ย.',
-        'พ.ค.',
-        'มิ.ย.',
-        'ก.ค.',
-        'ส.ค.',
-        'ก.ย.',
-        'ต.ค.',
-        'พ.ย.',
-        'ธ.ค.'
-      ];
-      final y = dt.year + 543;
-      final m = thMonths[dt.month];
-      final d = dt.day.toString();
-      final hour = dt.hour.toString().padLeft(2, '0');
-      final minute = dt.minute.toString().padLeft(2, '0');
-
-      return '$d $m $y เวลา $hour:$minute น.';
-    } catch (e) {
-      return iso;
-    }
+    final dt = DateTime.tryParse(iso);
+    if (dt == null) return iso;
+    final local = dt.toLocal();
+    final dateStr = Formatmonthy.formatThaiDate(local, shortMonth: true);
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$dateStr เวลา $hour:$minute น.';
   }
 
   String _formatMoney(double v) {
