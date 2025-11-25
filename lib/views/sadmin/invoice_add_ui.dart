@@ -1224,10 +1224,10 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text('${contract['contract_num']}'),
-                    Text(
-                      '${contract['tenant_name']} - ${contract['contract_price']} บาท',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
+                    // Text(
+                    //   '${contract['tenant_name']} - ${contract['contract_price']} บาท',
+                    //   style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    // ),
                   ],
                 ),
               );
@@ -2003,6 +2003,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     final tenantName = contract['tenant_name'] ?? '-';
     final tenantPhone = contract['tenant_phone'] ?? '-';
     final roomNumber = room['room_number'] ?? '-';
+    final roomTypeName = room['room_type_name'] ?? '-';
+    final issueDate = DateTime.now();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -2015,111 +2017,78 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           ),
           const SizedBox(height: 16),
 
-          // ข้อมูลพื้นฐาน
-          Card(
-            // ปรับสีพื้นหลังเป็นสีขาว และลบเงาพร้อมเส้นขอบ
-            color: Colors.white,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              side: BorderSide(color: Colors.grey[300]!),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'ข้อมูลพื้นฐาน',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  // แสดงเดือนและปี พ.ศ.
-                  _buildSummaryRow('เดือน-ปี',
-                      '${_getMonthName(_invoiceMonth)} ${_invoiceYear + 543}'),
-                  _buildSummaryRow('วันครบกำหนด', _formatDate(_dueDate)),
-                  const SizedBox(height: 8),
-                  _buildSummaryRow('ผู้เช่า', tenantName),
-                  _buildSummaryRow('เบอร์', tenantPhone),
-                  _buildSummaryRow('ห้อง', roomNumber),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
           // รายการค่าใช้จ่าย
           Card(
-            // ปรับสีพื้นหลังเป็นสีขาว และลบเงาพร้อมเส้นขอบ
             color: Colors.white,
             elevation: 0,
             shape: RoundedRectangleBorder(
-              side: BorderSide(color: Colors.grey[300]!),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: Colors.grey.shade300),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'รายการค่าใช้จ่าย',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // ⭐ แสดงค่าเช่า
-                  _buildSummaryRow(
-                      'ค่าห้อง', '${_rentalAmount.toStringAsFixed(2)} บาท'),
+                  const Text('รายละเอียดบิล',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  _kv('รอบบิลเดือน', '${_invoiceMonth}/${_invoiceYear}'),
+                  _kv('ออกบิลวันที่', _formatDate(issueDate)),
+                  _kv('ครบกำหนดชำระ', _formatDate(_dueDate)),
+                  const SizedBox(height: 8),
+                  _kv('ผู้เช่า', tenantName),
+                  _kv('เบอร์', tenantPhone),
+                  _kv('ห้อง', roomNumber),
+                  const Divider(height: 24),
+                  const Text('ค่าใช้จ่าย',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 8),
+                  _moneyRow('ค่าเช่า', _rentalAmount),
 
                   // ค่าน้ำ
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSummaryRow(
-                          'ค่าน้ำ', '${_waterCost.toStringAsFixed(2)} บาท'),
-                      if (_waterUsage > 0)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2, bottom: 4),
-                          child: Text(
-                            '${_waterPreviousReading.toStringAsFixed(2)} - ${_waterCurrentReading.toStringAsFixed(2)} = ${_waterUsage.toStringAsFixed(2)} • ${_waterRate.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.black54),
-                            textAlign: TextAlign.right,
+                  if (_waterCost > 0)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _moneyRow('ค่าน้ำ', _waterCost),
+                        if (_waterUsage > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2, bottom: 4),
+                            child: Text(
+                              '${_waterPreviousReading.toStringAsFixed(2)} - ${_waterCurrentReading.toStringAsFixed(2)} = ${_waterUsage.toStringAsFixed(2)} • ${_waterRate.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.black54),
+                              textAlign: TextAlign.right,
+                            ),
                           ),
-                        ),
-                    ],
-                  ),
+                      ],
+                    ),
 
                   // ค่าไฟ
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSummaryRow(
-                          'ค่าไฟ', '${_electricCost.toStringAsFixed(2)} บาท'),
-                      if (_electricUsage > 0)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2, bottom: 4),
-                          child: Text(
-                            '${_electricPreviousReading.toStringAsFixed(2)} - ${_electricCurrentReading.toStringAsFixed(2)} = ${_electricUsage.toStringAsFixed(2)} • ${_electricRate.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.black54),
-                            textAlign: TextAlign.right,
+                  if (_electricCost > 0)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _moneyRow('ค่าไฟ', _electricCost),
+                        if (_electricUsage > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2, bottom: 4),
+                            child: Text(
+                              '${_electricPreviousReading.toStringAsFixed(2)} - ${_electricCurrentReading.toStringAsFixed(2)} = ${_electricUsage.toStringAsFixed(2)} • ${_electricRate.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.black54),
+                              textAlign: TextAlign.right,
+                            ),
                           ),
-                        ),
-                    ],
-                  ),
+                      ],
+                    ),
 
-                  // ⭐ แสดงค่าใช้จ่ายอื่นๆแบบแยกรายการ
+                  // ค่าใช้จ่ายอื่นๆ
                   if (_selectedFixedRates.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    const Divider(height: 1),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'ค่าใช้จ่ายอื่นๆ',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
+                    const Text('ค่าใช้จ่ายอื่นๆ',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
                     ...List.generate(_selectedFixedRates.length, (index) {
                       final rate = _selectedFixedRates[index];
@@ -2130,45 +2099,20 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                       final unit = fixedAmount + additionalCharge;
                       final qty = (rate['quantity'] ?? 1) as int;
                       final lineTotal = unit * (qty <= 0 ? 1 : qty);
-                      final desc = (rate['description'] ?? '').toString();
                       final title = rate['rate_name'];
+                      final desc = (rate['description'] ?? '').toString();
                       final label = desc.isNotEmpty ? '$title ($desc)' : title;
 
-                      return _buildSummaryRow(
-                          label, '${lineTotal.toStringAsFixed(2)} บาท');
+                      return _moneyRow(label, lineTotal);
                     }),
                   ],
 
-                  // รายละเอียดนโยบายส่วนลดและค่าปรับ (ข้อมูลจาก Payment Settings)
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'รายละเอียดส่วนลดและค่าปรับ',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildDiscountDisplay(),
-                  const SizedBox(height: 12),
-                  _buildLateFeeDisplay(),
-
-                  // เอา subtotal ออก ใช้แสดงยอดรวมอย่างเดียว
                   if (_discountAmount > 0)
-                    _buildSummaryRow(
-                        'ส่วนลด', '-${_discountAmount.toStringAsFixed(2)} บาท',
-                        color: Colors.green),
+                    _moneyRow('ส่วนลด', -_discountAmount, emphasis: true),
                   if (_lateFeeAmount > 0)
-                    _buildSummaryRow('ค่าปรับล่าช้า',
-                        '+${_lateFeeAmount.toStringAsFixed(2)} บาท',
-                        color: Colors.red),
+                    _moneyRow('ค่าปรับล่าช้า', _lateFeeAmount, emphasis: true),
                   const Divider(height: 24),
-                  _buildSummaryRow(
-                    'รวมทั้งสิ้น',
-                    '${grandTotal.toStringAsFixed(2)} บาท',
-                    isBold: true,
-                    isLarge: true,
-                    color: AppTheme.primary,
-                  ),
+                  _moneyRow('ยอดรวม', grandTotal, bold: true),
                 ],
               ),
             ),
@@ -2206,70 +2150,32 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     );
   }
 
-  Widget _buildAmountCard({
-    required String title,
-    required double amount,
-    required Color color,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
+  Widget _kv(String k, String v) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-            ),
-          ),
-          Text(
-            '${amount.toStringAsFixed(2)} บาท',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
+          SizedBox(
+              width: 140,
+              child: Text(k, style: const TextStyle(color: Colors.black54))),
+          Expanded(child: Text(v, textAlign: TextAlign.right)),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryRow(
-    String label,
-    String value, {
-    bool isBold = false,
-    bool isLarge = false,
-    Color? color,
-  }) {
+  Widget _moneyRow(String label, double amount,
+      {bool bold = false, bool emphasis = false, Color? color}) {
+    final style = TextStyle(
+      fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+      color: color ?? (emphasis ? AppTheme.primary : null),
+    );
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: isLarge ? 16 : 14,
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              color: color,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: isLarge ? 16 : 14,
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              color: color,
-            ),
-          ),
+          Expanded(child: Text(label)),
+          Text('${amount.toStringAsFixed(2)} บาท', style: style),
         ],
       ),
     );
