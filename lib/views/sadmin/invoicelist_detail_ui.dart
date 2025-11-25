@@ -425,7 +425,8 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
                 );
               } else if (usage > 0 || unitPrice > 0) {
                 // กรณีไม่มีตัวเลขก่อน/หลัง ใช้รูปแบบ: "ยูนิต (ราคา)"
-                sub = '${usage.toStringAsFixed(2)} (${unitPrice.toStringAsFixed(2)})';
+                sub =
+                    '${usage.toStringAsFixed(2)} (${unitPrice.toStringAsFixed(2)})';
               }
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -457,16 +458,11 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
                 return _moneyRow(label, amt);
               }).toList(),
             ],
-            // แสดง "ส่วนลด" ต่อเมื่อเปิดใช้งานใน Payment Settings เท่านั้น
-            if (_isDiscountEnabled()) ...[
-              const SizedBox(height: 8),
-              _buildDiscountSection(inv, discountAmount),
-            ],
-            // แสดง "ค่าปรับล่าช้า" ต่อเมื่อเปิดใช้งานใน Payment Settings เท่านั้น
-            if (_isLateFeeEnabled()) ...[
-              const SizedBox(height: 8),
-              _buildLateFeeSection(inv, lateFeeAmount),
-            ],
+            // แสดงเฉพาะบรรทัดเงินอย่างเดียว เมื่อเปิดใช้งานใน Payment Settings
+            if (_isDiscountEnabled())
+              _moneyRow('ส่วนลด', -discountAmount, emphasis: true),
+            if (_isLateFeeEnabled())
+              _moneyRow('ค่าปรับชำระล่าช้า', lateFeeAmount, emphasis: true),
             const Divider(height: 24),
             _moneyRow('ยอดรวม', totalAmount, bold: true),
             _moneyRow('ชำระแล้ว', paidAmount, color: Colors.green),
