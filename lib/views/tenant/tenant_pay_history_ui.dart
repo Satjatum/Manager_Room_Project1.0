@@ -29,6 +29,10 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
   @override
   void initState() {
     super.initState();
+    // Default filters: current month and year
+    final now = DateTime.now();
+    _filterMonth = now.month;
+    _filterYear = now.year;
     _loadHistory();
   }
 
@@ -379,8 +383,8 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
       statusIcon = Icons.schedule;
     }
 
-    final slipKey = (slip['slip_id']?.toString() ??
-        '${invoiceNumber}_${createdAt}_$index');
+    final slipKey =
+        (slip['slip_id']?.toString() ?? '${invoiceNumber}_${createdAt}_$index');
     final expanded = _expandedIds.contains(slipKey);
 
     return Card(
@@ -391,71 +395,74 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
         side: BorderSide(color: statusColor.withOpacity(0.3), width: 1),
       ),
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header: สถานะ + วันที่
-            Row(
-              children: [
-                Icon(statusIcon, size: 18, color: statusColor),
-                const SizedBox(width: 6),
-                Text(
-                  statusText,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: statusColor,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          setState(() {
+            if (expanded) {
+              _expandedIds.remove(slipKey);
+            } else {
+              _expandedIds.add(slipKey);
+            }
+          });
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header (tap anywhere on card to expand/collapse)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: statusColor.withOpacity(0.12),
+                    child: Icon(statusIcon, size: 16, color: statusColor),
                   ),
-                ),
-                const Spacer(),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'ครั้งที่ ${_visibleSlips.length - index}',
-                      style:
-                          const TextStyle(fontSize: 12, color: Colors.black54),
-                    ),
-                    const SizedBox(height: 2),
-                    if (paidAmount > 0)
-                      Text(
-                        '${_formatMoney(paidAmount)} บาท',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: statusColor,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          invoiceNumber.isNotEmpty ? '#$invoiceNumber' : '-',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
                         ),
-                      ),
-                  ],
-                ),
-                const SizedBox(width: 8),
-                InkWell(
-                  onTap: () {
-                    setState(() {
-                      if (expanded) {
-                        _expandedIds.remove(slipKey);
-                      } else {
-                        _expandedIds.add(slipKey);
-                      }
-                    });
-                  },
-                  child: Icon(
-                    expanded ? Icons.expand_less : Icons.expand_more,
-                    color: Colors.black54,
+                        if (!expanded) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            _formatSlipDate(paymentDate, paymentTime),
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.black54),
+                          ),
+                        ]
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
+                  if (!expanded && paidAmount > 0)
+                    Text(
+                      '${_formatMoney(paidAmount)} บาท',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: statusColor,
+                      ),
+                    ),
+                ],
+              ),
 
-            if (expanded) const SizedBox(height: 12),
+              if (expanded) const SizedBox(height: 12),
 
             if (expanded) ...[
               // ข้อมูลบิล
               if (invoiceNumber.isNotEmpty || dueDate.isNotEmpty) ...[
-                _infoRow(
-                    'เลขบิล', invoiceNumber.isNotEmpty ? '#$invoiceNumber' : '-'),
+                _infoRow('เลขบิล',
+                    invoiceNumber.isNotEmpty ? '#$invoiceNumber' : '-'),
                 if (dueDate.isNotEmpty)
                   _infoRow('รอบบิล', _formatCycleFromDueDate(dueDate)),
                 const SizedBox(height: 8),
@@ -560,6 +567,8 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
               _buildSlipImages(slip),
             ],
           ],
+        ),
+      ),
         ),
       ),
     );
@@ -762,6 +771,11 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
       final dt = DateTime.tryParse(base);
       if (dt != null) years.add(dt.year);
     }
+    // Ensure current and selected years are present for selection
+    final nowYear = DateTime.now().year;
+    years.add(nowYear);
+    if (_filterYear != null) years.add(_filterYear!);
+
     final list = years.toList()..sort((a, b) => b.compareTo(a));
     _availableYears = list;
     // ถ้า filter ปีไม่อยู่ในชุด ให้เป็น null
