@@ -312,21 +312,7 @@ class _PaymentVerificationDetailPageState
 
     try {
       setState(() => _loading = true);
-      // Hybrid: ใช้ส่วนลดยอดชำระก่อนกำหนดจาก Payment Settings ก่อนอนุมัติ
-      try {
-        final invId = (_slip!['invoice_id'] ?? '').toString();
-        DateTime? payDate;
-        final payDateStr = (_slip!['payment_date'] ?? '').toString();
-        if (payDateStr.isNotEmpty) {
-          payDate = DateTime.tryParse(payDateStr);
-        }
-        if (invId.isNotEmpty) {
-          await InvoiceService.applyEarlyDiscountFromSettings(
-            invoiceId: invId,
-            paymentDate: payDate,
-          );
-        }
-      } catch (_) {}
+      // applyEarlyDiscountFromSettings() removed - Discount system disabled
       final result = await PaymentService.verifySlip(
         slipId: _slip!['slip_id'],
         approvedAmount: amount,
@@ -776,8 +762,7 @@ class _PaymentVerificationDetailPageState
             const Divider(height: 24),
             if (discountAmount > 0)
               _moneyRow('ส่วนลด', discountAmount, emphasis: true),
-            if (lateFeeAmount > 0)
-              _moneyRow('ค่าปรับล่าช้า', lateFeeAmount, emphasis: true),
+            _moneyRow('ค่าปรับล่าช้า', lateFeeAmount, emphasis: true),
             _moneyRow('ยอดรวม', totalAmount, bold: true),
             _moneyRow('ชำระแล้ว', paidAmount, color: Colors.green),
             _moneyRow('คงเหลือ', remaining,

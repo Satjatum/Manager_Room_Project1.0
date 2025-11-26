@@ -5,6 +5,7 @@ import 'package:manager_room_project/middleware/auth_middleware.dart';
 import 'package:manager_room_project/services/payment_service.dart';
 import 'package:manager_room_project/services/auth_service.dart';
 import 'package:manager_room_project/services/payment_rate_service.dart';
+import 'package:manager_room_project/services/receipt_print_service.dart';
 import 'package:manager_room_project/models/user_models.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import 'package:manager_room_project/views/tenant/tenant_pay_bill_ui.dart';
@@ -318,7 +319,6 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
     final invoiceStatus = (inv['invoice_status'] ?? '-').toString();
 
     double rentalAmount = _asDouble(inv['rental_amount']);
-    double discountAmount = _asDouble(inv['discount_amount']);
     double lateFeeAmount = _asDouble(inv['late_fee_amount']);
     final totalAmount = _asDouble(inv['total_amount']);
     final paidAmount = _asDouble(inv['paid_amount']);
@@ -437,10 +437,7 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
               }).toList(),
             ],
             const Divider(height: 24),
-            if (_isDiscountEnabled())
-              _moneyRow('ส่วนลด', discountAmount, emphasis: true),
-            if (_isLateFeeEnabled())
-              _moneyRow('ค่าปรับชำระล่าช้า', lateFeeAmount, emphasis: true),
+            _moneyRow('ค่าปรับชำระล่าช้า', lateFeeAmount, emphasis: true),
             _moneyRow('ยอดรวม', totalAmount, bold: true),
             _moneyRow('ชำระแล้ว', paidAmount, color: Colors.green),
             _moneyRow('คงเหลือ', remaining,
@@ -490,18 +487,6 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
       return '$monthStr/$yearStr';
     }
     return Formatmonthy.formatBillingCycleTh(month: m, year: y);
-  }
-
-  bool _isDiscountEnabled() {
-    return _paymentSettings != null &&
-        _paymentSettings!['is_active'] == true &&
-        _paymentSettings!['enable_discount'] == true;
-  }
-
-  bool _isLateFeeEnabled() {
-    return _paymentSettings != null &&
-        _paymentSettings!['is_active'] == true &&
-        _paymentSettings!['enable_late_fee'] == true;
   }
 
   Widget _invoiceStatusChip(String status) {
@@ -555,6 +540,56 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
         remaining <= 0 ||
         _pendingVerification;
 
+    // ถ้าสถานะเป็น 'paid' แสดงเฉพาะปุ่มดาวน์โหลดสลิป
+    if (status == 'paid') {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Colors.grey[300]!, width: 1)),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () async {
+              try {
+                // ใช้ _latestSlip ที่โหลดไว้แล้ว หรือดึงใหม่ถ้าไม่มี
+                if (_latestSlip != null) {
+                  await ReceiptPrintService.printSlipFromSlipRow(_latestSlip!);
+                } else {
+                  // ถ้าไม่มี slip ให้แจ้งเตือน
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('ไม่พบข้อมูลสลิปสำหรับดาวน์โหลด')),
+                  );
+                }
+              } catch (e) {
+                print('ดาวน์โหลดสลิปไม่สำเร็จ: $e');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('ดาวน์โหลดสลิปไม่สำเร็จ')),
+                );
+              }
+            },
+            icon: const Icon(Icons.download, color: Colors.white),
+            label: const Text(
+              'ดาวน์โหลดสลิป',
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 2,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // ถ้าไม่ใช่ 'paid' แสดงปุ่มชำระเงินแบบเดิม
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -582,7 +617,8 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
             disabled
                 ? (_pendingVerification ? 'กำลังตรวจสอบ' : 'ชำระแล้ว')
                 : 'ชำระเงิน',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w600),
           ),
           style: OutlinedButton.styleFrom(
             backgroundColor: AppTheme.primary,

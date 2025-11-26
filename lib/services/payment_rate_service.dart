@@ -68,11 +68,6 @@ class PaymentSettingsService {
     double? lateFeeAmount,
     int? lateFeeStartDay,
     double? lateFeeMaxAmount,
-    required bool enableDiscount,
-    String? earlyPaymentType,
-    double? earlyPaymentAmount,
-    double? earlyPaymentDiscount,
-    int? earlyPaymentDays,
     String? settingDesc,
     bool isActive = true,
     String? createdBy,
@@ -100,28 +95,7 @@ class PaymentSettingsService {
         }
       }
 
-      // Validation สำหรับส่วนลด
-      if (enableDiscount) {
-        final dtype = (earlyPaymentType ?? 'percentage');
-        if (!['fixed', 'percentage'].contains(dtype)) {
-          throw Exception('ประเภทส่วนลดไม่ถูกต้อง');
-        }
-        if (earlyPaymentDays == null || earlyPaymentDays <= 0) {
-          throw Exception('กรุณากรอกจำนวนวันก่อนกำหนดที่มากกว่า 0');
-        }
-        if (dtype == 'percentage') {
-          if (earlyPaymentDiscount == null || earlyPaymentDiscount <= 0) {
-            throw Exception('กรุณากรอกเปอร์เซ็นต์ส่วนลดที่มากกว่า 0');
-          }
-          if (earlyPaymentDiscount > 100) {
-            throw Exception('เปอร์เซ็นต์ส่วนลดต้องไม่เกิน 100%');
-          }
-        } else if (dtype == 'fixed') {
-          if (earlyPaymentAmount == null || earlyPaymentAmount <= 0) {
-            throw Exception('กรุณากรอกจำนวนเงินส่วนลดที่มากกว่า 0');
-          }
-        }
-      }
+      // Discount system removed
 
       final data = {
         'branch_id': branchId,
@@ -130,14 +104,6 @@ class PaymentSettingsService {
         'late_fee_amount': enableLateFee ? lateFeeAmount : 0,
         'late_fee_start_day': enableLateFee ? lateFeeStartDay : 1,
         'late_fee_max_amount': enableLateFee ? lateFeeMaxAmount : null,
-        'enable_discount': enableDiscount,
-        'early_payment_type':
-            enableDiscount ? (earlyPaymentType ?? 'percentage') : null,
-        'early_payment_amount': enableDiscount ? (earlyPaymentAmount ?? 0) : 0,
-        'early_payment_discount':
-            enableDiscount ? (earlyPaymentDiscount ?? 0) : 0,
-        'early_payment_days': enableDiscount ? earlyPaymentDays : 0,
-        'setting_desc': settingDesc?.trim(),
         'is_active': isActive,
         'created_by': createdBy,
       };
@@ -207,26 +173,7 @@ class PaymentSettingsService {
     }
   }
 
-  /// คำนวณส่วนลดชำระก่อนกำหนด
-  static Future<double> calculateEarlyDiscount({
-    required String invoiceId,
-    DateTime? paymentDate,
-  }) async {
-    try {
-      final date = paymentDate ?? DateTime.now();
-      final response = await _supabase.rpc(
-        'calculate_early_discount',
-        params: {
-          'p_invoice_id': invoiceId,
-          'p_payment_date': date.toIso8601String().split('T')[0],
-        },
-      );
-
-      return (response ?? 0).toDouble();
-    } catch (e) {
-      throw Exception('ไม่สามารถคำนวณส่วนลดได้: $e');
-    }
-  }
+  // calculateEarlyDiscount() removed - Discount system disabled
 
   /// คำนวณค่าปรับแบบ Manual (ไม่ต้องเรียก Database Function)
   static double calculateLateFeeManual({
@@ -282,41 +229,7 @@ class PaymentSettingsService {
     return lateFee;
   }
 
-  /// คำนวณส่วนลดแบบ Manual
-  static double calculateEarlyDiscountManual({
-    required Map<String, dynamic> settings,
-    required DateTime dueDate,
-    required double subtotal,
-    DateTime? paymentDate,
-  }) {
-    final date = paymentDate ?? DateTime.now();
-
-    // ตรวจสอบว่าเปิดใช้งานส่วนลดหรือไม่
-    if (settings['enable_discount'] != true) {
-      return 0;
-    }
-
-    // คำนวณจำนวนวันก่อนกำหนด
-    final daysEarly = dueDate.difference(date).inDays;
-    final requiredDays = settings['early_payment_days'] ?? 0;
-
-    // ถ้าชำระไม่เร็วพอ
-    if (daysEarly < requiredDays) {
-      return 0;
-    }
-
-    final discountType = (settings['early_payment_type'] ?? 'percentage');
-    if (discountType == 'fixed') {
-      final amount = (settings['early_payment_amount'] ?? 0).toDouble();
-      if (amount <= 0) return 0;
-      return amount > subtotal ? subtotal : amount;
-    } else {
-      final discountPercent =
-          (settings['early_payment_discount'] ?? 0).toDouble();
-      if (discountPercent <= 0) return 0;
-      return subtotal * (discountPercent / 100);
-    }
-  }
+  // calculateEarlyDiscountManual() removed - Discount system disabled
 
   // ============================================
   // UTILITY FUNCTIONS
@@ -343,11 +256,6 @@ class PaymentSettingsService {
     String? lateFeeType,
     double? lateFeeAmount,
     int? lateFeeStartDay,
-    required bool enableDiscount,
-    String? earlyPaymentType,
-    double? earlyPaymentAmount,
-    double? earlyPaymentDiscount,
-    int? earlyPaymentDays,
   }) {
     Map<String, String> examples = {};
 
@@ -382,26 +290,7 @@ class PaymentSettingsService {
       examples['late_fee'] = lateFeeExample;
     }
 
-    // ตัวอย่างส่วนลด
-    if (enableDiscount && earlyPaymentDays != null) {
-      final sampleRental = 5000.0;
-      final dtype = earlyPaymentType ?? 'percentage';
-      if (dtype == 'fixed' && earlyPaymentAmount != null) {
-        final discount = earlyPaymentAmount;
-        final finalAmount = (sampleRental - discount).clamp(0, sampleRental);
-        examples['discount'] =
-            'หากค่าเช่า ${sampleRental.toStringAsFixed(0)} บาท และชำระก่อนกำหนด $earlyPaymentDays วัน\n'
-            'จะได้ส่วนลดแบบจำนวนเงิน ${discount.toStringAsFixed(0)} บาท\n'
-            'ชำระเพียง ${finalAmount.toStringAsFixed(0)} บาท';
-      } else if (earlyPaymentDiscount != null) {
-        final discount = sampleRental * (earlyPaymentDiscount / 100);
-        final finalAmount = sampleRental - discount;
-        examples['discount'] =
-            'หากค่าเช่า ${sampleRental.toStringAsFixed(0)} บาท และชำระก่อนกำหนด $earlyPaymentDays วัน\n'
-            'จะได้ส่วนลด $earlyPaymentDiscount% = ${discount.toStringAsFixed(0)} บาท\n'
-            'ชำระเพียง ${finalAmount.toStringAsFixed(0)} บาท';
-      }
-    }
+    // Discount example removed
 
     return examples;
   }
@@ -419,15 +308,12 @@ class PaymentSettingsService {
           settings.where((s) => s['is_active'] == true).length;
       final withLateFee =
           settings.where((s) => s['enable_late_fee'] == true).length;
-      final withDiscount =
-          settings.where((s) => s['enable_discount'] == true).length;
 
       return {
         'total': totalSettings,
         'active': activeSettings,
         'inactive': totalSettings - activeSettings,
         'with_late_fee': withLateFee,
-        'with_discount': withDiscount,
       };
     } catch (e) {
       throw Exception('ไม่สามารถดึงสถิติการตั้งค่าได้: $e');
@@ -449,18 +335,5 @@ class PaymentSettingsService {
     return daysLate >= startDay;
   }
 
-  /// ตรวจสอบว่าควรให้ส่วนลดหรือไม่
-  static bool shouldApplyDiscount({
-    required Map<String, dynamic> settings,
-    required DateTime dueDate,
-    DateTime? paymentDate,
-  }) {
-    if (settings['enable_discount'] != true) return false;
-
-    final date = paymentDate ?? DateTime.now();
-    final daysEarly = dueDate.difference(date).inDays;
-    final requiredDays = settings['early_payment_days'] ?? 0;
-
-    return daysEarly >= requiredDays;
-  }
+  // shouldApplyDiscount() removed - Discount system disabled
 }

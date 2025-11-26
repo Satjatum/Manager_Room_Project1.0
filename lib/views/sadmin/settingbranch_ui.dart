@@ -41,8 +41,8 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
       ),
       _SettingItem(
         icon: Icons.account_balance_wallet,
-        title: 'ตั้งค่าค่าปรับและส่วนลด',
-        subtitle: 'ค่าปรับชำระล่าช้า ส่วนลดชำระก่อนเวลา ',
+        title: 'ตั้งค่าค่าปรับ',
+        subtitle: 'ค่าปรับชำระล่าช้า ',
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(

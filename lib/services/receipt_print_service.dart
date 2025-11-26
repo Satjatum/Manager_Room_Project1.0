@@ -6,7 +6,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'invoice_service.dart';
 import 'room_service.dart';
 import 'meter_service.dart';
-import 'utility_rate_service.dart';
+import '../utils/formatMonthy.dart';
 
 class ReceiptPrintService {
   /// Generate and open system print dialog for an 80mm receipt.
@@ -38,9 +38,7 @@ class ReceiptPrintService {
     Future<pw.Font> _loadThaiRegular() async {
       const candidates = [
         'assets/fonts/THSarabunNew/THSarabunNew.ttf',
-        'assets/fonts/THSarabunNew/THSarabunNew-Regular.ttf',
         'assets/fonts/thsarabunnew/THSarabunNew.ttf',
-        'assets/fonts/thsarabunnew/THSarabunNew-Regular.ttf',
       ];
       for (final p in candidates) {
         try {
@@ -53,9 +51,7 @@ class ReceiptPrintService {
 
     Future<pw.Font> _loadThaiBold() async {
       const candidates = [
-        'assets/fonts/THSarabunNew/THSarabunNew-Bold.ttf',
         'assets/fonts/THSarabunNew/THSarabunNew Bold.ttf',
-        'assets/fonts/thsarabunnew/THSarabunNew-Bold.ttf',
         'assets/fonts/thsarabunnew/THSarabunNew Bold.ttf',
       ];
       for (final p in candidates) {
@@ -79,23 +75,24 @@ class ReceiptPrintService {
       ),
     );
 
+    // 80mm width with auto height
     final pageFormat = PdfPageFormat(
         80 * PdfPageFormat.mm, PdfPageFormat.a4.height,
         marginAll: 5 * PdfPageFormat.mm);
 
-    // ปรับปรุง text styles - เพิ่มขนาดและ spacing
+    // Text styles
     final thaiHeader = pw.TextStyle(
-        font: sarabunBold, fontSize: 16, height: 1.3, fontFallback: [notoThai]);
+        font: sarabunBold, fontSize: 18, height: 1.3, fontFallback: [notoThai]);
     final thaiTitle = pw.TextStyle(
-        font: sarabunBold, fontSize: 12, height: 1.3, fontFallback: [notoThai]);
+        font: sarabunBold, fontSize: 14, height: 1.3, fontFallback: [notoThai]);
+    final thai11 = pw.TextStyle(
+        font: sarabun, fontSize: 11, height: 1.3, fontFallback: [notoThai]);
+    final thaiBaht = pw.TextStyle(
+        font: sarabunBold, fontSize: 11, height: 1.3, fontFallback: [notoThai]);
     final thai10 = pw.TextStyle(
         font: sarabun, fontSize: 10, height: 1.3, fontFallback: [notoThai]);
     final thai10b = pw.TextStyle(
         font: sarabunBold, fontSize: 10, height: 1.3, fontFallback: [notoThai]);
-    final thai11 = pw.TextStyle(
-        font: sarabun, fontSize: 11, height: 1.3, fontFallback: [notoThai]);
-    final thai11b = pw.TextStyle(
-        font: sarabunBold, fontSize: 11, height: 1.3, fontFallback: [notoThai]);
     final thai9 = pw.TextStyle(
         font: sarabun, fontSize: 9, height: 1.3, fontFallback: [notoThai]);
     final en9 = pw.TextStyle(font: kanit, fontSize: 9, height: 1.2);
@@ -104,28 +101,44 @@ class ReceiptPrintService {
     double _d(dynamic v) =>
         v is num ? v.toDouble() : double.tryParse(_s(v)) ?? 0.0;
 
+    // Extract data
     final branchName = _s(invoice['branch_name']);
-    final branchAddress = _s(invoice['branch_address']);
     final branchPhone = _s(invoice['branch_phone']);
+    final branchAddress = _s(invoice['branch_address']);
     final roomNumber = _s(invoice['room_number']);
     final tenantName = _s(invoice['tenant_name']);
     final invoiceNumber = _s(invoice['invoice_number']);
-    final paymentNumber = _s(payment?['payment_number']);
     final paymentMethod = _s(
         payment?['payment_method'].toString().isEmpty == true
             ? slipRow['payment_method']
             : payment?['payment_method']);
 
     final rentalAmount = _d(invoice['rental_amount']);
-    final discountAmount = _d(invoice['discount_amount']);
-    final utilities =
-        (invoice['utilities'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-    final otherCharges =
-        (invoice['other_charges'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-    final totalAmount = _d(invoice['total_amount']);
-    final paidAmount = _d(payment?['payment_amount'] ?? slipRow['paid_amount']);
+    final lateFeeAmount = _d(invoice['late_fee_amount']);
 
-    // Load room details to get category name (if available)
+    // Safely cast utilities - handle both direct list and nested structure
+    List<Map<String, dynamic>> utilities = [];
+    final utilsRaw = invoice['utilities'];
+    if (utilsRaw is List) {
+      utilities = utilsRaw
+          .where((e) => e is Map)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    }
+
+    // Safely cast other charges - use other_charge_lines
+    List<Map<String, dynamic>> otherCharges = [];
+    final otherRaw = invoice['other_charge_lines'];
+    if (otherRaw is List) {
+      otherCharges = otherRaw
+          .where((e) => e is Map)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    }
+
+    final totalAmount = _d(invoice['total_amount']);
+
+    // Load room details to get category name (ประเภท)
     String roomCategoryName = '';
     try {
       final roomId = _s(invoice['room_id']);
@@ -135,7 +148,7 @@ class ReceiptPrintService {
       }
     } catch (_) {}
 
-    // Try to fetch meter reading (for water/electric details) if present
+    // Try to fetch meter reading (for water/electric details)
     Map<String, dynamic>? reading;
     final readingId =
         _s((utilities.isNotEmpty ? utilities.first['reading_id'] : null));
@@ -145,52 +158,63 @@ class ReceiptPrintService {
       } catch (_) {}
     }
 
-    // Billing period: first day of next month - last day of next month (English)
-    final int im = (invoice['invoice_month'] ?? DateTime.now().month) as int;
-    final int iy = (invoice['invoice_year'] ?? DateTime.now().year) as int;
-    final period = _nextMonthPeriod(im, iy);
-    final billingPeriod = '${_fmtDateEn(period.$1)} - ${_fmtDateEn(period.$2)}';
+    // Billing period: รอบบิล (ภาษาไทย พ.ศ.)
+    int im = DateTime.now().month;
+    int iy = DateTime.now().year;
 
-    // Preload unit labels for utilities by rate_id
-    final Map<String, String> rateUnits = {};
-    for (final u in utilities) {
-      final rid = _s(u['rate_id']);
-      if (rid.isNotEmpty) {
-        try {
-          final rate = await UtilityRatesService.getUtilityRateById(rid);
-          final label = _s(rate?['rate_unit']);
-          if (label.isNotEmpty) rateUnits[rid] = label;
-        } catch (_) {}
+    final monthRaw = invoice['invoice_month'];
+    if (monthRaw != null) {
+      if (monthRaw is int) {
+        im = monthRaw;
+      } else if (monthRaw is String) {
+        im = int.tryParse(monthRaw) ?? DateTime.now().month;
       }
+    }
+
+    final yearRaw = invoice['invoice_year'];
+    if (yearRaw != null) {
+      if (yearRaw is int) {
+        iy = yearRaw;
+      } else if (yearRaw is String) {
+        iy = int.tryParse(yearRaw) ?? DateTime.now().year;
+      }
+    }
+
+    final billingPeriod =
+        Formatmonthy.formatBillingCycleTh(month: im, year: iy);
+
+    // วันที่ชำระ (Thai format with BE year) - use paid_date first
+    String paymentDate = '-';
+    final paidDateRaw =
+        payment?['paid_date'] ?? payment?['paid_at'] ?? slipRow['created_at'];
+    if (paidDateRaw != null) {
+      paymentDate =
+          Formatmonthy.formatThaiDateStr(_s(paidDateRaw), shortMonth: true);
     }
 
     List<pw.Widget> _buildItems() {
       final rows = <pw.Widget>[];
+
+      // ค่าเช่า
       if (rentalAmount > 0) {
         rows.add(_itemRow('ค่าเช่า', rentalAmount, thai11));
       }
+
+      // ค่าน้ำค่าไฟ
       for (final u in utilities) {
         final name = _s(u['utility_name']);
         final qty = _d(u['usage_amount']);
         final unitPrice = _d(u['unit_price']);
         final line = _d(u['total_amount']);
-        // Determine metered vs fixed
+
         final isElectric = name.contains('ไฟ');
         final isWater = name.contains('น้ำ');
         final isMetered = (isElectric || isWater) && reading != null;
 
-        // Build label as: name (unit price)
-        String unitLabel = '';
-        if (isElectric || isWater) {
-          unitLabel = '${unitPrice.toStringAsFixed(2)} บาท/หน่วย';
-        }
-
-        final String label = unitLabel.isNotEmpty ? '$name ($unitLabel)' : name;
-
-        rows.add(_itemRow(label, line, thai11));
+        rows.add(_itemRow(name, line, thai11));
 
         if (isMetered) {
-          // Show calculation line under the item
+          // Show calculation line: เลขก่อน - เลขหลัง = ยูนิต(ราคาต่อหน่วย)
           double prev = 0, curr = 0, usage = qty;
           if (isElectric) {
             prev = _d(reading['electric_previous_reading']);
@@ -202,172 +226,166 @@ class ReceiptPrintService {
             usage = _d(reading['water_usage']);
           }
           rows.add(
-            pw.Padding(
-              padding: const pw.EdgeInsets.only(left: 8, bottom: 3, top: 1),
-              child: pw.Text(
-                '(${prev.toStringAsFixed(0)} - ${curr.toStringAsFixed(0)} = ${usage.toStringAsFixed(0)} หน่วย)',
-                style: thai9,
-              ),
+            pw.Text(
+              '${prev.toStringAsFixed(0)} - ${curr.toStringAsFixed(0)} = ${usage.toStringAsFixed(0)} (${unitPrice.toStringAsFixed(2)} บาท/หน่วย)',
+              style: thai9,
             ),
           );
         }
       }
+
+      return rows;
+    }
+
+    List<pw.Widget> _buildOtherCharges() {
+      final rows = <pw.Widget>[];
+
+      if (otherCharges.isEmpty) return rows;
+
       for (final oc in otherCharges) {
-        rows.add(
-            _itemRow(_s(oc['charge_name']), _d(oc['charge_amount']), thai11));
+        final chargeName = _s(oc['charge_name']);
+        final chargeAmount = _d(oc['charge_amount']);
+        final chargeDesc = _s(oc['charge_desc']);
+
+        // แสดงรูปแบบ: "ชื่อ (คำอธิบาย)" ถ้ามี description เหมือน invoicelist_detail_ui.dart
+        String label = chargeName;
+        if (chargeDesc.isNotEmpty) {
+          label = '$chargeName ($chargeDesc)';
+        }
+
+        rows.add(_itemRow(label, chargeAmount, thai11));
       }
-      if (discountAmount > 0) {
-        rows.add(_itemRow('ส่วนลด', -discountAmount, thai11));
-      }
+
       return rows;
     }
 
     doc.addPage(
       pw.MultiPage(
         pageFormat: pageFormat,
-        maxPages: 2,
+        maxPages: 3,
         build: (context) => [
           pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.stretch,
               children: [
-                // === HEADER SECTION ===
+                // 1. ชื่อ Branch อยู่กลางกระดาษ
                 pw.Center(
                   child: pw.Text(
                     branchName.isEmpty ? 'สาขา' : branchName,
                     style: thaiHeader,
                   ),
                 ),
+
+                // 2. BranchPhone
+                if (branchPhone.isNotEmpty) pw.SizedBox(height: 4),
+                if (branchPhone.isNotEmpty)
+                  pw.Center(
+                    child: pw.Text('โทร: $branchPhone', style: thai10),
+                  ),
+
+                // Branch Address
                 if (branchAddress.isNotEmpty) pw.SizedBox(height: 2),
                 if (branchAddress.isNotEmpty)
                   pw.Center(
                     child: pw.Text(branchAddress,
                         style: thai10, textAlign: pw.TextAlign.center),
                   ),
-                if (branchPhone.isNotEmpty) pw.SizedBox(height: 2),
-                if (branchPhone.isNotEmpty)
-                  pw.Center(
-                    child: pw.Text('ติดต่อ: $branchPhone', style: thai10),
-                  ),
 
                 pw.SizedBox(height: 8),
+
+                // 3. ใบเสร็จค่าเช่า
                 pw.Container(
                   decoration: pw.BoxDecoration(
                     border: pw.Border.all(width: 0.5),
                   ),
                   padding: const pw.EdgeInsets.symmetric(vertical: 4),
                   child: pw.Center(
-                    child: pw.Text('ใบเสร็จรับเงิน', style: thaiTitle),
+                    child: pw.Text('ใบเสร็จค่าเช่า', style: thaiTitle),
                   ),
                 ),
 
-                pw.SizedBox(height: 6),
+                pw.SizedBox(height: 8),
 
-                // === RECEIPT INFO SECTION ===
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(4),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.grey200,
-                    borderRadius: pw.BorderRadius.circular(2),
-                  ),
-                  child: pw.Column(
-                    children: [
-                      _infoRow('Receipt No.',
-                          paymentNumber.isEmpty ? '-' : paymentNumber, thai10),
-                      pw.SizedBox(height: 2),
-                      _infoRow('Invoice No.', invoiceNumber, thai10),
-                    ],
-                  ),
-                ),
-
-                pw.SizedBox(height: 6),
-
-                // === CUSTOMER INFO SECTION ===
-                _infoRow('รอบบิล', billingPeriod, thai10),
+                // 4. Invoice No
+                _infoRow('Invoice No.', invoiceNumber, thai11),
                 pw.SizedBox(height: 3),
-                _infoRow('ชื่อ', tenantName, thai10),
+
+                // 5. รอบบิล
+                _infoRow('รอบบิล', billingPeriod, thai11),
                 pw.SizedBox(height: 3),
+
+                // 6. ชื่อผู้เช่า
+                _infoRow('ชื่อผู้เช่า', tenantName, thai11),
+                pw.SizedBox(height: 3),
+
+                // 7. ประเภทเลขที่ห้อง
                 if (roomCategoryName.isNotEmpty) ...[
-                  _infoRow('ประเภท', roomCategoryName, thai10),
+                  _infoRow('ประเภท', roomCategoryName, thai11),
                   pw.SizedBox(height: 3),
                 ],
-                _infoRow('เลขที่', roomNumber, thai10),
+                _infoRow('เลขที่ห้อง', roomNumber, thai11),
                 pw.SizedBox(height: 3),
-                _infoRow('การชำระเงิน',
-                    paymentMethod.isEmpty ? 'โอนชำระ' : paymentMethod, thai10),
 
-                pw.SizedBox(height: 6),
+                // 8. การชำระเงิน
+                _infoRow('การชำระเงิน',
+                    paymentMethod.isEmpty ? 'โอนชำระ' : paymentMethod, thai11),
+
+                pw.SizedBox(height: 8),
                 pw.Divider(thickness: 1),
                 pw.SizedBox(height: 4),
 
-                // === ITEMS SECTION ===
+                // 9. รายการ จำนวนเงิน #หัวข้อ
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('รายการ', style: thai11b),
-                    pw.Text('จำนวนเงิน', style: thai11b),
+                    pw.Text('รายการ', style: thaiBaht),
+                    pw.Text('จำนวนเงิน', style: thaiBaht),
                   ],
                 ),
                 pw.SizedBox(height: 4),
                 pw.Divider(thickness: 0.5),
                 pw.SizedBox(height: 2),
 
+                // 10-12. ค่าเช่า, ค่าน้ำค่าไฟ
                 ..._buildItems(),
+
+                // 13. ค่าใช้จ่ายอื่นๆ - แสดงหัวข้อถ้ามีรายการ
+                if (otherCharges.isNotEmpty) ...[
+                  pw.SizedBox(height: 8),
+                  pw.Text('ค่าใช้จ่ายอื่นๆ', style: thaiBaht),
+                  pw.SizedBox(height: 4),
+                  ..._buildOtherCharges(),
+                ],
 
                 pw.SizedBox(height: 4),
                 pw.Divider(thickness: 1),
                 pw.SizedBox(height: 4),
 
-                // === TOTAL SECTION ===
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(6),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.grey100,
-                    borderRadius: pw.BorderRadius.circular(2),
-                  ),
-                  child: pw.Column(
-                    children: [
-                      _totalRow('ยอดรวม', totalAmount, thai11b),
-                      pw.SizedBox(height: 4),
-                      _totalRow('จ่ายแล้ว', paidAmount, thai11b),
-                    ],
-                  ),
-                ),
+                // ค่าปรับชำระล่าช้า - แสดงก่อนยอดรวม
+                _itemRow('ค่าปรับชำระล่าช้า', lateFeeAmount, thai11),
+                // 15. ยอดรวม
+                _totalRow('ยอดรวม', totalAmount, thaiBaht),
 
                 pw.SizedBox(height: 12),
 
-                // === SIGNATURE SECTION ===
+                // 16. SIGNATURE SECTION
                 pw.Row(
                   children: [
+                    // ผู้รับเงิน
                     pw.Expanded(
                       child: pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.center,
                         children: [
                           pw.Container(
-                            height: 30,
+                            height: 15,
                           ),
                           pw.Container(
                             height: 0.5,
                             color: PdfColors.grey600,
                           ),
-                          pw.SizedBox(height: 3),
+                          pw.SizedBox(height: 5),
                           pw.Text('ผู้รับเงิน', style: thai10),
-                        ],
-                      ),
-                    ),
-                    pw.SizedBox(width: 12),
-                    pw.Expanded(
-                      child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.center,
-                        children: [
-                          pw.Container(
-                            height: 30,
-                          ),
-                          pw.Container(
-                            height: 0.5,
-                            color: PdfColors.grey600,
-                          ),
-                          pw.SizedBox(height: 3),
-                          pw.Text('วันที่', style: thai10),
+                          pw.Text('วันที่ชำระ', style: thai10),
+                          pw.Text(paymentDate, style: thai9),
                         ],
                       ),
                     ),
@@ -375,6 +393,8 @@ class ReceiptPrintService {
                 ),
 
                 pw.SizedBox(height: 12),
+
+                // ขอบคุณที่ใช้บริการ Thank you
                 pw.Center(
                   child: pw.Text('ขอบคุณที่ใช้บริการ', style: thai10b),
                 ),
@@ -414,7 +434,7 @@ class ReceiptPrintService {
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.SizedBox(
-          width: 70,
+          width: 80,
           child: pw.Text(label, style: style),
         ),
         pw.Text(': ', style: style),
@@ -435,37 +455,5 @@ class ReceiptPrintService {
     );
   }
 
-  static String _money(double v) => '${v.toStringAsFixed(2)} ฿';
-
-  // Helpers for English date formatting and next month period
-  static const List<String> _enMonths = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec'
-  ];
-
-  static String _fmtDateEn(DateTime d) {
-    final dd = d.day.toString().padLeft(2, '0');
-    final m = _enMonths[d.month - 1];
-    final y = d.year.toString();
-    return '$dd $m $y';
-  }
-
-  // Returns (firstDayNextMonth, lastDayNextMonth) using Dart records
-  static (DateTime, DateTime) _nextMonthPeriod(int month, int year) {
-    final base = DateTime(year, month, 1);
-    final next = DateTime(base.year, base.month + 1, 1);
-    final first = DateTime(next.year, next.month, 1);
-    final last = DateTime(next.year, next.month + 1, 0);
-    return (first, last);
-  }
+  static String _money(double v) => '${v.toStringAsFixed(2)} บาท';
 }

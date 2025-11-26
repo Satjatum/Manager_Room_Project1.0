@@ -346,94 +346,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     }
   }
 
-  Future<void> _loadRoomsAndContracts() async {
-    if (_selectedBranchId == null) return;
-
-    try {
-      // โหลดทั้ง 3 อย่างพร้อมกัน
-      final results = await Future.wait([
-        RoomService.getAllRooms(branchId: _selectedBranchId),
-        UtilityRatesService.getActiveRatesForBranch(_selectedBranchId!),
-        PaymentSettingsService.getActivePaymentSettings(_selectedBranchId!),
-        // ถ้ามี roomId ให้โหลด contract ไปด้วย
-        if (_selectedRoomId != null)
-          ContractService.getContractsByRoom(_selectedRoomId!),
-      ]);
-
-      _rooms = results[0] as List<Map<String, dynamic>>;
-      final utilityRates = results[1] as List<Map<String, dynamic>>;
-
-      // ⭐ เก็บ payment settings
-      _paymentSettings = results[2] as Map<String, dynamic>?;
-      debugPrint(
-          '💰 โหลดการตั้งค่าการชำระเงินแล้ว: ${_paymentSettings != null}');
-
-      // ตั้งค่า rate
-      _waterBaseCharge = 0.0;
-      _electricBaseCharge = 0.0;
-      for (var rate in utilityRates) {
-        final rateName = rate['rate_name'].toString().toLowerCase();
-        if (rateName.contains('น้ำ') || rateName.contains('water')) {
-          _waterRate = (rate['rate_price'] ?? 0.0).toDouble();
-          _waterBaseCharge = ((rate['fixed_amount'] ?? 0.0) +
-                  (rate['additional_charge'] ?? 0.0))
-              .toDouble();
-        }
-        if (rateName.contains('ไฟ') || rateName.contains('electric')) {
-          _electricRate = (rate['rate_price'] ?? 0.0).toDouble();
-          _electricBaseCharge = ((rate['fixed_amount'] ?? 0.0) +
-                  (rate['additional_charge'] ?? 0.0))
-              .toDouble();
-        }
-      }
-
-      // คำนวณเฉพาะตามมิเตอร์ (ไม่รวมค่าบริการพื้นฐาน)
-      _waterCost = (_waterUsage * _waterRate);
-      _electricCost = (_electricUsage * _electricRate);
-
-      _calculateUtilitiesTotal();
-
-      // ถ้ามี contract results
-      if (results.length > 3) {
-        _contracts = results[3] as List<Map<String, dynamic>>;
-        _applyContractData();
-      }
-
-      setState(() {});
-    } catch (e) {
-      debugPrint('ข้อผิดพลาดในการโหลดห้องและสัญญา: $e');
-    }
-  }
-
-  // ⭐ ฟังก์ชันใหม่: Apply contract data และดึงค่าเช่า
-  void _applyContractData() {
-    if (_contracts.isEmpty) return;
-
-    if (_selectedContractId == null) {
-      final activeContracts =
-          _contracts.where((c) => c['contract_status'] == 'active').toList();
-      final selectedContract =
-          activeContracts.isNotEmpty ? activeContracts.first : _contracts.first;
-
-      _selectedContractId = selectedContract['contract_id'];
-      _selectedTenantId = selectedContract['tenant_id'];
-
-      // ⭐ ดึงค่าเช่า
-      _rentalAmount = (selectedContract['contract_price'] ?? 0.0).toDouble();
-      debugPrint('🏠 ใช้ค่าเช่าจากสัญญา: $_rentalAmount');
-    } else {
-      final contract = _contracts.firstWhere(
-        (c) => c['contract_id'] == _selectedContractId,
-        orElse: () => {},
-      );
-      if (contract.isNotEmpty) {
-        // ⭐ ดึงค่าเช่า
-        _rentalAmount = (contract['contract_price'] ?? 0.0).toDouble();
-        debugPrint('🏠 ใช้ค่าเช่าจากสัญญาที่เลือก: $_rentalAmount');
-      }
-    }
-  }
-
   Future<void> _loadContractData() async {
     if (_selectedRoomId == null) return;
 
@@ -1685,7 +1597,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
 
           // แสดงส่วนลดและค่าปรับที่คำนวดได้ (แบบ Read-only)
           const Text(
-            'ส่วนลดและค่าปรับ',
+            'ค่าปรับ',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
@@ -1695,8 +1607,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           ),
           const SizedBox(height: 16),
 
-          _buildDiscountDisplay(),
-          const SizedBox(height: 16),
           _buildLateFeeDisplay(),
 
           const SizedBox(height: 24),
@@ -1722,122 +1632,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     );
   }
 
-  // ⭐ Widget แสดงส่วนลดที่คำนวดได้ (Read-only Display)
-  Widget _buildDiscountDisplay() {
-    final hasPaymentSettings = _paymentSettings != null;
-    final isDiscountEnabled = hasPaymentSettings &&
-        _paymentSettings!['is_active'] == true &&
-        _paymentSettings!['enable_discount'] == true;
-
-    // แสดงผลแบบไม่ใช้ส่วนลดระหว่างสร้างบิล แม้เปิดใช้งานใน Payment Settings
-    final baseTotal = _calculateBaseTotal();
-    final discountType =
-        _paymentSettings?['early_payment_type'] ?? 'percentage';
-    final discountPercent = _paymentSettings?['early_payment_discount'] ?? 0;
-    final discountAmountFixed =
-        (_paymentSettings?['early_payment_amount'] ?? 0).toDouble();
-    final earlyDays = _paymentSettings?['early_payment_days'] ?? 0;
-
-    // ตัวอย่างคำนวณ (แสดงเป็นข้อมูลเท่านั้น ไม่ถูกนำไปใช้ตอนสร้างบิล)
-    double exampleDiscount = 0;
-    if (hasPaymentSettings && isDiscountEnabled) {
-      try {
-        exampleDiscount = PaymentSettingsService.calculateEarlyDiscountManual(
-          settings: _paymentSettings!,
-          dueDate: _dueDate,
-          subtotal: baseTotal,
-          paymentDate: DateTime.now(),
-        );
-      } catch (_) {}
-    }
-
-    if (!hasPaymentSettings || !isDiscountEnabled) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[300]!),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.discount_outlined, color: Colors.grey[600], size: 24),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text('ส่วนลด: ไม่มีส่วนลด',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Icon(Icons.discount, color: Colors.green[700], size: 24),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      discountType == 'fixed'
-                          ? 'ส่วนลด'
-                          : 'ส่วนลด ($discountPercent%)',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.green[900],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      discountType == 'fixed'
-                          ? 'ชำระก่อนครบกำหนด $earlyDays วัน ได้ส่วนลด ${discountAmountFixed.toStringAsFixed(2)} บาท'
-                          : 'ชำระก่อนครบกำหนด $earlyDays วัน ได้ส่วนลด $discountPercent%',
-                      style: TextStyle(fontSize: 12, color: Colors.green[700]),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: Colors.grey[200]!),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, size: 16, color: Colors.green[600]),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    discountType == 'fixed'
-                        ? 'ส่วนลดจำนวนเงิน ${discountAmountFixed.toStringAsFixed(2)} บาท'
-                        : 'ยอดรวม ${baseTotal.toStringAsFixed(2)} × $discountPercent%',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[700]),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // _buildDiscountDisplay() removed - Discount system disabled
 
   // ⭐ Widget แสดงค่าปรับที่คำนวดได้ (Read-only Display)
   Widget _buildLateFeeDisplay() {
@@ -2005,7 +1800,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     final tenantName = contract['tenant_name'] ?? '-';
     final tenantPhone = contract['tenant_phone'] ?? '-';
     final roomNumber = room['room_number'] ?? '-';
-    final roomTypeName = room['room_type_name'] ?? '-';
     final issueDate = DateTime.now();
 
     return SingleChildScrollView(

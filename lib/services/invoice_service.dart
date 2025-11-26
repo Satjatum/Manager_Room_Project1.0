@@ -393,7 +393,6 @@ class InvoiceService {
           'invoice_id': invoiceId,
           'charge_name': rate['rate_name'],
           'charge_amount': lineTotal,
-          'charge_desc': '${unit.toStringAsFixed(2)} x $qty',
         });
       }
 
@@ -856,65 +855,7 @@ class InvoiceService {
     }
   }
 
-  /// ใช้ส่วนลดชำระก่อนกำหนดแบบอัตโนมัติจาก Payment Settings ตอนอนุมัติชำระเงิน (Hybrid Mode)
-  static Future<bool> applyEarlyDiscountFromSettings({
-    required String invoiceId,
-    DateTime? paymentDate,
-  }) async {
-    try {
-      final invoice = await getInvoiceById(invoiceId);
-      if (invoice == null) return false;
-
-      final room = invoice['rooms'] ?? {};
-      final branchId = room['branch_id']?.toString();
-      if (branchId == null || branchId.isEmpty) return false;
-
-      final settings =
-          await PaymentSettingsService.getActivePaymentSettings(branchId);
-      if (settings == null) return false;
-
-      // ตรวจเงื่อนไขเปิดใช้ส่วนลด
-      final enable = (settings['enable_discount'] == true) &&
-          (settings['is_active'] == true);
-      if (!enable) return false;
-
-      final dueStr = (invoice['due_date'] ?? '').toString();
-      final dueDate = DateTime.tryParse(dueStr);
-      if (dueDate == null) return false;
-
-      final rental = (invoice['rental_amount'] ?? 0).toDouble();
-      final utilities = (invoice['utilities_amount'] ?? 0).toDouble();
-      final others = (invoice['other_charges'] ?? 0).toDouble();
-      final subtotal = rental + utilities + others;
-
-      final paidDate = paymentDate ?? DateTime.now();
-      final discountAmount =
-          PaymentSettingsService.calculateEarlyDiscountManual(
-        settings: settings,
-        dueDate: dueDate,
-        subtotal: subtotal,
-        paymentDate: paidDate,
-      );
-
-      if (discountAmount <= 0) return false;
-
-      // อย่าให้ซ้ำซ้อน หากมีส่วนลดอยู่แล้วให้ข้าม
-      final existingDiscount = (invoice['discount_amount'] ?? 0).toDouble();
-      if (existingDiscount > 0) return false;
-
-      final discountType =
-          (settings['early_payment_type'] ?? 'percentage').toString();
-      final result = await applyDiscount(
-        invoiceId: invoiceId,
-        discountType: discountType,
-        discountAmount: discountAmount,
-        discountReason: 'Auto early payment discount',
-      );
-      return result['success'] == true;
-    } catch (e) {
-      return false;
-    }
-  }
+  // applyEarlyDiscountFromSettings() removed - Discount system disabled
 
   /// คำนวดค่าปรับล่าช้า
   static double calculateLateFee({
@@ -1299,7 +1240,6 @@ class InvoiceService {
         'invoice_id': invoiceId,
         'charge_name': chargeName,
         'charge_amount': chargeAmount,
-        'charge_desc': chargeDesc,
       });
 
       // อัปเดตยอดรวมในบิล (คำนวณฐานรวมในโค้ด ไม่เก็บคีย์พิเศษในตาราง)

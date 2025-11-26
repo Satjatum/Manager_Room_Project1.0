@@ -405,14 +405,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         );
         final paymentId = (latest?['payment_id'] ?? '').toString();
         final verifiedAt = (latest?['verified_at'] ?? '').toString();
-        if (paymentId.isNotEmpty) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content:
-                    Text('บิลนี้มีสลิปที่อนุมัติแล้ว ไม่สามารถส่งซ้ำได้')));
-          }
-          return;
-        }
+
+        // Block only if there's a pending slip (not yet verified)
         if (latest != null && verifiedAt.isEmpty && paymentId.isEmpty) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(

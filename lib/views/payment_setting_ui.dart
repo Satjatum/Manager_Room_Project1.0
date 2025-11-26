@@ -28,17 +28,6 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
   final TextEditingController lateFeeMaxAmountController =
       TextEditingController();
 
-  // Discount Settings
-  bool enableDiscount = false;
-  String discountType = 'percentage';
-  final TextEditingController earlyPaymentDiscountController =
-      TextEditingController();
-  final TextEditingController earlyPaymentDaysController =
-      TextEditingController();
-  final TextEditingController earlyPaymentAmountController =
-      TextEditingController();
-
-  final TextEditingController settingDescController = TextEditingController();
   bool isActive = true;
 
   @override
@@ -119,17 +108,6 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                 settings['late_fee_start_day']?.toString() ?? '1';
             lateFeeMaxAmountController.text =
                 settings['late_fee_max_amount']?.toString() ?? '';
-
-            enableDiscount = settings['enable_discount'] ?? false;
-            discountType = settings['early_payment_type'] ?? 'percentage';
-            earlyPaymentDiscountController.text =
-                settings['early_payment_discount']?.toString() ?? '0.00';
-            earlyPaymentDaysController.text =
-                settings['early_payment_days']?.toString() ?? '0';
-            earlyPaymentAmountController.text =
-                settings['early_payment_amount']?.toString() ?? '0.00';
-
-            settingDescController.text = settings['setting_desc'] ?? '';
             isActive = settings['is_active'] ?? true;
           }
 
@@ -173,39 +151,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
       }
     }
 
-    if (enableDiscount) {
-      if (earlyPaymentDaysController.text.isEmpty) {
-        _showError('กรุณากรอกจำนวนวันก่อนกำหนดชำระ');
-        return;
-      }
-      final days = int.tryParse(earlyPaymentDaysController.text) ?? 0;
-      if (days <= 0) {
-        _showError('จำนวนวันต้องมากกว่า 0');
-        return;
-      }
-      if (discountType == 'percentage') {
-        if (earlyPaymentDiscountController.text.isEmpty) {
-          _showError('กรุณากรอกเปอร์เซ็นต์ส่วนลด');
-          return;
-        }
-        final discount =
-            double.tryParse(earlyPaymentDiscountController.text) ?? 0;
-        if (discount <= 0 || discount > 100) {
-          _showError('เปอร์เซ็นต์ส่วนลดต้องอยู่ระหว่าง 0-100');
-          return;
-        }
-      } else {
-        if (earlyPaymentAmountController.text.isEmpty) {
-          _showError('กรุณากรอกจำนวนเงินส่วนลด');
-          return;
-        }
-        final amt = double.tryParse(earlyPaymentAmountController.text) ?? 0;
-        if (amt <= 0) {
-          _showError('จำนวนเงินส่วนลดต้องมากกว่า 0');
-          return;
-        }
-      }
-    }
+    // Discount validation removed - system disabled
 
     showDialog(
       context: context,
@@ -230,20 +176,6 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
             enableLateFee && lateFeeMaxAmountController.text.isNotEmpty
                 ? double.tryParse(lateFeeMaxAmountController.text)
                 : null,
-        enableDiscount: enableDiscount,
-        earlyPaymentType: enableDiscount ? discountType : null,
-        earlyPaymentAmount: enableDiscount
-            ? double.tryParse(earlyPaymentAmountController.text) ?? 0
-            : null,
-        earlyPaymentDiscount: enableDiscount
-            ? double.tryParse(earlyPaymentDiscountController.text) ?? 0
-            : null,
-        earlyPaymentDays: enableDiscount
-            ? int.tryParse(earlyPaymentDaysController.text) ?? 0
-            : null,
-        settingDesc: settingDescController.text.trim().isEmpty
-            ? null
-            : settingDescController.text.trim(),
         isActive: isActive,
         createdBy: currentUser!.userId,
       );
@@ -404,8 +336,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                           children: [
                             _buildLateFeeCard(),
                             const SizedBox(height: 16),
-                            _buildDiscountCard(),
-                            const SizedBox(height: 16),
+                            // Discount card removed - system disabled
                             SizedBox(
                               width: double.infinity,
                               height: 50,
@@ -582,134 +513,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
     );
   }
 
-  Widget _buildDiscountCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
-              children: [
-                Icon(Icons.discount, color: Colors.green.shade700, size: 22),
-                const SizedBox(width: 12),
-                const Expanded(
-                  child: Text(
-                    'ส่วนลดชำระก่อนกำหนด',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                Switch(
-                  value: enableDiscount,
-                  onChanged: (value) {
-                    setState(() {
-                      enableDiscount = value;
-                    });
-                  },
-                  activeColor: const Color(0xff10B981),
-                ),
-              ],
-            ),
-
-            if (enableDiscount) ...[
-              const SizedBox(height: 16),
-              Divider(height: 1, color: Colors.grey.shade300),
-              const SizedBox(height: 16),
-
-              // Discount Type
-              _buildFormField(
-                label: 'ประเภทส่วนลด',
-                child: DropdownButtonFormField<String>(
-                  value: discountType,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide:
-                          const BorderSide(color: Color(0xff10B981), width: 2),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 14),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                        value: 'percentage', child: Text('เปอร์เซ็นต์')),
-                    DropdownMenuItem(value: 'fixed', child: Text('จำนวนเงิน')),
-                  ],
-                  onChanged: (v) {
-                    if (v == null) return;
-                    setState(() {
-                      discountType = v;
-                    });
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Discount Amount/Percent and Days
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildFormField(
-                      label: discountType == 'fixed'
-                          ? 'จำนวนเงินส่วนลด'
-                          : 'เปอร์เซ็นต์ส่วนลด',
-                      child: _buildTextField(
-                        controller: discountType == 'fixed'
-                            ? earlyPaymentAmountController
-                            : earlyPaymentDiscountController,
-                        hint: '0.00',
-                        icon: discountType == 'fixed'
-                            ? Icons.attach_money
-                            : Icons.percent,
-                        isNumeric: true,
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildFormField(
-                      label: 'ชำระก่อนกำหนด (วัน)',
-                      child: _buildTextField(
-                        controller: earlyPaymentDaysController,
-                        hint: '0',
-                        icon: Icons.event_available,
-                        isNumeric: true,
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-              _buildDiscountExampleBox(),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
+  // _buildDiscountCard() removed - Discount system disabled
 
   Widget _buildFormField({required String label, required Widget child}) {
     return Column(
@@ -777,7 +581,6 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
       lateFeeType: lateFeeType,
       lateFeeAmount: double.tryParse(lateFeeAmountController.text),
       lateFeeStartDay: int.tryParse(lateFeeStartDayController.text),
-      enableDiscount: false,
     );
     final text = examples['late_fee'];
     if (text == null || text.isEmpty) return const SizedBox.shrink();
@@ -805,51 +608,13 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
     );
   }
 
-  Widget _buildDiscountExampleBox() {
-    final examples = PaymentSettingsService.generateExample(
-      enableLateFee: false,
-      enableDiscount: enableDiscount,
-      earlyPaymentType: discountType,
-      earlyPaymentAmount: double.tryParse(earlyPaymentAmountController.text),
-      earlyPaymentDiscount:
-          double.tryParse(earlyPaymentDiscountController.text),
-      earlyPaymentDays: int.tryParse(earlyPaymentDaysController.text),
-    );
-    final text = examples['discount'];
-    if (text == null || text.isEmpty) return const SizedBox.shrink();
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline, size: 18, color: Colors.grey.shade700),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // _buildDiscountExampleBox() removed - Discount system disabled
 
   @override
   void dispose() {
     lateFeeAmountController.dispose();
     lateFeeStartDayController.dispose();
     lateFeeMaxAmountController.dispose();
-    earlyPaymentDiscountController.dispose();
-    earlyPaymentDaysController.dispose();
-    earlyPaymentAmountController.dispose();
-    settingDescController.dispose();
     super.dispose();
   }
 }
