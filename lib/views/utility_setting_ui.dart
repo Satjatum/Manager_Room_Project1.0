@@ -140,7 +140,10 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
     final additionalController = TextEditingController(
         text: rate?['additional_charge']?.toString() ?? '0');
 
-    final lockMeteredAddition = !isEdit && _hasBothStandardMetered();
+    // ล็อคการเลือก metered ถ้ามีน้ำ+ไฟครบแล้ว
+    // ยกเว้นถ้ากำลังแก้ไขรายการที่เป็น metered อยู่แล้ว
+    final lockMeteredAddition =
+        _hasBothStandardMetered() && !(isEdit && rate['is_metered'] == true);
     bool isMetered =
         lockMeteredAddition ? false : (rate?['is_metered'] ?? true);
     bool isFixed = rate?['is_fixed'] ?? !isMetered;
@@ -235,7 +238,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'สาขานี้มีค่าน้ำและค่าไฟแบบมิเตอร์ครบแล้ว จึงไม่สามารถเพิ่มอัตราแบบมิเตอร์ใหม่ได้',
+                                'สาขานี้มีค่าน้ำและค่าไฟแบบมิเตอร์ครบแล้ว จึงสามารถ${isEdit ? 'แก้ไข' : 'เพิ่ม'}อัตราได้เฉพาะแบบค่าคงที่เท่านั้น',
                                 style: TextStyle(
                                     color: Colors.amber.shade900, fontSize: 12),
                               ),
@@ -249,7 +252,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                       onMeteredChanged: () {
                         if (lockMeteredAddition) {
                           _showErrorSnackBar(
-                              'ไม่สามารถเพิ่มแบบมิเตอร์ได้ (มีน้ำ/ไฟอยู่แล้ว)');
+                              'ไม่สามารถเลือกแบบมิเตอร์ได้ (มีน้ำ/ไฟแบบมิเตอร์ครบแล้ว)');
                           return;
                         }
                         setDialogState(() {
@@ -411,16 +414,16 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                               }
 
                               // ล็อคการเพิ่มแบบมิเตอร์เมื่อมีน้ำ/ไฟครบแล้ว
-                              if (!isEdit && lockMeteredAddition && isMetered) {
+                              if (lockMeteredAddition && isMetered) {
                                 _showErrorSnackBar(
-                                    'สาขานี้มีค่าน้ำและค่าไฟแบบมิเตอร์ครบแล้ว ไม่สามารถเพิ่มแบบมิเตอร์ได้');
+                                    'สาขานี้มีค่าน้ำและค่าไฟแบบมิเตอร์ครบแล้ว ไม่สามารถ${isEdit ? 'แก้ไข' : 'เพิ่ม'}เป็นแบบมิเตอร์ได้');
                                 return;
                               }
 
                               try {
                                 if (isEdit) {
                                   await UtilityRatesService.updateUtilityRate(
-                                    rateId: rate!['rate_id'],
+                                    rateId: rate['rate_id'],
                                     rateName: nameController.text,
                                     ratePrice:
                                         double.tryParse(priceController.text) ??
@@ -671,78 +674,157 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
     );
   }
 
-  void _deleteRate(Map<String, dynamic> rate) {
-    showDialog(
+  Future<void> _deleteRate(Map<String, dynamic> rate) async {
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
+        child: Container(
           padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 400),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Icon Header
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(12),
+                  shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.delete_forever_rounded,
-                  color: Colors.red.shade700,
-                  size: 28,
+                  Icons.delete_outline,
+                  color: Colors.red.shade600,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title
+              const Text(
+                'ลบอัตราค่าบริการนี้หรือไม่?',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Rate Name
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.receipt_long_rounded,
+                        size: 18, color: Colors.grey[700]),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        '${rate['rate_name']}',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'ยืนยันการลบ',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'คุณต้องการลบอัตราค่าบริการ "${rate['rate_name']}" หรือไม่?\n\nการลบจะส่งผลต่อการคำนวณบิลในอนาคต',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+
+              // Warning Box
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.shade100, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning,
+                      color: Colors.red.shade600,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'ข้อมูลทั้งหมดจะถูกลบอย่างถาวร และจะส่งผลต่อการคำนวณบิลในอนาคต',
+                        style: TextStyle(
+                          color: Colors.red.shade800,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
+
+              // Action Buttons
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => Navigator.pop(context, false),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: const Text('ยกเลิก'),
+                      child: const Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () async {
-                        try {
-                          await UtilityRatesService.deleteUtilityRate(
-                              rate['rate_id']);
-                          Navigator.pop(context);
-                          _showSuccessSnackBar('ลบอัตราค่าบริการเรียบร้อย');
-                          _loadData();
-                        } catch (e) {
-                          Navigator.pop(context);
-                          _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
-                        }
-                      },
+                      onPressed: () => Navigator.pop(context, true),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
+                        backgroundColor: Colors.red.shade600,
                         foregroundColor: Colors.white,
-                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
+                        elevation: 0,
                       ),
-                      child: const Text('ลบ'),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(width: 8),
+                          Text(
+                            'ลบ',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -752,6 +834,98 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
         ),
       ),
     );
+
+    if (confirm == true) {
+      try {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Animated Icon Container
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: CircularProgressIndicator(
+                            color: Colors.red.shade600,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                        Icon(
+                          Icons.delete_outline,
+                          color: Colors.red.shade600,
+                          size: 28,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Loading Text
+                  const Text(
+                    'กำลังลบอัตราค่าบริการ',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'กรุณารอสักครู่...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        await UtilityRatesService.deleteUtilityRate(rate['rate_id']);
+        if (mounted) Navigator.of(context).pop();
+
+        if (mounted) {
+          _showSuccessSnackBar('ลบอัตราค่าบริการเรียบร้อย');
+          _loadData();
+        }
+      } catch (e) {
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        if (mounted) {
+          _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+        }
+      }
+    }
   }
 
   void _showErrorSnackBar(String message) {
@@ -791,7 +965,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Colors.white,
       floatingActionButton: selectedBranchId != null
           ? FloatingActionButton(
               onPressed: () => _showAddEditDialog(),
@@ -901,9 +1075,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                               final unit = item['rate_unit'] ?? '';
                               final price = item['rate_price'] ?? 0;
                               final fixedAmount = item['fixed_amount'] ?? 0;
-                              final isActive = item['is_active'] ?? true;
                               final isMetered = item['is_metered'] ?? true;
-                              final isFixed = item['is_fixed'] ?? false;
 
                               final utilityIcon = _getUtilityIcon(item);
                               final utilityColor = _getUtilityColor(item);
@@ -923,7 +1095,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                                 ),
                                 child: InkWell(
                                   onTap: () => _showAddEditDialog(rate: item),
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(12),
                                   child: Padding(
                                     padding: const EdgeInsets.all(16),
                                     child: Row(
