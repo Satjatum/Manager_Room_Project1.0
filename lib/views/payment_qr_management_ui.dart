@@ -168,9 +168,9 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'ตั้งค่าบัญชีรับชำระ',
+                                'ตั้งค่าบัญชี',
                                 style: TextStyle(
-                                  fontSize: 28,
+                                  fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.black87,
                                 ),
@@ -191,8 +191,8 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                       child: Container(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
@@ -276,7 +276,8 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                 itemCount: _qrs.length,
                                 itemBuilder: (ctx, i) {
                                   final q = _qrs[i];
-                                  final isActive = (q['is_active'] ?? true) == true;
+                                  final isActive =
+                                      (q['is_active'] ?? true) == true;
 
                                   return Container(
                                     margin: const EdgeInsets.only(bottom: 12),
@@ -296,357 +297,300 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                       borderRadius: BorderRadius.circular(16),
                                       child: Padding(
                                         padding: const EdgeInsets.all(16),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                        child: Row(
                                           children: [
-                                            Row(
-                                              children: [
-                                                Container(
-                                                  width: 64,
-                                                  height: 64,
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.blue
-                                                        .withOpacity(0.08),
-                                                    borderRadius:
-                                                        BorderRadius.circular(12),
+                                            Container(
+                                              width: 56,
+                                              height: 56,
+                                              decoration: BoxDecoration(
+                                                color: Colors.blue
+                                                    .withOpacity(0.08),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: const Icon(
+                                                Icons.account_balance_rounded,
+                                                size: 28,
+                                                color: Colors.blue,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    q['bank_name'] ?? '-',
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      fontSize: 16,
+                                                      color: Colors.black87,
+                                                    ),
                                                   ),
-                                                  child: const Icon(
-                                                    Icons.account_balance_rounded,
-                                                    size: 30,
-                                                    color: Colors.blue,
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    q['account_number'] ?? '-',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color:
+                                                          Colors.grey.shade700,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    q['account_name'] ?? '-',
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      color:
+                                                          Colors.grey.shade600,
+                                                    ),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            PopupMenuButton<String>(
+                                              color: Colors.white,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              icon: Icon(
+                                                Icons.more_vert_rounded,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                              itemBuilder: (context) => [
+                                                PopupMenuItem(
+                                                  value: 'edit',
+                                                  child: ListTile(
+                                                    dense: true,
+                                                    contentPadding:
+                                                        EdgeInsets.zero,
+                                                    leading: Icon(
+                                                        Icons.edit_outlined,
+                                                        size: 20,
+                                                        color:
+                                                            Color(0xFF14B8A6)),
+                                                    title: Text('แก้ไข'),
                                                   ),
                                                 ),
-                                                const SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(
-                                                        (q['account_number'] ?? '-'),
-                                                        style: const TextStyle(
-                                                          fontWeight: FontWeight.w700,
-                                                          fontSize: 16,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(height: 4),
-                                                      Text(
-                                                        '${q['bank_name'] ?? '-'} • ${q['account_name'] ?? ''}',
+                                                PopupMenuItem(
+                                                  value: 'toggle',
+                                                  child: ListTile(
+                                                    dense: true,
+                                                    contentPadding:
+                                                        EdgeInsets.zero,
+                                                    leading: Icon(
+                                                      isActive
+                                                          ? Icons
+                                                              .visibility_off_outlined
+                                                          : Icons
+                                                              .visibility_outlined,
+                                                      size: 20,
+                                                      color: isActive
+                                                          ? Colors.orange
+                                                          : Colors.green,
+                                                    ),
+                                                    title: Text(
+                                                      isActive
+                                                          ? 'ปิดใช้งาน'
+                                                          : 'เปิดใช้งาน',
+                                                      style: TextStyle(
+                                                          color: isActive
+                                                              ? Colors.orange
+                                                              : Colors.green),
+                                                    ),
+                                                  ),
+                                                ),
+                                                PopupMenuItem(
+                                                  value: 'delete',
+                                                  child: ListTile(
+                                                    dense: true,
+                                                    contentPadding:
+                                                        EdgeInsets.zero,
+                                                    leading: Icon(
+                                                        Icons.delete_outline,
+                                                        size: 20,
+                                                        color: Colors.red),
+                                                    title: Text('ลบ',
                                                         style: TextStyle(
-                                                          fontSize: 13,
-                                                          color: Colors.grey.shade700,
-                                                        ),
-                                                        overflow: TextOverflow.ellipsis,
-                                                      ),
-                                                    ],
+                                                            color: Colors.red)),
                                                   ),
                                                 ),
-                                                PopupMenuButton<String>(
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            12),
-                                                  ),
-                                                  icon: Icon(
-                                                    Icons.more_vert_rounded,
-                                                    color: Colors.grey.shade600,
-                                                  ),
-                                                  itemBuilder: (context) => [
-                                                    PopupMenuItem(
-                                                      value: 'edit',
-                                                      child: Row(
-                                                        children: const [
-                                                          Icon(
-                                                              Icons
-                                                                  .edit_rounded,
-                                                              color: Color(
-                                                                  0xFF1ABC9C),
-                                                              size: 18),
-                                                          SizedBox(width: 8),
-                                                          Text('แก้ไข'),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    PopupMenuItem(
-                                                      value: 'toggle',
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(
-                                                            isActive
-                                                                ? Icons
-                                                                    .visibility_off_rounded
-                                                                : Icons
-                                                                    .visibility_rounded,
-                                                            color: Colors.blue,
-                                                            size: 18,
-                                                          ),
-                                                          const SizedBox(
-                                                              width: 8),
-                                                          Text(isActive
-                                                              ? 'ปิดใช้งาน'
-                                                              : 'เปิดใช้งาน'),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    PopupMenuItem(
-                                                      value: 'delete',
-                                                      child: Row(
-                                                        children: const [
-                                                          Icon(
-                                                              Icons
-                                                                  .delete_outline_rounded,
-                                                              color: Colors.red,
-                                                              size: 18),
-                                                          SizedBox(width: 8),
-                                                          Text('ลบ',
-                                                              style: TextStyle(
-                                                                  color: Colors
-                                                                      .red)),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                  onSelected: (val) async {
-                                                    if (val == 'edit') {
-                                                      _openEditor(record: q);
-                                                    } else if (val ==
-                                                        'toggle') {
-                                                      final res =
-                                                          await BranchPaymentQrService
-                                                              .toggleActive(
-                                                        q['qr_id'].toString(),
-                                                        !isActive,
-                                                      );
-                                                      if (mounted) {
-                                                        if (res['success'] ==
-                                                            true) {
-                                                          _showSuccessSnackBar(isActive
+                                              ],
+                                              onSelected: (val) async {
+                                                if (val == 'edit') {
+                                                  _openEditor(record: q);
+                                                } else if (val == 'toggle') {
+                                                  final res =
+                                                      await BranchPaymentQrService
+                                                          .toggleActive(
+                                                    q['qr_id'].toString(),
+                                                    !isActive,
+                                                  );
+                                                  if (mounted) {
+                                                    if (res['success'] ==
+                                                        true) {
+                                                      _showSuccessSnackBar(
+                                                          isActive
                                                               ? 'ปิดใช้งานแล้ว'
                                                               : 'เปิดใช้งานแล้ว');
-                                                        } else {
-                                                          _showErrorSnackBar(res[
-                                                                  'message'] ??
-                                                              'ทำรายการไม่สำเร็จ');
-                                                        }
-                                                        await _loadQrs();
-                                                      }
-                                                    } else if (val ==
-                                                        'delete') {
-                                                      final ok =
-                                                          await showDialog<
-                                                              bool>(
-                                                        context: context,
-                                                        builder: (ctx) =>
-                                                            Dialog(
-                                                          shape: RoundedRectangleBorder(
+                                                    } else {
+                                                      _showErrorSnackBar(res[
+                                                              'message'] ??
+                                                          'ทำรายการไม่สำเร็จ');
+                                                    }
+                                                    await _loadQrs();
+                                                  }
+                                                } else if (val == 'delete') {
+                                                  final ok =
+                                                      await showDialog<bool>(
+                                                    context: context,
+                                                    builder: (ctx) => Dialog(
+                                                      shape:
+                                                          RoundedRectangleBorder(
                                                               borderRadius:
                                                                   BorderRadius
                                                                       .circular(
                                                                           16)),
-                                                          child: Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .all(24),
-                                                            child: Column(
-                                                              mainAxisSize:
-                                                                  MainAxisSize
-                                                                      .min,
-                                                              children: [
-                                                                Container(
-                                                                  padding:
-                                                                      const EdgeInsets
-                                                                          .all(
-                                                                          12),
-                                                                  decoration:
-                                                                      BoxDecoration(
-                                                                    color: Colors
-                                                                        .red
-                                                                        .shade50,
-                                                                    borderRadius:
-                                                                        BorderRadius.circular(
+                                                      child: Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(24),
+                                                        child: Column(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            Container(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .all(12),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: Colors
+                                                                    .red
+                                                                    .shade50,
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
                                                                             12),
-                                                                  ),
-                                                                  child: Icon(
-                                                                    Icons
-                                                                        .delete_forever_rounded,
-                                                                    color: Colors
-                                                                        .red
-                                                                        .shade700,
-                                                                    size: 28,
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                    height: 16),
-                                                                const Text(
-                                                                  'ยืนยันการลบ',
-                                                                  style: TextStyle(
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w700,
-                                                                      fontSize:
-                                                                          16),
-                                                                ),
-                                                                const SizedBox(
-                                                                    height: 8),
-                                                                const Text(
-                                                                  'คุณต้องการลบบัญชี/QR นี้หรือไม่?',
-                                                                  textAlign:
-                                                                      TextAlign
-                                                                          .center,
-                                                                  style: TextStyle(
-                                                                      fontSize:
-                                                                          13),
-                                                                ),
-                                                                const SizedBox(
-                                                                    height: 24),
-                                                                Row(
-                                                                  children: [
-                                                                    Expanded(
-                                                                      child:
-                                                                          OutlinedButton(
-                                                                        onPressed: () => Navigator.pop(
+                                                              ),
+                                                              child: Icon(
+                                                                Icons
+                                                                    .delete_forever_rounded,
+                                                                color: Colors
+                                                                    .red
+                                                                    .shade700,
+                                                                size: 28,
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 16),
+                                                            const Text(
+                                                              'ยืนยันการลบ',
+                                                              style: TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w700,
+                                                                  fontSize: 16),
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 8),
+                                                            const Text(
+                                                              'คุณต้องการลบบัญชี/QR นี้หรือไม่?',
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .center,
+                                                              style: TextStyle(
+                                                                  fontSize: 13),
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 24),
+                                                            Row(
+                                                              children: [
+                                                                Expanded(
+                                                                  child:
+                                                                      OutlinedButton(
+                                                                    onPressed: () =>
+                                                                        Navigator.pop(
                                                                             ctx,
                                                                             false),
-                                                                        style: OutlinedButton
-                                                                            .styleFrom(
-                                                                          padding: const EdgeInsets
-                                                                              .symmetric(
-                                                                              vertical: 12),
-                                                                          shape:
-                                                                              RoundedRectangleBorder(
-                                                                            borderRadius:
-                                                                                BorderRadius.circular(10),
-                                                                          ),
-                                                                        ),
-                                                                        child: const Text(
-                                                                            'ยกเลิก'),
+                                                                    style: OutlinedButton
+                                                                        .styleFrom(
+                                                                      padding: const EdgeInsets
+                                                                          .symmetric(
+                                                                          vertical:
+                                                                              12),
+                                                                      shape:
+                                                                          RoundedRectangleBorder(
+                                                                        borderRadius:
+                                                                            BorderRadius.circular(10),
                                                                       ),
                                                                     ),
-                                                                    const SizedBox(
-                                                                        width:
-                                                                            12),
-                                                                    Expanded(
-                                                                      child:
-                                                                          ElevatedButton(
-                                                                        onPressed: () => Navigator.pop(
+                                                                    child: const Text(
+                                                                        'ยกเลิก'),
+                                                                  ),
+                                                                ),
+                                                                const SizedBox(
+                                                                    width: 12),
+                                                                Expanded(
+                                                                  child:
+                                                                      ElevatedButton(
+                                                                    onPressed: () =>
+                                                                        Navigator.pop(
                                                                             ctx,
                                                                             true),
-                                                                        style: ElevatedButton
-                                                                            .styleFrom(
-                                                                          backgroundColor:
-                                                                              Colors.red,
-                                                                          foregroundColor:
-                                                                              Colors.white,
-                                                                          elevation:
-                                                                              0,
-                                                                          shape:
-                                                                              RoundedRectangleBorder(
-                                                                            borderRadius:
-                                                                                BorderRadius.circular(10),
-                                                                          ),
-                                                                        ),
-                                                                        child: const Text(
-                                                                            'ลบ'),
+                                                                    style: ElevatedButton
+                                                                        .styleFrom(
+                                                                      backgroundColor:
+                                                                          Colors
+                                                                              .red,
+                                                                      foregroundColor:
+                                                                          Colors
+                                                                              .white,
+                                                                      elevation:
+                                                                          0,
+                                                                      shape:
+                                                                          RoundedRectangleBorder(
+                                                                        borderRadius:
+                                                                            BorderRadius.circular(10),
                                                                       ),
                                                                     ),
-                                                                  ],
+                                                                    child:
+                                                                        const Text(
+                                                                            'ลบ'),
+                                                                  ),
                                                                 ),
                                                               ],
                                                             ),
-                                                          ),
+                                                          ],
                                                         ),
-                                                      );
-                                                      if (ok == true) {
-                                                        final res =
-                                                            await BranchPaymentQrService
-                                                                .delete(q[
-                                                                        'qr_id']
-                                                                    .toString());
-                                                        if (mounted) {
-                                                          if (res['success'] ==
-                                                              true) {
-                                                            _showSuccessSnackBar(
-                                                                'ลบสำเร็จ');
-                                                          } else {
-                                                            _showErrorSnackBar(
-                                                                res['message'] ??
-                                                                    'ลบไม่สำเร็จ');
-                                                          }
-                                                          await _loadQrs();
-                                                        }
-                                                      }
-                                                    }
-                                                  },
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 12),
-                                            Wrap(
-                                              spacing: 8,
-                                              runSpacing: 8,
-                                              children: [
-                                                Container(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 6),
-                                                  decoration: BoxDecoration(
-                                                    color: isActive
-                                                        ? const Color(
-                                                            0xFFD1FAE5)
-                                                        : const Color(
-                                                            0xFFF3F4F6),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            8),
-                                                    border: Border.all(
-                                                      color: isActive
-                                                          ? const Color(
-                                                              0xFF10B981)
-                                                          : Colors
-                                                              .grey.shade300,
+                                                      ),
                                                     ),
-                                                  ),
-                                                  child: Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    children: [
-                                                      Icon(
-                                                        isActive
-                                                            ? Icons
-                                                                .check_circle_rounded
-                                                            : Icons
-                                                                .cancel_rounded,
-                                                        size: 14,
-                                                        color: isActive
-                                                            ? const Color(
-                                                                0xFF065F46)
-                                                            : const Color(
-                                                                0xFF6B7280),
-                                                      ),
-                                                      const SizedBox(width: 4),
-                                                      Text(
-                                                        isActive
-                                                            ? 'เปิดใช้งาน'
-                                                            : 'ปิดใช้งาน',
-                                                        style: TextStyle(
-                                                          fontSize: 11,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          color: isActive
-                                                              ? const Color(
-                                                                  0xFF065F46)
-                                                              : const Color(
-                                                                  0xFF6B7280),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                // removed primary badge
-                                              ],
+                                                  );
+                                                  if (ok == true) {
+                                                    final res =
+                                                        await BranchPaymentQrService
+                                                            .delete(q['qr_id']
+                                                                .toString());
+                                                    if (mounted) {
+                                                      if (res['success'] ==
+                                                          true) {
+                                                        _showSuccessSnackBar(
+                                                            'ลบสำเร็จ');
+                                                      } else {
+                                                        _showErrorSnackBar(
+                                                            res['message'] ??
+                                                                'ลบไม่สำเร็จ');
+                                                      }
+                                                      await _loadQrs();
+                                                    }
+                                                  }
+                                                }
+                                              },
                                             ),
                                           ],
                                         ),
@@ -892,33 +836,32 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
                   ),
                   const SizedBox(height: 24),
                   _buildFormField(
-                      label: 'ธนาคาร *',
-                      hint: 'เช่น ธนาคารกสิกรไทย',
-                      controller: _bankCtrl,
-                      icon: Icons.account_balance_rounded,
-                      validator: (v) =>
-                          (v == null || v.trim().isEmpty) ? 'กรอกธนาคาร' : null,
-                    ),
+                    label: 'ธนาคาร',
+                    hint: 'เช่น ธนาคารกสิกรไทย',
+                    controller: _bankCtrl,
+                    icon: Icons.account_balance_rounded,
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'กรอกธนาคาร' : null,
+                  ),
                   const SizedBox(height: 20),
                   _buildFormField(
-                      label: 'ชื่อบัญชี *',
-                      hint: 'ชื่อเจ้าของบัญชี',
-                      controller: _accNameCtrl,
-                      icon: Icons.person_rounded,
-                      validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'กรอกชื่อบัญชี'
-                          : null,
-                    ),
+                    label: 'ชื่อบัญชี ',
+                    hint: 'ชื่อเจ้าของบัญชี',
+                    controller: _accNameCtrl,
+                    icon: Icons.person_rounded,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'กรอกชื่อบัญชี'
+                        : null,
+                  ),
                   const SizedBox(height: 20),
                   _buildFormField(
-                      label: 'เลขบัญชี *',
-                      hint: 'เลขที่บัญชี',
-                      controller: _accNumCtrl,
-                      icon: Icons.numbers_rounded,
-                      validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'กรอกเลขบัญชี'
-                          : null,
-                    ),
+                    label: 'เลขบัญชี',
+                    hint: 'เลขที่บัญชี',
+                    controller: _accNumCtrl,
+                    icon: Icons.numbers_rounded,
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'กรอกเลขบัญชี' : null,
+                  ),
                   // ลบส่วนอัปโหลดรูป QR ตามข้อกำหนดใหม่
                   const SizedBox(height: 20),
                   Container(
@@ -1034,7 +977,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
                                   ),
                                 )
                               : Text(
-                                  isEdit ? 'บันทึก' : 'เพิ่ม',
+                                  isEdit ? 'แก้ไข' : 'บันทึก',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 15,
