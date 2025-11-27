@@ -93,7 +93,6 @@ class UtilityRatesService {
       required bool isFixed,
       double fixedAmount = 0,
       double additionalCharge = 0,
-      String? rateDesc,
       bool isActive = true,
       String? createdBy}) async {
     try {
@@ -118,7 +117,6 @@ class UtilityRatesService {
         'is_metered': isMetered,
         'is_fixed': isFixed,
         'fixed_amount': fixedAmount,
-        'rate_desc': rateDesc?.trim(),
         'is_active': isActive,
         'created_by': createdBy
       };
@@ -146,7 +144,6 @@ class UtilityRatesService {
     bool? isFixed,
     double? fixedAmount,
     double? additionalCharge,
-    String? rateDesc,
     bool? isActive,
   }) async {
     try {
@@ -160,7 +157,6 @@ class UtilityRatesService {
       if (isMetered != null) updates['is_metered'] = isMetered;
       if (isFixed != null) updates['is_fixed'] = isFixed;
       if (fixedAmount != null) updates['fixed_amount'] = fixedAmount;
-      if (rateDesc != null) updates['rate_desc'] = rateDesc.trim();
       if (isActive != null) updates['is_active'] = isActive;
 
       if (updates.isEmpty) {
