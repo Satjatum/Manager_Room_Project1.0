@@ -5,6 +5,7 @@ import '../services/utility_rate_service.dart';
 import '../services/branch_service.dart';
 import '../services/auth_service.dart';
 import '../models/user_models.dart';
+import 'widgets/snack_message.dart';
 
 class UtilityRatesManagementUi extends StatefulWidget {
   final String? branchId;
@@ -101,12 +102,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
 
       if (currentUser == null) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ข้อมูลผู้ใช้ไม่ถูกต้อง'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          SnackMessage.showError(context, 'ข้อมูลผู้ใช้ไม่ถูกต้อง');
           Navigator.pop(context);
         }
         return;
@@ -122,12 +118,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
         );
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ไม่มีสิทธิ์เข้าถึงหน้านี้'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          SnackMessage.showError(context, 'ไม่มีสิทธิ์เข้าถึงหน้านี้');
           Navigator.pop(context);
         }
         return;
@@ -163,12 +154,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
       print('Error loading data: $e');
       if (mounted) {
         setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาด: $e');
       }
     }
   }
@@ -965,37 +951,11 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
   }
 
   void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_rounded, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    SnackMessage.showError(context, message);
   }
 
   void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.green.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+    SnackMessage.showSuccess(context, message);
   }
 
   @override
@@ -1066,188 +1026,222 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                   ),
                   Expanded(
                     child: utilityRates.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade200,
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Icon(
-                                    Icons.receipt_long_rounded,
-                                    size: 48,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'ยังไม่มีอัตราค่าบริการ',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                    color: Colors.grey.shade700,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'แตะ "เพิ่มอัตรา" เพื่อสร้างรายการแรก',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: utilityRates.length,
-                            itemBuilder: (context, index) {
-                              final item = utilityRates[index];
-                              final name = item['rate_name'] ?? '-';
-                              final unit = item['rate_unit'] ?? '';
-                              final price = item['rate_price'] ?? 0;
-                              final fixedAmount = item['fixed_amount'] ?? 0;
-                              final isMetered = item['is_metered'] ?? true;
-
-                              final utilityIcon = _getUtilityIcon(item);
-                              final utilityColor = _getUtilityColor(item);
-
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 2),
+                        ? RefreshIndicator(
+                            backgroundColor: Colors.white,
+                            onRefresh: _loadData,
+                            color: const Color(0xFF10B981),
+                            child: Center(
+                              child: SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(20),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Icon(
+                                        Icons.receipt_long_rounded,
+                                        size: 48,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'ยังไม่มีอัตราค่าบริการ',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
+                                        color: Colors.grey.shade700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'แตะ "เพิ่มอัตรา" เพื่อสร้างรายการแรก',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 13,
+                                      ),
                                     ),
                                   ],
                                 ),
-                                child: InkWell(
-                                  onTap: () => _showAddEditDialog(rate: item),
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Row(
-                                      children: [
-                                        // ไอคอนด้านซ้าย
-                                        Container(
-                                          padding: const EdgeInsets.all(14),
-                                          decoration: BoxDecoration(
-                                            color:
-                                                utilityColor.withOpacity(0.1),
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                          child: Icon(
-                                            utilityIcon,
-                                            color: utilityColor,
-                                            size: 28,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        // ข้อมูลตรงกลาง
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                              ),
+                            ),
+                          )
+                        : RefreshIndicator(
+                            backgroundColor: Colors.white,
+                            onRefresh: _loadData,
+                            color: const Color(0xFF10B981),
+                            child: ListView.builder(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: utilityRates.length,
+                              itemBuilder: (context, index) {
+                                final item = utilityRates[index];
+                                final name = item['rate_name'] ?? '-';
+                                final unit = item['rate_unit'] ?? '';
+                                final price = item['rate_price'] ?? 0;
+                                final fixedAmount = item['fixed_amount'] ?? 0;
+                                final isMetered = item['is_metered'] ?? true;
+
+                                final utilityIcon = _getUtilityIcon(item);
+                                final utilityColor = _getUtilityColor(item);
+
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border:
+                                        Border.all(color: Colors.grey.shade300),
+                                  ),
+                                  child: InkWell(
+                                    onTap: () => _showAddEditDialog(rate: item),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Row(
+                                        children: [
+                                          // ไอคอนด้านซ้าย พร้อมจุดสถานะ
+                                          Stack(
                                             children: [
-                                              // ชื่อและสถานะ
-                                              Row(
-                                                children: [
-                                                  Expanded(
-                                                    child: Text(
-                                                      name,
-                                                      style: const TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                        fontSize: 16,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 8),
-                                              // ราคา
-                                              Text(
-                                                isMetered
-                                                    ? '${price.toStringAsFixed(2)} บาท/$unit'
-                                                    : '${fixedAmount.toStringAsFixed(2)} บาท',
-                                                style: TextStyle(
-                                                  fontSize: 15,
-                                                  fontWeight: FontWeight.w600,
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.all(14),
+                                                decoration: BoxDecoration(
+                                                  color: utilityColor
+                                                      .withOpacity(0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Icon(
+                                                  utilityIcon,
                                                   color: utilityColor,
+                                                  size: 28,
                                                 ),
                                               ),
-                                              const SizedBox(height: 4),
-                                              // สถานะการใช้งาน
+                                              // จุดสถานะ
+                                              Positioned(
+                                                right: 4,
+                                                top: 4,
+                                                child: Container(
+                                                  width: 12,
+                                                  height: 12,
+                                                  decoration: BoxDecoration(
+                                                    color: (item['is_active'] ??
+                                                            true)
+                                                        ? const Color(
+                                                            0xFF10B981)
+                                                        : Colors.grey.shade400,
+                                                    shape: BoxShape.circle,
+                                                    border: Border.all(
+                                                      color: Colors.white,
+                                                      width: 2,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
                                             ],
                                           ),
-                                        ),
-                                        // เมนูจัดการ
-                                        PopupMenuButton<String>(
-                                          color: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                          icon: Icon(
-                                            Icons.more_vert_rounded,
-                                            color: Colors.grey.shade600,
-                                          ),
-                                          itemBuilder: (context) => [
-                                            PopupMenuItem(
-                                              value: 'edit',
-                                              child: Row(
-                                                children: [
-                                                  Icon(Icons.edit_rounded,
-                                                      color: AppTheme.primary,
-                                                      size: 18),
-                                                  const SizedBox(width: 8),
-                                                  const Text('แก้ไข'),
-                                                ],
-                                              ),
-                                            ),
-                                            PopupMenuItem(
-                                              value: 'delete',
-                                              child: Row(
-                                                children: [
-                                                  const Icon(
-                                                    Icons
-                                                        .delete_outline_rounded,
-                                                    color: Colors.red,
-                                                    size: 18,
+                                          const SizedBox(width: 16),
+                                          // ข้อมูลตรงกลาง
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                // ชื่อและสถานะ
+                                                Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: Text(
+                                                        name,
+                                                        style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          fontSize: 16,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 8),
+                                                // ราคา
+                                                Text(
+                                                  isMetered
+                                                      ? '${price.toStringAsFixed(2)} บาท/$unit'
+                                                      : '${fixedAmount.toStringAsFixed(2)} บาท',
+                                                  style: TextStyle(
+                                                    fontSize: 15,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: utilityColor,
                                                   ),
-                                                  const SizedBox(width: 8),
-                                                  const Text(
-                                                    'ลบ',
-                                                    style: TextStyle(
-                                                        color: Colors.red),
-                                                  ),
-                                                ],
-                                              ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                // สถานะการใช้งาน
+                                              ],
                                             ),
-                                          ],
-                                          onSelected: (value) {
-                                            if (value == 'edit') {
-                                              _showAddEditDialog(rate: item);
-                                            } else if (value == 'delete') {
-                                              _deleteRate(item);
-                                            }
-                                          },
-                                        ),
-                                      ],
+                                          ),
+                                          // เมนูจัดการ
+                                          PopupMenuButton<String>(
+                                            color: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            icon: Icon(
+                                              Icons.more_vert_rounded,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                            itemBuilder: (context) => [
+                                              PopupMenuItem(
+                                                value: 'edit',
+                                                child: Row(
+                                                  children: [
+                                                    Icon(Icons.edit_rounded,
+                                                        color: AppTheme.primary,
+                                                        size: 18),
+                                                    const SizedBox(width: 8),
+                                                    const Text('แก้ไข'),
+                                                  ],
+                                                ),
+                                              ),
+                                              PopupMenuItem(
+                                                value: 'delete',
+                                                child: Row(
+                                                  children: [
+                                                    const Icon(
+                                                      Icons
+                                                          .delete_outline_rounded,
+                                                      color: Colors.red,
+                                                      size: 18,
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    const Text(
+                                                      'ลบ',
+                                                      style: TextStyle(
+                                                          color: Colors.red),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                            onSelected: (value) {
+                                              if (value == 'edit') {
+                                                _showAddEditDialog(rate: item);
+                                              } else if (value == 'delete') {
+                                                _deleteRate(item);
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                              );
-                            },
+                                );
+                              },
+                            ),
                           ),
                   ),
                 ],

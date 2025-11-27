@@ -1,12 +1,11 @@
-// Removed image upload dependencies for simplification per requirements
 import 'package:flutter/material.dart';
+import 'package:manager_room_project/views/widgets/colors.dart';
 
 import '../models/user_models.dart';
 import '../services/auth_service.dart';
 import '../services/branch_service.dart';
 import '../services/branch_payment_qr_service.dart';
 import 'widgets/snack_message.dart';
-// image upload removed: QR images no longer required for bank or PromptPay
 
 class PaymentQrManagementUi extends StatefulWidget {
   final String? branchId;
@@ -170,7 +169,7 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                             border: InputBorder.none,
                             prefixIcon: Icon(
                               Icons.store,
-                              color: Color(0xFF1ABC9C),
+                              color: AppTheme.primary,
                               size: 22,
                             ),
                           ),
@@ -199,869 +198,894 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                             ),
                           )
                         : _qrs.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(20),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.shade200,
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: Icon(
-                                        Icons.qr_code_rounded,
-                                        size: 48,
-                                        color: Colors.grey.shade400,
-                                      ),
+                            ? RefreshIndicator(
+                                backgroundColor: Colors.white,
+                                onRefresh: _loadQrs,
+                                color: const Color(0xff10B981),
+                                child: Center(
+                                  child: SingleChildScrollView(
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(20),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey.shade200,
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                          ),
+                                          child: Icon(
+                                            Icons.qr_code_rounded,
+                                            size: 48,
+                                            color: Colors.grey.shade400,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'ยังไม่มีบัญชี/QR',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 16,
+                                            color: Colors.grey.shade700,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'แตะ "เพิ่ม" เพื่อสร้างรายการแรก',
+                                          style: TextStyle(
+                                            color: Colors.grey.shade600,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'ยังไม่มีบัญชี/QR',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                        color: Colors.grey.shade700,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'แตะ "เพิ่ม" เพื่อสร้างรายการแรก',
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
                               )
-                            : ListView.builder(
-                                padding: const EdgeInsets.all(16),
-                                itemCount: _qrs.length,
-                                itemBuilder: (ctx, i) {
-                                  final q = _qrs[i];
-                                  final isActive =
-                                      (q['is_active'] ?? true) == true;
+                            : RefreshIndicator(
+                                backgroundColor: Colors.white,
+                                onRefresh: _loadQrs,
+                                color: const Color(0xff10B981),
+                                child: ListView.builder(
+                                  padding: const EdgeInsets.all(16),
+                                  itemCount: _qrs.length,
+                                  itemBuilder: (ctx, i) {
+                                    final q = _qrs[i];
+                                    final isActive =
+                                        (q['is_active'] ?? true) == true;
 
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                          color: Colors.grey.shade300),
-                                    ),
-                                    child: InkWell(
-                                      onTap: () => _openEditor(record: q),
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(16),
-                                        child: Row(
-                                          children: [
-                                            Stack(
-                                              children: [
-                                                Container(
-                                                  width: 56,
-                                                  height: 56,
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.blue
-                                                        .withOpacity(0.08),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            12),
-                                                  ),
-                                                  child: const Icon(
-                                                    Icons
-                                                        .account_balance_rounded,
-                                                    size: 28,
-                                                    color: Colors.blue,
-                                                  ),
-                                                ),
-                                                Positioned(
-                                                  right: 4,
-                                                  top: 4,
-                                                  child: Container(
-                                                    width: 12,
-                                                    height: 12,
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                            color: Colors.grey.shade300),
+                                      ),
+                                      child: InkWell(
+                                        onTap: () => _openEditor(record: q),
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(16),
+                                          child: Row(
+                                            children: [
+                                              Stack(
+                                                children: [
+                                                  Container(
+                                                    width: 56,
+                                                    height: 56,
                                                     decoration: BoxDecoration(
-                                                      color: isActive
-                                                          ? const Color(
-                                                              0xFF10B981)
-                                                          : Colors
-                                                              .grey.shade400,
-                                                      shape: BoxShape.circle,
-                                                      border: Border.all(
-                                                        color: Colors.white,
-                                                        width: 2,
+                                                      color: Colors.blue
+                                                          .withOpacity(0.08),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons
+                                                          .account_balance_rounded,
+                                                      size: 28,
+                                                      color: Colors.blue,
+                                                    ),
+                                                  ),
+                                                  Positioned(
+                                                    right: 4,
+                                                    top: 4,
+                                                    child: Container(
+                                                      width: 12,
+                                                      height: 12,
+                                                      decoration: BoxDecoration(
+                                                        color: isActive
+                                                            ? const Color(
+                                                                0xFF10B981)
+                                                            : Colors
+                                                                .grey.shade400,
+                                                        shape: BoxShape.circle,
+                                                        border: Border.all(
+                                                          color: Colors.white,
+                                                          width: 2,
+                                                        ),
                                                       ),
                                                     ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    q['bank_name'] ?? '-',
-                                                    style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      fontSize: 16,
-                                                      color: Colors.black87,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  Text(
-                                                    q['account_number'] ?? '-',
-                                                    style: TextStyle(
-                                                      fontSize: 14,
-                                                      color:
-                                                          Colors.grey.shade700,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 2),
-                                                  Text(
-                                                    q['account_name'] ?? '-',
-                                                    style: TextStyle(
-                                                      fontSize: 13,
-                                                      color:
-                                                          Colors.grey.shade600,
-                                                    ),
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ],
                                               ),
-                                            ),
-                                            PopupMenuButton<String>(
-                                              color: Colors.white,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              icon: Icon(
-                                                Icons.more_vert_rounded,
-                                                color: Colors.grey.shade600,
-                                              ),
-                                              itemBuilder: (context) => [
-                                                PopupMenuItem(
-                                                  value: 'edit',
-                                                  child: ListTile(
-                                                    dense: true,
-                                                    contentPadding:
-                                                        EdgeInsets.zero,
-                                                    leading: Icon(
-                                                        Icons.edit_outlined,
-                                                        size: 20,
-                                                        color:
-                                                            Color(0xFF14B8A6)),
-                                                    title: Text('แก้ไข'),
-                                                  ),
-                                                ),
-                                                PopupMenuItem(
-                                                  value: 'toggle',
-                                                  child: ListTile(
-                                                    dense: true,
-                                                    contentPadding:
-                                                        EdgeInsets.zero,
-                                                    leading: Icon(
-                                                      isActive
-                                                          ? Icons
-                                                              .visibility_off_outlined
-                                                          : Icons
-                                                              .visibility_outlined,
-                                                      size: 20,
-                                                      color: isActive
-                                                          ? Colors.orange
-                                                          : Colors.green,
-                                                    ),
-                                                    title: Text(
-                                                      isActive
-                                                          ? 'ปิดใช้งาน'
-                                                          : 'เปิดใช้งาน',
-                                                      style: TextStyle(
-                                                          color: isActive
-                                                              ? Colors.orange
-                                                              : Colors.green),
-                                                    ),
-                                                  ),
-                                                ),
-                                                PopupMenuItem(
-                                                  value: 'delete',
-                                                  child: ListTile(
-                                                    dense: true,
-                                                    contentPadding:
-                                                        EdgeInsets.zero,
-                                                    leading: Icon(
-                                                        Icons.delete_outline,
-                                                        size: 20,
-                                                        color: Colors.red),
-                                                    title: Text('ลบ',
-                                                        style: TextStyle(
-                                                            color: Colors.red)),
-                                                  ),
-                                                ),
-                                              ],
-                                              onSelected: (val) async {
-                                                if (val == 'edit') {
-                                                  _openEditor(record: q);
-                                                } else if (val == 'toggle') {
-                                                  final confirm =
-                                                      await showDialog<bool>(
-                                                    context: context,
-                                                    builder: (context) =>
-                                                        Dialog(
-                                                      backgroundColor:
-                                                          Colors.white,
-                                                      shape:
-                                                          RoundedRectangleBorder(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(16),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      q['bank_name'] ?? '-',
+                                                      style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        fontSize: 16,
+                                                        color: Colors.black87,
                                                       ),
-                                                      child: Container(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(24),
-                                                        constraints:
-                                                            const BoxConstraints(
-                                                                maxWidth: 400),
-                                                        child: Column(
-                                                          mainAxisSize:
-                                                              MainAxisSize.min,
-                                                          children: [
-                                                            // Icon Header
-                                                            Container(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .all(16),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: isActive
-                                                                    ? Colors
-                                                                        .orange
-                                                                        .shade50
-                                                                    : Colors
-                                                                        .green
-                                                                        .shade50,
-                                                                shape: BoxShape
-                                                                    .circle,
-                                                              ),
-                                                              child: Icon(
-                                                                isActive
-                                                                    ? Icons
-                                                                        .visibility_off_rounded
-                                                                    : Icons
-                                                                        .visibility_rounded,
-                                                                color: isActive
-                                                                    ? Colors
-                                                                        .orange
-                                                                        .shade600
-                                                                    : Colors
-                                                                        .green
-                                                                        .shade600,
-                                                                size: 40,
-                                                              ),
-                                                            ),
-                                                            const SizedBox(
-                                                                height: 20),
-
-                                                            // Title
-                                                            Text(
-                                                              isActive
-                                                                  ? 'ปิดใช้งานบัญชีนี้หรือไม่?'
-                                                                  : 'เปิดใช้งานบัญชีนี้หรือไม่?',
-                                                              style:
-                                                                  const TextStyle(
-                                                                fontSize: 16,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                                color: Colors
-                                                                    .black87,
-                                                              ),
-                                                            ),
-                                                            const SizedBox(
-                                                                height: 12),
-
-                                                            // Account Info
-                                                            Container(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .symmetric(
-                                                                horizontal: 16,
-                                                                vertical: 10,
-                                                              ),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: Colors
-                                                                    .grey[100],
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            8),
-                                                                border: Border.all(
-                                                                    color: Colors
-                                                                            .grey[
-                                                                        300]!),
-                                                              ),
-                                                              child: Row(
-                                                                mainAxisSize:
-                                                                    MainAxisSize
-                                                                        .min,
-                                                                children: [
-                                                                  Icon(
-                                                                      Icons
-                                                                          .account_balance_rounded,
-                                                                      size: 18,
-                                                                      color: Colors
-                                                                              .grey[
-                                                                          700]),
-                                                                  const SizedBox(
-                                                                      width: 8),
-                                                                  Flexible(
-                                                                    child: Text(
-                                                                      '${q['bank_name'] ?? '-'} (${q['account_number'] ?? '-'})',
-                                                                      style:
-                                                                          const TextStyle(
-                                                                        fontSize:
-                                                                            15,
-                                                                        fontWeight:
-                                                                            FontWeight.w600,
-                                                                        color: Colors
-                                                                            .black87,
-                                                                      ),
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center,
-                                                                      overflow:
-                                                                          TextOverflow
-                                                                              .ellipsis,
-                                                                      maxLines:
-                                                                          2,
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            const SizedBox(
-                                                                height: 16),
-
-                                                            // Warning/Info Box
-                                                            Container(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .all(14),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: isActive
-                                                                    ? Colors
-                                                                        .orange
-                                                                        .shade50
-                                                                    : Colors
-                                                                        .green
-                                                                        .shade50,
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            10),
-                                                                border:
-                                                                    Border.all(
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      q['account_number'] ??
+                                                          '-',
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                        color: Colors
+                                                            .grey.shade700,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      q['account_name'] ?? '-',
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        color: Colors
+                                                            .grey.shade600,
+                                                      ),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              PopupMenuButton<String>(
+                                                color: Colors.white,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                icon: Icon(
+                                                  Icons.more_vert_rounded,
+                                                  color: Colors.grey.shade600,
+                                                ),
+                                                itemBuilder: (context) => [
+                                                  PopupMenuItem(
+                                                    value: 'edit',
+                                                    child: ListTile(
+                                                      dense: true,
+                                                      contentPadding:
+                                                          EdgeInsets.zero,
+                                                      leading: Icon(
+                                                          Icons.edit_outlined,
+                                                          size: 20,
+                                                          color: Color(
+                                                              0xFF14B8A6)),
+                                                      title: Text('แก้ไข'),
+                                                    ),
+                                                  ),
+                                                  PopupMenuItem(
+                                                    value: 'toggle',
+                                                    child: ListTile(
+                                                      dense: true,
+                                                      contentPadding:
+                                                          EdgeInsets.zero,
+                                                      leading: Icon(
+                                                        isActive
+                                                            ? Icons
+                                                                .visibility_off_outlined
+                                                            : Icons
+                                                                .visibility_outlined,
+                                                        size: 20,
+                                                        color: isActive
+                                                            ? Colors.orange
+                                                            : Colors.green,
+                                                      ),
+                                                      title: Text(
+                                                        isActive
+                                                            ? 'ปิดใช้งาน'
+                                                            : 'เปิดใช้งาน',
+                                                        style: TextStyle(
+                                                            color: isActive
+                                                                ? Colors.orange
+                                                                : Colors.green),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  PopupMenuItem(
+                                                    value: 'delete',
+                                                    child: ListTile(
+                                                      dense: true,
+                                                      contentPadding:
+                                                          EdgeInsets.zero,
+                                                      leading: Icon(
+                                                          Icons.delete_outline,
+                                                          size: 20,
+                                                          color: Colors.red),
+                                                      title: Text('ลบ',
+                                                          style: TextStyle(
+                                                              color:
+                                                                  Colors.red)),
+                                                    ),
+                                                  ),
+                                                ],
+                                                onSelected: (val) async {
+                                                  if (val == 'edit') {
+                                                    _openEditor(record: q);
+                                                  } else if (val == 'toggle') {
+                                                    final confirm =
+                                                        await showDialog<bool>(
+                                                      context: context,
+                                                      builder: (context) =>
+                                                          Dialog(
+                                                        backgroundColor:
+                                                            Colors.white,
+                                                        shape:
+                                                            RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(16),
+                                                        ),
+                                                        child: Container(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(24),
+                                                          constraints:
+                                                              const BoxConstraints(
+                                                                  maxWidth:
+                                                                      400),
+                                                          child: Column(
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
+                                                            children: [
+                                                              // Icon Header
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets
+                                                                        .all(
+                                                                        16),
+                                                                decoration:
+                                                                    BoxDecoration(
                                                                   color: isActive
                                                                       ? Colors
                                                                           .orange
-                                                                          .shade100
+                                                                          .shade50
                                                                       : Colors
                                                                           .green
-                                                                          .shade100,
-                                                                  width: 1.5,
+                                                                          .shade50,
+                                                                  shape: BoxShape
+                                                                      .circle,
+                                                                ),
+                                                                child: Icon(
+                                                                  isActive
+                                                                      ? Icons
+                                                                          .visibility_off_rounded
+                                                                      : Icons
+                                                                          .visibility_rounded,
+                                                                  color: isActive
+                                                                      ? Colors
+                                                                          .orange
+                                                                          .shade600
+                                                                      : Colors
+                                                                          .green
+                                                                          .shade600,
+                                                                  size: 40,
                                                                 ),
                                                               ),
-                                                              child: Row(
-                                                                children: [
-                                                                  Icon(
-                                                                    isActive
-                                                                        ? Icons
-                                                                            .warning_rounded
-                                                                        : Icons
-                                                                            .info_rounded,
+                                                              const SizedBox(
+                                                                  height: 20),
+
+                                                              // Title
+                                                              Text(
+                                                                isActive
+                                                                    ? 'ปิดใช้งานบัญชีนี้หรือไม่?'
+                                                                    : 'เปิดใช้งานบัญชีนี้หรือไม่?',
+                                                                style:
+                                                                    const TextStyle(
+                                                                  fontSize: 16,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  color: Colors
+                                                                      .black87,
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                  height: 12),
+
+                                                              // Account Info
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets
+                                                                        .symmetric(
+                                                                  horizontal:
+                                                                      16,
+                                                                  vertical: 10,
+                                                                ),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: Colors
+                                                                          .grey[
+                                                                      100],
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              8),
+                                                                  border: Border.all(
+                                                                      color: Colors
+                                                                              .grey[
+                                                                          300]!),
+                                                                ),
+                                                                child: Row(
+                                                                  mainAxisSize:
+                                                                      MainAxisSize
+                                                                          .min,
+                                                                  children: [
+                                                                    Icon(
+                                                                        Icons
+                                                                            .account_balance_rounded,
+                                                                        size:
+                                                                            18,
+                                                                        color: Colors
+                                                                            .grey[700]),
+                                                                    const SizedBox(
+                                                                        width:
+                                                                            8),
+                                                                    Flexible(
+                                                                      child:
+                                                                          Text(
+                                                                        '${q['bank_name'] ?? '-'} (${q['account_number'] ?? '-'})',
+                                                                        style:
+                                                                            const TextStyle(
+                                                                          fontSize:
+                                                                              15,
+                                                                          fontWeight:
+                                                                              FontWeight.w600,
+                                                                          color:
+                                                                              Colors.black87,
+                                                                        ),
+                                                                        textAlign:
+                                                                            TextAlign.center,
+                                                                        overflow:
+                                                                            TextOverflow.ellipsis,
+                                                                        maxLines:
+                                                                            2,
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                  height: 16),
+
+                                                              // Warning/Info Box
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets
+                                                                        .all(
+                                                                        14),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: isActive
+                                                                      ? Colors
+                                                                          .orange
+                                                                          .shade50
+                                                                      : Colors
+                                                                          .green
+                                                                          .shade50,
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              10),
+                                                                  border: Border
+                                                                      .all(
                                                                     color: isActive
                                                                         ? Colors
                                                                             .orange
-                                                                            .shade600
+                                                                            .shade100
                                                                         : Colors
                                                                             .green
-                                                                            .shade600,
-                                                                    size: 22,
-                                                                  ),
-                                                                  const SizedBox(
-                                                                      width:
-                                                                          12),
-                                                                  Expanded(
-                                                                    child: Text(
-                                                                      isActive
-                                                                          ? 'บัญชีนี้จะไม่แสดงในรายการชำระเงิน'
-                                                                          : 'บัญชีนี้จะแสดงในรายการชำระเงิน',
-                                                                      style:
-                                                                          TextStyle(
-                                                                        color: isActive
-                                                                            ? Colors.orange.shade800
-                                                                            : Colors.green.shade800,
-                                                                        fontSize:
-                                                                            13,
-                                                                        height:
-                                                                            1.4,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            const SizedBox(
-                                                                height: 24),
-
-                                                            // Action Buttons
-                                                            Row(
-                                                              children: [
-                                                                Expanded(
-                                                                  child:
-                                                                      OutlinedButton(
-                                                                    onPressed: () =>
-                                                                        Navigator.pop(
-                                                                            context,
-                                                                            false),
-                                                                    style: OutlinedButton
-                                                                        .styleFrom(
-                                                                      foregroundColor:
-                                                                          Colors
-                                                                              .grey[700],
-                                                                      side:
-                                                                          BorderSide(
-                                                                        color: Colors
-                                                                            .grey[300]!,
-                                                                        width:
-                                                                            1.5,
-                                                                      ),
-                                                                      padding: const EdgeInsets
-                                                                          .symmetric(
-                                                                          vertical:
-                                                                              14),
-                                                                      shape:
-                                                                          RoundedRectangleBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(10),
-                                                                      ),
-                                                                    ),
-                                                                    child:
-                                                                        const Text(
-                                                                      'ยกเลิก',
-                                                                      style:
-                                                                          TextStyle(
-                                                                        fontSize:
-                                                                            15,
-                                                                        fontWeight:
-                                                                            FontWeight.w600,
-                                                                      ),
-                                                                    ),
+                                                                            .shade100,
+                                                                    width: 1.5,
                                                                   ),
                                                                 ),
-                                                                const SizedBox(
-                                                                    width: 12),
-                                                                Expanded(
-                                                                  child:
-                                                                      ElevatedButton(
-                                                                    onPressed: () =>
-                                                                        Navigator.pop(
-                                                                            context,
-                                                                            true),
-                                                                    style: ElevatedButton
-                                                                        .styleFrom(
-                                                                      backgroundColor: isActive
+                                                                child: Row(
+                                                                  children: [
+                                                                    Icon(
+                                                                      isActive
+                                                                          ? Icons
+                                                                              .warning_rounded
+                                                                          : Icons
+                                                                              .info_rounded,
+                                                                      color: isActive
                                                                           ? Colors
                                                                               .orange
                                                                               .shade600
                                                                           : Colors
                                                                               .green
                                                                               .shade600,
-                                                                      foregroundColor:
-                                                                          Colors
-                                                                              .white,
-                                                                      padding: const EdgeInsets
-                                                                          .symmetric(
-                                                                          vertical:
-                                                                              14),
-                                                                      shape:
-                                                                          RoundedRectangleBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(10),
-                                                                      ),
-                                                                      elevation:
-                                                                          0,
+                                                                      size: 22,
                                                                     ),
-                                                                    child: Text(
-                                                                      isActive
-                                                                          ? 'ปิดใช้งาน'
-                                                                          : 'เปิดใช้งาน',
-                                                                      style:
-                                                                          const TextStyle(
-                                                                        fontSize:
-                                                                            15,
-                                                                        fontWeight:
-                                                                            FontWeight.w600,
+                                                                    const SizedBox(
+                                                                        width:
+                                                                            12),
+                                                                    Expanded(
+                                                                      child:
+                                                                          Text(
+                                                                        isActive
+                                                                            ? 'บัญชีนี้จะไม่แสดงในรายการชำระเงิน'
+                                                                            : 'บัญชีนี้จะแสดงในรายการชำระเงิน',
+                                                                        style:
+                                                                            TextStyle(
+                                                                          color: isActive
+                                                                              ? Colors.orange.shade800
+                                                                              : Colors.green.shade800,
+                                                                          fontSize:
+                                                                              13,
+                                                                          height:
+                                                                              1.4,
+                                                                        ),
                                                                       ),
                                                                     ),
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  );
-
-                                                  if (confirm == true) {
-                                                    final res =
-                                                        await BranchPaymentQrService
-                                                            .toggleActive(
-                                                      q['qr_id'].toString(),
-                                                      !isActive,
-                                                    );
-                                                    if (mounted) {
-                                                      if (res['success'] ==
-                                                          true) {
-                                                        SnackMessage
-                                                            .showSuccess(
-                                                          context,
-                                                          isActive
-                                                              ? 'ปิดใช้งานแล้ว'
-                                                              : 'เปิดใช้งานแล้ว',
-                                                        );
-                                                      } else {
-                                                        SnackMessage.showError(
-                                                          context,
-                                                          res['message'] ??
-                                                              'ทำรายการไม่สำเร็จ',
-                                                        );
-                                                      }
-                                                      await _loadQrs();
-                                                    }
-                                                  }
-                                                } else if (val == 'delete') {
-                                                  final ok =
-                                                      await showDialog<bool>(
-                                                    context: context,
-                                                    builder: (context) =>
-                                                        Dialog(
-                                                      backgroundColor:
-                                                          Colors.white,
-                                                      shape:
-                                                          RoundedRectangleBorder(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(16),
-                                                      ),
-                                                      child: Container(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(24),
-                                                        constraints:
-                                                            const BoxConstraints(
-                                                                maxWidth: 400),
-                                                        child: Column(
-                                                          mainAxisSize:
-                                                              MainAxisSize.min,
-                                                          children: [
-                                                            // Icon Header
-                                                            Container(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .all(16),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: Colors
-                                                                    .red
-                                                                    .shade50,
-                                                                shape: BoxShape
-                                                                    .circle,
-                                                              ),
-                                                              child: Icon(
-                                                                Icons
-                                                                    .delete_outline,
-                                                                color: Colors
-                                                                    .red
-                                                                    .shade600,
-                                                                size: 40,
-                                                              ),
-                                                            ),
-                                                            const SizedBox(
-                                                                height: 20),
-
-                                                            // Title
-                                                            const Text(
-                                                              'ลบบัญชีนี้หรือไม่?',
-                                                              style: TextStyle(
-                                                                fontSize: 16,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                                color: Colors
-                                                                    .black87,
-                                                              ),
-                                                            ),
-                                                            const SizedBox(
-                                                                height: 12),
-
-                                                            // Account Info
-                                                            Container(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .symmetric(
-                                                                horizontal: 16,
-                                                                vertical: 10,
-                                                              ),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: Colors
-                                                                    .grey[100],
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            8),
-                                                                border: Border.all(
-                                                                    color: Colors
-                                                                            .grey[
-                                                                        300]!),
-                                                              ),
-                                                              child: Row(
-                                                                mainAxisSize:
-                                                                    MainAxisSize
-                                                                        .min,
-                                                                children: [
-                                                                  Icon(
-                                                                      Icons
-                                                                          .account_balance_rounded,
-                                                                      size: 18,
-                                                                      color: Colors
-                                                                              .grey[
-                                                                          700]),
-                                                                  const SizedBox(
-                                                                      width: 8),
-                                                                  Flexible(
-                                                                    child: Text(
-                                                                      '${q['bank_name'] ?? '-'} (${q['account_number'] ?? '-'})',
-                                                                      style:
-                                                                          const TextStyle(
-                                                                        fontSize:
-                                                                            15,
-                                                                        fontWeight:
-                                                                            FontWeight.w600,
-                                                                        color: Colors
-                                                                            .black87,
-                                                                      ),
-                                                                      textAlign:
-                                                                          TextAlign
-                                                                              .center,
-                                                                      overflow:
-                                                                          TextOverflow
-                                                                              .ellipsis,
-                                                                      maxLines:
-                                                                          2,
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            const SizedBox(
-                                                                height: 16),
-
-                                                            // Warning Box
-                                                            Container(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .all(14),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: Colors
-                                                                    .red
-                                                                    .shade50,
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            10),
-                                                                border:
-                                                                    Border.all(
-                                                                  color: Colors
-                                                                      .red
-                                                                      .shade100,
-                                                                  width: 1.5,
+                                                                  ],
                                                                 ),
                                                               ),
-                                                              child: Row(
+                                                              const SizedBox(
+                                                                  height: 24),
+
+                                                              // Action Buttons
+                                                              Row(
                                                                 children: [
-                                                                  Icon(
-                                                                    Icons
-                                                                        .warning,
-                                                                    color: Colors
-                                                                        .red
-                                                                        .shade600,
-                                                                    size: 22,
+                                                                  Expanded(
+                                                                    child:
+                                                                        OutlinedButton(
+                                                                      onPressed: () => Navigator.pop(
+                                                                          context,
+                                                                          false),
+                                                                      style: OutlinedButton
+                                                                          .styleFrom(
+                                                                        foregroundColor:
+                                                                            Colors.grey[700],
+                                                                        side:
+                                                                            BorderSide(
+                                                                          color:
+                                                                              Colors.grey[300]!,
+                                                                          width:
+                                                                              1.5,
+                                                                        ),
+                                                                        padding: const EdgeInsets
+                                                                            .symmetric(
+                                                                            vertical:
+                                                                                14),
+                                                                        shape:
+                                                                            RoundedRectangleBorder(
+                                                                          borderRadius:
+                                                                              BorderRadius.circular(10),
+                                                                        ),
+                                                                      ),
+                                                                      child:
+                                                                          const Text(
+                                                                        'ยกเลิก',
+                                                                        style:
+                                                                            TextStyle(
+                                                                          fontSize:
+                                                                              15,
+                                                                          fontWeight:
+                                                                              FontWeight.w600,
+                                                                        ),
+                                                                      ),
+                                                                    ),
                                                                   ),
                                                                   const SizedBox(
                                                                       width:
                                                                           12),
                                                                   Expanded(
-                                                                    child: Text(
-                                                                      'ข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
-                                                                      style:
-                                                                          TextStyle(
-                                                                        color: Colors
-                                                                            .red
-                                                                            .shade800,
-                                                                        fontSize:
-                                                                            13,
-                                                                        height:
-                                                                            1.4,
+                                                                    child:
+                                                                        ElevatedButton(
+                                                                      onPressed: () => Navigator.pop(
+                                                                          context,
+                                                                          true),
+                                                                      style: ElevatedButton
+                                                                          .styleFrom(
+                                                                        backgroundColor: isActive
+                                                                            ? Colors.orange.shade600
+                                                                            : Colors.green.shade600,
+                                                                        foregroundColor:
+                                                                            Colors.white,
+                                                                        padding: const EdgeInsets
+                                                                            .symmetric(
+                                                                            vertical:
+                                                                                14),
+                                                                        shape:
+                                                                            RoundedRectangleBorder(
+                                                                          borderRadius:
+                                                                              BorderRadius.circular(10),
+                                                                        ),
+                                                                        elevation:
+                                                                            0,
+                                                                      ),
+                                                                      child:
+                                                                          Text(
+                                                                        isActive
+                                                                            ? 'ปิดใช้งาน'
+                                                                            : 'เปิดใช้งาน',
+                                                                        style:
+                                                                            const TextStyle(
+                                                                          fontSize:
+                                                                              15,
+                                                                          fontWeight:
+                                                                              FontWeight.w600,
+                                                                        ),
                                                                       ),
                                                                     ),
                                                                   ),
                                                                 ],
                                                               ),
-                                                            ),
-                                                            const SizedBox(
-                                                                height: 24),
-
-                                                            // Action Buttons
-                                                            Row(
-                                                              children: [
-                                                                Expanded(
-                                                                  child:
-                                                                      OutlinedButton(
-                                                                    onPressed: () =>
-                                                                        Navigator.pop(
-                                                                            context,
-                                                                            false),
-                                                                    style: OutlinedButton
-                                                                        .styleFrom(
-                                                                      foregroundColor:
-                                                                          Colors
-                                                                              .grey[700],
-                                                                      side:
-                                                                          BorderSide(
-                                                                        color: Colors
-                                                                            .grey[300]!,
-                                                                        width:
-                                                                            1.5,
-                                                                      ),
-                                                                      padding: const EdgeInsets
-                                                                          .symmetric(
-                                                                          vertical:
-                                                                              14),
-                                                                      shape:
-                                                                          RoundedRectangleBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(10),
-                                                                      ),
-                                                                    ),
-                                                                    child:
-                                                                        const Text(
-                                                                      'ยกเลิก',
-                                                                      style:
-                                                                          TextStyle(
-                                                                        fontSize:
-                                                                            15,
-                                                                        fontWeight:
-                                                                            FontWeight.w600,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                    width: 12),
-                                                                Expanded(
-                                                                  child:
-                                                                      ElevatedButton(
-                                                                    onPressed: () =>
-                                                                        Navigator.pop(
-                                                                            context,
-                                                                            true),
-                                                                    style: ElevatedButton
-                                                                        .styleFrom(
-                                                                      backgroundColor:
-                                                                          Colors
-                                                                              .red
-                                                                              .shade600,
-                                                                      foregroundColor:
-                                                                          Colors
-                                                                              .white,
-                                                                      padding: const EdgeInsets
-                                                                          .symmetric(
-                                                                          vertical:
-                                                                              14),
-                                                                      shape:
-                                                                          RoundedRectangleBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(10),
-                                                                      ),
-                                                                      elevation:
-                                                                          0,
-                                                                    ),
-                                                                    child:
-                                                                        const Text(
-                                                                      'ลบ',
-                                                                      style:
-                                                                          TextStyle(
-                                                                        fontSize:
-                                                                            15,
-                                                                        fontWeight:
-                                                                            FontWeight.w600,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ],
+                                                            ],
+                                                          ),
                                                         ),
                                                       ),
-                                                    ),
-                                                  );
-                                                  if (ok == true) {
-                                                    final res =
-                                                        await BranchPaymentQrService
-                                                            .delete(q['qr_id']
-                                                                .toString());
-                                                    if (mounted) {
-                                                      if (res['success'] ==
-                                                          true) {
-                                                        SnackMessage
-                                                            .showSuccess(
-                                                          context,
-                                                          'ลบสำเร็จ',
-                                                        );
-                                                      } else {
-                                                        SnackMessage.showError(
-                                                          context,
-                                                          res['message'] ??
-                                                              'ลบไม่สำเร็จ',
-                                                        );
+                                                    );
+
+                                                    if (confirm == true) {
+                                                      final res =
+                                                          await BranchPaymentQrService
+                                                              .toggleActive(
+                                                        q['qr_id'].toString(),
+                                                        !isActive,
+                                                      );
+                                                      if (mounted) {
+                                                        if (res['success'] ==
+                                                            true) {
+                                                          SnackMessage
+                                                              .showSuccess(
+                                                            context,
+                                                            isActive
+                                                                ? 'ปิดใช้งานแล้ว'
+                                                                : 'เปิดใช้งานแล้ว',
+                                                          );
+                                                        } else {
+                                                          SnackMessage
+                                                              .showError(
+                                                            context,
+                                                            res['message'] ??
+                                                                'ทำรายการไม่สำเร็จ',
+                                                          );
+                                                        }
+                                                        await _loadQrs();
                                                       }
-                                                      await _loadQrs();
+                                                    }
+                                                  } else if (val == 'delete') {
+                                                    final ok =
+                                                        await showDialog<bool>(
+                                                      context: context,
+                                                      builder: (context) =>
+                                                          Dialog(
+                                                        backgroundColor:
+                                                            Colors.white,
+                                                        shape:
+                                                            RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(16),
+                                                        ),
+                                                        child: Container(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(24),
+                                                          constraints:
+                                                              const BoxConstraints(
+                                                                  maxWidth:
+                                                                      400),
+                                                          child: Column(
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
+                                                            children: [
+                                                              // Icon Header
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets
+                                                                        .all(
+                                                                        16),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: Colors
+                                                                      .red
+                                                                      .shade50,
+                                                                  shape: BoxShape
+                                                                      .circle,
+                                                                ),
+                                                                child: Icon(
+                                                                  Icons
+                                                                      .delete_outline,
+                                                                  color: Colors
+                                                                      .red
+                                                                      .shade600,
+                                                                  size: 40,
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                  height: 20),
+
+                                                              // Title
+                                                              const Text(
+                                                                'ลบบัญชีนี้หรือไม่?',
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontSize: 16,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  color: Colors
+                                                                      .black87,
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                  height: 12),
+
+                                                              // Account Info
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets
+                                                                        .symmetric(
+                                                                  horizontal:
+                                                                      16,
+                                                                  vertical: 10,
+                                                                ),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: Colors
+                                                                          .grey[
+                                                                      100],
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              8),
+                                                                  border: Border.all(
+                                                                      color: Colors
+                                                                              .grey[
+                                                                          300]!),
+                                                                ),
+                                                                child: Row(
+                                                                  mainAxisSize:
+                                                                      MainAxisSize
+                                                                          .min,
+                                                                  children: [
+                                                                    Icon(
+                                                                        Icons
+                                                                            .account_balance_rounded,
+                                                                        size:
+                                                                            18,
+                                                                        color: Colors
+                                                                            .grey[700]),
+                                                                    const SizedBox(
+                                                                        width:
+                                                                            8),
+                                                                    Flexible(
+                                                                      child:
+                                                                          Text(
+                                                                        '${q['bank_name'] ?? '-'} (${q['account_number'] ?? '-'})',
+                                                                        style:
+                                                                            const TextStyle(
+                                                                          fontSize:
+                                                                              15,
+                                                                          fontWeight:
+                                                                              FontWeight.w600,
+                                                                          color:
+                                                                              Colors.black87,
+                                                                        ),
+                                                                        textAlign:
+                                                                            TextAlign.center,
+                                                                        overflow:
+                                                                            TextOverflow.ellipsis,
+                                                                        maxLines:
+                                                                            2,
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                  height: 16),
+
+                                                              // Warning Box
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets
+                                                                        .all(
+                                                                        14),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: Colors
+                                                                      .red
+                                                                      .shade50,
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              10),
+                                                                  border: Border
+                                                                      .all(
+                                                                    color: Colors
+                                                                        .red
+                                                                        .shade100,
+                                                                    width: 1.5,
+                                                                  ),
+                                                                ),
+                                                                child: Row(
+                                                                  children: [
+                                                                    Icon(
+                                                                      Icons
+                                                                          .warning,
+                                                                      color: Colors
+                                                                          .red
+                                                                          .shade600,
+                                                                      size: 22,
+                                                                    ),
+                                                                    const SizedBox(
+                                                                        width:
+                                                                            12),
+                                                                    Expanded(
+                                                                      child:
+                                                                          Text(
+                                                                        'ข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
+                                                                        style:
+                                                                            TextStyle(
+                                                                          color: Colors
+                                                                              .red
+                                                                              .shade800,
+                                                                          fontSize:
+                                                                              13,
+                                                                          height:
+                                                                              1.4,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                  height: 24),
+
+                                                              // Action Buttons
+                                                              Row(
+                                                                children: [
+                                                                  Expanded(
+                                                                    child:
+                                                                        OutlinedButton(
+                                                                      onPressed: () => Navigator.pop(
+                                                                          context,
+                                                                          false),
+                                                                      style: OutlinedButton
+                                                                          .styleFrom(
+                                                                        foregroundColor:
+                                                                            Colors.grey[700],
+                                                                        side:
+                                                                            BorderSide(
+                                                                          color:
+                                                                              Colors.grey[300]!,
+                                                                          width:
+                                                                              1.5,
+                                                                        ),
+                                                                        padding: const EdgeInsets
+                                                                            .symmetric(
+                                                                            vertical:
+                                                                                14),
+                                                                        shape:
+                                                                            RoundedRectangleBorder(
+                                                                          borderRadius:
+                                                                              BorderRadius.circular(10),
+                                                                        ),
+                                                                      ),
+                                                                      child:
+                                                                          const Text(
+                                                                        'ยกเลิก',
+                                                                        style:
+                                                                            TextStyle(
+                                                                          fontSize:
+                                                                              15,
+                                                                          fontWeight:
+                                                                              FontWeight.w600,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  const SizedBox(
+                                                                      width:
+                                                                          12),
+                                                                  Expanded(
+                                                                    child:
+                                                                        ElevatedButton(
+                                                                      onPressed: () => Navigator.pop(
+                                                                          context,
+                                                                          true),
+                                                                      style: ElevatedButton
+                                                                          .styleFrom(
+                                                                        backgroundColor: Colors
+                                                                            .red
+                                                                            .shade600,
+                                                                        foregroundColor:
+                                                                            Colors.white,
+                                                                        padding: const EdgeInsets
+                                                                            .symmetric(
+                                                                            vertical:
+                                                                                14),
+                                                                        shape:
+                                                                            RoundedRectangleBorder(
+                                                                          borderRadius:
+                                                                              BorderRadius.circular(10),
+                                                                        ),
+                                                                        elevation:
+                                                                            0,
+                                                                      ),
+                                                                      child:
+                                                                          const Text(
+                                                                        'ลบ',
+                                                                        style:
+                                                                            TextStyle(
+                                                                          fontSize:
+                                                                              15,
+                                                                          fontWeight:
+                                                                              FontWeight.w600,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    );
+                                                    if (ok == true) {
+                                                      final res =
+                                                          await BranchPaymentQrService
+                                                              .delete(q['qr_id']
+                                                                  .toString());
+                                                      if (mounted) {
+                                                        if (res['success'] ==
+                                                            true) {
+                                                          SnackMessage
+                                                              .showSuccess(
+                                                            context,
+                                                            'ลบสำเร็จ',
+                                                          );
+                                                        } else {
+                                                          SnackMessage
+                                                              .showError(
+                                                            context,
+                                                            res['message'] ??
+                                                                'ลบไม่สำเร็จ',
+                                                          );
+                                                        }
+                                                        await _loadQrs();
+                                                      }
                                                     }
                                                   }
-                                                }
-                                              },
-                                            ),
-                                          ],
+                                                },
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  );
-                                },
+                                    );
+                                  },
+                                ),
                               ),
                   ),
                 ],
@@ -1085,7 +1109,6 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
   final _bankCtrl = TextEditingController();
   final _accNameCtrl = TextEditingController();
   final _accNumCtrl = TextEditingController();
-  final _orderCtrl = TextEditingController();
   bool _isActive = true;
   bool _saving = false;
 
@@ -1178,7 +1201,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-            prefixIcon: Icon(icon, color: const Color(0xFF1ABC9C), size: 20),
+            prefixIcon: Icon(icon, color: AppTheme.primary, size: 20),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: Colors.grey.shade300),
@@ -1189,7 +1212,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF1ABC9C), width: 2),
+              borderSide: const BorderSide(color: AppTheme.primary, width: 2),
             ),
             filled: true,
             fillColor: Colors.grey.shade50,
@@ -1227,14 +1250,14 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1ABC9C).withOpacity(0.1),
+                          color: AppTheme.primary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
                           isEdit
                               ? Icons.edit_rounded
                               : Icons.add_circle_rounded,
-                          color: const Color(0xFF1ABC9C),
+                          color: AppTheme.primary,
                           size: 24,
                         ),
                       ),
@@ -1246,7 +1269,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
                             Text(
                               isEdit ? 'แก้ไขบัญชี/QR' : 'เพิ่มบัญชี/QR ใหม่',
                               style: const TextStyle(
-                                color: Color(0xFF1ABC9C),
+                                color: AppTheme.primary,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 18,
                               ),
@@ -1358,7 +1381,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
                           onChanged: (value) {
                             setState(() => _isActive = value);
                           },
-                          activeColor: const Color(0xFF1ABC9C),
+                          activeColor: AppTheme.primary,
                         ),
                       ],
                     ),
@@ -1391,7 +1414,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
                         child: ElevatedButton(
                           onPressed: _saving ? null : _save,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1ABC9C),
+                            backgroundColor: AppTheme.primary,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             elevation: 0,
