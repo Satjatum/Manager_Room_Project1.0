@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:manager_room_project/views/widgets/colors.dart';
 import '../services/utility_rate_service.dart';
 import '../services/branch_service.dart';
 import '../services/auth_service.dart';
@@ -217,14 +218,14 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1ABC9C).withOpacity(0.1),
+                            color: AppTheme.primary.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
                             isEdit
                                 ? Icons.edit_rounded
                                 : Icons.add_circle_rounded,
-                            color: const Color(0xFF1ABC9C),
+                            color: AppTheme.primary,
                             size: 24,
                           ),
                         ),
@@ -238,7 +239,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                                     ? 'แก้ไขอัตราค่าบริการ'
                                     : 'เพิ่มอัตราค่าบริการใหม่',
                                 style: const TextStyle(
-                                  color: Color(0xFF1ABC9C),
+                                  color: AppTheme.primary,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 18,
                                 ),
@@ -382,7 +383,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                             onChanged: (value) {
                               setDialogState(() => isActive = value);
                             },
-                            activeColor: const Color(0xFF1ABC9C),
+                            activeColor: AppTheme.primary,
                           ),
                         ],
                       ),
@@ -507,7 +508,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                               }
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1ABC9C),
+                              backgroundColor: AppTheme.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               elevation: 0,
@@ -516,7 +517,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                               ),
                             ),
                             child: Text(
-                              isEdit ? 'บันทึก' : 'เพิ่ม',
+                              isEdit ? 'แก้ไข' : 'บันทึก',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 15,
@@ -566,7 +567,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-            prefixIcon: Icon(icon, color: const Color(0xFF1ABC9C), size: 20),
+            prefixIcon: Icon(icon, color: AppTheme.primary, size: 20),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: Colors.grey.shade300),
@@ -577,7 +578,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF1ABC9C), width: 2),
+              borderSide: const BorderSide(color: AppTheme.primary, width: 2),
             ),
             filled: true,
             fillColor: Colors.grey.shade50,
@@ -654,12 +655,10 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFF1ABC9C).withOpacity(0.08)
-              : Colors.white,
+          color: isSelected ? AppTheme.primary.withOpacity(0.08) : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF1ABC9C) : Colors.grey.shade300,
+            color: isSelected ? AppTheme.primary : Colors.grey.shade300,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -671,13 +670,10 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected
-                      ? const Color(0xFF1ABC9C)
-                      : Colors.grey.shade400,
+                  color: isSelected ? AppTheme.primary : Colors.grey.shade400,
                   width: 2,
                 ),
-                color:
-                    isSelected ? const Color(0xFF1ABC9C) : Colors.transparent,
+                color: isSelected ? AppTheme.primary : Colors.transparent,
               ),
               child: isSelected
                   ? const Icon(Icons.check, color: Colors.white, size: 14)
@@ -693,9 +689,8 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
-                      color: isSelected
-                          ? const Color(0xFF1ABC9C)
-                          : Colors.grey.shade700,
+                      color:
+                          isSelected ? AppTheme.primary : Colors.grey.shade700,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -1197,6 +1192,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                                         ),
                                         // เมนูจัดการ
                                         PopupMenuButton<String>(
+                                          color: Colors.white,
                                           shape: RoundedRectangleBorder(
                                             borderRadius:
                                                 BorderRadius.circular(12),
@@ -1211,8 +1207,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                                               child: Row(
                                                 children: [
                                                   Icon(Icons.edit_rounded,
-                                                      color: const Color(
-                                                          0xFF1ABC9C),
+                                                      color: AppTheme.primary,
                                                       size: 18),
                                                   const SizedBox(width: 8),
                                                   const Text('แก้ไข'),

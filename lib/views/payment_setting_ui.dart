@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:manager_room_project/views/widgets/colors.dart';
 import '../services/payment_rate_service.dart';
 import '../services/branch_service.dart';
 import '../services/auth_service.dart';
@@ -157,7 +158,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
       context: context,
       barrierDismissible: false,
       builder: (context) => const Center(
-        child: CircularProgressIndicator(color: Color(0xff10B981)),
+        child: CircularProgressIndicator(color: AppTheme.primary),
       ),
     );
 
@@ -234,7 +235,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
         child: isLoading
             ? const Center(
                 child: CircularProgressIndicator(
-                  color: Color(0xff10B981),
+                  color: AppTheme.primary,
                   strokeWidth: 3,
                 ),
               )
@@ -304,7 +305,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                             border: InputBorder.none,
                             prefixIcon: Icon(
                               Icons.apartment_rounded,
-                              color: Color(0xff10B981),
+                              color: AppTheme.primary,
                               size: 22,
                             ),
                           ),
@@ -343,7 +344,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                               child: ElevatedButton(
                                 onPressed: _saveSettings,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xff10B981),
+                                  backgroundColor: AppTheme.primary,
                                   foregroundColor: Colors.white,
                                   elevation: 0,
                                   shape: RoundedRectangleBorder(
@@ -404,7 +405,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                       enableLateFee = value;
                     });
                   },
-                  activeColor: const Color(0xff10B981),
+                  activeColor: AppTheme.primary,
                 ),
               ],
             ),
@@ -431,7 +432,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide:
-                          const BorderSide(color: Color(0xff10B981), width: 2),
+                          const BorderSide(color: AppTheme.primary, width: 2),
                     ),
                     filled: true,
                     fillColor: Colors.white,
@@ -563,7 +564,10 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xff10B981), width: 2),
+          borderSide: const BorderSide(
+            color: AppTheme.primary,
+            width: 2,
+          ),
         ),
         filled: true,
         fillColor: Colors.white,
