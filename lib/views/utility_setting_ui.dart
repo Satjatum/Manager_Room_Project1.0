@@ -24,19 +24,64 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
   List<Map<String, dynamic>> branches = [];
   UserModel? currentUser;
 
-  bool _hasBothStandardMetered() {
-    bool hasWater = false;
-    bool hasElectric = false;
+  // ตรวจสอบว่ามีน้ำและไฟแบบมิเตอร์ครบทั้งสองแล้วหรือไม่
+  bool _hasBothMetered() {
+    bool hasWaterMetered = false;
+    bool hasElectricMetered = false;
+
     for (final r in utilityRates) {
       if (r['is_metered'] == true) {
         final name = (r['rate_name'] ?? '').toString().toLowerCase();
-        if (name.contains('น้ำ') || name.contains('water')) hasWater = true;
-        if (name.contains('ไฟ') || name.contains('electric'))
-          hasElectric = true;
+        if (name.contains('น้ำ') || name.contains('water')) {
+          hasWaterMetered = true;
+        }
+        if (name.contains('ไฟ') || name.contains('electric')) {
+          hasElectricMetered = true;
+        }
+        if (hasWaterMetered && hasElectricMetered) {
+          return true;
+        }
       }
-      if (hasWater && hasElectric) return true;
     }
-    return hasWater && hasElectric;
+    return false;
+  }
+
+  // ตรวจสอบว่าชื่อนี้มีแบบมิเตอร์แล้วหรือไม่
+  bool _hasMeteredForType(String rateName) {
+    final checkName = rateName.toLowerCase();
+    for (final r in utilityRates) {
+      if (r['is_metered'] == true) {
+        final existingName = (r['rate_name'] ?? '').toString().toLowerCase();
+        // เช็คว่าเป็นน้ำ
+        if ((checkName.contains('น้ำ') || checkName.contains('water')) &&
+            (existingName.contains('น้ำ') || existingName.contains('water'))) {
+          return true;
+        }
+        // เช็คว่าเป็นไฟ
+        if ((checkName.contains('ไฟ') || checkName.contains('electric')) &&
+            (existingName.contains('ไฟ') ||
+                existingName.contains('electric'))) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // ตรวจสอบว่าชื่อซ้ำหรือไม่ (ยกเว้นตัวเองถ้าเป็นการแก้ไข)
+  bool _isDuplicateName(String rateName, {String? excludeRateId}) {
+    final checkName = rateName.trim().toLowerCase();
+    for (final r in utilityRates) {
+      if (excludeRateId != null && r['rate_id'] == excludeRateId) {
+        continue;
+      }
+      final existingName =
+          (r['rate_name'] ?? '').toString().trim().toLowerCase();
+      if (existingName == checkName) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @override
@@ -140,12 +185,11 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
     final additionalController = TextEditingController(
         text: rate?['additional_charge']?.toString() ?? '0');
 
-    // ล็อคการเลือก metered ถ้ามีน้ำ+ไฟครบแล้ว
-    // ยกเว้นถ้ากำลังแก้ไขรายการที่เป็น metered อยู่แล้ว
-    final lockMeteredAddition =
-        _hasBothStandardMetered() && !(isEdit && rate['is_metered'] == true);
-    bool isMetered =
-        lockMeteredAddition ? false : (rate?['is_metered'] ?? true);
+    // ตรวจสอบว่ามีน้ำและไฟแบบมิเตอร์ครบแล้วหรือไม่ (เฉพาะตอนเพิ่มใหม่)
+    final hasBothMetered = !isEdit && _hasBothMetered();
+
+    // ถ้ามีน้ำ+ไฟมิเตอร์ครบแล้ว ให้เริ่มต้นด้วยค่าคงที่
+    bool isMetered = hasBothMetered ? false : (rate?['is_metered'] ?? true);
     bool isFixed = rate?['is_fixed'] ?? !isMetered;
     bool isActive = rate?['is_active'] ?? true;
 
@@ -222,52 +266,27 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                       icon: Icons.label_rounded,
                     ),
                     const SizedBox(height: 20),
-                    if (lockMeteredAddition)
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.amber.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.lock, color: Colors.amber.shade700),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'สาขานี้มีค่าน้ำและค่าไฟแบบมิเตอร์ครบแล้ว จึงสามารถ${isEdit ? 'แก้ไข' : 'เพิ่ม'}อัตราได้เฉพาะแบบค่าคงที่เท่านั้น',
-                                style: TextStyle(
-                                    color: Colors.amber.shade900, fontSize: 12),
-                              ),
-                            ),
-                          ],
-                        ),
+                    // แสดงส่วนเลือกประเภทเฉพาะตอนเพิ่มใหม่
+                    if (!isEdit) ...[
+                      _buildRateTypeSection(
+                        isMetered: isMetered,
+                        isFixed: isFixed,
+                        showMeteredOption: !hasBothMetered,
+                        onMeteredChanged: () {
+                          setDialogState(() {
+                            isMetered = true;
+                            isFixed = false;
+                          });
+                        },
+                        onFixedChanged: () {
+                          setDialogState(() {
+                            isMetered = false;
+                            isFixed = true;
+                          });
+                        },
                       ),
-                    _buildRateTypeSection(
-                      isMetered: isMetered,
-                      isFixed: isFixed,
-                      onMeteredChanged: () {
-                        if (lockMeteredAddition) {
-                          _showErrorSnackBar(
-                              'ไม่สามารถเลือกแบบมิเตอร์ได้ (มีน้ำ/ไฟแบบมิเตอร์ครบแล้ว)');
-                          return;
-                        }
-                        setDialogState(() {
-                          isMetered = true;
-                          isFixed = false;
-                        });
-                      },
-                      onFixedChanged: () {
-                        setDialogState(() {
-                          isMetered = false;
-                          isFixed = true;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 20),
+                      const SizedBox(height: 20),
+                    ],
                     if (isMetered) ...[
                       _buildFormField(
                         label: 'ราคา/หน่วย *',
@@ -394,9 +413,35 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () async {
-                              if (nameController.text.trim().isEmpty) {
+                              final rateName = nameController.text.trim();
+
+                              if (rateName.isEmpty) {
                                 _showErrorSnackBar(
                                     'กรุณากรอกชื่ออัตราค่าบริการ');
+                                return;
+                              }
+
+                              // ตรวจสอบชื่อซ้ำ
+                              if (_isDuplicateName(rateName,
+                                  excludeRateId:
+                                      isEdit ? rate['rate_id'] : null)) {
+                                _showErrorSnackBar(
+                                    'ชื่ออัตราค่าบริการนี้มีอยู่แล้ว กรุณาใช้ชื่ออื่น');
+                                return;
+                              }
+
+                              // ตรวจสอบว่าประเภทนี้มีแบบมิเตอร์แล้วหรือไม่
+                              if (isMetered &&
+                                  !isEdit &&
+                                  _hasMeteredForType(rateName)) {
+                                final typeName = rateName
+                                            .toLowerCase()
+                                            .contains('น้ำ') ||
+                                        rateName.toLowerCase().contains('water')
+                                    ? 'น้ำ'
+                                    : 'ไฟ';
+                                _showErrorSnackBar(
+                                    'มีค่า$typeNameแบบมิเตอร์อยู่แล้ว ไม่สามารถเพิ่มซ้ำได้');
                                 return;
                               }
 
@@ -410,13 +455,6 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
 
                               if (isFixed && fixedController.text.isEmpty) {
                                 _showErrorSnackBar('กรุณากรอกจำนวนเงินคงที่');
-                                return;
-                              }
-
-                              // ล็อคการเพิ่มแบบมิเตอร์เมื่อมีน้ำ/ไฟครบแล้ว
-                              if (lockMeteredAddition && isMetered) {
-                                _showErrorSnackBar(
-                                    'สาขานี้มีค่าน้ำและค่าไฟแบบมิเตอร์ครบแล้ว ไม่สามารถ${isEdit ? 'แก้ไข' : 'เพิ่ม'}เป็นแบบมิเตอร์ได้');
                                 return;
                               }
 
@@ -558,6 +596,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
     required bool isFixed,
     required VoidCallback onMeteredChanged,
     required VoidCallback onFixedChanged,
+    bool showMeteredOption = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -584,13 +623,15 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
           ],
         ),
         const SizedBox(height: 12),
-        _buildRateTypeOption(
-          title: 'คิดตามมิเตอร์ (Metered)',
-          subtitle: 'คิดตามจำนวนที่ใช้จริง',
-          isSelected: isMetered,
-          onTap: onMeteredChanged,
-        ),
-        const SizedBox(height: 10),
+        if (showMeteredOption) ...[
+          _buildRateTypeOption(
+            title: 'คิดตามมิเตอร์ (Metered)',
+            subtitle: 'คิดตามจำนวนที่ใช้จริง',
+            isSelected: isMetered,
+            onTap: onMeteredChanged,
+          ),
+          const SizedBox(height: 10),
+        ],
         _buildRateTypeOption(
           title: 'ค่าคงที่ (Fixed)',
           subtitle: 'คิดเป็นจำนวนเงินคงที่ทุกเดือน',
