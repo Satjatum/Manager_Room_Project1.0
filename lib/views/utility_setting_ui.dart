@@ -297,14 +297,6 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                         icon: Icons.calendar_month_rounded,
                       ),
                     ],
-                    const SizedBox(height: 16),
-                    _buildFormField(
-                      label: 'ค่าใช้จ่ายเพิ่มเติม',
-                      hint: 'ถ้าไม่มีใส่ 0',
-                      controller: additionalController,
-                      icon: Icons.add_circle_rounded,
-                      isNumeric: true,
-                    ),
                     const SizedBox(height: 20),
                     Container(
                       padding: const EdgeInsets.all(14),
@@ -800,20 +792,6 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text(
-          'ตั้งค่าการบริการ',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: const Color(0xff10B981),
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
       floatingActionButton: selectedBranchId != null
           ? FloatingActionButton(
               onPressed: () => _showAddEditDialog(),
@@ -832,53 +810,48 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                 ),
               )
             : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Color(0xff10B981),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                      child: widget.branchId != null
-                          ? const SizedBox()
-                          : branches.isEmpty
-                              ? const SizedBox()
-                              : Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                  ),
-                                  child: DropdownButtonFormField<String>(
-                                    value: selectedBranchId,
-                                    isExpanded: true,
-                                    decoration: const InputDecoration(
-                                      labelText: 'เลือกสาขา',
-                                      border: InputBorder.none,
-                                      prefixIcon: Icon(
-                                        Icons.store,
-                                        color: Color(0xFF1ABC9C),
-                                        size: 22,
-                                      ),
-                                    ),
-                                    items: branches.map((branch) {
-                                      return DropdownMenuItem<String>(
-                                        value: branch['branch_id'],
-                                        child: Text(
-                                          branch['branch_name'],
-                                          style: const TextStyle(fontSize: 14),
-                                        ),
-                                      );
-                                    }).toList(),
-                                    onChanged: (value) {
-                                      setState(() {
-                                        selectedBranchId = value;
-                                      });
-                                      _loadData();
-                                    },
-                                  ),
+                  Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.arrow_back_ios_new,
+                              color: Colors.black87),
+                          onPressed: () {
+                            if (Navigator.of(context).canPop()) {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          tooltip: 'ย้อนกลับ',
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'ตั้งค่าค่าบริการ',
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
                                 ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'สำหรับจัดการค่าบริการ',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   Expanded(
@@ -928,11 +901,12 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                               final unit = item['rate_unit'] ?? '';
                               final price = item['rate_price'] ?? 0;
                               final fixedAmount = item['fixed_amount'] ?? 0;
-                              final additionalCharge =
-                                  item['additional_charge'] ?? 0;
                               final isActive = item['is_active'] ?? true;
                               final isMetered = item['is_metered'] ?? true;
                               final isFixed = item['is_fixed'] ?? false;
+
+                              final utilityIcon = _getUtilityIcon(item);
+                              final utilityColor = _getUtilityColor(item);
 
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 12),
@@ -952,249 +926,113 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                                   borderRadius: BorderRadius.circular(16),
                                   child: Padding(
                                     padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                    child: Row(
                                       children: [
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: Row(
+                                        // ไอคอนด้านซ้าย
+                                        Container(
+                                          padding: const EdgeInsets.all(14),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                utilityColor.withOpacity(0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: Icon(
+                                            utilityIcon,
+                                            color: utilityColor,
+                                            size: 28,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        // ข้อมูลตรงกลาง
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              // ชื่อและสถานะ
+                                              Row(
                                                 children: [
-                                                  Text(
-                                                    name,
-                                                    style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                      fontSize: 16,
+                                                  Expanded(
+                                                    child: Text(
+                                                      name,
+                                                      style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        fontSize: 16,
+                                                      ),
                                                     ),
                                                   ),
                                                 ],
                                               ),
-                                            ),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 10,
-                                                vertical: 5,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: isActive
-                                                    ? const Color(0xFFD1FAE5)
-                                                    : const Color(0xFFF3F4F6),
-                                                borderRadius:
-                                                    BorderRadius.circular(20),
-                                              ),
-                                              child: Text(
-                                                isActive ? 'ใช้งาน' : 'ปิด',
+                                              const SizedBox(height: 8),
+                                              // ราคา
+                                              Text(
+                                                isMetered
+                                                    ? '${price.toStringAsFixed(2)} บาท/$unit'
+                                                    : '${fixedAmount.toStringAsFixed(2)} บาท',
                                                 style: TextStyle(
-                                                  fontSize: 11,
+                                                  fontSize: 15,
                                                   fontWeight: FontWeight.w600,
-                                                  color: isActive
-                                                      ? const Color(0xFF065F46)
-                                                      : const Color(0xFF6B7280),
+                                                  color: utilityColor,
                                                 ),
                                               ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            PopupMenuButton<String>(
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              icon: Icon(
-                                                Icons.more_vert_rounded,
-                                                color: Colors.grey.shade600,
-                                              ),
-                                              itemBuilder: (context) => [
-                                                PopupMenuItem(
-                                                  value: 'edit',
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(Icons.edit_rounded,
-                                                          color: const Color(
-                                                              0xFF1ABC9C),
-                                                          size: 18),
-                                                      const SizedBox(width: 8),
-                                                      const Text('แก้ไข'),
-                                                    ],
-                                                  ),
-                                                ),
-                                                PopupMenuItem(
-                                                  value: 'delete',
-                                                  child: Row(
-                                                    children: [
-                                                      const Icon(
-                                                        Icons
-                                                            .delete_outline_rounded,
-                                                        color: Colors.red,
-                                                        size: 18,
-                                                      ),
-                                                      const SizedBox(width: 8),
-                                                      const Text(
-                                                        'ลบ',
-                                                        style: TextStyle(
-                                                            color: Colors.red),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                              onSelected: (value) {
-                                                if (value == 'edit') {
-                                                  _showAddEditDialog(
-                                                      rate: item);
-                                                } else if (value == 'delete') {
-                                                  _deleteRate(item);
-                                                }
-                                              },
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Container(
-                                          padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey.shade50,
-                                            borderRadius:
-                                                BorderRadius.circular(10),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.all(8),
-                                                decoration: BoxDecoration(
-                                                  color: const Color(0xFF1ABC9C)
-                                                      .withOpacity(0.1),
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                                child: const Icon(
-                                                  Icons.attach_money_rounded,
-                                                  color: Color(0xFF1ABC9C),
-                                                  size: 18,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 12),
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      isMetered
-                                                          ? 'ราคา: ${price.toStringAsFixed(2)} บาท/$unit'
-                                                          : 'ราคาคงที่: ${fixedAmount.toStringAsFixed(2)} บาท',
-                                                      style: TextStyle(
-                                                        fontSize: 13,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        color: Colors
-                                                            .grey.shade800,
-                                                      ),
-                                                    ),
-                                                    if (additionalCharge > 0)
-                                                      const SizedBox(height: 4),
-                                                    if (additionalCharge > 0)
-                                                      Text(
-                                                        'ค่าใช้จ่ายเพิ่มเติม: ${additionalCharge.toStringAsFixed(2)} บาท',
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          color: Colors
-                                                              .grey.shade600,
-                                                        ),
-                                                      ),
-                                                  ],
-                                                ),
-                                              ),
+                                              const SizedBox(height: 4),
+                                              // สถานะการใช้งาน
                                             ],
                                           ),
                                         ),
-                                        const SizedBox(height: 12),
-                                        Wrap(
-                                          spacing: 8,
-                                          children: [
-                                            if (isMetered)
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 10,
-                                                  vertical: 6,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.blue.shade50,
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                    color: Colors.blue.shade200,
-                                                  ),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.straighten_rounded,
-                                                      size: 14,
-                                                      color:
-                                                          Colors.blue.shade700,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      'คิดตามมิเตอร์',
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        color: Colors
-                                                            .blue.shade700,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
+                                        // เมนูจัดการ
+                                        PopupMenuButton<String>(
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          icon: Icon(
+                                            Icons.more_vert_rounded,
+                                            color: Colors.grey.shade600,
+                                          ),
+                                          itemBuilder: (context) => [
+                                            PopupMenuItem(
+                                              value: 'edit',
+                                              child: Row(
+                                                children: [
+                                                  Icon(Icons.edit_rounded,
+                                                      color: const Color(
+                                                          0xFF1ABC9C),
+                                                      size: 18),
+                                                  const SizedBox(width: 8),
+                                                  const Text('แก้ไข'),
+                                                ],
                                               ),
-                                            if (isFixed)
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                  horizontal: 10,
-                                                  vertical: 6,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.purple.shade50,
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                    color:
-                                                        Colors.purple.shade200,
+                                            ),
+                                            PopupMenuItem(
+                                              value: 'delete',
+                                              child: Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons
+                                                        .delete_outline_rounded,
+                                                    color: Colors.red,
+                                                    size: 18,
                                                   ),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.lock_clock_rounded,
-                                                      size: 14,
-                                                      color: Colors
-                                                          .purple.shade700,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      'เหมาจ่าย',
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        color: Colors
-                                                            .purple.shade700,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
+                                                  const SizedBox(width: 8),
+                                                  const Text(
+                                                    'ลบ',
+                                                    style: TextStyle(
+                                                        color: Colors.red),
+                                                  ),
+                                                ],
                                               ),
+                                            ),
                                           ],
+                                          onSelected: (value) {
+                                            if (value == 'edit') {
+                                              _showAddEditDialog(rate: item);
+                                            } else if (value == 'delete') {
+                                              _deleteRate(item);
+                                            }
+                                          },
                                         ),
                                       ],
                                     ),
@@ -1208,6 +1046,48 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
               ),
       ),
     );
+  }
+
+  // ฟังก์ชันสำหรับเลือกไอคอนตามประเภท utility
+  IconData _getUtilityIcon(Map<String, dynamic> item) {
+    final name = (item['rate_name'] ?? '').toString().toLowerCase();
+    final isFixed = item['is_fixed'] ?? false;
+
+    // ถ้าเป็นค่าคงที่ ให้ใช้ไอคอนเงิน
+    if (isFixed) {
+      return Icons.attach_money_rounded;
+    }
+
+    // ตรวจสอบจากชื่อ
+    if (name.contains('น้ำ') || name.contains('water')) {
+      return Icons.water_drop_rounded;
+    } else if (name.contains('ไฟ') || name.contains('electric')) {
+      return Icons.bolt_rounded;
+    }
+
+    // default
+    return Icons.receipt_long_rounded;
+  }
+
+  // ฟังก์ชันสำหรับเลือกสีตามประเภท utility
+  Color _getUtilityColor(Map<String, dynamic> item) {
+    final name = (item['rate_name'] ?? '').toString().toLowerCase();
+    final isFixed = item['is_fixed'] ?? false;
+
+    // ถ้าเป็นค่าคงที่ ให้ใช้สีม่วง
+    if (isFixed) {
+      return Colors.purple;
+    }
+
+    // ตรวจสอบจากชื่อ
+    if (name.contains('น้ำ') || name.contains('water')) {
+      return Colors.blue;
+    } else if (name.contains('ไฟ') || name.contains('electric')) {
+      return Colors.orange;
+    }
+
+    // default
+    return Colors.grey;
   }
 
   @override

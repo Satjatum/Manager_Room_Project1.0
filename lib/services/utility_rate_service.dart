@@ -118,7 +118,6 @@ class UtilityRatesService {
         'is_metered': isMetered,
         'is_fixed': isFixed,
         'fixed_amount': fixedAmount,
-        'additional_charge': additionalCharge,
         'rate_desc': rateDesc?.trim(),
         'is_active': isActive,
         'created_by': createdBy
@@ -161,9 +160,6 @@ class UtilityRatesService {
       if (isMetered != null) updates['is_metered'] = isMetered;
       if (isFixed != null) updates['is_fixed'] = isFixed;
       if (fixedAmount != null) updates['fixed_amount'] = fixedAmount;
-      if (additionalCharge != null) {
-        updates['additional_charge'] = additionalCharge;
-      }
       if (rateDesc != null) updates['rate_desc'] = rateDesc.trim();
       if (isActive != null) updates['is_active'] = isActive;
 
@@ -224,7 +220,6 @@ class UtilityRatesService {
     final bool isFixed = rate['is_fixed'] ?? false;
     final double ratePrice = (rate['rate_price'] ?? 0).toDouble();
     final double fixedAmount = (rate['fixed_amount'] ?? 0).toDouble();
-    final double additionalCharge = (rate['additional_charge'] ?? 0).toDouble();
 
     double total = 0;
 
@@ -237,9 +232,6 @@ class UtilityRatesService {
     if (isFixed) {
       total += fixedAmount;
     }
-
-    // เพิ่มค่าใช้จ่ายเพิ่มเติม
-    total += additionalCharge;
 
     return total;
   }
