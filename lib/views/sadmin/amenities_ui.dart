@@ -457,7 +457,7 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
             );
             await _loadAmenities();
           } else {
-            print(response['message']);
+            print("เกิดข้อผิดพลาด: ${response['message']}");
             throw Exception(response['message']);
           }
         }
@@ -466,11 +466,7 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
           Navigator.pop(context);
         }
         if (mounted) {
-          print(e.toString().replaceAll('Exception: ', ''));
-          SnackMessage.showError(
-            context,
-            e.toString().replaceAll('Exception: ', ''),
-          );
+          print("เกิดข้อผิดพลาด: $e");
         }
       }
     }
@@ -709,7 +705,7 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
             );
             await _loadAmenities();
           } else {
-            throw Exception(result['message']);
+            print("เกิดข้อผิดพลาด: ${result['message']}");
           }
         }
       } catch (e) {
@@ -717,11 +713,7 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
           Navigator.of(context).pop();
         }
         if (mounted) {
-          print(e.toString().replaceAll('Exception: ', ''));
-          SnackMessage.showError(
-            context,
-            e.toString().replaceAll('Exception: ', ''),
-          );
+          print("เกิดข้อผิดพลาด: $e");
         }
       }
     }

@@ -3,12 +3,12 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:supabase_flutter/supabase_flutter.dart';
+// Services //
 import '../../services/room_service.dart';
-import '../../services/branch_service.dart';
 import '../../services/contract_service.dart';
-import '../../middleware/auth_middleware.dart';
-import '../../models/user_models.dart';
+// Widgets //
 import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
 
 class ContractAddUI extends StatefulWidget {
   final String tenantId;
@@ -29,15 +29,12 @@ class ContractAddUI extends StatefulWidget {
 }
 
 class _ContractAddUIState extends State<ContractAddUI> {
-  UserModel? _currentUser;
   bool _loading = true;
   bool _saving = false;
   final SupabaseClient _supabase = Supabase.instance.client;
 
   String? _selectedBranchId;
-  String? _branchName;
   String? _selectedRoomId;
-  List<Map<String, dynamic>> _branches = [];
   List<Map<String, dynamic>> _availableRooms = [];
 
   final _priceController = TextEditingController();
@@ -56,8 +53,6 @@ class _ContractAddUIState extends State<ContractAddUI> {
   void initState() {
     super.initState();
     _selectedBranchId = widget.branchId;
-    // _startDate = DateTime.now();
-    // _endDate = DateTime.now().add(const Duration(days: 365));
     _init();
   }
 
@@ -71,17 +66,12 @@ class _ContractAddUIState extends State<ContractAddUI> {
 
   Future<void> _init() async {
     try {
-      _currentUser = await AuthMiddleware.getCurrentUser();
-
       if (_selectedBranchId != null && _selectedBranchId!.isNotEmpty) {
-        final b = await BranchService.getBranchById(_selectedBranchId!);
-        _branchName = b?['branch_name'];
         await _loadRooms(_selectedBranchId!);
-      } else {
-        _branches = await BranchService.getBranchesByUser();
-      }
+      } else {}
     } catch (e) {
-      _showError('ไม่สามารถโหลดข้อมูลได้: $e');
+      print('ไม่สามารถโหลดข้อมูลได้: $e');
+      SnackMessage.showError(context, 'ไม่สามารถโหลดข้อมูลได้');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -99,38 +89,6 @@ class _ContractAddUIState extends State<ContractAddUI> {
       _availableRooms = rooms;
       _selectedRoomId = null;
     });
-  }
-
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   Future<void> _selectDate(BuildContext context, bool isStartDate) async {
@@ -190,31 +148,37 @@ class _ContractAddUIState extends State<ContractAddUI> {
         });
       }
     } catch (e) {
-      _showError('เกิดข้อผิดพลาดในการเลือกไฟล์: $e');
+      print('เกิดข้อผิดพลาดในการเลือกไฟล์: $e');
+      SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการเลือกไฟล์');
     }
   }
 
   Future<void> _save() async {
     if (_selectedBranchId == null || _selectedBranchId!.isEmpty) {
-      _showError('กรุณาเลือกสาขา');
+      print('กรุณาเลือกสาขา');
+      SnackMessage.showError(context, 'กรุณาเลือกสาขา');
       return;
     }
     if (_selectedRoomId == null) {
-      _showError('กรุณาเลือกห้องพัก');
+      print('กรุณาเลือกห้องพัก');
+      SnackMessage.showError(context, 'กรุณาเลือกห้องพัก');
       return;
     }
     if (_startDate == null || _endDate == null) {
-      _showError('กรุณาเลือกวันเริ่มและสิ้นสุดสัญญา');
+      print('กรุณาเลือกวันเริ่มและสิ้นสุดสัญญา');
+      SnackMessage.showError(context, 'กรุณาเลือกวันเริ่มและสิ้นสุดสัญญา');
       return;
     }
     if ((_priceController.text.trim()).isEmpty ||
         double.tryParse(_priceController.text.trim()) == null) {
-      _showError('กรุณากรอกค่าเช่าที่ถูกต้อง');
+      print('กรุณากรอกค่าเช่าที่ถูกต้อง');
+      SnackMessage.showError(context, 'กรุณากรอกค่าเช่าที่ถูกต้อง');
       return;
     }
     if ((_depositController.text.trim()).isEmpty ||
         double.tryParse(_depositController.text.trim()) == null) {
-      _showError('กรุณากรอกค่าประกันที่ถูกต้อง');
+      print('กรุณากรอกค่าประกันที่ถูกต้อง');
+      SnackMessage.showError(context, 'กรุณากรอกค่าประกันที่ถูกต้อง');
       return;
     }
 
@@ -310,14 +274,18 @@ class _ContractAddUIState extends State<ContractAddUI> {
 
       if (result['success'] == true) {
         if (mounted) {
-          _showSuccess('สร้างสัญญาสำเร็จ');
+          print('สร้างสัญญาสำเร็จ');
+          SnackMessage.showSuccess(context, 'สร้างสัญญาสำเร็จ');
           Navigator.pop(context, true);
         }
       } else {
-        _showError(result['message'] ?? 'ไม่สามารถสร้างสัญญาได้');
+        print(result['message'] ?? 'ไม่สามารถสร้างสัญญาได้');
+        SnackMessage.showError(
+            context, result['message'] ?? 'ไม่สามารถสร้างสัญญาได้');
       }
     } catch (e) {
-      _showError('เกิดข้อผิดพลาด: $e');
+      print('เกิดข้อผิดพลาด: $e');
+      SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
     } finally {
       if (mounted) setState(() => _saving = false);
     }

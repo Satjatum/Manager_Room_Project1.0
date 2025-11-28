@@ -391,7 +391,7 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
             SnackMessage.showSuccess(context, result['message']);
             await _loadBranchDetails();
           } else {
-            print(result['message']);
+            print("เกิดข้อผิดพลาด ${result['message']}");
             throw Exception(result['message']);
           }
         }
@@ -401,7 +401,6 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
         }
         if (mounted) {
           print('เกิดข้อผิดพลาด: $e');
-          SnackMessage.showSuccess(context, 'เกิดข้อผิดพลาด');
         }
       }
     }
@@ -620,23 +619,12 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
         if (mounted) {
           if (result['success']) {
             Navigator.pop(context, true);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.white),
-                    SizedBox(width: 12),
-                    Expanded(
-                        child:
-                            Text(result['message'] ?? 'ลบสาขาเรียบร้อยแล้ว')),
-                  ],
-                ),
-                backgroundColor: Colors.green.shade600,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+            print(result['message'] ?? 'ลบสาขาเรียบร้อยแล้ว');
+            SnackMessage.showSuccess(
+                context, result['message'] ?? 'ลบสาขาเรียบร้อยแล้ว');
           } else {
-            throw Exception(result['message']);
+            print(
+                "เกิดข้อผิดพลาด: ${result['message'] ?? 'ลบสาขาเรียบร้อยแล้ว'} ");
           }
         }
       } catch (e) {
@@ -644,13 +632,7 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
           Navigator.pop(context);
         }
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString().replaceAll('ข้อยกเว้น: ', '')),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          print("เกิดข้อผิดพลาด: $e");
         }
       }
     }
@@ -1129,12 +1111,12 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey[300]!),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.all(16),
-            child: Row(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
                 Container(
                   padding: EdgeInsets.all(8),
@@ -1155,16 +1137,13 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
                 ),
               ],
             ),
-          ),
-          // Divider(height: 1, color: Colors.grey[300]),
-          Padding(
-            padding: EdgeInsets.all(16),
-            child: Column(
+            const SizedBox(height: 16),
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: children,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

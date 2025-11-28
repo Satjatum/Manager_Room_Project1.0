@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:manager_room_project/middleware/auth_middleware.dart';
-import 'package:manager_room_project/services/payment_service.dart';
-import 'package:manager_room_project/views/widgets/colors.dart';
-import 'package:manager_room_project/utils/formatMonthy.dart';
+
+// Middleware //
+import '../../middleware/auth_middleware.dart';
+// Services //
+import '../../services/payment_service.dart';
+// Widgets //
+import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
+// Utils //
+import '../../utils/formatMonthy.dart';
 
 class TenantPayHistoryUi extends StatefulWidget {
   final String? invoiceId; // ถ้าไม่ระบุ จะแสดงประวัติทั้งหมดของผู้เช่า
@@ -142,12 +148,9 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
       setState(() => _loading = false);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('โหลดประวัติไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'),
-            duration: Duration(seconds: 3),
-          ),
-        );
+        print('เกิดข้อผิดพลาดในการโหลดประวัติไม่สำเร็จ');
+        SnackMessage.showError(
+            context, 'เกิดข้อผิดพลาดในการโหลดประวัติไม่สำเร็จ');
       }
     }
   }

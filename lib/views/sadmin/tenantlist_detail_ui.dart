@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-// -----
+
+// Models //
+import '../../models/user_models.dart';
+// Middleware //
+import '../../middleware/auth_middleware.dart';
+// Services //
 import '../../services/tenant_service.dart';
 import '../../services/contract_service.dart';
-// -----
-import '../../middleware/auth_middleware.dart';
-// -----
-import '../../models/user_models.dart';
-// -----
+// Page //
 import 'contract_edit_ui.dart';
 import 'contract_add_ui.dart';
 import 'contractlist_detail_ui.dart';
 import 'contract_history_ui.dart';
 import 'tenant_edit_ui.dart';
-// -----
+// Widgets //
 import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
 
 class TenantDetailUI extends StatefulWidget {
   final String tenantId;
@@ -77,43 +78,10 @@ class _TenantDetailUIState extends State<TenantDetailUI>
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        _showErrorSnackBar('ไม่สามารถโหลดข้อมูลได้: $e');
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
-  }
-
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.green.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
   }
 
   Future<void> _toggleStatus() async {
@@ -308,10 +276,13 @@ class _TenantDetailUIState extends State<TenantDetailUI>
 
         if (mounted) {
           if (result['success']) {
-            _showSuccessSnackBar(result['message']);
+            print(result['message']);
+            SnackMessage.showSuccess(context, result['message']);
             _loadData();
           } else {
-            _showErrorSnackBar(result['message']);
+            print('เกิดข้อผิดพลาด: ${result['message']}');
+            SnackMessage.showError(
+                context, 'เกิดข้อผิดพลาด: ${result['message']}');
           }
         }
       } catch (e) {
@@ -319,7 +290,8 @@ class _TenantDetailUIState extends State<TenantDetailUI>
           Navigator.pop(context);
         }
         if (mounted) {
-          _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+          print('เกิดข้อผิดพลาด: $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }
     }
@@ -777,7 +749,6 @@ class _TenantDetailUIState extends State<TenantDetailUI>
 
   Widget _buildModernHeader() {
     final tenantName = _tenantData?['tenant_fullname'] ?? 'ไม่ระบุชื่อ';
-    final tenantPhone = _tenantData?['tenant_phone'] ?? '-';
     final tenantProfile = _tenantData?['tenant_profile'];
     final isActive = _tenantData?['is_active'] ?? false;
 
@@ -1204,7 +1175,6 @@ class _TenantDetailUIState extends State<TenantDetailUI>
   }
 
   Widget _buildContractInfo() {
-    final activeContract = _statistics?['active_contract'];
     final totalContracts = _statistics?['total_contracts'] ?? 0;
     final latest = _latestContract; // ล่าสุด อาจเป็น pending/active/อื่นๆ
     final isLatestTerminated =
@@ -1322,7 +1292,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) =>
-                                                ContractEditUI(
+                                                ContractEditUi(
                                               contractId: latest['contract_id'],
                                             ),
                                           ),
@@ -1480,7 +1450,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ContractHistoryUI(
+                      builder: (context) => ContractHistoryUi(
                         tenantId: widget.tenantId,
                         tenantName: _tenantData?['tenant_fullname']?.toString(),
                       ),

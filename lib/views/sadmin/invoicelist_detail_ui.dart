@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:manager_room_project/services/invoice_service.dart';
-import 'package:manager_room_project/services/meter_service.dart';
+// Middleware //
 import 'package:manager_room_project/middleware/auth_middleware.dart';
-import 'package:manager_room_project/services/payment_service.dart';
-import 'package:manager_room_project/services/auth_service.dart';
-import 'package:manager_room_project/services/payment_rate_service.dart';
-import 'package:manager_room_project/services/receipt_print_service.dart';
-import 'package:manager_room_project/models/user_models.dart';
-import 'package:manager_room_project/views/widgets/colors.dart';
-import 'package:manager_room_project/views/tenant/tenant_pay_bill_ui.dart';
-import 'package:manager_room_project/utils/formatMonthy.dart';
+// Services //
+import '../../services/payment_service.dart';
+import '../../services/payment_rate_service.dart';
+import '../../services/receipt_print_service.dart';
+import '../../services/invoice_service.dart';
+import '../../services/meter_service.dart';
+// Page //
+import '../tenant/tenant_pay_bill_ui.dart';
+// Widgets //
+import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
+// Utils //
+import '../../utils/formatMonthy.dart';
 
 class InvoiceListDetailUi extends StatefulWidget {
   final String invoiceId;
@@ -24,12 +28,9 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
   Map<String, dynamic>? _invoice;
   final Map<String, Map<String, dynamic>> _readingById = {};
   Map<String, dynamic>? _latestSlip;
-  Map<String, dynamic>? _paymentSettings;
   bool _pendingVerification = false;
   bool _rejectedSlip = false;
   String _rejectionReason = '';
-  UserModel? _currentUser;
-
   @override
   void initState() {
     super.initState();
@@ -47,7 +48,7 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
     if (v is List) {
       final out = <Map<String, dynamic>>[];
       for (final e in v) {
-        if (e is Map) out.add(Map<String, dynamic>.from(e as Map));
+        if (e is Map) out.add(Map<String, dynamic>.from(e));
       }
       return out;
     }
@@ -55,7 +56,7 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
   }
 
   Map<String, dynamic> _asMap(dynamic v) {
-    if (v is Map) return Map<String, dynamic>.from(v as Map);
+    if (v is Map) return Map<String, dynamic>.from(v);
     if (v is List && v.isNotEmpty && v.first is Map) {
       return Map<String, dynamic>.from(v.first as Map);
     }
@@ -67,10 +68,6 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      // โหลดข้อมูล user ปัจจุบัน
-      final user = await AuthService.getCurrentUser();
-      _currentUser = user;
-
       var invRaw = await InvoiceService.getInvoiceById(widget.invoiceId);
       // Hybrid: รีคอมพิวต์ค่าปรับล่าช้าเมื่อเปิดดูบิล
       try {
@@ -91,7 +88,6 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
                   await PaymentSettingsService.getPaymentSettingById(
                       paymentSettingId);
               if (settings != null) {
-                _paymentSettings = settings;
                 debugPrint('✅ โหลด payment_settings สำเร็จ: $paymentSettingId');
               } else {
                 debugPrint('⚠️ ไม่พบ payment_settings: $paymentSettingId');
@@ -176,8 +172,8 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('โหลดรายละเอียดไม่สำเร็จ: $e')));
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -558,16 +554,13 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
                   await ReceiptPrintService.printSlipFromSlipRow(_latestSlip!);
                 } else {
                   // ถ้าไม่มี slip ให้แจ้งเตือน
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('ไม่พบข้อมูลสลิปสำหรับดาวน์โหลด')),
-                  );
+                  print('ไม่พบข้อมูลสลิปสำหรับดาวน์โหลด');
+                  SnackMessage.showError(
+                      context, 'ไม่พบข้อมูลสลิปสำหรับดาวน์โหลด');
                 }
               } catch (e) {
                 print('ดาวน์โหลดสลิปไม่สำเร็จ: $e');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('ดาวน์โหลดสลิปไม่สำเร็จ')),
-                );
+                SnackMessage.showError(context, 'ดาวน์โหลดสลิปไม่สำเร็จ');
               }
             },
             icon: const Icon(Icons.download, color: Colors.white),

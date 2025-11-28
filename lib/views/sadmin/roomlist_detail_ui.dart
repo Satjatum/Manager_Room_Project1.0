@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-// -----
-import '../../models/user_models.dart';
-// -----
-import '../../middleware/auth_middleware.dart';
-// -----
+// Services //
 import '../../services/room_service.dart';
-// -----
+// Widgets //
 import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
 
 class RoomListDetailUi extends StatefulWidget {
   final String roomId;
@@ -25,7 +22,6 @@ class _RoomListDetailUiUiState extends State<RoomListDetailUi> {
   List<Map<String, dynamic>> _amenities = [];
   List<Map<String, dynamic>> _images = [];
   bool _isLoading = true;
-  UserModel? _currentUser;
   int _currentImageIndex = 0;
 
   @override
@@ -38,14 +34,12 @@ class _RoomListDetailUiUiState extends State<RoomListDetailUi> {
     setState(() => _isLoading = true);
 
     try {
-      final user = await AuthMiddleware.getCurrentUser();
       final room = await RoomService.getRoomById(widget.roomId);
       final amenities = await RoomService.getRoomAmenities(widget.roomId);
       final images = await RoomService.getRoomImages(widget.roomId);
 
       if (mounted) {
         setState(() {
-          _currentUser = user;
           _roomData = room;
           _amenities = amenities;
           _images = images;
@@ -55,12 +49,8 @@ class _RoomListDetailUiUiState extends State<RoomListDetailUi> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -139,11 +129,6 @@ class _RoomListDetailUiUiState extends State<RoomListDetailUi> {
         return Icons.star;
     }
   }
-
-  bool get _canEdit =>
-      _currentUser != null &&
-      (_currentUser!.userRole == UserRole.superAdmin ||
-          _currentUser!.userRole == UserRole.admin);
 
   @override
   Widget build(BuildContext context) {

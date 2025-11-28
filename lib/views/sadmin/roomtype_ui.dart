@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
+// Services //
 import '../../services/room_service.dart';
+// Widgets //
 import '../widgets/colors.dart';
 import '../widgets/snack_message.dart';
 
-class RoomTypesUI extends StatefulWidget {
-  const RoomTypesUI({Key? key}) : super(key: key);
+class RoomTypesUi extends StatefulWidget {
+  const RoomTypesUi({Key? key}) : super(key: key);
 
   @override
-  State<RoomTypesUI> createState() => _RoomTypesUIState();
+  State<RoomTypesUi> createState() => _RoomTypesUiState();
 }
 
-class _RoomTypesUIState extends State<RoomTypesUI> {
+class _RoomTypesUiState extends State<RoomTypesUi> {
   List<Map<String, dynamic>> _roomTypes = [];
   List<Map<String, dynamic>> _filteredRoomTypes = [];
   bool _isLoading = true;
@@ -178,10 +180,8 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        SnackMessage.showError(
-          context,
-          'เกิดข้อผิดพลาด: ${e.toString()}',
-        );
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -346,10 +346,10 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                       child: ElevatedButton(
                         onPressed: () {
                           if (nameController.text.trim().isEmpty) {
-                            SnackMessage.showWarning(
-                              context,
-                              'กรุณากรอกชื่อประเภทห้อง',
-                            );
+                            print('กรุณากรอกชื่อประเภทห้อง');
+                            SnackMessage.showError(
+                                context, 'กรุณากรอกชื่อประเภทห้อง');
+
                             return;
                           }
                           Navigator.pop(context, true);
@@ -417,12 +417,11 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
 
         if (mounted) {
           if (response['success']) {
-            SnackMessage.showSuccess(
-              context,
-              response['message'],
-            );
+            print(response['message']);
+            SnackMessage.showSuccess(context, response['message']);
             await _loadRoomTypes();
           } else {
+            print("เกิดข้อผิดพลาด {$response['message']}");
             throw Exception(response['message']);
           }
         }
@@ -431,10 +430,8 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
           Navigator.pop(context);
         }
         if (mounted) {
-          SnackMessage.showError(
-            context,
-            e.toString().replaceAll('Exception: ', ''),
-          );
+          print('เกิดข้อผิดพลาด: $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }
     }
@@ -667,12 +664,11 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
 
         if (mounted) {
           if (result['success'] == true) {
-            SnackMessage.showSuccess(
-              context,
-              result['message'] ?? 'ลบสำเร็จ',
-            );
+            print(result['message']);
+            SnackMessage.showSuccess(context, result['message'] ?? 'ลบสำเร็จ');
             await _loadRoomTypes();
           } else {
+            print("เกิดข้อผิดพลาด {$result['message']}");
             throw Exception(result['message']);
           }
         }
@@ -681,10 +677,8 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
           Navigator.of(context).pop();
         }
         if (mounted) {
-          SnackMessage.showError(
-            context,
-            e.toString().replaceAll('Exception: ', ''),
-          );
+          print('เกิดข้อผิดพลาด: $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }
     }

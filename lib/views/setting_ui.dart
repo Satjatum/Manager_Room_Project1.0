@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 
 import 'widgets/mainnavbar.dart';
+// Models //
+import '../../models/user_models.dart';
+// Middleware //
+import '../../middleware/auth_middleware.dart';
+// Services //
 import '../services/auth_service.dart';
-import '../middleware/auth_middleware.dart';
-import '../models/user_models.dart';
+// Page //
 import 'login_ui.dart';
 import 'sadmin/user_management_ui.dart';
+// Widgets //
+import 'widgets/snack_message.dart';
 
-/// Re‑styled Settings UI
-/// - คงทุก method / navigation / data เดิม
-/// - ปรับเฉพาะ UI: spacing, hierarchy, readability, touch target, สีตามธีม (#10B981)
 class SettingUi extends StatefulWidget {
   const SettingUi({Key? key}) : super(key: key);
 
@@ -91,10 +94,9 @@ class _SettingUiState extends State<SettingUi> {
       await AuthService.cleanExpiredSessions();
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('ออกจากระบบเรียบร้อยแล้ว'),
-          backgroundColor: Colors.green,
-        ));
+        print('ออกจากระบบเรียบร้อยแล้ว');
+        SnackMessage.showSuccess(context, 'ออกจากระบบเรียบร้อยแล้ว');
+
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const LoginUi()),
           (route) => false,
@@ -103,10 +105,7 @@ class _SettingUiState extends State<SettingUi> {
     } catch (e) {
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('เกิดข้อผิดพลาดในการออกจากระบบ'),
-          backgroundColor: Colors.red,
-        ));
+        print('เกิดข้อผิดพลาดในการออกจากระบบ');
       }
     }
   }
@@ -137,20 +136,18 @@ class _SettingUiState extends State<SettingUi> {
         );
         final result = await AuthService.terminateOtherSessions();
         if (mounted) {
-          Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(result['message']),
-            backgroundColor: result['success'] ? Colors.green : Colors.red,
-          ));
-          if (result['success']) _loadUserData();
+          if (result['success']) {
+            SnackMessage.showSuccess(context, result['message']);
+            _loadUserData();
+          } else {
+            SnackMessage.showError(context, result['message']);
+          }
         }
       } catch (e) {
         if (mounted) {
           Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('เกิดข้อผิดพลาดในการยกเลิกเซสชัน'),
-            backgroundColor: Colors.red,
-          ));
+          print('เกิดข้อผิดพลาดในการยกเลิกเซสชัน $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการยกเลิกเซสชัน');
         }
       }
     }

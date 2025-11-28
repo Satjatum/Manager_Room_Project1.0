@@ -1,15 +1,19 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:image_picker/image_picker.dart';
-import '../../services/room_service.dart';
-import '../../services/branch_service.dart';
-import '../../services/image_service.dart';
-import '../../models/user_models.dart';
-import '../../middleware/auth_middleware.dart';
-import '../widgets/colors.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+// Models //
+import '../../models/user_models.dart';
+// Middleware //
+import '../../middleware/auth_middleware.dart';
+// Services //
+import '../../services/room_service.dart';
+import '../../services/image_service.dart';
+// Widgets //
+import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
 
 class _ImageItem {
   final String? imageId;
@@ -58,7 +62,6 @@ class _RoomEditUIState extends State<RoomEditUI> {
   bool _isLoading = false;
   bool _isLoadingData = true;
 
-  List<Map<String, dynamic>> _branches = [];
   List<Map<String, dynamic>> _roomTypes = [];
   List<Map<String, dynamic>> _roomCategories = [];
   List<Map<String, dynamic>> _amenities = [];
@@ -154,14 +157,12 @@ class _RoomEditUIState extends State<RoomEditUI> {
     if (_currentUser == null) return;
 
     try {
-      final branches = await BranchService.getBranchesByUser();
       final roomTypes = await RoomService.getRoomTypes();
       final roomCategories = await RoomService.getRoomCategories();
       final amenities = await RoomService.getAmenities();
 
       if (mounted) {
         setState(() {
-          _branches = branches;
           _roomTypes = roomTypes;
           _roomCategories = roomCategories;
           _amenities = amenities;
@@ -169,11 +170,10 @@ class _RoomEditUIState extends State<RoomEditUI> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('ไม่สามารถโหลดข้อมูล: $e'),
-            backgroundColor: Colors.orange,
-          ),
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
+        SnackMessage.showError(
+          context,
+          'เกิดข้อผิดพลาดในการโหลดข้อมูล',
         );
       }
     }
@@ -188,12 +188,8 @@ class _RoomEditUIState extends State<RoomEditUI> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        print('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการเลือกรูปภาพ');
       }
     }
   }
@@ -373,24 +369,16 @@ class _RoomEditUIState extends State<RoomEditUI> {
     try {
       if (bytes.length > 5 * 1024 * 1024) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ขนาดไฟล์เกิน 5MB กรุณาเลือกไฟล์ที่มีขนาดเล็กกว่า'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          print('ขนาดไฟล์เกิน 5MB');
+          SnackMessage.showError(context, 'ขนาดไฟล์เกิน 5MB ');
         }
         return false;
       }
 
       if (bytes.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ไฟล์เสียหายหรือมีขนาด 0 bytes'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          print('ไฟว่างเปล่าหรือเสียหาย');
+          SnackMessage.showError(context, 'ไฟว่างเปล่าหรือเสียหาย');
         }
         return false;
       }
@@ -400,11 +388,10 @@ class _RoomEditUIState extends State<RoomEditUI> {
 
       if (!allowedExtensions.contains(extension)) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('รองรับเฉพาะไฟล์ JPG, JPEG, PNG, WebP เท่านั้น'),
-              backgroundColor: Colors.red,
-            ),
+          print('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
+          SnackMessage.showError(
+            context,
+            'ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น',
           );
         }
         return false;
@@ -413,11 +400,10 @@ class _RoomEditUIState extends State<RoomEditUI> {
       return true;
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('ไม่สามารถตรวจสอบไฟล์ได้: $e'),
-            backgroundColor: Colors.red,
-          ),
+        print('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
+        SnackMessage.showError(
+          context,
+          'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
         );
       }
       return false;
@@ -428,11 +414,10 @@ class _RoomEditUIState extends State<RoomEditUI> {
     try {
       if (!await file.exists()) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ไฟล์ไม่พบหรือถูกลบ'),
-              backgroundColor: Colors.red,
-            ),
+          print('ไม่พบไฟล์หรือไฟล์ถูกลบ');
+          SnackMessage.showError(
+            context,
+            'ไม่พบไฟล์หรือไฟล์ถูกลบ',
           );
         }
         return false;
@@ -441,11 +426,10 @@ class _RoomEditUIState extends State<RoomEditUI> {
       final fileSize = await file.length();
       if (fileSize > 5 * 1024 * 1024) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ขนาดไฟล์เกิน 5MB กรุณาเลือกไฟล์ที่มีขนาดเล็กกว่า'),
-              backgroundColor: Colors.red,
-            ),
+          print('ขนาดไฟล์เกิน 5MB');
+          SnackMessage.showError(
+            context,
+            'ขนาดไฟล์เกิน 5MB',
           );
         }
         return false;
@@ -453,11 +437,10 @@ class _RoomEditUIState extends State<RoomEditUI> {
 
       if (fileSize == 0) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ไฟล์เสียหายหรือมีขนาด 0 bytes'),
-              backgroundColor: Colors.red,
-            ),
+          print('ไฟล์ว่างเปล่าหรือเสียหาย');
+          SnackMessage.showError(
+            context,
+            'ไฟล์ว่างเปล่าหรือเสียหาย',
           );
         }
         return false;
@@ -468,11 +451,10 @@ class _RoomEditUIState extends State<RoomEditUI> {
 
       if (!allowedExtensions.contains(extension)) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('รองรับเฉพาะไฟล์ JPG, JPEG, PNG, WebP เท่านั้น'),
-              backgroundColor: Colors.red,
-            ),
+          print('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
+          SnackMessage.showError(
+            context,
+            'ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น',
           );
         }
         return false;
@@ -481,11 +463,10 @@ class _RoomEditUIState extends State<RoomEditUI> {
       return true;
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('ไม่สามารถตรวจสอบไฟล์ได้: $e'),
-            backgroundColor: Colors.red,
-          ),
+        print('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
+        SnackMessage.showError(
+          context,
+          'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
         );
       }
       return false;
@@ -533,16 +514,16 @@ class _RoomEditUIState extends State<RoomEditUI> {
           final row = _existingImages.firstWhere(
               (img) => (img['image_id']?.toString() ?? '') == imageId,
               orElse: () => {});
-          if (row is Map && row.isNotEmpty) url = row['image_url']?.toString();
+          if (row.isNotEmpty) url = row['image_url']?.toString();
         } catch (_) {}
 
         await _supabase
             .from('room_images')
             .delete()
             .match({'image_id': imageId, 'room_id': widget.roomId});
-        if (url != null && url!.isNotEmpty) {
+        if (url != null && url.isNotEmpty) {
           try {
-            await ImageService.deleteImage(url!);
+            await ImageService.deleteImage(url);
           } catch (_) {}
         }
 
@@ -558,21 +539,13 @@ class _RoomEditUIState extends State<RoomEditUI> {
         });
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ลบรูปภาพสำเร็จ'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          print('ลบรูปภาพสำเร็จ');
+          SnackMessage.showSuccess(context, 'ลบรูปภาพสำเร็จ');
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('เกิดข้อผิดพลาด: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          print('เกิดข้อผิดพลาด: $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }
     }
@@ -580,11 +553,10 @@ class _RoomEditUIState extends State<RoomEditUI> {
 
   Future<void> _updateRoom() async {
     if (_currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณาเข้าสู่ระบบก่อนแก้ไขห้องพัก'),
-          backgroundColor: Colors.red,
-        ),
+      print('กรุณาเข้าสู่ระบบเพื่อแก้ไขห้อง');
+      SnackMessage.showError(
+        context,
+        'กรุณาเข้าสู่ระบบเพื่อแก้ไขห้อง',
       );
       Navigator.of(context).pop();
       return;
@@ -691,7 +663,7 @@ class _RoomEditUIState extends State<RoomEditUI> {
                 (c) => c['roomcate_id'] == _selectedRoomCategoryId,
                 orElse: () => {},
               );
-              if (matched is Map && matched.isNotEmpty) {
+              if (matched.isNotEmpty) {
                 roomCateLabel = matched['roomcate_name'] ?? '';
               }
             } catch (_) {}
@@ -773,32 +745,20 @@ class _RoomEditUIState extends State<RoomEditUI> {
             }
           }
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('อัปเดตห้องพักสำเร็จ'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          print('อัปเดตห้องพักสำเร็จ');
+          SnackMessage.showSuccess(context, 'อัปเดตห้องพักสำเร็จ');
 
           Navigator.of(context).pop(true);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message']),
-              backgroundColor: Colors.red,
-            ),
-          );
+          print(result['message']);
+          SnackMessage.showSuccess(context, 'อัปเดตห้องพักไม่สำเร็จ');
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        print('เกิดข้อผิดพลาด: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     }
   }

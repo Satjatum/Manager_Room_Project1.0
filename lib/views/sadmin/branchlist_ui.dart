@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
-//--------
+// Model //
 import '../../models/user_models.dart';
-//--------
+// Middleware //
 import '../../middleware/auth_middleware.dart';
-//--------
+// Services //
 import '../../services/branch_service.dart';
-//--------
+// Page //
 import 'branch_add_ui.dart';
 import 'branch_edit_ui.dart';
 import 'branchdash_ui.dart';
 import 'branchlist_detail_ui.dart';
-// -------
+// Widget //
 import '../widgets/mainnavbar.dart';
 import '../widgets/colors.dart';
+import '../widgets//snack_message.dart';
 
 class BranchlistUi extends StatefulWidget {
   const BranchlistUi({Key? key}) : super(key: key);
@@ -93,26 +94,8 @@ class _BranchlistUiState extends State<BranchlistUi> {
           _filteredBranches = [];
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 12),
-                Expanded(child: Text('เกิดข้อผิดพลาด: ${e.toString()}')),
-              ],
-            ),
-            backgroundColor: Colors.red.shade600,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            action: SnackBarAction(
-              label: 'ลองใหม่',
-              textColor: Colors.white,
-              onPressed: _loadBranches,
-            ),
-          ),
-        );
+        print('เกิดข้อผิดพลาดโหลดข้อมูลสาขา: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดโหลดข้อมูลสาขา');
       }
     }
   }
@@ -228,21 +211,8 @@ class _BranchlistUiState extends State<BranchlistUi> {
                               Clipboard.setData(
                                   ClipboardData(text: phoneNumber));
                               Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Row(
-                                    children: [
-                                      Icon(Icons.check_circle,
-                                          color: Colors.white),
-                                      SizedBox(width: 8),
-                                      Text('คัดลอกเบอร์แล้ว'),
-                                    ],
-                                  ),
-                                  backgroundColor: Colors.green.shade600,
-                                  behavior: SnackBarBehavior.floating,
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
+                              print('คัดลอกเบอร์แล้ว');
+                              SnackMessage.showInfo(context, 'คัดลอกเบอร์แล้ว');
                             },
                             icon: Icon(Icons.copy_rounded),
                             label: Text('คัดลอก'),
@@ -593,21 +563,11 @@ class _BranchlistUiState extends State<BranchlistUi> {
 
         if (mounted) {
           if (result['success']) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.white),
-                    SizedBox(width: 12),
-                    Expanded(child: Text(result['message'])),
-                  ],
-                ),
-                backgroundColor: Colors.green.shade600,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+            print(result['message']);
+            SnackMessage.showSuccess(context, result['message']);
             await _loadBranches();
           } else {
+            print("เกิดข้อผิดพลาด: ${result['message']}");
             throw Exception(result['message']);
           }
         }
@@ -616,13 +576,8 @@ class _BranchlistUiState extends State<BranchlistUi> {
           Navigator.of(context).pop();
         }
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          print('เกิดข้อผิดพลาด $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }
     }
@@ -872,21 +827,13 @@ class _BranchlistUiState extends State<BranchlistUi> {
 
         if (mounted) {
           if (result['success']) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.white),
-                    SizedBox(width: 12),
-                    Expanded(child: Text(result['message'] ?? 'ลบสาขาสำเร็จ')),
-                  ],
-                ),
-                backgroundColor: Colors.green.shade600,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+            print(result['message'] ?? 'ลบสาขาสำเร็จ');
+            SnackMessage.showSuccess(
+                context, result['message'] ?? 'ลบสาขาสำเร็จ');
+
             await _loadBranches();
           } else {
+            print('เกิดข้อผิดพลาด: ${result['message']}');
             throw Exception(result['message']);
           }
         }
@@ -895,13 +842,8 @@ class _BranchlistUiState extends State<BranchlistUi> {
           Navigator.of(context).pop();
         }
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          print('เกิดข้อผิดพลาด: $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }
     }

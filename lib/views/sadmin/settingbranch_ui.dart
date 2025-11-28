@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:manager_room_project/views/payment_qr_management_ui.dart';
-import 'package:manager_room_project/views/payment_setting_ui.dart';
-import 'package:manager_room_project/views/utility_setting_ui.dart';
-import 'package:manager_room_project/views/widgets/colors.dart';
-import 'package:manager_room_project/views/sadmin/amenities_ui.dart';
-import 'package:manager_room_project/views/sadmin/roomtype_ui.dart';
-import 'package:manager_room_project/views/sadmin/roomcate_ui.dart';
+// Page //
+import '../payment_setting_ui.dart';
+import '../payment_qr_management_ui.dart';
+import 'amenities_ui.dart';
+import 'roomtype_ui.dart';
+import 'roomcate_ui.dart';
+// Utilit //
+import '../utility_setting_ui.dart';
+// Widgets //
+import '../widgets/colors.dart';
 
 class SettingbranchUi extends StatefulWidget {
   final String branchId;
@@ -71,7 +74,7 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
         title: 'ประเภทห้อง',
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const RoomTypesUI()),
+          MaterialPageRoute(builder: (_) => const RoomTypesUi()),
         ),
       ),
       _SettingItem(
@@ -79,13 +82,13 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
         title: 'หมวดหมู่ห้อง',
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const RoomCategoriesUI()),
+          MaterialPageRoute(builder: (_) => const RoomCateUi()),
         ),
       ),
     ];
 
     final platform = Theme.of(context).platform;
-    final bool isMobileApp = !kIsWeb &&
+    !kIsWeb &&
         (platform == TargetPlatform.android || platform == TargetPlatform.iOS);
 
     return Scaffold(

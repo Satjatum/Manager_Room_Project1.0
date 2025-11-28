@@ -1,20 +1,24 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+// Models //
+import '../../models/user_models.dart';
+// Middleware //
+import '../../middleware/auth_middleware.dart';
+// Services //
 import '../../services/tenant_service.dart';
 import '../../services/room_service.dart';
-import '../../services/branch_service.dart';
 import '../../services/image_service.dart';
 import '../../services/user_service.dart';
-import '../../models/user_models.dart';
-import '../../middleware/auth_middleware.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// Widgets //
 import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
 
 class TenantAddUI extends StatefulWidget {
   final String? branchId;
@@ -65,19 +69,15 @@ class _TenantAddUIState extends State<TenantAddUI>
   bool _isActive = true;
   bool _createUserAccount = true;
   bool _isLoading = false;
-  bool _isLoadingData = false;
   bool _isCheckingAuth = true;
   bool _showPassword = false;
 
-  List<Map<String, dynamic>> _branches = [];
   List<Map<String, dynamic>> _availableRooms = [];
 
   File? _selectedImage;
   Uint8List? _selectedImageBytes;
   String? _selectedImageName;
 
-  // Contract document
-  String? _documentPath;
   String? _documentName;
   Uint8List? _documentBytes;
 
@@ -151,7 +151,7 @@ class _TenantAddUIState extends State<TenantAddUI>
         });
       }
     } catch (e) {
-      debugPrint('Error loading current user: $e');
+      print('ไม่สามารถโหลดข้อมูลผู้ใช้ได้: $e');
       if (mounted) {
         setState(() {
           _currentUser = null;
@@ -162,17 +162,9 @@ class _TenantAddUIState extends State<TenantAddUI>
 
   Future<void> _loadDropdownData() async {
     if (_currentUser == null) return;
-
-    setState(() => _isLoadingData = true);
-
     try {
-      final branches = await BranchService.getBranchesByUser();
-
       if (mounted) {
-        setState(() {
-          _branches = branches;
-          _isLoadingData = false;
-        });
+        setState(() {});
 
         if (_selectedBranchId != null) {
           await _loadAvailableRooms(_selectedBranchId!);
@@ -180,8 +172,8 @@ class _TenantAddUIState extends State<TenantAddUI>
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoadingData = false);
-        _showErrorSnackBar('ไม่สามารถโหลดข้อมูลได้: $e');
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -202,7 +194,8 @@ class _TenantAddUIState extends State<TenantAddUI>
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('ไม่สามารถโหลดข้อมูลห้องได้: $e');
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูลห้องได้: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูลห้องได้');
       }
     }
   }
@@ -219,14 +212,17 @@ class _TenantAddUIState extends State<TenantAddUI>
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
         setState(() {
-          _documentPath = file.path ?? '';
           _documentName = file.name;
           _documentBytes = file.bytes;
         });
       }
     } catch (e) {
       if (mounted && context.mounted) {
-        _showErrorSnackBar('เกิดข้อผิดพลาดในการเลือกไฟล์: $e');
+        print('เกิดข้อผิดพลาดในการเลือกไฟล์: $e');
+        SnackMessage.showError(
+          context,
+          'เกิดข้อผิดพลาดในการเลือกไฟล์',
+        );
       }
     }
   }
@@ -240,7 +236,11 @@ class _TenantAddUIState extends State<TenantAddUI>
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e');
+        print('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e');
+        SnackMessage.showError(
+          context,
+          'เกิดข้อผิดพลาดในการเลือกรูปภาพ',
+        );
       }
     }
   }
@@ -388,8 +388,8 @@ class _TenantAddUIState extends State<TenantAddUI>
     try {
       if (bytes.length > 5 * 1024 * 1024) {
         if (mounted) {
-          _showErrorSnackBar(
-              'ขนาดไฟล์เกิน 5MB กรุณาเลือกไฟล์ที่มีขนาดเล็กกว่า');
+          print('ขนาดไฟล์เกิน 5MB');
+          SnackMessage.showError(context, 'ขนาดไฟล์เกิน 5MB ');
         }
         return false;
       }
@@ -399,7 +399,11 @@ class _TenantAddUIState extends State<TenantAddUI>
 
       if (!allowedExtensions.contains(extension)) {
         if (mounted) {
-          _showErrorSnackBar('รองรับเฉพาะไฟล์ JPG, JPEG, PNG, WebP เท่านั้น');
+          print('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
+          SnackMessage.showError(
+            context,
+            'ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น',
+          );
         }
         return false;
       }
@@ -419,8 +423,8 @@ class _TenantAddUIState extends State<TenantAddUI>
       final fileSize = await file.length();
       if (fileSize > 5 * 1024 * 1024) {
         if (mounted) {
-          _showErrorSnackBar(
-              'ขนาดไฟล์เกิน 5MB กรุณาเลือกไฟล์ที่มีขนาดเล็กกว่า');
+          print('ขนาดไฟล์เกิน 5MB');
+          SnackMessage.showError(context, 'ขนาดไฟล์เกิน 5MB ');
         }
         return false;
       }
@@ -430,7 +434,11 @@ class _TenantAddUIState extends State<TenantAddUI>
 
       if (!allowedExtensions.contains(extension)) {
         if (mounted) {
-          _showErrorSnackBar('รองรับเฉพาะไฟล์ JPG, JPEG, PNG, WebP เท่านั้น');
+          print('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
+          SnackMessage.showError(
+            context,
+            'ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น',
+          );
         }
         return false;
       }
@@ -502,95 +510,83 @@ class _TenantAddUIState extends State<TenantAddUI>
     }
   }
 
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
   // Validation ก่อนบันทึก
   bool _validateCurrentTab() {
     if (_currentTabIndex == 0) {
       // Tab ข้อมูลผู้เช่า
       if (_tenantIdCardController.text.trim().isEmpty) {
-        _showErrorSnackBar('กรุณากรอกเลขบัตรประชาชน');
+        print('กรุณากรอกเลขบัตรประชาชน');
+        SnackMessage.showError(context, 'กรุณากรอกเลขบัตรประชาชน');
+
         return false;
       }
       if (_tenantFullNameController.text.trim().isEmpty) {
-        _showErrorSnackBar('กรุณากรอกชื่อ-นามสกุล');
+        print('กรุณากรอกชื่อ-นามสกุล');
+        SnackMessage.showError(context, 'กรุณากรอกชื่อ-นามสกุล');
+
         return false;
       }
       if (_tenantPhoneController.text.trim().isEmpty) {
-        _showErrorSnackBar('กรุณากรอกเบอร์โทรศัพท์');
+        print('กรุณากรอกเบอร์โทรศัพท์');
+        SnackMessage.showError(context, 'กรุณากรอกเบอร์โทรศัพท์');
+
         return false;
       }
       if (_selectedBranchId == null) {
-        _showErrorSnackBar('กรุณาเลือกสาขา');
+        print('กรุณาเลือกสาขา');
+        SnackMessage.showError(context, 'กรุณาเลือกสาขา');
+
         return false;
       }
     } else if (_currentTabIndex == 1) {
       // Tab บัญชีผู้ใช้
       if (_createUserAccount) {
         if (_userNameController.text.trim().isEmpty) {
-          _showErrorSnackBar('กรุณากรอกชื่อผู้ใช้');
+          print('กรุณากรอกชื่อผู้ใช้');
+          SnackMessage.showError(context, 'กรุณากรอกชื่อผู้ใช้');
+
           return false;
         }
         if (_userEmailController.text.trim().isEmpty) {
-          _showErrorSnackBar('กรุณากรอกอีเมล');
+          print('กรุณากรอกอีเมล');
+          SnackMessage.showError(context, 'กรุณากรอกอีเมล');
+
           return false;
         }
         if (_userPasswordController.text.trim().isEmpty) {
-          _showErrorSnackBar('กรุณากรอกรหัสผ่าน');
+          print('กรุณากรอกรหัสผ่าน');
+          SnackMessage.showError(context, 'กรุณากรอกรหัสผ่าน');
+
           return false;
         }
       }
     } else if (_currentTabIndex == 2) {
       // Tab สัญญาเช่า
       if (_selectedRoomId == null) {
-        _showErrorSnackBar('กรุณาเลือกห้องเช่า');
+        print('กรุณาเลือกห้องเช่า');
+        SnackMessage.showError(context, 'กรุณาเลือกห้องเช่า');
         return false;
       }
       if (_contractStartDate == null || _contractEndDate == null) {
-        _showErrorSnackBar('กรุณาระบุวันที่เริ่มต้นและสิ้นสุดสัญญา');
+        print('กรุณาระบุวันที่เริ่มต้นและสิ้นสุดสัญญา');
+        SnackMessage.showError(
+            context, 'กรุณาระบุวันที่เริ่มต้นและสิ้นสุดสัญญา');
         return false;
       }
       if (_contractEndDate!.isBefore(_contractStartDate!)) {
-        _showErrorSnackBar('วันที่สิ้นสุดสัญญาต้องมาหลังวันที่เริ่มต้น');
+        print('วันที่สิ้นสุดสัญญาต้องมาหลังวันที่เริ่มต้น');
+        SnackMessage.showError(
+            context, 'วันที่สิ้นสุดสัญญาต้องมาหลังวันที่เริ่มต้น');
         return false;
       }
       if (_contractPriceController.text.trim().isEmpty) {
-        _showErrorSnackBar('กรุณากรอกค่าเช่า');
+        print('กรุณากรอกค่าเช่า');
+        SnackMessage.showError(context, 'กรุณากรอกค่าเช่า');
         return false;
       }
       if (_contractDepositController.text.trim().isEmpty) {
-        _showErrorSnackBar('กรุณากรอกค่าประกัน');
+        print('กรุณากรอกค่าประกัน');
+        SnackMessage.showError(context, 'กรุณากรอกค่าประกัน');
         return false;
       }
     }
@@ -614,7 +610,8 @@ class _TenantAddUIState extends State<TenantAddUI>
 
   Future<void> _saveTenant() async {
     if (_currentUser == null) {
-      _showErrorSnackBar('กรุณาเข้าสู่ระบบก่อนเพิ่มผู้เช่า');
+      print('กรุณาเข้าสู่ระบบก่อนเพิ่มผู้เช่า');
+      SnackMessage.showError(context, 'กรุณาเข้าสู่ระบบก่อนเพิ่มผู้เช่า');
       Navigator.of(context).pop();
       return;
     }
@@ -646,7 +643,8 @@ class _TenantAddUIState extends State<TenantAddUI>
     }
 
     if (!allowed) {
-      _showErrorSnackBar('คุณไม่มีสิทธิ์เพิ่มผู้เช่าในสาขานี้');
+      print('คุณไม่มีสิทธิ์เพิ่มผู้เช่าในสาขานี้');
+      SnackMessage.showError(context, 'คุณไม่มีสิทธิ์เพิ่มผู้เช่าในสาขานี้');
       return;
     }
 
@@ -838,7 +836,8 @@ class _TenantAddUIState extends State<TenantAddUI>
         if (!userResult['success']) {
           if (mounted) {
             setState(() => _isLoading = false);
-            _showErrorSnackBar(
+            print('ไม่สามารถสร้างบัญชีผู้ใช้ได้: ${userResult['message']}');
+            SnackMessage.showError(context,
                 'ไม่สามารถสร้างบัญชีผู้ใช้ได้: ${userResult['message']}');
           }
           return;
@@ -864,7 +863,9 @@ class _TenantAddUIState extends State<TenantAddUI>
       if (!tenantResult['success']) {
         if (mounted) {
           setState(() => _isLoading = false);
-          _showErrorSnackBar(tenantResult['message']);
+          print('เกิดข้อผิดพลาด: ${tenantResult['message']}');
+          SnackMessage.showError(
+              context, 'เกิดข้อผิดพลาด: ${tenantResult['message']}');
         }
         return;
       }
@@ -905,18 +906,20 @@ class _TenantAddUIState extends State<TenantAddUI>
 
       if (mounted) {
         setState(() => _isLoading = false);
-
-        _showSuccessSnackBar(
-          'สร้างผู้เช่าและสัญญาเช่าสำเร็จ'
-          '${_createUserAccount ? ' พร้อมบัญชีผู้ใช้' : ''}',
-        );
+        print('สร้างผู้เช่าและสัญญาเช่าสำเร็จ'
+            '${_createUserAccount ? ' พร้อมบัญชีผู้ใช้' : ''}');
+        SnackMessage.showSuccess(
+            context,
+            'สร้างผู้เช่าและสัญญาเช่าสำเร็จ'
+            '${_createUserAccount ? ' พร้อมบัญชีผู้ใช้' : ''}');
 
         Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+        print('เกิดข้อผิดพลาด: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     }
   }
@@ -2144,7 +2147,6 @@ class _TenantAddUIState extends State<TenantAddUI>
                       icon: Icon(Icons.close, size: 20),
                       onPressed: () {
                         setState(() {
-                          _documentPath = null;
                           _documentName = null;
                           _documentBytes = null;
                         });

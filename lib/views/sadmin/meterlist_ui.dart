@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+// Models //
+import '../../models/user_models.dart';
+// Services //
 import '../../services/meter_service.dart';
 import '../../services/utility_rate_service.dart';
 import '../../services/invoice_service.dart';
 import '../../services/auth_service.dart';
-import '../../models/user_models.dart';
+// Widgets //
 import '../widgets/colors.dart';
-import 'package:manager_room_project/utils/formatMonthy.dart';
+import '../widgets/snack_message.dart';
+// Utils //
+import '../../utils/formatMonthy.dart';
 
 class MeterListUi extends StatefulWidget {
   final bool hideBottomNav;
@@ -120,7 +125,8 @@ class _MeterListUiState extends State<MeterListUi> {
       await _loadMeteredRates();
       await _loadRoomsAndPrevious();
     } catch (e) {
-      _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+      print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+      SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -299,7 +305,8 @@ class _MeterListUiState extends State<MeterListUi> {
 
       if (mounted) setState(() {});
     } catch (e) {
-      _showErrorSnackBar('โหลดห้องไม่สำเร็จ: $e');
+      print('เกิดข้อผิดพลาดในการโหลดห้อง: $e');
+      SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดห้อง');
     } finally {
       if (mounted) setState(() => _loadingRooms = false);
     }
@@ -901,7 +908,7 @@ class _MeterListUiState extends State<MeterListUi> {
       }
     }
 
-    final rows = rooms.map((room) {
+    rooms.map((room) {
       final roomId = (room['room_id'] ?? '').toString();
       final roomNo = (room['room_number'] ?? '-').toString();
       final tenant = (room['tenant_name'] ?? '-').toString();
@@ -913,31 +920,18 @@ class _MeterListUiState extends State<MeterListUi> {
           : (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
       final curMapForWater = _dynCurCtrls[roomId];
       final cvCtrl = (waterRateId != null && curMapForWater != null)
-          ? curMapForWater[waterRateId!]
+          ? curMapForWater[waterRateId]
           : null;
       final current = (existing != null)
           ? (existing['water_current_reading'] ?? 0.0).toDouble()
           : double.tryParse((cvCtrl?.text ?? '').trim());
       final usage = (current != null) ? (current - prev) : null;
-      final status = (existing == null)
-          ? 'ยังไม่บันทึก'
-          : ((existing['reading_status'] ?? '').toString() == 'billed'
-              ? 'ออกบิลแล้ว'
-              : 'ยืนยันแล้ว');
 
       final statusStr = (existing == null)
           ? 'ยังไม่บันทึก'
           : ((existing['reading_status'] ?? '').toString() == 'billed'
               ? 'ออกบิลแล้ว'
               : 'ยืนยันแล้ว');
-
-      final canEdit = _isCurrentPeriod &&
-          existing != null &&
-          (existing['reading_status'] ?? '') != 'billed' &&
-          !_savingRoomIds.contains(roomId);
-      final canDelete = _isCurrentPeriod &&
-          existing != null &&
-          !_savingRoomIds.contains(roomId);
 
       final isNew = existing == null;
       final canCreate =
@@ -1041,7 +1035,7 @@ class _MeterListUiState extends State<MeterListUi> {
             : (_prevWaterByRoom[roomId] ?? 0.0).toDouble();
         final curMapForWater = _dynCurCtrls[roomId];
         final cvCtrl = (waterRateId != null && curMapForWater != null)
-            ? curMapForWater[waterRateId!]
+            ? curMapForWater[waterRateId]
             : null;
         final current = (existing != null)
             ? (existing['water_current_reading'] ?? 0.0).toDouble()
@@ -1244,8 +1238,7 @@ class _MeterListUiState extends State<MeterListUi> {
         break;
       }
     }
-
-    final rows = rooms.map((room) {
+    rooms.map((room) {
       final roomId = (room['room_id'] ?? '').toString();
       final roomNo = (room['room_number'] ?? '-').toString();
       final tenant = (room['tenant_name'] ?? '-').toString();
@@ -1256,7 +1249,7 @@ class _MeterListUiState extends State<MeterListUi> {
           : (_prevElecByRoom[roomId] ?? 0.0).toDouble();
       final curMapForElec = _dynCurCtrls[roomId];
       final cvCtrl = (electricRateId != null && curMapForElec != null)
-          ? curMapForElec[electricRateId!]
+          ? curMapForElec[electricRateId]
           : null;
       final current = (existing != null)
           ? (existing['electric_current_reading'] ?? 0.0).toDouble()
@@ -1267,14 +1260,6 @@ class _MeterListUiState extends State<MeterListUi> {
           : ((existing['reading_status'] ?? '').toString() == 'billed'
               ? 'ออกบิลแล้ว'
               : 'ยืนยันแล้ว');
-
-      final canEdit = _isCurrentPeriod &&
-          existing != null &&
-          (existing['reading_status'] ?? '') != 'billed' &&
-          !_savingRoomIds.contains(roomId);
-      final canDelete = _isCurrentPeriod &&
-          existing != null &&
-          !_savingRoomIds.contains(roomId);
 
       final isNew = existing == null;
       final canCreate =
@@ -1342,7 +1327,7 @@ class _MeterListUiState extends State<MeterListUi> {
             : (_prevElecByRoom[roomId] ?? 0.0).toDouble();
         final curMapForElec = _dynCurCtrls[roomId];
         final cvCtrl = (electricRateId != null && curMapForElec != null)
-            ? curMapForElec[electricRateId!]
+            ? curMapForElec[electricRateId]
             : null;
         final current = (existing != null)
             ? (existing['electric_current_reading'] ?? 0.0).toDouble()
@@ -1593,11 +1578,11 @@ class _MeterListUiState extends State<MeterListUi> {
     final prevMap = _dynPrevCtrls[roomId];
     // Prefill current values from existing
     if (waterRateId != null && curMap != null) {
-      final cvW = curMap[waterRateId!];
+      final cvW = curMap[waterRateId];
       cvW?.text = (existing['water_current_reading'] ?? '').toString();
     }
     if (electricRateId != null && curMap != null) {
-      final cvE = curMap[electricRateId!];
+      final cvE = curMap[electricRateId];
       cvE?.text = (existing['electric_current_reading'] ?? '').toString();
     }
     // Decide if previous can be edited (only current period AND no previous data)
@@ -1609,11 +1594,11 @@ class _MeterListUiState extends State<MeterListUi> {
         (_needsPrevElecInput.contains(roomId) || prevEComputed == 0.0);
     // Prefill previous controllers with existing values if editable
     if (allowPrevWaterEdit && waterRateId != null && prevMap != null) {
-      final pvW = prevMap[waterRateId!];
+      final pvW = prevMap[waterRateId];
       pvW?.text = (existing['water_previous_reading'] ?? '').toString();
     }
     if (allowPrevElecEdit && electricRateId != null && prevMap != null) {
-      final pvE = prevMap[electricRateId!];
+      final pvE = prevMap[electricRateId];
       pvE?.text = (existing['electric_previous_reading'] ?? '').toString();
     }
 
@@ -1655,7 +1640,7 @@ class _MeterListUiState extends State<MeterListUi> {
                   if (allowPrevWaterEdit)
                     TextField(
                       controller: waterRateId != null && prevMap != null
-                          ? prevMap[waterRateId!]
+                          ? prevMap[waterRateId]
                           : null,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
@@ -1724,7 +1709,7 @@ class _MeterListUiState extends State<MeterListUi> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: waterRateId != null && curMap != null
-                        ? curMap[waterRateId!]
+                        ? curMap[waterRateId]
                         : null,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -1766,7 +1751,7 @@ class _MeterListUiState extends State<MeterListUi> {
                   if (allowPrevElecEdit)
                     TextField(
                       controller: electricRateId != null && prevMap != null
-                          ? prevMap[electricRateId!]
+                          ? prevMap[electricRateId]
                           : null,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
@@ -1835,7 +1820,7 @@ class _MeterListUiState extends State<MeterListUi> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: electricRateId != null && curMap != null
-                        ? curMap[electricRateId!]
+                        ? curMap[electricRateId]
                         : null,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -1938,10 +1923,10 @@ class _MeterListUiState extends State<MeterListUi> {
     final nCtrl = _noteCtrl[roomId] ??= TextEditingController();
     // Clear current values for fresh input
     if (waterRateId != null && curMap != null) {
-      curMap[waterRateId!]?.text = '';
+      curMap[waterRateId]?.text = '';
     }
     if (electricRateId != null && curMap != null) {
-      curMap[electricRateId!]?.text = '';
+      curMap[electricRateId]?.text = '';
     }
     nCtrl.text = '';
 
@@ -1950,9 +1935,9 @@ class _MeterListUiState extends State<MeterListUi> {
     final needPrevWater = _needsPrevWaterInput.contains(roomId) || prevW == 0.0;
     final needPrevElec = _needsPrevElecInput.contains(roomId) || prevE == 0.0;
     final pvWCtrl =
-        (waterRateId != null && prevMap != null) ? prevMap[waterRateId!] : null;
+        (waterRateId != null && prevMap != null) ? prevMap[waterRateId] : null;
     final pvECtrl = (electricRateId != null && prevMap != null)
-        ? prevMap[electricRateId!]
+        ? prevMap[electricRateId]
         : null;
 
     await showDialog(
@@ -2037,7 +2022,7 @@ class _MeterListUiState extends State<MeterListUi> {
                   const SizedBox(height: 10),
                   TextField(
                     controller: waterRateId != null && curMap != null
-                        ? curMap[waterRateId!]
+                        ? curMap[waterRateId]
                         : null,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -2123,7 +2108,7 @@ class _MeterListUiState extends State<MeterListUi> {
                   const SizedBox(height: 10),
                   TextField(
                     controller: electricRateId != null && curMap != null
-                        ? curMap[electricRateId!]
+                        ? curMap[electricRateId]
                         : null,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
@@ -2323,7 +2308,8 @@ class _MeterListUiState extends State<MeterListUi> {
     final tenantId = room['tenant_id']?.toString();
     final contractId = room['contract_id']?.toString();
     if (roomId == null || tenantId == null || contractId == null) {
-      _showErrorSnackBar('ข้อมูลไม่ครบ ไม่สามารถบันทึกได้');
+      print('กรุณากรอกข้อมูลให้ครบถ้วน');
+      SnackMessage.showError(context, 'กรุณากรอกข้อมูลให้ครบถ้วน');
       return;
     }
     final nCtrl = _noteCtrl[roomId]!;
@@ -2338,19 +2324,19 @@ class _MeterListUiState extends State<MeterListUi> {
       if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
     }
     if (waterRateId == null || electricRateId == null) {
-      _showErrorSnackBar('กรุณาตั้งค่าเรตค่าน้ำและค่าไฟ');
+      print('กรุณาตั้งค่าเรตค่าน้ำและค่าไฟ');
+      SnackMessage.showError(context, 'กรุณาตั้งค่าเรตค่าน้ำและค่าไฟ');
       return;
     }
     final _prevMapForSave = _dynPrevCtrls[roomId];
     final _curMapForSave = _dynCurCtrls[roomId];
     final pvWCtrl =
-        _prevMapForSave != null ? _prevMapForSave[waterRateId!] : null;
+        _prevMapForSave != null ? _prevMapForSave[waterRateId] : null;
     final pvECtrl =
-        _prevMapForSave != null ? _prevMapForSave[electricRateId!] : null;
-    final cvWCtrl =
-        _curMapForSave != null ? _curMapForSave[waterRateId!] : null;
+        _prevMapForSave != null ? _prevMapForSave[electricRateId] : null;
+    final cvWCtrl = _curMapForSave != null ? _curMapForSave[waterRateId] : null;
     final cvECtrl =
-        _curMapForSave != null ? _curMapForSave[electricRateId!] : null;
+        _curMapForSave != null ? _curMapForSave[electricRateId] : null;
 
     double prevW = double.tryParse((pvWCtrl?.text ?? '').trim()) ??
         (_prevWaterByRoom[roomId] ?? 0.0);
@@ -2360,15 +2346,18 @@ class _MeterListUiState extends State<MeterListUi> {
     final curE = double.tryParse((cvECtrl?.text ?? '').trim());
 
     if (curW == null || curE == null) {
-      _showErrorSnackBar('กรุณากรอกตัวเลขให้ถูกต้อง');
+      print('กรุณากรอกตัวเลขให้ถูกต้อง');
+      SnackMessage.showError(context, 'กรุณากรอกตัวเลขให้ถูกต้อง');
       return;
     }
     if (curW <= prevW) {
-      _showErrorSnackBar('ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
+      print('ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
+      SnackMessage.showError(context, 'ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       return;
     }
     if (curE <= prevE) {
-      _showErrorSnackBar('ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
+      print('ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
+      SnackMessage.showError(context, 'ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       return;
     }
 
@@ -2390,10 +2379,13 @@ class _MeterListUiState extends State<MeterListUi> {
 
       final res = await MeterReadingService.createMeterReading(payload);
       if (res['success'] == true) {
-        _showSuccessSnackBar('บันทึกสำเร็จ และยืนยันอัตโนมัติ');
+        print('บันทึกสำเร็จ');
+        SnackMessage.showSuccess(context, 'บันทึกสำเร็จ');
         final warns = List.from(res['warnings'] ?? const []);
         if (warns.isNotEmpty) {
-          _showWarnSnackBar('พบห้องข้อมูลผิดพลาด บางเดือนถัดไปไม่สามารถลบได้');
+          print('พบข้อมูลผิดพลาดไม่สามารถลบได้เนื่องจากออกบิลแล้ว');
+          SnackMessage.showError(
+              context, 'พบข้อมูลผิดพลาดไม่สามารถลบได้เนื่องจากออกบิลแล้ว');
         }
         _savedRoomIds.add(roomId);
         // Store as existing for read-only view
@@ -2406,10 +2398,12 @@ class _MeterListUiState extends State<MeterListUi> {
         nCtrl.clear();
         setState(() {});
       } else {
-        _showErrorSnackBar(res['message'] ?? 'บันทึกไม่สำเร็จ');
+        print(res['message'] ?? 'บันทึกไม่สำเร็จ');
+        SnackMessage.showError(context, 'บันทึกไม่สำเร็จ');
       }
     } catch (e) {
-      _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+      print('เกิดข้อผิดพลาด: $e');
+      SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
     } finally {
       if (mounted) setState(() => _savingRoomIds.remove(roomId));
     }
@@ -2426,7 +2420,8 @@ class _MeterListUiState extends State<MeterListUi> {
       if (room.isNotEmpty) {
         await _saveRow(room);
       } else {
-        _showErrorSnackBar('ไม่พบข้อมูลห้อง');
+        print('ไม่พบข้อมูลห้อง');
+        SnackMessage.showError(context, 'ไม่พบข้อมูลห้อง');
       }
       return;
     }
@@ -2447,16 +2442,16 @@ class _MeterListUiState extends State<MeterListUi> {
       if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
     }
     if (waterRateId == null || electricRateId == null) {
-      _showErrorSnackBar(
-          'กรุณาตั้งค่าเรตค่าน้ำและค่าไฟใน Utility Settings ก่อน');
+      print('กรุณาตั้งค่าน้ำค่าไฟ');
+      SnackMessage.showError(context, 'กรุณาตั้งค่าน้ำค่าไฟ');
       return;
     }
     final _curMapForUpdate = _dynCurCtrls[roomId];
     final _prevMapForUpdate = _dynPrevCtrls[roomId];
     final cvWCtrl =
-        _curMapForUpdate != null ? _curMapForUpdate[waterRateId!] : null;
+        _curMapForUpdate != null ? _curMapForUpdate[waterRateId] : null;
     final cvECtrl =
-        _curMapForUpdate != null ? _curMapForUpdate[electricRateId!] : null;
+        _curMapForUpdate != null ? _curMapForUpdate[electricRateId] : null;
     final curW = double.tryParse((cvWCtrl?.text ?? '').trim());
     final curE = double.tryParse((cvECtrl?.text ?? '').trim());
     // Determine if previous can be edited this period
@@ -2467,9 +2462,9 @@ class _MeterListUiState extends State<MeterListUi> {
         (_needsPrevElecInput.contains(roomId) ||
             (_prevElecByRoom[roomId] ?? 0.0) == 0.0);
     final pvWCtrl =
-        _prevMapForUpdate != null ? _prevMapForUpdate[waterRateId!] : null;
+        _prevMapForUpdate != null ? _prevMapForUpdate[waterRateId] : null;
     final pvECtrl =
-        _prevMapForUpdate != null ? _prevMapForUpdate[electricRateId!] : null;
+        _prevMapForUpdate != null ? _prevMapForUpdate[electricRateId] : null;
     final prevWParsed = double.tryParse((pvWCtrl?.text ?? '').trim());
     final prevEParsed = double.tryParse((pvECtrl?.text ?? '').trim());
     final prevW =
@@ -2478,15 +2473,18 @@ class _MeterListUiState extends State<MeterListUi> {
         allowPrevElecEdit && prevEParsed != null ? prevEParsed : prevEExisting;
 
     if (curW == null || curE == null) {
-      _showErrorSnackBar('กรุณากรอกตัวเลขให้ถูกต้อง');
+      print('กรุณากรอกตัวเลขให้ถูกต้อง');
+      SnackMessage.showError(context, 'กรุณากรอกตัวเลขให้ถูกต้อง');
       return;
     }
     if (curW <= prevW) {
-      _showErrorSnackBar('ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
+      print('ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
+      SnackMessage.showError(context, 'ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       return;
     }
     if (curE <= prevE) {
-      _showErrorSnackBar('ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
+      print('ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
+      SnackMessage.showError(context, 'ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       return;
     }
 
@@ -2505,11 +2503,13 @@ class _MeterListUiState extends State<MeterListUi> {
       final res =
           await MeterReadingService.updateMeterReading(readingId, payload);
       if (res['success'] == true) {
-        _showSuccessSnackBar('บันทึกการแก้ไขสำเร็จ');
+        print('บันทึกการแก้ไขสำเร็จ');
+        SnackMessage.showSuccess(context, 'บันทึกการแก้ไขสำเร็จ');
         final warns = List.from(res['warnings'] ?? const []);
         if (warns.isNotEmpty) {
-          _showWarnSnackBar(
-              'พบห้องข้อมูลผิดพลาด บางเดือนถัดไปออกบิลแล้ว ไม่สามารถลบเพื่อให้ต่อเนื่องได้');
+          print('พบข้อมูลผิดพลาดไม่สามารถลบได้เนื่องจากออกบิลแล้ว');
+          SnackMessage.showError(
+              context, 'พบข้อมูลผิดพลาดไม่สามารถลบได้เนื่องจากออกบิลแล้ว');
         }
         final data = Map<String, dynamic>.from(res['data'] ?? {});
         _existingByRoom[roomId] = data;
@@ -2520,10 +2520,12 @@ class _MeterListUiState extends State<MeterListUi> {
         nCtrl.clear();
         setState(() {});
       } else {
-        _showErrorSnackBar(res['message'] ?? 'แก้ไขไม่สำเร็จ');
+        print(res['message'] ?? 'แก้ไขไม่สำเร็จ');
+        SnackMessage.showError(context, 'แก้ไขไม่สำเร็จ');
       }
     } catch (e) {
-      _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+      print('เกิดข้อผิดพลาด: $e');
+      SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
     } finally {
       if (mounted) setState(() => _savingRoomIds.remove(roomId));
     }
@@ -2569,7 +2571,7 @@ class _MeterListUiState extends State<MeterListUi> {
 
               // Title
               const Text(
-                'ยืนยันการลบผู้เช่า',
+                'ลบข้อมูลมิเตอร์หรือไม่?',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -2635,7 +2637,7 @@ class _MeterListUiState extends State<MeterListUi> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'การลบนี้ไม่สามารถกู้คืนได้',
+                            'ข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
                             style: TextStyle(
                               color: Colors.red,
                             ),
@@ -2687,10 +2689,8 @@ class _MeterListUiState extends State<MeterListUi> {
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.delete_outline, size: 18),
-                          SizedBox(width: 8),
                           Text(
-                            'ยืนยันการลบ',
+                            'ลบ',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -2760,7 +2760,7 @@ class _MeterListUiState extends State<MeterListUi> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'กำลังลบข้อมูลผู้เช่า',
+                'กำลังลบข้อมูลมิเตอร์',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -2783,11 +2783,13 @@ class _MeterListUiState extends State<MeterListUi> {
       final res = await MeterReadingService.deleteMeterReading(readingId);
       if (mounted) Navigator.of(context).pop(); // close loading dialog
       if (res['success'] == true) {
-        _showSuccessSnackBar('ลบข้อมูลสำเร็จ');
+        print('ลบข้อมูลสำเร็จ');
+        SnackMessage.showSuccess(context, 'ลบข้อมูลสำเร็จ');
         final warns = List.from(res['warnings'] ?? const []);
         if (warns.isNotEmpty) {
-          _showWarnSnackBar(
-              'พบห้องข้อมูลผิดพลาด บางเดือนถัดไปออกบิลแล้ว ไม่สามารถลบเพื่อให้ต่อเนื่องได้');
+          print('พบข้อมูลผิดพลาดไม่สามารถลบได้เนื่องจากออกบิลแล้ว');
+          SnackMessage.showError(
+              context, 'พบข้อมูลผิดพลาดไม่สามารถลบได้เนื่องจากออกบิลแล้ว');
         }
         _existingByRoom.remove(roomId);
         _savedRoomIds.remove(roomId);
@@ -2808,20 +2810,20 @@ class _MeterListUiState extends State<MeterListUi> {
             final curMap = _dynCurCtrls[roomId];
             final prevMap = _dynPrevCtrls[roomId];
             if (curMap != null) {
-              curMap[waterRateId!]?.clear();
+              curMap[waterRateId]?.clear();
             }
             if (prevMap != null) {
-              prevMap[waterRateId!]?.clear();
+              prevMap[waterRateId]?.clear();
             }
           }
           if (electricRateId != null) {
             final curMap = _dynCurCtrls[roomId];
             final prevMap = _dynPrevCtrls[roomId];
             if (curMap != null) {
-              curMap[electricRateId!]?.clear();
+              curMap[electricRateId]?.clear();
             }
             if (prevMap != null) {
-              prevMap[electricRateId!]?.clear();
+              prevMap[electricRateId]?.clear();
             }
           }
         } catch (_) {}
@@ -2837,11 +2839,13 @@ class _MeterListUiState extends State<MeterListUi> {
         } catch (_) {}
         setState(() {});
       } else {
-        _showErrorSnackBar(res['message'] ?? 'ลบไม่สำเร็จ');
+        print(res['message'] ?? 'ลบไม่สำเร็จ');
+        SnackMessage.showError(context, 'ลบไม่สำเร็จ');
       }
     } catch (e) {
-      if (mounted) Navigator.of(context).pop(); // close loading dialog
-      _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+      if (mounted) Navigator.of(context).pop();
+      print('เกิดข้อผิดพลาด: $e');
+      SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
     } finally {
       if (mounted) setState(() => _savingRoomIds.remove(roomId));
     }
@@ -2884,7 +2888,7 @@ class _MeterListUiState extends State<MeterListUi> {
 
               // Title
               Text(
-                'ลบข้อมูลมิเตอร์หรือไม่?',
+                'ลบบิลหรือไม่?',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -3098,7 +3102,9 @@ class _MeterListUiState extends State<MeterListUi> {
         final delInv = await InvoiceService.deleteInvoice(invoiceId);
         if (delInv['success'] != true) {
           if (mounted) Navigator.of(context).pop(); // ปิด loading dialog
-          _showErrorSnackBar(delInv['message'] ?? 'ลบใบแจ้งหนี้ไม่สำเร็จ');
+
+          print(delInv['message'] ?? 'ลบใบแจ้งหนี้ไม่สำเร็จ');
+          SnackMessage.showError(context, 'ลบใบแจ้งหนี้ไม่สำเร็จ');
           return;
         }
       }
@@ -3109,7 +3115,8 @@ class _MeterListUiState extends State<MeterListUi> {
 
       if (mounted) {
         if (delRead['success'] == true) {
-          _showSuccessSnackBar('ลบข้อมูลและบิลของเดือนนี้สำเร็จ');
+          print('ลบข้อมูลและบิลของเดือนนี้สำเร็จ');
+          SnackMessage.showSuccess(context, 'ลบข้อมูลและบิลของเดือนนี้สำเร็จ');
           _existingByRoom.remove(roomId);
           _savedRoomIds.remove(roomId);
           _editingRoomIds.remove(roomId);
@@ -3126,7 +3133,8 @@ class _MeterListUiState extends State<MeterListUi> {
           } catch (_) {}
           setState(() {});
         } else {
-          _showErrorSnackBar(delRead['message'] ?? 'ลบค่ามิเตอร์ไม่สำเร็จ');
+          print(delRead['message'] ?? 'ลบค่ามิเตอร์ไม่สำเร็จ');
+          SnackMessage.showError(context, 'ลบค่ามิเตอร์ไม่สำเร็จ');
         }
       }
     } catch (e) {
@@ -3134,68 +3142,11 @@ class _MeterListUiState extends State<MeterListUi> {
         Navigator.of(context).pop(); // ปิด loading dialog
       }
       if (mounted) {
-        _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+        print('เกิดข้อผิดพลาด: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     } finally {
       if (mounted) setState(() => _savingRoomIds.remove(roomId));
     }
-  }
-
-  // Snackbars
-  void _showSuccessSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_outline, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.green[600],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
-  void _showErrorSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red[600],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        duration: const Duration(seconds: 4),
-      ),
-    );
-  }
-
-  void _showWarnSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.amber[800],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        duration: const Duration(seconds: 4),
-      ),
-    );
   }
 }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 
-import '../models/user_models.dart';
-import '../services/auth_service.dart';
+// Services //
 import '../services/branch_service.dart';
 import '../services/branch_payment_qr_service.dart';
+// Widgets //
 import 'widgets/snack_message.dart';
 
 class PaymentQrManagementUi extends StatefulWidget {
@@ -16,7 +16,6 @@ class PaymentQrManagementUi extends StatefulWidget {
 }
 
 class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
-  UserModel? _user;
   bool _loading = true;
   String? _selectedBranchId;
   List<Map<String, dynamic>> _branches = [];
@@ -32,7 +31,6 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
   Future<void> _init() async {
     setState(() => _loading = true);
     try {
-      _user = await AuthService.getCurrentUser();
       if (widget.branchId != null) {
         _selectedBranchId = widget.branchId;
         _branches = [];
@@ -46,7 +44,8 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
       }
     } catch (e) {
       if (mounted) {
-        SnackMessage.showError(context, 'โหลดข้อมูลล้มเหลว: $e');
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -65,7 +64,8 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
           .toList();
     } catch (e) {
       if (mounted) {
-        SnackMessage.showError(context, 'โหลดบัญชี/QR ล้มเหลว: $e');
+        print('เกิดข้อผิดพลาดในการโหลดบัญชี/QR $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลด บัญชี/QR');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -751,6 +751,9 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                                       if (mounted) {
                                                         if (res['success'] ==
                                                             true) {
+                                                          print(isActive
+                                                              ? 'ปิดใช้งานแล้ว'
+                                                              : 'เปิดใช้งานแล้ว');
                                                           SnackMessage
                                                               .showSuccess(
                                                             context,
@@ -759,6 +762,8 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                                                 : 'เปิดใช้งานแล้ว',
                                                           );
                                                         } else {
+                                                          print(
+                                                              'เกิดข้อผิดพลาด ${res['message'] ?? 'ทำรายการไม่สำเร็จ'}');
                                                           SnackMessage
                                                               .showError(
                                                             context,
@@ -1060,12 +1065,15 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                                       if (mounted) {
                                                         if (res['success'] ==
                                                             true) {
+                                                          print('ลบสำเร็จ');
                                                           SnackMessage
                                                               .showSuccess(
                                                             context,
                                                             'ลบสำเร็จ',
                                                           );
                                                         } else {
+                                                          print(
+                                                              'เกิดข้อผิดพลาด ${res['message'] ?? 'ลบไม่สำเร็จ'}');
                                                           SnackMessage
                                                               .showError(
                                                             context,
@@ -1159,9 +1167,13 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
 
       if (!mounted) return;
       if (res['success'] == true) {
+        print(
+          'บันทึกสำเร็จ',
+        );
         SnackMessage.showSuccess(context, 'บันทึกสำเร็จ');
         Navigator.pop(context, true);
       } else {
+        print('เกิดข้อผิดพลาด ${res['message'] ?? 'บันทึกไม่สำเร็จ'}');
         SnackMessage.showError(
           context,
           res['message'] ?? 'บันทึกไม่สำเร็จ',
@@ -1169,7 +1181,8 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
       }
     } catch (e) {
       if (mounted) {
-        SnackMessage.showError(context, 'เกิดข้อผิดพลาด: $e');
+        print('เกิดข้อผิดพลาด $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     } finally {
       if (mounted) setState(() => _saving = false);

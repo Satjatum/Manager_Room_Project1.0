@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import '../widgets/colors.dart';
-import 'package:manager_room_project/utils/formatMonthy.dart';
+// Services
 import '../../services/meter_service.dart';
+// Page //
 import 'invoice_add_ui.dart';
+// Widgets //
+import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
+// Utils //
+import '../../utils/formatMonthy.dart';
 
 class MeterBillingPage extends StatefulWidget {
   final bool hideBottomNav;
@@ -22,11 +27,7 @@ class MeterBillingPage extends StatefulWidget {
 }
 
 class _MeterBillingPageState extends State<MeterBillingPage> {
-  // Controller for the search TextField. Used to capture and clear the search input.
   final TextEditingController _searchController = TextEditingController();
-
-  // Stores the current search query string. When this changes, _applyFilters
-  // updates the underlying _roomFilter used by the list filter.
   String _searchQuery = '';
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
@@ -39,17 +40,12 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
 
   @override
   void dispose() {
-    // Dispose of controllers to free resources when this widget is removed.
     _searchController.dispose();
     super.dispose();
   }
 
-  /// Applies the current search query and other filters to update the room filter.
   void _applyFilters() {
     setState(() {
-      // Trim and assign the search query to _roomFilter which is used by
-      // _getFilteredReadings to filter the list. This keeps the search and
-      // filtering logic consistent.
       _roomFilter = _searchQuery.trim();
     });
   }
@@ -74,28 +70,22 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
         ascending: true,
       );
 
-      // Filter only readings that are not yet billed
       _readings = list.where((r) => (r['invoice_id'] == null)).toList();
-      // Sort by room number
       _readings.sort((a, b) => (a['room_number'] ?? '')
           .toString()
           .compareTo((b['room_number'] ?? '').toString()));
 
-      // Build categories from readings
       final cats = _readings
           .map((r) => (r['room_category_name'] ?? '').toString())
           .where((s) => s.trim().isNotEmpty && s.trim() != '-')
           .toSet()
           .toList()
         ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-      // Do not include 'ทั้งหมด' here; the UI will provide a dedicated
-      // 'ทั้งหมด' (All) option with a null value.
       _categories = cats;
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('โหลดข้อมูลไม่สำเร็จ: $e')),
-      );
+      print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+      SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -112,8 +102,6 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
       return roomMatch && catMatch;
     }).toList();
   }
-
-  // use Formatmonthy.monthName instead of local helper
 
   @override
   Widget build(BuildContext context) {
@@ -301,7 +289,8 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
                                               .map((m) => DropdownMenuItem(
                                                   value: m,
                                                   child: Text(
-                                                      Formatmonthy.monthName(m))))
+                                                      Formatmonthy.monthName(
+                                                          m))))
                                               .toList(),
                                           onChanged: (val) async {
                                             setState(() => _selectedMonth =

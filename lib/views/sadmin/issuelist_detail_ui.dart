@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'package:manager_room_project/views/widgets/colors.dart';
+// Models //
+import '../../models/user_models.dart';
+// Services //
 import '../../services/issue_service.dart';
 import '../../services/issue_response_service.dart';
 import '../../services/image_service.dart';
 import '../../services/user_service.dart';
 import '../../services/auth_service.dart';
-import '../../models/user_models.dart';
+// Widgets //
+import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
 
 class IssueListDetailUi extends StatefulWidget {
   final String issueId;
@@ -63,7 +67,8 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
       final rows = await IssueResponseService.listResponses(widget.issueId);
       if (mounted) setState(() => _responses = rows);
     } catch (e) {
-      _showErrorSnackBar('โหลดการตอบกลับไม่สำเร็จ: $e');
+      print('โหลดการตอบกลับไม่สำเร็จ: $e');
+      SnackMessage.showError(context, 'โหลดการตอบกลับไม่สำเร็จ');
     }
   }
 
@@ -100,7 +105,8 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
       if (mounted) {
-        _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -240,8 +246,8 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                     await IssueResponseService.addResponseImage(
                         responseId: responseId, imageUrl: up['url']);
                   } else {
-                    _showErrorSnackBar(
-                        up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                    print(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                    SnackMessage.showError(context, 'อัปโหลดรูปภาพไม่สำเร็จ');
                   }
                 } else {
                   final ext = img.path.contains('.')
@@ -263,8 +269,8 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                     await IssueResponseService.addResponseImage(
                         responseId: responseId, imageUrl: up['url']);
                   } else {
-                    _showErrorSnackBar(
-                        up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                    print(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                    SnackMessage.showError(context, 'อัปโหลดรูปภาพไม่สำเร็จ');
                   }
                 }
               }
@@ -272,7 +278,9 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
           } catch (_) {}
 
           if (mounted) {
-            _showSuccessSnackBar(updateResult['message']);
+            print(updateResult['message']);
+            SnackMessage.showSuccess(context, updateResult['message']);
+
             _resolutionController.clear();
             _resolveImages.clear();
           }
@@ -281,7 +289,8 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
         }
       } catch (e) {
         if (mounted) {
-          _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
+          print('เกิดข้อผิดพลาด: $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       } finally {
         if (mounted && Navigator.of(context, rootNavigator: true).canPop()) {
@@ -393,7 +402,9 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
           final hasText = _resolutionController.text.trim().isNotEmpty;
           final hasImg = _resolveImages.isNotEmpty;
           if (!hasText && !hasImg) {
-            _showErrorSnackBar('กรุณากรอกข้อความหรือแนบรูปอย่างน้อย 1 รายการ');
+            print('กรุณากรอกข้อความหรือแนบรูปอย่างน้อย 1 รายการ');
+            SnackMessage.showError(
+                context, 'กรุณากรอกข้อความหรือแนบรูปอย่างน้อย 1 รายการ');
             return;
           }
         }
@@ -508,8 +519,8 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                       await IssueResponseService.addResponseImage(
                           responseId: responseId, imageUrl: up['url']);
                     } else {
-                      _showErrorSnackBar(
-                          up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                      print(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                      SnackMessage.showError(context, 'อัปโหลดรูปภาพไม่สำเร็จ');
                     }
                   } else {
                     final ext = img.path.contains('.')
@@ -531,8 +542,8 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                       await IssueResponseService.addResponseImage(
                           responseId: responseId, imageUrl: up['url']);
                     } else {
-                      _showErrorSnackBar(
-                          up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                      print(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                      SnackMessage.showError(context, 'อัปโหลดรูปภาพไม่สำเร็จ');
                     }
                   }
                 }
@@ -541,15 +552,18 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
             _resolveImages.clear();
           }
           if (mounted) {
-            _showSuccessSnackBar(updateResult['message']);
+            print(updateResult['message']);
+            SnackMessage.showSuccess(context, updateResult['message']);
             _resolutionController.clear();
           }
         } else {
+          print('เกิดข้อผิดพลาด: ${updateResult['message']}');
           throw Exception(updateResult['message']);
         }
       } catch (e) {
         if (mounted) {
-          _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
+          print('เกิดข้อผิดพลาด: $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       } finally {
         if (mounted && Navigator.of(context, rootNavigator: true).canPop()) {
@@ -575,7 +589,8 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
             Future<void> pickImages() async {
               // Check if already have 10 images
               if (localImages.length >= 10) {
-                _showErrorSnackBar('สามารถแนบรูปภาพได้สูงสุด 10');
+                print('สามารถแนบรูปภาพได้สูงสุด 10');
+                SnackMessage.showError(context, 'สามารถแนบรูปภาพได้สูงสุด 10');
                 return;
               }
 
@@ -711,7 +726,8 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                   }
                 }
               } catch (e) {
-                _showErrorSnackBar('เลือกไฟล์ไม่สำเร็จ: $e');
+                print('เลือกไฟล์ไม่สำเร็จ: $e');
+                SnackMessage.showError(context, 'เลือกไฟล์ไม่สำเร็จ');
               }
             }
 
@@ -942,7 +958,9 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
           final msg = statusRes['success'] == true
               ? 'มอบหมายและเริ่มดำเนินการแล้ว'
               : result['message'];
-          _showSuccessSnackBar(msg);
+          print(msg);
+          SnackMessage.showSuccess(context, msg);
+
           _loadData();
         }
       } else {
@@ -950,43 +968,10 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
+        print('เกิดข้อผิดพลาด: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     }
-  }
-
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.green.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red.shade600,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
   }
 
   Color _getStatusColor(String status) {
@@ -1970,22 +1955,6 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
         ],
       ),
     );
-  }
-
-  Future<void> _deleteIssue() async {
-    try {
-      final result = await IssueService.deleteIssue(widget.issueId);
-      if (!mounted) return;
-      if (result['success']) {
-        _showSuccessSnackBar(result['message']);
-        Navigator.pop(context); // Close detail after deletion
-      } else {
-        _showErrorSnackBar(result['message']);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
-    }
   }
 
   void _confirmDelete() {

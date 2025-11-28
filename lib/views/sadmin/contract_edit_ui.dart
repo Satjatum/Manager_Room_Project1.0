@@ -1,25 +1,28 @@
 import 'dart:typed_data';
+import 'package:path/path.dart' as path;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:manager_room_project/views/widgets/colors.dart';
+// Services //
 import '../../services/contract_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:path/path.dart' as path;
+// Widget //
+import 'package:manager_room_project/views/widgets/colors.dart';
+import '../widgets/snack_message.dart';
 
-class ContractEditUI extends StatefulWidget {
+class ContractEditUi extends StatefulWidget {
   final String contractId;
 
-  const ContractEditUI({
+  const ContractEditUi({
     Key? key,
     required this.contractId,
   }) : super(key: key);
 
   @override
-  State<ContractEditUI> createState() => _ContractEditUIState();
+  State<ContractEditUi> createState() => _ContractEditUiState();
 }
 
-class _ContractEditUIState extends State<ContractEditUI> {
+class _ContractEditUiState extends State<ContractEditUi> {
   final _formKey = GlobalKey<FormState>();
   final SupabaseClient _supabase = Supabase.instance.client;
 
@@ -37,7 +40,6 @@ class _ContractEditUIState extends State<ContractEditUI> {
   final _noteController = TextEditingController();
 
   // Document upload
-  String? _documentPath;
   String? _documentName;
   Uint8List? _documentBytes;
   String? _currentDocumentUrl;
@@ -91,22 +93,8 @@ class _ContractEditUIState extends State<ContractEditUI> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 12),
-                Expanded(child: Text('เกิดข้อผิดพลาด: $e')),
-              ],
-            ),
-            backgroundColor: Colors.red.shade600,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -165,7 +153,6 @@ class _ContractEditUIState extends State<ContractEditUI> {
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
         setState(() {
-          _documentPath = file.path ?? '';
           _documentName = file.name;
           _documentBytes = file.bytes;
           _documentChanged = true;
@@ -173,22 +160,8 @@ class _ContractEditUIState extends State<ContractEditUI> {
       }
     } catch (e) {
       if (mounted && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 12),
-                Expanded(child: Text('เกิดข้อผิดพลาดในการเลือกไฟล์: $e')),
-              ],
-            ),
-            backgroundColor: Colors.red.shade600,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        print('เกิดข้อผิดพลาดในการเลือกไฟล์: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการเลือกไฟล์');
       }
     }
   }
@@ -214,24 +187,9 @@ class _ContractEditUIState extends State<ContractEditUI> {
 
   Future<void> _updateContract() async {
     if (!_formKey.currentState!.validate()) return;
-
     if (_startDate == null || _endDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.white),
-              SizedBox(width: 12),
-              Expanded(child: Text('กรุณาเลือกวันที่เริ่มและสิ้นสุดสัญญา')),
-            ],
-          ),
-          backgroundColor: Colors.orange.shade600,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      print('กรุณาเลือกวันที่เริ่มและสิ้นสุดสัญญา');
+      SnackMessage.showError(context, 'กรุณาเลือกวันที่เริ่มและสิ้นสุดสัญญา');
       return;
     }
 
@@ -333,61 +291,19 @@ class _ContractEditUIState extends State<ContractEditUI> {
         setState(() => _isSaving = false);
 
         if (result['success']) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.white),
-                  SizedBox(width: 12),
-                  Expanded(child: Text(result['message'])),
-                ],
-              ),
-              backgroundColor: Colors.green.shade600,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
+          print(result['message']);
+          SnackMessage.showSuccess(context, result['message']);
           Navigator.pop(context, true);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.error_outline, color: Colors.white),
-                  SizedBox(width: 12),
-                  Expanded(child: Text(result['message'])),
-                ],
-              ),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
+          print('เกิดข้อผิดพลาด: ${result['message']}');
+          SnackMessage.showError(context, result['message']);
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 12),
-                Expanded(child: Text('เกิดข้อผิดพลาด: $e')),
-              ],
-            ),
-            backgroundColor: Colors.red.shade600,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        print('เกิดข้อผิดพลาด: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     }
   }
@@ -901,7 +817,6 @@ class _ContractEditUIState extends State<ContractEditUI> {
                       icon: Icon(Icons.close, size: 20),
                       onPressed: () {
                         setState(() {
-                          _documentPath = null;
                           _documentName = null;
                           _documentBytes = null;
                           _documentChanged = false;

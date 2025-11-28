@@ -37,7 +37,6 @@ class _BranchAddUiState extends State<BranchAddUi>
   List<String> _selectedManagerIds = [];
   String? _primaryManagerId;
 
-  String? _branchImageUrl;
   File? _selectedImage;
   Uint8List? _selectedImageBytes;
   String? _selectedImageName;
@@ -94,6 +93,7 @@ class _BranchAddUiState extends State<BranchAddUi>
       }
     } catch (e) {
       print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+      SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       if (mounted) {
         setState(() {
           _currentUser = null;
@@ -435,7 +435,6 @@ class _BranchAddUiState extends State<BranchAddUi>
       _selectedImage = null;
       _selectedImageBytes = null;
       _selectedImageName = null;
-      _branchImageUrl = null;
     });
 
     print('ลบรูปภาพสำเร็จ');
@@ -586,7 +585,7 @@ class _BranchAddUiState extends State<BranchAddUi>
 
         if (!managerResult['success']) {
           print(
-              'Warning: Failed to add manager $managerId: ${managerResult['message']}');
+              'เกิดข้อผิดพลาดในการเพิ่มผู้จัดการสาขา $managerId: ${managerResult['message']}');
         }
       }
 

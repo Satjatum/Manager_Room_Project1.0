@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:manager_room_project/views/sadmin/invoicelist_ui.dart';
-import 'package:manager_room_project/views/sadmin/issuelist_ui.dart';
-import 'package:manager_room_project/views/setting_ui.dart';
-import 'package:manager_room_project/views/tenant/tenant_pay_history_ui.dart';
+// Page //
+import '../sadmin/invoicelist_ui.dart';
+import '../sadmin/issuelist_ui.dart';
+import '../setting_ui.dart';
+import '../tenant/tenant_pay_history_ui.dart';
+// Widgets //
 import '../widgets/colors.dart';
 
 class TenantdashUi extends StatefulWidget {

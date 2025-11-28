@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:manager_room_project/views/widgets/colors.dart';
+// Models //
+import '../models/user_models.dart';
+// Services //
 import '../services/utility_rate_service.dart';
 import '../services/branch_service.dart';
 import '../services/auth_service.dart';
-import '../models/user_models.dart';
+// Widgets //
+import 'widgets/colors.dart';
 import 'widgets/snack_message.dart';
 
 class UtilityRatesManagementUi extends StatefulWidget {
@@ -102,8 +105,8 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
 
       if (currentUser == null) {
         if (mounted) {
+          print('ข้อมูลผู้ใช้ไม่ถูกต้อง');
           SnackMessage.showError(context, 'ข้อมูลผู้ใช้ไม่ถูกต้อง');
-          Navigator.pop(context);
         }
         return;
       }
@@ -118,8 +121,8 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
         );
       } else {
         if (mounted) {
+          print('ไม่มีสิทธิ์เข้าถึงหน้านี้');
           SnackMessage.showError(context, 'ไม่มีสิทธิ์เข้าถึงหน้านี้');
-          Navigator.pop(context);
         }
         return;
       }
@@ -151,10 +154,10 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
         });
       }
     } catch (e) {
-      print('Error loading data: $e');
       if (mounted) {
         setState(() => isLoading = false);
-        SnackMessage.showError(context, 'เกิดข้อผิดพลาด: $e');
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -403,8 +406,10 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                               final rateName = nameController.text.trim();
 
                               if (rateName.isEmpty) {
-                                _showErrorSnackBar(
-                                    'กรุณากรอกชื่ออัตราค่าบริการ');
+                                print('กรุณากรอกชื่ออัตราค่าบริการ');
+                                SnackMessage.showError(
+                                    context, 'กรุณากรอกชื่ออัตราค่าบริการ');
+
                                 return;
                               }
 
@@ -412,8 +417,11 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                               if (_isDuplicateName(rateName,
                                   excludeRateId:
                                       isEdit ? rate['rate_id'] : null)) {
-                                _showErrorSnackBar(
+                                print(
                                     'ชื่ออัตราค่าบริการนี้มีอยู่แล้ว กรุณาใช้ชื่ออื่น');
+                                SnackMessage.showError(context,
+                                    'ชื่ออัตราค่าบริการนี้มีอยู่แล้ว กรุณาใช้ชื่ออื่น');
+
                                 return;
                               }
 
@@ -427,21 +435,30 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                                         rateName.toLowerCase().contains('water')
                                     ? 'น้ำ'
                                     : 'ไฟ';
-                                _showErrorSnackBar(
+                                print(
                                     'มีค่า$typeNameแบบมิเตอร์อยู่แล้ว ไม่สามารถเพิ่มซ้ำได้');
+                                SnackMessage.showError(context,
+                                    'มีค่า$typeNameแบบมิเตอร์อยู่แล้ว ไม่สามารถเพิ่มซ้ำได้');
+
                                 return;
                               }
 
                               if (isMetered &&
                                   (priceController.text.isEmpty ||
                                       unitController.text.isEmpty)) {
-                                _showErrorSnackBar(
+                                print(
                                     'กรุณากรอกราคาและหน่วยสำหรับค่าบริการแบบมิเตอร์');
+                                SnackMessage.showError(context,
+                                    'กรุณากรอกราคาและหน่วยสำหรับค่าบริการแบบมิเตอร์');
+
                                 return;
                               }
 
                               if (isFixed && fixedController.text.isEmpty) {
-                                _showErrorSnackBar('กรุณากรอกจำนวนเงินคงที่');
+                                print('กรุณากรอกจำนวนเงินคงที่');
+                                SnackMessage.showError(
+                                    context, 'กรุณากรอกจำนวนเงินคงที่');
+
                                 return;
                               }
 
@@ -485,12 +502,19 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                                 }
 
                                 Navigator.pop(context);
-                                _showSuccessSnackBar(isEdit
+                                print(isEdit
                                     ? 'แก้ไขอัตราค่าบริการเรียบร้อย'
                                     : 'เพิ่มอัตราค่าบริการเรียบร้อย');
+                                SnackMessage.showSuccess(
+                                    context,
+                                    isEdit
+                                        ? 'แก้ไขอัตราค่าบริการเรียบร้อย'
+                                        : 'เพิ่มอัตราค่าบริการเรียบร้อย');
                                 _loadData();
                               } catch (e) {
-                                _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+                                print('เกิดข้อผิดพลาด $e');
+                                SnackMessage.showError(
+                                    context, 'เกิดข้อผิดพลาด');
                               }
                             },
                             style: ElevatedButton.styleFrom(
@@ -936,7 +960,8 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
         if (mounted) Navigator.of(context).pop();
 
         if (mounted) {
-          _showSuccessSnackBar('ลบอัตราค่าบริการเรียบร้อย');
+          print('ลบอัตราค่าบริการเรียบร้อย');
+          SnackMessage.showError(context, 'ลบอัตราค่าบริการเรียบร้อย');
           _loadData();
         }
       } catch (e) {
@@ -944,18 +969,11 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
           Navigator.of(context).pop();
         }
         if (mounted) {
-          _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+          print('เกิดข้อผิดพลาด $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }
     }
-  }
-
-  void _showErrorSnackBar(String message) {
-    SnackMessage.showError(context, message);
-  }
-
-  void _showSuccessSnackBar(String message) {
-    SnackMessage.showSuccess(context, message);
   }
 
   @override

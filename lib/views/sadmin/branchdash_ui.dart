@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 //  Page //
-import 'package:manager_room_project/views/sadmin/invoicelist_ui.dart';
-import 'package:manager_room_project/views/sadmin/roomlist_ui.dart';
-import 'package:manager_room_project/views/sadmin/tenantlist_ui.dart';
-import 'package:manager_room_project/views/sadmin/issuelist_ui.dart';
-import 'package:manager_room_project/views/sadmin/meterlist_ui.dart';
-import 'package:manager_room_project/views/sadmin/meter_billing_ui.dart';
-import 'package:manager_room_project/views/sadmin/payment_verification_ui.dart';
-import 'package:manager_room_project/views/sadmin/settingbranch_ui.dart';
+import 'invoicelist_ui.dart';
+import 'roomlist_ui.dart';
+import 'tenantlist_ui.dart';
+import 'issuelist_ui.dart';
+import 'meterlist_ui.dart';
+import 'meter_billing_ui.dart';
+import 'payment_verification_ui.dart';
+import 'settingbranch_ui.dart';
 // Services //
-import 'package:manager_room_project/services/branch_service.dart';
-import 'package:manager_room_project/services/issue_service.dart';
-import 'package:manager_room_project/services/invoice_service.dart';
+import '../../services/branch_service.dart';
+import '../../services/issue_service.dart';
+import '../../services/invoice_service.dart';
 // Widget //
-import 'package:manager_room_project/views/widgets/colors.dart';
+import '../widgets/colors.dart';
 
 class BranchDashboardPage extends StatelessWidget {
   final String? branchId;
@@ -172,7 +172,7 @@ class BranchDashboardPage extends StatelessWidget {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => RoomListUI(
+            builder: (_) => RoomListUi(
               branchId: branchId,
               branchName: branchName,
               hideBottomNav: true,
@@ -253,7 +253,7 @@ class BranchDashboardPage extends StatelessWidget {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => PaymentVerificationPage(branchId: branchId),
+            builder: (_) => PaymentVerificationUi(branchId: branchId),
           ),
         ),
       ),

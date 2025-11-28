@@ -1,28 +1,30 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:manager_room_project/services/payment_service.dart';
-import 'package:manager_room_project/services/invoice_service.dart';
-import 'package:manager_room_project/services/auth_service.dart';
-import 'package:manager_room_project/services/branch_service.dart';
-import 'package:manager_room_project/models/user_models.dart';
-import 'package:manager_room_project/views/widgets/colors.dart';
-import 'package:manager_room_project/views/sadmin/payment_verification_detail_ui.dart';
-// import removed: tenant bill detail is not used from this page
+// Models //
+import '../../models/user_models.dart';
+// Services //
+import '../../services/payment_service.dart';
+import '../../services/invoice_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/branch_service.dart';
+// Page //
+import 'payment_verification_detail_ui.dart';
+// Widgets //
+import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
 
-class PaymentVerificationPage extends StatefulWidget {
+class PaymentVerificationUi extends StatefulWidget {
   final String? branchId;
-  const PaymentVerificationPage({super.key, this.branchId});
+  const PaymentVerificationUi({super.key, this.branchId});
 
   @override
-  State<PaymentVerificationPage> createState() =>
-      _PaymentVerificationPageState();
+  State<PaymentVerificationUi> createState() => _PaymentVerificationUiState();
 }
 
-class _PaymentVerificationPageState extends State<PaymentVerificationPage>
+class _PaymentVerificationUiState extends State<PaymentVerificationUi>
     with SingleTickerProviderStateMixin {
   bool _loading = true;
   List<Map<String, dynamic>> _slips = [];
-  List<Map<String, dynamic>> _invoices = [];
   late TabController
       _tabController; // ตัวกรองตามสถานะการชำระ: all/pending/approved/rejected
   UserModel? _currentUser;
@@ -89,8 +91,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -122,15 +124,13 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
 
       setState(() {
         _slips = deduped;
-        _invoices = const [];
         _loading = false;
       });
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('โหลดข้อมูลไม่สำเร็จ: $e')),
-        );
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -348,8 +348,8 @@ class _PaymentVerificationPageState extends State<PaymentVerificationPage>
           context,
           MaterialPageRoute(
             builder: (_) => slipId.isNotEmpty
-                ? PaymentVerificationDetailPage(slipId: slipId)
-                : PaymentVerificationDetailPage(invoiceId: invoiceId),
+                ? PaymentVerificationDetailUi(slipId: slipId)
+                : PaymentVerificationDetailUi(invoiceId: invoiceId),
           ),
         );
         if (mounted) await _load();

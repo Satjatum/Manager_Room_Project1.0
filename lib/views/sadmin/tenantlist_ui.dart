@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
-// -----
+// Models //
 import '../../models/user_models.dart';
-// -----
+// Middleware //
 import '../../middleware/auth_middleware.dart';
-// -----
+// Services //
 import '../../services/tenant_service.dart';
-// -----
-import 'package:manager_room_project/views/sadmin/tenant_add_ui.dart';
-import 'package:manager_room_project/views/sadmin/tenant_edit_ui.dart';
-import 'package:manager_room_project/views/sadmin/tenantlist_detail_ui.dart';
+// Page //
+import 'tenant_add_ui.dart';
+import 'tenant_edit_ui.dart';
+import 'tenantlist_detail_ui.dart';
 // -----
 import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
 
 class TenantListUI extends StatefulWidget {
   final String? branchId;
@@ -39,10 +40,7 @@ class _TenantListUIState extends State<TenantListUI> {
   UserModel? _currentUser;
   bool _isAnonymous = false;
   final TextEditingController _searchController = TextEditingController();
-  // tenant_id -> { 'room_number': '...', 'roomcate_name': '...' }
   Map<String, Map<String, String>> _tenantRoomInfo = {};
-  // tenant_id -> overdue invoice count
-  Map<String, int> _tenantOverdueCount = {};
 
   // Screen breakpoints
   static const double mobileBreakpoint = 600;
@@ -125,7 +123,6 @@ class _TenantListUIState extends State<TenantListUI> {
         });
         // Load room info and overdue invoices in batch
         await _loadTenantRooms();
-        await _loadTenantOverdues();
         if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
@@ -135,19 +132,8 @@ class _TenantListUIState extends State<TenantListUI> {
           _tenants = [];
           _filteredTenants = [];
         });
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล ${e.toString()}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาดในการโหลดข้อมูล: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-            action: SnackBarAction(
-              label: 'ลองใหม่',
-              textColor: Colors.white,
-              onPressed: _loadTenants,
-            ),
-          ),
-        );
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -172,29 +158,6 @@ class _TenantListUIState extends State<TenantListUI> {
       }
     } catch (e) {
       // Non-blocking; simply keep room info empty on error
-    }
-  }
-
-  Future<void> _loadTenantOverdues() async {
-    try {
-      final ids = _tenants
-          .map((t) => t['tenant_id']?.toString())
-          .whereType<String>()
-          .where((id) => id.isNotEmpty)
-          .toSet()
-          .toList();
-      if (ids.isEmpty) {
-        if (mounted) setState(() => _tenantOverdueCount = {});
-        return;
-      }
-      final map = await TenantService.getOverdueInvoiceCountsForTenants(ids);
-      if (mounted) {
-        setState(() {
-          _tenantOverdueCount = map;
-        });
-      }
-    } catch (e) {
-      // Non-blocking; keep empty on error
     }
   }
 
@@ -240,30 +203,6 @@ class _TenantListUIState extends State<TenantListUI> {
         return matchesSearch;
       }).toList();
     });
-  }
-
-  String _getActiveFiltersText() {
-    List<String> filters = [];
-
-    if (_selectedBranchId != null) {
-      final branch = _branches.firstWhere(
-        (b) => b['branch_id'] == _selectedBranchId,
-        orElse: () => {},
-      );
-      if (branch.isNotEmpty) {
-        filters.add('สาขา: ${branch['branch_name']}');
-      }
-    }
-
-    if (_selectedStatus != 'all') {
-      filters.add(_selectedStatus == 'active' ? 'เปิดใช้งาน' : 'ปิดใช้งาน');
-    }
-
-    if (_searchQuery.isNotEmpty) {
-      filters.add('ค้นหา: "$_searchQuery"');
-    }
-
-    return filters.isEmpty ? 'แสดงทั้งหมด' : filters.join(' • ');
   }
 
   void _showLoginPrompt(String action) {
@@ -574,15 +513,12 @@ class _TenantListUIState extends State<TenantListUI> {
 
         if (mounted) {
           if (result['success']) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(result['message']),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 2),
-              ),
-            );
+            print(result['message']);
+            SnackMessage.showSuccess(context, result['message']);
+
             await _loadTenants();
           } else {
+            print('เกิดข้อผิดพลาด: ${result['message']}');
             throw Exception(result['message']);
           }
         }
@@ -592,13 +528,8 @@ class _TenantListUIState extends State<TenantListUI> {
         }
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString().replaceAll('ข้อยกเว้น: ', '')),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+          print('เกิดข้อผิดพลาด: $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }
     }
@@ -612,13 +543,10 @@ class _TenantListUIState extends State<TenantListUI> {
 
     // Check if user is superadmin
     if (_currentUser?.userRole != UserRole.superAdmin) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('เฉพาะ Super Admin เท่านั้นที่สามารถลบผู้เช่าได้'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
-        ),
-      );
+      print('เฉพาะ Super Admin เท่านั้นที่สามารถลบผู้เช่าได้');
+      SnackMessage.showError(
+          context, 'เฉพาะ Super Admin เท่านั้นที่สามารถลบผู้เช่าได้');
+
       return;
     }
 
@@ -858,15 +786,12 @@ class _TenantListUIState extends State<TenantListUI> {
 
         if (mounted) {
           if (result['success']) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(result['message']),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 3),
-              ),
-            );
+            print(result['message']);
+            SnackMessage.showSuccess(context, result['message']);
             await _loadTenants();
           } else {
+            print('เกิดข้อผิดพลาด: ${result['message']}');
+
             throw Exception(result['message']);
           }
         }
@@ -876,13 +801,8 @@ class _TenantListUIState extends State<TenantListUI> {
         }
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+          print('เกิดข้อผิดพลาด: $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }
     }
@@ -1205,8 +1125,6 @@ class _TenantListUIState extends State<TenantListUI> {
                 ]) ==
                 true);
 
-    // สถานะแบบ pill (แสดงเฉพาะ Active/Inactive)
-    final String statusLabel = isActive ? 'Active' : 'Inactive';
     final Color statusColor = isActive ? const Color(0xFF10B981) : Colors.grey;
 
     // Card UI
@@ -1247,7 +1165,7 @@ class _TenantListUIState extends State<TenantListUI> {
                 child: ClipOval(
                   child: hasValidProfileImage
                       ? Image.network(
-                          profileImageUrl!,
+                          profileImageUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) =>
                               _buildInitialAvatar(tenantName),

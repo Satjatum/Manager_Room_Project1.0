@@ -1,17 +1,22 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as path;
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+// Models //
+import '../../models/user_models.dart';
+// Middleware //
+import '../../middleware/auth_middleware.dart';
+// Services //
 import '../../services/tenant_service.dart';
 import '../../services/image_service.dart';
 import '../../services/user_service.dart';
-import '../../middleware/auth_middleware.dart';
-import '../../models/user_models.dart';
+// Widgets //
 import '../widgets/colors.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:path/path.dart' as path;
+import '../widgets/snack_message.dart';
 
 class TenantEditUI extends StatefulWidget {
   final String tenantId;
@@ -76,8 +81,6 @@ class _TenantEditUIState extends State<TenantEditUI>
   int _paymentDay = 1;
   bool _contractPaid = true;
 
-  // Contract document
-  String? _documentPath;
   String? _documentName;
   Uint8List? _documentBytes;
   String? _currentDocumentUrl;
@@ -122,7 +125,7 @@ class _TenantEditUIState extends State<TenantEditUI>
         });
       }
     } catch (e) {
-      debugPrint('Error loading current user: $e');
+      print('ไม่สามารถโหลดข้อมูลผู้ใช้ได้: $e');
     }
   }
 
@@ -213,7 +216,8 @@ class _TenantEditUIState extends State<TenantEditUI>
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingContract = false);
-        _showErrorSnackBar('ไม่สามารถโหลดข้อมูลสัญญาได้: $e');
+        print('ไม่สามารถโหลดข้อมูลสัญญาได้: $e');
+        SnackMessage.showError(context, 'ไม่สามารถโหลดข้อมูลสัญญาได้');
       }
     }
   }
@@ -227,7 +231,11 @@ class _TenantEditUIState extends State<TenantEditUI>
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e');
+        print('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e');
+        SnackMessage.showError(
+          context,
+          'เกิดข้อผิดพลาดในการเลือกรูปภาพ',
+        );
       }
     }
   }
@@ -368,7 +376,8 @@ class _TenantEditUIState extends State<TenantEditUI>
   Future<bool> _validateImageBytesForWeb(
       Uint8List bytes, String fileName) async {
     if (bytes.length > 5 * 1024 * 1024) {
-      _showErrorSnackBar('ขนาดไฟล์เกิน 5MB กรุณาเลือกไฟล์ที่มีขนาดเล็กกว่า');
+      print('ขนาดไฟล์เกิน 5MB');
+      SnackMessage.showError(context, 'ขนาดไฟล์เกิน 5MB ');
       return false;
     }
 
@@ -376,7 +385,11 @@ class _TenantEditUIState extends State<TenantEditUI>
     const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
 
     if (!allowedExtensions.contains(extension)) {
-      _showErrorSnackBar('รองรับเฉพาะไฟล์ JPG, JPEG, PNG, WebP เท่านั้น');
+      print('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
+      SnackMessage.showError(
+        context,
+        'ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น',
+      );
       return false;
     }
 
@@ -389,7 +402,8 @@ class _TenantEditUIState extends State<TenantEditUI>
 
       final fileSize = await file.length();
       if (fileSize > 5 * 1024 * 1024) {
-        _showErrorSnackBar('ขนาดไฟล์เกิน 5MB กรุณาเลือกไฟล์ที่มีขนาดเล็กกว่า');
+        print('ขนาดไฟล์เกิน 5MB');
+        SnackMessage.showError(context, 'ขนาดไฟล์เกิน 5MB ');
         return false;
       }
 
@@ -397,7 +411,11 @@ class _TenantEditUIState extends State<TenantEditUI>
       const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
 
       if (!allowedExtensions.contains(extension)) {
-        _showErrorSnackBar('รองรับเฉพาะไฟล์ JPG, JPEG, PNG, WebP เท่านั้น');
+        print('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
+        SnackMessage.showError(
+          context,
+          'ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น',
+        );
         return false;
       }
 
@@ -491,7 +509,6 @@ class _TenantEditUIState extends State<TenantEditUI>
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
         setState(() {
-          _documentPath = file.path ?? '';
           _documentName = file.name;
           _documentBytes = file.bytes;
           _documentChanged = true;
@@ -499,7 +516,11 @@ class _TenantEditUIState extends State<TenantEditUI>
       }
     } catch (e) {
       if (mounted && context.mounted) {
-        _showErrorSnackBar('เกิดข้อผิดพลาดในการเลือกไฟล์: $e');
+        print('เกิดข้อผิดพลาดในการเลือกไฟล์: $e');
+        SnackMessage.showError(
+          context,
+          'เกิดข้อผิดพลาดในการเลือกไฟล์',
+        );
       }
     }
   }
@@ -532,41 +553,10 @@ class _TenantEditUIState extends State<TenantEditUI>
     return words[0][0].toUpperCase();
   }
 
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
   Future<void> _saveData() async {
     if (_currentUser == null) {
-      _showErrorSnackBar('กรุณาเข้าสู่ระบบก่อนแก้ไขข้อมูล');
+      print('กรุณาเข้าสู่ระบบก่อนแก้ไขผู้เช่า');
+      SnackMessage.showError(context, 'กรุณาเข้าสู่ระบบก่อนแก้ไขผู้เช่า');
       Navigator.of(context).pop();
       return;
     }
@@ -578,12 +568,17 @@ class _TenantEditUIState extends State<TenantEditUI>
     // Validate contract dates if in contract tab
     if (_tabController.index == 1 && _activeContract != null) {
       if (_contractStartDate == null || _contractEndDate == null) {
-        _showErrorSnackBar('กรุณาระบุวันที่เริ่มต้นและสิ้นสุดสัญญา');
+        print('กรุณาระบุวันที่เริ่มต้นและสิ้นสุดสัญญา');
+        SnackMessage.showError(
+            context, 'กรุณาระบุวันที่เริ่มต้นและสิ้นสุดสัญญา');
         return;
       }
 
       if (_contractEndDate!.isBefore(_contractStartDate!)) {
-        _showErrorSnackBar('วันที่สิ้นสุดสัญญาต้องมาหลังวันที่เริ่มต้น');
+        print('วันที่สิ้นสุดสัญญาต้องมาหลังวันที่เริ่มต้น');
+        SnackMessage.showError(
+            context, 'วันที่สิ้นสุดสัญญาต้องมาหลังวันที่เริ่มต้น');
+
         return;
       }
     }
@@ -616,7 +611,7 @@ class _TenantEditUIState extends State<TenantEditUI>
           try {
             await ImageService.deleteImage(_previousImageUrl!);
           } catch (e) {
-            debugPrint('Error deleting old image: $e');
+            print('เกิดข้อผิดพลาดในการลบรูปเก่า');
           }
         }
 
@@ -672,7 +667,8 @@ class _TenantEditUIState extends State<TenantEditUI>
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+        print('เกิดข้อผิดพลาด: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     }
   }
@@ -692,10 +688,13 @@ class _TenantEditUIState extends State<TenantEditUI>
         if (mounted) {
           setState(() => _isLoading = false);
           if (result['success'] == true) {
-            _showSuccessSnackBar('อัปเดตบัญชีผู้ใช้สำเร็จ');
+            print('อัปเดตบัญชีผู้ใช้สำเร็จ');
+            SnackMessage.showSuccess(context, 'อัปเดตบัญชีผู้ใช้สำเร็จ');
             Navigator.of(context).pop(true);
           } else {
-            _showErrorSnackBar(result['message'] ?? 'อัปเดตบัญชีล้มเหลว');
+            print(result['message'] ?? 'อัปเดตบัญชีล้มเหลว');
+            SnackMessage.showError(
+                context, result['message'] ?? 'อัปเดตบัญชีล้มเหลว');
           }
         }
         return;
@@ -707,7 +706,10 @@ class _TenantEditUIState extends State<TenantEditUI>
             _userEmailController.text.trim().isEmpty ||
             _userPasswordController.text.trim().isEmpty) {
           setState(() => _isLoading = false);
-          _showErrorSnackBar('กรุณากรอกข้อมูลบัญชีให้ครบถ้วน');
+
+          print('กรุณากรอกข้อมูลบัญชีให้ครบถ้วน');
+          SnackMessage.showError(context, 'กรุณากรอกข้อมูลบัญชีให้ครบถ้วน');
+
           return;
         }
 
@@ -728,7 +730,10 @@ class _TenantEditUIState extends State<TenantEditUI>
         if (create['success'] != true) {
           if (mounted) {
             setState(() => _isLoading = false);
-            _showErrorSnackBar(create['message'] ?? 'ไม่สามารถสร้างบัญชีได้');
+
+            print(create['message'] ?? 'ไม่สามารถสร้างบัญชีได้');
+            SnackMessage.showError(
+                context, create['message'] ?? 'ไม่สามารถสร้างบัญชีได้');
           }
           return;
         }
@@ -737,7 +742,10 @@ class _TenantEditUIState extends State<TenantEditUI>
         if (newUserId == null || newUserId.isEmpty) {
           if (mounted) {
             setState(() => _isLoading = false);
-            _showErrorSnackBar('สร้างบัญชีสำเร็จแต่ไม่พบรหัสผู้ใช้');
+
+            print('สร้างบัญชีสำเร็จแต่ไม่พบรหัสผู้ใช้');
+            SnackMessage.showError(
+                context, 'สร้างบัญชีสำเร็จแต่ไม่พบรหัสผู้ใช้');
           }
           return;
         }
@@ -749,20 +757,23 @@ class _TenantEditUIState extends State<TenantEditUI>
 
         if (mounted) {
           setState(() => _isLoading = false);
-          _showSuccessSnackBar('สร้างบัญชีและเชื่อมโยงสำเร็จ');
+          print('สร้างบัญชีและเชื่อมโยงสำเร็จ');
+          SnackMessage.showSuccess(context, 'สร้างบัญชีและเชื่อมโยงสำเร็จ');
           Navigator.of(context).pop(true);
         }
       } else {
         // nothing to save
         if (mounted) {
           setState(() => _isLoading = false);
-          _showErrorSnackBar('ไม่ได้เปิดการสร้างบัญชีผู้ใช้');
+          print('ไม่ได้เปิดการสร้างบัญชีผู้ใช้');
+          SnackMessage.showError(context, 'ไม่ได้เปิดการสร้างบัญชีผู้ใช้');
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        _showErrorSnackBar('เกิดข้อผิดพลาดในการบันทึกบัญชี: $e');
+        print('เกิดข้อผิดพลาดในการบันทึกบัญชี: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการบันทึกบัญชี');
       }
     }
   }
@@ -786,10 +797,13 @@ class _TenantEditUIState extends State<TenantEditUI>
       setState(() => _isLoading = false);
 
       if (result['success']) {
-        _showSuccessSnackBar(result['message']);
+        print(result['message']);
+        SnackMessage.showSuccess(context, result['message']);
+        ;
         Navigator.of(context).pop(true);
       } else {
-        _showErrorSnackBar(result['message']);
+        print('เกิดข้อผิดพลาด: ${result['message']}');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     }
   }
@@ -797,7 +811,9 @@ class _TenantEditUIState extends State<TenantEditUI>
   Future<void> _saveContractData() async {
     if (_activeContract == null) {
       setState(() => _isLoading = false);
-      _showErrorSnackBar('ไม่พบสัญญาที่ใช้งานอยู่');
+      print('ไม่พบสัญญาที่ใช้งานอยู่');
+      SnackMessage.showError(context, 'ไม่พบสัญญาที่ใช้งานอยู่');
+
       return;
     }
 
@@ -899,13 +915,15 @@ class _TenantEditUIState extends State<TenantEditUI>
 
       if (mounted) {
         setState(() => _isLoading = false);
-        _showSuccessSnackBar('อัปเดตข้อมูลสัญญาสำเร็จ');
+        print('อัปเดตข้อมูลสัญญาสำเร็จ');
+        SnackMessage.showSuccess(context, 'อัปเดตข้อมูลสัญญาสำเร็จ');
         Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        _showErrorSnackBar('เกิดข้อผิดพลาดในการอัปเดตสัญญา: $e');
+        print('เกิดข้อผิดพลาดในการอัปเดตสัญญา: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการอัปเดตสัญญา');
       }
     }
   }
@@ -1722,7 +1740,6 @@ class _TenantEditUIState extends State<TenantEditUI>
                       icon: Icon(Icons.close, size: 20),
                       onPressed: () {
                         setState(() {
-                          _documentPath = null;
                           _documentName = null;
                           _documentBytes = null;
                           _documentChanged = false;
@@ -2207,8 +2224,6 @@ class _TenantEditUIState extends State<TenantEditUI>
   }
 
   Widget _buildSaveButton() {
-    final bool canSave = !_isLoading;
-
     // ใช้รูปแบบเดียวกับ branch_edit: แสดงปุ่มย้อนกลับ/ถัดไป/บันทึกตามแท็บเสมอ
     return Container(
       padding: const EdgeInsets.all(16),

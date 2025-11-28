@@ -1,13 +1,16 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:manager_room_project/views/widgets/colors.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:supabase_flutter/supabase_flutter.dart';
+// Services //
 import '../../services/issue_service.dart';
 import '../../services/image_service.dart';
 import '../../services/auth_service.dart';
 import '../../models/user_models.dart';
-import 'package:image_picker/image_picker.dart';
+// Widgets //
+import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
 
 class CreateIssueScreen extends StatefulWidget {
   final String? roomId;
@@ -65,7 +68,8 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
 
       if (_currentUser == null) {
         if (mounted) {
-          _showErrorSnackBar('กรุณาเข้าสู่ระบบใหม่');
+          print('กรุณาเข้าสู่ระบบใหม่');
+          SnackMessage.showError(context, 'กรุณาเข้าสู่ระบบใหม่');
           Navigator.of(context).pop();
         }
         return;
@@ -84,14 +88,18 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
             _branchName = contractInfo['branch_name'];
           } else {
             if (mounted) {
-              _showErrorSnackBar('ไม่พบข้อมูลห้องพัก กรุณาติดต่อผู้ดูแลระบบ');
+              print('ไม่พบข้อมูลห้องพัก กรุณาติดต่อผู้ดูแลระบบ');
+              SnackMessage.showError(
+                  context, 'ไม่พบข้อมูลห้องพัก กรุณาติดต่อผู้ดูแลระบบ');
               Navigator.of(context).pop();
               return;
             }
           }
         } else {
           if (mounted) {
-            _showErrorSnackBar('ไม่พบข้อมูลผู้เช่า กรุณาติดต่อผู้ดูแลระบบ');
+            print('ไม่พบข้อมูลผู้เช่า กรุณาติดต่อผู้ดูแลระบบ');
+            SnackMessage.showError(
+                context, 'ไม่พบข้อมูลผู้เช่า กรุณาติดต่อผู้ดูแลระบบ');
             Navigator.of(context).pop();
             return;
           }
@@ -102,7 +110,8 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
     } catch (e) {
       setState(() => _isLoadingData = false);
       if (mounted) {
-        _showErrorSnackBar('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -138,7 +147,10 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
 
   Future<void> _pickImages() async {
     if (_selectedImages.length >= maxImages) {
-      _showErrorSnackBar('สามารถเลือกรูปภาพได้สูงสุด $maxImages รูป');
+      print('สามารถเลือกรูปภาพได้สูงสุด $maxImages รูป');
+      SnackMessage.showError(
+          context, 'สามารถเลือกรูปภาพได้สูงสุด $maxImages รูป');
+
       return;
     }
 
@@ -150,7 +162,8 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('เกิดข้อผิดพลาดในการเลือกภาพ: $e');
+        print('เกิดข้อผิดพลาดในการเลือกภาพ: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการเลือกภาพ');
       }
     }
   }
@@ -172,10 +185,13 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
       });
 
       if (images.length > remainingSlots) {
-        _showErrorSnackBar(
+        print('เลือกได้เพียง $remainingSlots รูป (สูงสุด $maxImages รูป)');
+        SnackMessage.showError(context,
             'เลือกได้เพียง $remainingSlots รูป (สูงสุด $maxImages รูป)');
       } else {
-        _showSuccessSnackBar('เลือกรูปภาพ ${imagesToAdd.length} รูป');
+        print('เลือกรูปภาพ ${imagesToAdd.length} รูป');
+        SnackMessage.showSuccess(
+            context, 'เลือกรูปภาพ ${imagesToAdd.length} รูป');
       }
     }
   }
@@ -299,7 +315,8 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
         setState(() {
           _selectedImages.add(photo);
         });
-        _showSuccessSnackBar('ถ่ายรูปสำเร็จ');
+        print('ถ่ายรูปสำเร็จ');
+        SnackMessage.showSuccess(context, 'ถ่ายรูปสำเร็จ');
       }
     } else {
       final List<XFile> images = await picker.pickMultiImage(
@@ -317,10 +334,13 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
         });
 
         if (images.length > remainingSlots) {
-          _showErrorSnackBar(
+          print('เลือกได้เพียง $remainingSlots รูป (สูงสุด $maxImages รูป)');
+          SnackMessage.showError(context,
               'เลือกได้เพียง $remainingSlots รูป (สูงสุด $maxImages รูป)');
         } else {
-          _showSuccessSnackBar('เลือกรูปภาพ ${imagesToAdd.length} รูป');
+          print('เลือกรูปภาพ ${imagesToAdd.length} รูป');
+          SnackMessage.showSuccess(
+              context, 'เลือกรูปภาพ ${imagesToAdd.length} รูป');
         }
       }
     }
@@ -330,14 +350,16 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
     setState(() {
       _selectedImages.removeAt(index);
     });
-    _showSuccessSnackBar('ลบรูปภาพแล้ว');
+    print('ลบรูปภาพแล้ว');
+    SnackMessage.showSuccess(context, 'ลบรูปภาพแล้ว');
   }
 
   Future<void> _submitIssue() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (_roomId == null) {
-      _showErrorSnackBar('ไม่พบข้อมูลห้องพัก');
+      print('ไม่พบข้อมูลห้องพัก');
+      SnackMessage.showError(context, 'ไม่พบข้อมูลห้องพัก');
       return;
     }
 
@@ -509,24 +531,29 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                 uploadResult['url'],
               );
             } else {
-              _showErrorSnackBar(
-                  uploadResult['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+              print(uploadResult['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+              SnackMessage.showError(context, 'อัปโหลดรูปภาพไม่สำเร็จ');
             }
           }
         }
 
         if (mounted) {
-          _showSuccessSnackBar(result['message']);
+          print('เกิดข้อผิดพลาด: ${result['message']}');
+          SnackMessage.showError(
+              context, 'เกิดข้อผิดพลาด: ${result['message']}');
           Navigator.of(context).pop(true);
         }
       } else {
         if (mounted) {
-          _showErrorSnackBar(result['message']);
+          print('เกิดข้อผิดพลาด: ${result['message']}');
+          SnackMessage.showError(
+              context, 'เกิดข้อผิดพลาด: ${result['message']}');
         }
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+        print('เกิดข้อผิดพลาด: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     } finally {
       if (mounted) {
@@ -580,46 +607,6 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
       default:
         return type;
     }
-  }
-
-  void _showErrorSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red[600],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 4),
-      ),
-    );
-  }
-
-  void _showSuccessSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_outline, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.green[600],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 
   @override
@@ -708,110 +695,6 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
         ),
       ),
       bottomNavigationBar: _buildBottomNavBar(),
-    );
-  }
-
-  Widget _buildRoomInfoCard() {
-    return _buildModernCard(
-      'ข้อมูลห้องพัก',
-      Icons.meeting_room_outlined,
-      Colors.blue,
-      Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.blue.shade50,
-              Colors.blue.shade100.withOpacity(0.3),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.blue.shade200),
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child:
-                      Icon(Icons.home, color: Colors.blue.shade700, size: 24),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'หมายเลขห้อง',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _roomNumber ?? 'ไม่ระบุ',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(Icons.business,
-                      color: Colors.blue.shade700, size: 24),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'สาขา',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _branchName ?? 'ไม่ระบุ',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 

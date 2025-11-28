@@ -1,13 +1,16 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
-import 'package:manager_room_project/services/invoice_service.dart';
-import 'package:manager_room_project/services/payment_service.dart';
-import 'package:manager_room_project/services/image_service.dart';
-import 'package:manager_room_project/views/widgets/colors.dart';
+import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+// Services //
+import '../../services/invoice_service.dart';
+import '../../services/payment_service.dart';
+import '../../services/image_service.dart';
+// Widgets //
+import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
 
 class TenantPayBillUi extends StatefulWidget {
   final String invoiceId;
@@ -23,8 +26,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
 
   Map<String, dynamic>? _invoice;
   List<Map<String, dynamic>> _bankAccounts = [];
-  String? _selectedQrId; // branch_payment_qr.qr_id (bank only)
-
+  String? _selectedQrId;
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
   DateTime? _selectedDate;
@@ -67,8 +69,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       } catch (_) {}
       if (inv == null) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('ไม่พบบิล')));
+        print('ไม่พบบิล');
+        SnackMessage.showError(context, 'ไม่พบบิล');
         Navigator.pop(context);
         return;
       }
@@ -99,8 +101,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     } catch (e) {
       setState(() => _loading = false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+      print('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
+      SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
     }
   }
 
@@ -123,17 +125,17 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       if (files.isEmpty) return;
       if (_slipFiles.length + files.length > _maxFiles) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล')),
-          );
+          print('แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล');
+          SnackMessage.showError(
+              context, 'แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล');
         }
       }
       final space = _maxFiles - _slipFiles.length;
       setState(() => _slipFiles.addAll(files.take(space)));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('เลือกภาพไม่สำเร็จ: $e')));
+      print('เลือกภาพไม่สำเร็จ: $e');
+      SnackMessage.showError(context, 'เลือกภาพไม่สำเร็จ: $e');
     }
   }
 
@@ -254,9 +256,9 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         if (files.isEmpty) return;
         if (_slipFiles.length + files.length > _maxFiles) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล')),
-            );
+            print('แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล');
+            SnackMessage.showError(
+                context, 'แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล');
           }
         }
         final space = _maxFiles - _slipFiles.length;
@@ -265,9 +267,9 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         // For camera, allow single image
         if (_slipFiles.length >= _maxFiles) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล')),
-            );
+            print('แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล');
+            SnackMessage.showError(
+                context, 'แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล');
           }
           return;
         }
@@ -283,8 +285,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('เลือกภาพไม่สำเร็จ: $e')));
+      print('เลือกภาพไม่สำเร็จ: $e');
+      SnackMessage.showError(context, 'เลือกภาพไม่สำเร็จ: $e');
     }
   }
 
@@ -381,18 +383,21 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     if (_invoice == null) return;
     final amount = double.tryParse(_amountCtrl.text) ?? 0;
     if (amount <= 0) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('กรุณากรอกจำนวนเงิน')));
+      print('กรุณากรอกจำนวนเงิน');
+      SnackMessage.showError(context, 'กรุณากรอกจำนวนเงิน');
+
       return;
     }
     if (_selectedDate == null || _selectedTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('กรุณาเลือกวันที่และเวลาในการชำระ')));
+      print('กรุณาเลือกวันที่และเวลาในการชำระ');
+      SnackMessage.showError(context, 'กรุณาเลือกวันที่และเวลาในการชำระ');
+
       return;
     }
     if (_slipFiles.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('กรุณาอัปโหลดรูปสลิปอย่างน้อย 1 รูป')));
+      print('กรุณาอัปโหลดรูปสลิปอย่างน้อย 1 รูป');
+      SnackMessage.showError(context, 'กรุณาอัปโหลดรูปสลิปอย่างน้อย 1 รูป');
+
       return;
     }
     setState(() => _submitting = true);
@@ -409,8 +414,9 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         // Block only if there's a pending slip (not yet verified)
         if (latest != null && verifiedAt.isEmpty && paymentId.isEmpty) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text('มีสลิปรอตรวจสอบอยู่ กรุณารอผลก่อนส่งใหม่')));
+            print('มีสลิปรอตรวจสอบอยู่ กรุณาตรวจสอบผลก่อน');
+            SnackMessage.showError(
+                context, 'มีสลิปรอตรวจสอบอยู่ กรุณาตรวจสอบผลก่อน');
           }
           return;
         }
@@ -475,18 +481,17 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
           }
         }
         if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(res['message'] ?? 'สำเร็จ')));
-        Navigator.pop(context, true);
+        print(res['message'] ?? 'ส่งสลิปสำเร็จ');
+        SnackMessage.showSuccess(context, res['message'] ?? 'ส่งสลิปสำเร็จ');
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(res['message'] ?? 'ส่งสลิปไม่สำเร็จ')));
+        print(res['message'] ?? 'ส่งสลิปไม่สำเร็จ');
+        SnackMessage.showSuccess(context, res['message'] ?? 'ส่งสลิปไม่สำเร็จ');
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+      print('เกิดข้อผิดพลาด $e');
+      SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -494,8 +499,9 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
 
   void _showQrDialog() {
     if (_selectedQrId == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('กรุณาเลือกบัญชีธนาคาร')));
+      print('กรุณาเลือกบัญชีธนาคาร');
+      SnackMessage.showError(context, 'กรุณาเลือกบัญชีธนาคาร');
+
       return;
     }
     final acct = _bankAccounts.firstWhere(
@@ -506,8 +512,8 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     final bankName = (acct['bank_name'] ?? '').toString();
     final accName = (acct['account_name'] ?? '').toString();
     if (accNum.isEmpty) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('กรุณาเลือกบัญชีธนาคาร')));
+      print('กรุณาเลือกบัญชีธนาคาร');
+      SnackMessage.showError(context, 'กรุณาเลือกบัญชีธนาคาร');
       return;
     }
 

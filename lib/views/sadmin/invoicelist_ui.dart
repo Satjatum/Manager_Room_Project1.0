@@ -1,13 +1,19 @@
-import 'package:flutter/material.dart';
-import 'package:manager_room_project/services/invoice_service.dart';
-import 'package:manager_room_project/services/payment_service.dart';
-import 'package:manager_room_project/services/auth_service.dart';
-import 'package:manager_room_project/services/branch_service.dart';
-import 'package:manager_room_project/models/user_models.dart';
-import 'package:manager_room_project/views/sadmin/invoicelist_detail_ui.dart';
-import 'package:manager_room_project/views/widgets/colors.dart';
-import 'package:manager_room_project/utils/formatMonthy.dart';
 import 'dart:async';
+import 'package:flutter/material.dart';
+// Models //
+import '../../models/user_models.dart';
+// Services //
+import '../../services/invoice_service.dart';
+import '../../services/payment_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/branch_service.dart';
+// Page //
+import 'invoicelist_detail_ui.dart';
+// Widgets //
+import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
+// Utils
+import '../../utils/formatMonthy.dart';
 
 class InvoiceListUi extends StatefulWidget {
   final String? branchId;
@@ -97,8 +103,8 @@ class _InvoiceListUiState extends State<InvoiceListUi>
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -186,9 +192,8 @@ class _InvoiceListUiState extends State<InvoiceListUi>
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('โหลดข้อมูลไม่สำเร็จ: $e')),
-        );
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -410,7 +415,7 @@ class _InvoiceListUiState extends State<InvoiceListUi>
         _pendingInvoiceIds.contains(invoiceId) &&
         status != 'paid' &&
         status != 'cancelled';
-    final bool isRejected = _currentUser?.userRole == UserRole.tenant &&
+    _currentUser?.userRole == UserRole.tenant &&
         !isPendingReview &&
         _rejectedInvoiceIds.contains(invoiceId) &&
         status != 'paid' &&

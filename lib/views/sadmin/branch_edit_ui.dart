@@ -57,7 +57,6 @@ class _BranchEditUiState extends State<BranchEditUi>
 
   List<Map<String, dynamic>> _adminUsers = [];
   UserModel? _currentUser;
-  Map<String, dynamic>? _originalBranchData;
 
   bool get _isAdminBranchManager {
     if (_currentUser?.userRole != UserRole.admin) return false;
@@ -135,7 +134,6 @@ class _BranchEditUiState extends State<BranchEditUi>
 
       if (branch != null && mounted) {
         setState(() {
-          _originalBranchData = Map.from(branch);
           _branchCodeController.text = branch['branch_code'] ?? '';
           _branchNameController.text = branch['branch_name'] ?? '';
           _branchAddressController.text = branch['branch_address'] ?? '';

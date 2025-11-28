@@ -1,16 +1,19 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:math' as math;
-import 'package:image_picker/image_picker.dart';
-import '../../services/room_service.dart';
-import '../../services/branch_service.dart';
-import '../../services/image_service.dart';
-import '../../models/user_models.dart';
-import '../../middleware/auth_middleware.dart';
-import '../widgets/colors.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+// Models //
+import '../../models/user_models.dart';
+// Middleware //
+import '../../middleware/auth_middleware.dart';
+// Services //
+import '../../services/room_service.dart';
+import '../../services/image_service.dart';
+// Widgets //
+import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
 
 class _DraftImage {
   final File? file;
@@ -54,7 +57,6 @@ class _RoomAddUIState extends State<RoomAddUI> {
   bool _isLoadingData = false;
   bool _isCheckingAuth = true;
 
-  List<Map<String, dynamic>> _branches = [];
   List<Map<String, dynamic>> _roomTypes = [];
   List<Map<String, dynamic>> _roomCategories = [];
   List<Map<String, dynamic>> _amenities = [];
@@ -102,6 +104,10 @@ class _RoomAddUIState extends State<RoomAddUI> {
       }
     } catch (e) {
       print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+      SnackMessage.showError(
+        context,
+        'เกิดข้อผิดพลาดในการโหลดข้อมูล',
+      );
       if (mounted) {
         setState(() {
           _currentUser = null;
@@ -116,8 +122,6 @@ class _RoomAddUIState extends State<RoomAddUI> {
     setState(() => _isLoadingData = true);
 
     try {
-      final branches = await BranchService.getBranchesByUser();
-      // ดึงข้อมูลตามสาขาที่เลือก (ถ้ามี) ไม่เช่นนั้นใช้สาขาของผู้ใช้
       final String? effectiveBranchId =
           _selectedBranchId ?? _currentUser?.branchId;
       final roomTypes =
@@ -129,7 +133,6 @@ class _RoomAddUIState extends State<RoomAddUI> {
 
       if (mounted) {
         setState(() {
-          _branches = branches;
           _roomTypes = roomTypes;
           _roomCategories = roomCategories;
           _amenities = amenities;
@@ -139,12 +142,8 @@ class _RoomAddUIState extends State<RoomAddUI> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingData = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('ไม่สามารถโหลดข้อมูลได้: $e'),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -158,12 +157,8 @@ class _RoomAddUIState extends State<RoomAddUI> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        print('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการเลือกรูปภาพ');
       }
     }
   }
@@ -347,24 +342,16 @@ class _RoomAddUIState extends State<RoomAddUI> {
     try {
       if (bytes.length > 5 * 1024 * 1024) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ขนาดไฟล์เกิน 5MB กรุณาเลือกไฟล์ที่มีขนาดเล็กกว่า'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          print('ขนาดไฟล์เกิน 5MB');
+          SnackMessage.showError(context, 'ขนาดไฟล์เกิน 5MB ');
         }
         return false;
       }
 
       if (bytes.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ไฟล์เสียหายหรือมีขนาด 0 bytes'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          print('ไฟว่างเปล่าหรือเสียหาย');
+          SnackMessage.showError(context, 'ไฟว่างเปล่าหรือเสียหาย');
         }
         return false;
       }
@@ -374,11 +361,10 @@ class _RoomAddUIState extends State<RoomAddUI> {
 
       if (!allowedExtensions.contains(extension)) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('รองรับเฉพาะไฟล์ JPG, JPEG, PNG, WebP เท่านั้น'),
-              backgroundColor: Colors.red,
-            ),
+          print('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
+          SnackMessage.showError(
+            context,
+            'ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น',
           );
         }
         return false;
@@ -387,11 +373,10 @@ class _RoomAddUIState extends State<RoomAddUI> {
       return true;
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('ไม่สามารถตรวจสอบไฟล์ได้: $e'),
-            backgroundColor: Colors.red,
-          ),
+        print('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
+        SnackMessage.showError(
+          context,
+          'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
         );
       }
       return false;
@@ -402,11 +387,10 @@ class _RoomAddUIState extends State<RoomAddUI> {
     try {
       if (!await file.exists()) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ไฟล์ไม่พบหรือถูกลบ'),
-              backgroundColor: Colors.red,
-            ),
+          print('ไม่พบไฟล์หรือไฟล์ถูกลบ');
+          SnackMessage.showError(
+            context,
+            'ไม่พบไฟล์หรือไฟล์ถูกลบ',
           );
         }
         return false;
@@ -415,11 +399,10 @@ class _RoomAddUIState extends State<RoomAddUI> {
       final fileSize = await file.length();
       if (fileSize > 5 * 1024 * 1024) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ขนาดไฟล์เกิน 5MB กรุณาเลือกไฟล์ที่มีขนาดเล็กกว่า'),
-              backgroundColor: Colors.red,
-            ),
+          print('ขนาดไฟล์เกิน 5MB');
+          SnackMessage.showError(
+            context,
+            'ขนาดไฟล์เกิน 5MB',
           );
         }
         return false;
@@ -427,11 +410,10 @@ class _RoomAddUIState extends State<RoomAddUI> {
 
       if (fileSize == 0) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ไฟล์เสียหายหรือมีขนาด 0 bytes'),
-              backgroundColor: Colors.red,
-            ),
+          print('ไฟล์ว่างเปล่าหรือเสียหาย');
+          SnackMessage.showError(
+            context,
+            'ไฟล์ว่างเปล่าหรือเสียหาย',
           );
         }
         return false;
@@ -442,11 +424,10 @@ class _RoomAddUIState extends State<RoomAddUI> {
 
       if (!allowedExtensions.contains(extension)) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('รองรับเฉพาะไฟล์ JPG, JPEG, PNG, WebP เท่านั้น'),
-              backgroundColor: Colors.red,
-            ),
+          print('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
+          SnackMessage.showError(
+            context,
+            'ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น',
           );
         }
         return false;
@@ -455,11 +436,10 @@ class _RoomAddUIState extends State<RoomAddUI> {
       return true;
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('ไม่สามารถตรวจสอบไฟล์ได้: $e'),
-            backgroundColor: Colors.red,
-          ),
+        print('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
+        SnackMessage.showError(
+          context,
+          'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
         );
       }
       return false;
@@ -480,12 +460,12 @@ class _RoomAddUIState extends State<RoomAddUI> {
 
   Future<void> _saveRoom() async {
     if (_currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณาเข้าสู่ระบบก่อนเพิ่มห้องพัก'),
-          backgroundColor: Colors.red,
-        ),
+      print('กรุณาเข้าสู่ระบบเพื่อเพิ่มห้อง');
+      SnackMessage.showError(
+        context,
+        'กรุณาเข้าสู่ระบบเพื่อเพิ่มห้อง',
       );
+
       Navigator.of(context).pop();
       return;
     }
@@ -537,7 +517,8 @@ class _RoomAddUIState extends State<RoomAddUI> {
               }
             } catch (e) {
               print('เกิดข้อผิดพลาดในการบันทึกสิ่งอำนวยความสะดวก: $e');
-              // ไม่ต้อง show error เพราะห้องสร้างสำเร็จแล้ว
+              SnackMessage.showError(
+                  context, 'เกิดข้อผิดพลาดในการบันทึกสิ่งอำนวยความสะดวก');
             }
           }
 
@@ -571,7 +552,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
                 (c) => c['roomcate_id'] == _selectedRoomCategoryId,
                 orElse: () => {},
               );
-              if (matched is Map && matched.isNotEmpty) {
+              if (matched.isNotEmpty) {
                 roomCateLabel = matched['roomcate_name'] ?? '';
               }
             } catch (_) {}
@@ -634,57 +615,30 @@ class _RoomAddUIState extends State<RoomAddUI> {
             }
           }
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      result['message'] +
-                          (_selectedAmenities.isNotEmpty
-                              ? ' พร้อมสิ่งอำนวยความสะดวก ${_selectedAmenities.length} รายการ'
-                              : ''),
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 3),
-              behavior: SnackBarBehavior.floating,
-            ),
+          print(
+            result['message'] +
+                (_selectedAmenities.isNotEmpty
+                    ? ' พร้อมสิ่งอำนวยความสะดวก ${_selectedAmenities.length} รายการ'
+                    : ''),
           );
-
+          SnackMessage.showSuccess(
+            context,
+            result['message'] +
+                (_selectedAmenities.isNotEmpty
+                    ? ' พร้อมสิ่งอำนวยความสะดวก ${_selectedAmenities.length} รายการ'
+                    : ''),
+          );
           Navigator.of(context).pop(true);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.error, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(result['message'])),
-                ],
-              ),
-              backgroundColor: Colors.red,
-              duration: const Duration(seconds: 4),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          print(result['message']);
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        print('เกิดข้อผิดพลาด: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     }
   }

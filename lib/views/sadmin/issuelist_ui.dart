@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:manager_room_project/views/sadmin/issuelist_detail_ui.dart';
-import 'package:manager_room_project/views/tenant/issue_add_ui.dart';
+// Models //
+import '../../models/user_models.dart';
+// Services //
 import '../../services/issue_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/branch_service.dart';
-import '../../models/user_models.dart';
+// Page //
+import '../widgets/snack_message.dart';
+import 'issuelist_detail_ui.dart';
+import '../tenant/issue_add_ui.dart';
+// Widgets/
 import '../widgets/colors.dart';
 
 class IssueListUi extends StatefulWidget {
@@ -41,7 +46,6 @@ class _IssueListUiState extends State<IssueListUi>
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(_handleTabChange);
-    // Initialize locked branch context if provided
     _selectedBranchId = widget.branchId;
     _loadData();
   }
@@ -69,8 +73,6 @@ class _IssueListUiState extends State<IssueListUi>
         setState(() => _isLoading = false);
         return;
       }
-
-      // Load sequentially to ensure issues are ready before computing statistics
       await _loadBranches();
       await _loadIssues();
       await _loadStatistics();
@@ -79,7 +81,8 @@ class _IssueListUiState extends State<IssueListUi>
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -92,7 +95,8 @@ class _IssueListUiState extends State<IssueListUi>
         _branches = await BranchService.getBranchesByUser();
       }
     } catch (e) {
-      print('Error loading branches: $e');
+      print('เกิดข้อผิดพลาดในการโหลดสาขา: $e');
+      SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดสาขา');
       _branches = [];
     }
   }
@@ -261,51 +265,8 @@ class _IssueListUiState extends State<IssueListUi>
     }
   }
 
-  IconData _getIssueTypeIcon(String type) {
-    switch (type) {
-      case 'repair':
-        return Icons.build;
-      case 'maintenance':
-        return Icons.engineering;
-      case 'complaint':
-        return Icons.report_problem;
-      case 'suggestion':
-        return Icons.lightbulb;
-      case 'other':
-        return Icons.more_horiz;
-      default:
-        return Icons.info;
-    }
-  }
-
-  void _showErrorSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red[600],
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        duration: const Duration(seconds: 4),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final canCreateIssue = _currentUser?.hasAnyPermission([
-          DetailedPermission.all,
-          DetailedPermission.manageIssues,
-          DetailedPermission.createIssues,
-        ]) ??
-        false;
-
     final isTenant = _currentUser?.userRole == UserRole.tenant;
     final canFilterByBranch = _currentUser?.hasAnyPermission([
           DetailedPermission.all,
@@ -794,7 +755,6 @@ class _IssueListUiState extends State<IssueListUi>
     final roomNumber = issue['room_number'] ?? '';
     final roomCate = issue['room_category_name'] ?? '';
     final status = issue['issue_status'] ?? '';
-    final type = issue['issue_type'] ?? '';
     final createdAt = issue['created_at'] != null
         ? DateTime.parse(issue['created_at'])
         : null;

@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
-//--------
+// Models //
 import '../../models/user_models.dart';
-//--------
+// Middleware //
 import '../../middleware/auth_middleware.dart';
-//--------
+// Services //
 import '../../services/room_service.dart';
-//--------
+// Page //
 import 'room_add_ui.dart';
 import 'room_edit_ui.dart';
 import 'roomlist_detail_ui.dart';
-//--------
+// Widgets //
 import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
 
-class RoomListUI extends StatefulWidget {
+class RoomListUi extends StatefulWidget {
   final String? branchId;
   final String? branchName;
   final bool hideBottomNav;
 
-  const RoomListUI({
+  const RoomListUi({
     Key? key,
     this.branchId,
     this.branchName,
@@ -25,10 +26,10 @@ class RoomListUI extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<RoomListUI> createState() => _RoomListUIState();
+  State<RoomListUi> createState() => _RoomListUiState();
 }
 
-class _RoomListUIState extends State<RoomListUI> {
+class _RoomListUiState extends State<RoomListUi> {
   List<Map<String, dynamic>> _rooms = [];
   List<Map<String, dynamic>> _filteredRooms = [];
   List<Map<String, dynamic>> _branches = [];
@@ -104,8 +105,7 @@ class _RoomListUIState extends State<RoomListUI> {
         });
       }
     } catch (e) {
-      // Non-fatal; keep current filters empty
-      debugPrint('เกิดข้อผิดพลาดในการโหลดฟิลเตอร์: $e');
+      print('เกิดข้อผิดพลาดในการโหลดฟิลเตอร์: $e');
     }
   }
 
@@ -158,18 +158,8 @@ class _RoomListUIState extends State<RoomListUI> {
           _roomAmenities = {};
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาดในการโหลดข้อมูล: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 5),
-            action: SnackBarAction(
-              label: 'ลองใหม่',
-              textColor: Colors.white,
-              onPressed: _loadRooms,
-            ),
-          ),
-        );
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -558,15 +548,12 @@ class _RoomListUIState extends State<RoomListUI> {
 
         if (mounted) {
           if (result['success']) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(result['message']),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 2),
-              ),
-            );
+            print(result['message']);
+            SnackMessage.showSuccess(context, result['message']);
+
             await _loadRooms();
           } else {
+            print("เกิดข้อผิดพลาด {$result['message']}");
             throw Exception(result['message']);
           }
         }
@@ -576,13 +563,8 @@ class _RoomListUIState extends State<RoomListUI> {
         }
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString().replaceAll('ข้อยกเว้น: ', '')),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 3),
-            ),
-          );
+          print('เกิดข้อผิดพลาด: $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }
     }
@@ -829,15 +811,11 @@ class _RoomListUIState extends State<RoomListUI> {
 
         if (mounted) {
           if (result['success']) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(result['message']),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 2),
-              ),
-            );
+            print(result['message']);
+            SnackMessage.showSuccess(context, result['message']);
             await _loadRooms();
           } else {
+            print("เกิดข้อผิดพลาด {$result['message']}");
             throw Exception(result['message']);
           }
         }
@@ -847,13 +825,8 @@ class _RoomListUIState extends State<RoomListUI> {
         }
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString().replaceAll('ข้อยกเว้น: ', '')),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 3),
-            ),
-          );
+          print('เกิดข้อผิดพลาด: $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }
     }

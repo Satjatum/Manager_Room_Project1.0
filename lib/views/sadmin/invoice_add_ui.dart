@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+// Services //
 import '../../services/invoice_service.dart';
 import '../../services/room_service.dart';
 import '../../services/contract_service.dart';
@@ -7,9 +8,13 @@ import '../../services/utility_rate_service.dart';
 import '../../services/meter_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/payment_rate_service.dart';
+// Models //
 import '../../models/user_models.dart';
+// Widgets //
 import '../widgets/colors.dart';
-import 'package:manager_room_project/utils/formatMonthy.dart';
+// Utils //
+import '../../utils/formatMonthy.dart';
+import '../widgets/snack_message.dart';
 
 class InvoiceAddPage extends StatefulWidget {
   final Map<String, dynamic>? initialData;
@@ -60,28 +65,19 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
   double _otherCharges = 0.0;
   double _discountAmount = 0.0;
   double _lateFeeAmount = 0.0;
-  String _discountType = 'none';
 
   // Water and Electric meter data
   double _waterPreviousReading = 0.0;
   double _waterCurrentReading = 0.0;
   double _waterUsage = 0.0;
   double _waterRate = 0.0;
-  double _waterBaseCharge = 0.0; // fixed_amount + additional_charge ของค่าน้ำ
   double _waterCost = 0.0;
 
   double _electricPreviousReading = 0.0;
   double _electricCurrentReading = 0.0;
   double _electricUsage = 0.0;
   double _electricRate = 0.0;
-  double _electricBaseCharge = 0.0; // fixed_amount + additional_charge ของค่าไฟ
   double _electricCost = 0.0;
-
-  // Other charges
-  List<Map<String, dynamic>> _otherChargesList = [];
-
-  // รายการค่าบริการแบบมิเตอร์ (เพื่อ UI แบบไดนามิก)
-  List<Map<String, dynamic>> _meteredRates = [];
 
   // UI State
   bool _isLoading = false;
@@ -117,7 +113,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
       _currentUser = await AuthService.getCurrentUser();
 
       if (_currentUser == null) {
-        _showErrorSnackBar('กรุณาเข้าสู่ระบบใหม่');
+        print('กรุณาเข้าสู่ระบบใหม่');
+        SnackMessage.showError(context, 'กรุณาเข้าสู่ระบบใหม่');
         setState(() => _isLoading = false);
         return;
       }
@@ -135,17 +132,17 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         _invoiceYear =
             widget.initialData!['invoice_year'] ?? DateTime.now().year;
 
-        debugPrint(
-            '📋 ข้อมูลเริ่มต้น: สาขา=$_selectedBranchId, ห้อง=$_selectedRoomId, มิเตอร์=$_readingId');
+        print(
+            'ข้อมูลเริ่มต้น: สาขา=$_selectedBranchId, ห้อง=$_selectedRoomId, มิเตอร์=$_readingId');
       }
 
       // 3. โหลด branches
       try {
         _branches = await RoomService.getBranchesForRoomFilter();
-        debugPrint('✅ โหลดสาขาแล้ว ${_branches.length} สาขา');
+        print('โหลดสาขาแล้ว ${_branches.length} สาขา');
       } catch (e) {
-        debugPrint('❌ ข้อผิดพลาดในการโหลดสาขา: $e');
-        _showErrorSnackBar('ไม่สามารถโหลดข้อมูลสาขาได้: $e');
+        print('ไม่สามารถโหลดข้อมูลสาขาได้: $e');
+        SnackMessage.showError(context, 'ไม่สามารถโหลดข้อมูลสาขาได้');
       }
 
       // 4. ถ้ามี branch_id ให้โหลดข้อมูลที่เกี่ยวข้อง
@@ -155,8 +152,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
 
       setState(() {});
     } catch (e) {
-      debugPrint('❌ ข้อผิดพลาดใน _initializeData: $e');
-      _showErrorSnackBar('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+      print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+      SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -180,31 +177,20 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
       // แยกค่า rates ออกเป็น metered และ fixed
       _fixedRates =
           utilityRates.where((rate) => rate['is_fixed'] == true).toList();
-      _meteredRates =
-          utilityRates.where((rate) => rate['is_metered'] == true).toList();
 
       // ✅ เก็บ rate_id สำหรับน้ำและไฟ
       String? waterRateId;
       String? electricRateId;
 
-      // ตั้งค่า rate สำหรับน้ำและไฟ
-      _waterBaseCharge = 0.0;
-      _electricBaseCharge = 0.0;
       for (var rate in utilityRates) {
         if (rate['is_metered'] == true) {
           final rateName = rate['rate_name'].toString().toLowerCase();
           if (rateName.contains('น้ำ') || rateName.contains('water')) {
             _waterRate = (rate['rate_price'] ?? 0.0).toDouble();
-            _waterBaseCharge = ((rate['fixed_amount'] ?? 0.0) +
-                    (rate['additional_charge'] ?? 0.0))
-                .toDouble();
             waterRateId = rate['rate_id'];
           }
           if (rateName.contains('ไฟ') || rateName.contains('electric')) {
             _electricRate = (rate['rate_price'] ?? 0.0).toDouble();
-            _electricBaseCharge = ((rate['fixed_amount'] ?? 0.0) +
-                    (rate['additional_charge'] ?? 0.0))
-                .toDouble();
             electricRateId = rate['rate_id'];
           }
         }
@@ -227,8 +213,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         await _loadContractsForRoom();
       }
     } catch (e) {
-      debugPrint('ข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
-      _showErrorSnackBar('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+      print('ข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
+      SnackMessage.showError(context, 'ข้อผิดพลาดในการโหลดข้อมูลสาขา');
     }
   }
 
@@ -285,16 +271,15 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     _electricCost = (_electricUsage * _electricRate);
 
     _calculateUtilitiesTotal();
-
-    debugPrint('📊 ใช้ข้อมูลมิเตอร์: น้ำ=$_waterUsage, ไฟ=$_electricUsage');
+    print('ใช้ข้อมูลมิเตอร์: น้ำ=$_waterUsage, ไฟ=$_electricUsage');
   }
 
   // ⭐ ฟังก์ชันใหม่: โหลด contracts สำหรับห้อง พร้อมดึงค่าเช่า
   Future<void> _loadContractsForRoom() async {
     try {
       _contracts = await ContractService.getContractsByRoom(_selectedRoomId!);
-      debugPrint('✅ โหลดสัญญาเช่าแล้ว ${_contracts.length} สัญญา');
 
+      print('โหลดสัญญาเช่าแล้ว ${_contracts.length} สัญญา');
       if (_contracts.isNotEmpty) {
         if (_selectedContractId == null) {
           // เลือก contract ที่ active
@@ -312,9 +297,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           // ⭐ ดึงค่าเช่าจาก contract
           _rentalAmount =
               (selectedContract['contract_price'] ?? 0.0).toDouble();
-
-          debugPrint(
-              '🏠 เลือกสัญญา: $_selectedContractId, เช่า: $_rentalAmount');
+          print('เลือกสัญญา: $_selectedContractId, เช่า: $_rentalAmount');
         } else {
           // ⭐ ถ้ามี contract_id แล้ว ให้ดึงค่าเช่าจาก contract ที่เลือก
           final selectedContract = _contracts.firstWhere(
@@ -324,7 +307,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           if (selectedContract.isNotEmpty) {
             _rentalAmount =
                 (selectedContract['contract_price'] ?? 0.0).toDouble();
-            debugPrint('🏠 ค่าเช่าจากสัญญา: $_rentalAmount');
+            print('ค่าเช่าจากสัญญา: $_rentalAmount');
           }
         }
       }
@@ -337,12 +320,12 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         if (suggestions != null) {
           _waterPreviousReading = suggestions['water_previous'] ?? 0.0;
           _electricPreviousReading = suggestions['electric_previous'] ?? 0.0;
-          debugPrint(
-              '💡 ค่าก่อนหน้าที่แนะนำ: น้ำ=$_waterPreviousReading, ไฟ=$_electricPreviousReading');
+          print(
+              ' ค่าก่อนหน้าที่แนะนำ: น้ำ=$_waterPreviousReading, ไฟ=$_electricPreviousReading');
         }
       }
     } catch (e) {
-      debugPrint('❌ ข้อผิดพลาดในการโหลดสัญญา: $e');
+      print('ข้อผิดพลาดในการโหลดสัญญา: $e');
     }
   }
 
@@ -388,7 +371,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
 
       setState(() {});
     } catch (e) {
-      debugPrint('ข้อผิดพลาดในการโหลดข้อมูลสัญญา: $e');
+      print('ข้อผิดพลาดในการโหลดข้อมูลสัญญา: $e');
     }
   }
 
@@ -442,32 +425,44 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     switch (_currentStep) {
       case 0:
         if (_selectedBranchId == null) {
-          _showErrorSnackBar('กรุณาเลือกสาขา');
+          print('กรุณาเลือกสาขา');
+          SnackMessage.showError(context, 'กรุณาเลือกสาขา');
+
           return false;
         }
         if (_selectedRoomId == null) {
-          _showErrorSnackBar('กรุณาเลือกห้อง');
+          print('กรุณาเลือกห้อง');
+          SnackMessage.showError(context, 'กรุณาเลือกห้อง');
+
           return false;
         }
         if (_selectedContractId == null) {
-          _showErrorSnackBar('กรุณาเลือกสัญญาเช่า');
+          print('กรุณาเลือกสัญญาเช่า');
+          SnackMessage.showError(context, 'กรุณาเลือกสัญญาเช่า');
+
           return false;
         }
         // ⭐ ตรวจสอบค่าเช่า
         if (_rentalAmount <= 0) {
-          _showErrorSnackBar('ไม่พบค่าเช่าจากสัญญา กรุณาตรวจสอบข้อมูล');
+          print('ไม่พบค่าเช่าจากสัญญา กรุณาตรวจสอบข้อมูล');
+          SnackMessage.showError(
+              context, 'ไม่พบค่าเช่าจากสัญญา กรุณาตรวจสอบข้อมูล');
+
           return false;
         }
         return true;
       case 1:
         if (_waterCurrentReading < _waterPreviousReading) {
-          _showErrorSnackBar(
+          print('ค่ามิเตอร์น้ำปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า');
+          SnackMessage.showError(context,
               'ค่ามิเตอร์น้ำปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า');
+
           return false;
         }
         if (_electricCurrentReading < _electricPreviousReading) {
-          _showErrorSnackBar(
-              'ค่ามิเตอร์ไฟปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า');
+          print('ค่ามิเตอร์ไฟปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า');
+          SnackMessage.showError(
+              context, 'ค่ามิเตอร์ไฟปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า');
           return false;
         }
         return true;
@@ -525,15 +520,18 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
 
       if (result['success']) {
         if (mounted) {
-          _showSuccessSnackBar('สร้างใบแจ้งหนี้สำเร็จ');
+          print("สร้างใบแจ้งหนี้สำเร็จ");
+          SnackMessage.showSuccess(context, 'สร้างใบแจ้งหนี้สำเร็จ');
           Navigator.pop(context, {'success': true});
         }
       } else {
-        print(result['message']);
-        _showErrorSnackBar(result['message'] ?? 'เกิดข้อผิดพลาด');
+        print("เกิดข้อผิดพลาด ${result['message']}");
+        SnackMessage.showSuccess(
+            context, result['message'] ?? 'เกิดข้อผิดพลาด');
       }
     } catch (e) {
-      _showErrorSnackBar('เกิดข้อผิดพลาด: $e');
+      print('เกิดข้อผิดพลาด: $e');
+      SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
     } finally {
       setState(() => _isSubmitting = false);
     }
@@ -882,7 +880,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     }).toList();
 
     if (availableRates.isEmpty) {
-      _showErrorSnackBar('เพิ่มค่าบริการครบแล้ว');
+      print('เพิ่มค่าบริการครบแล้ว');
+      SnackMessage.showError(context, 'เพิ่มค่าบริการครบแล้ว');
       return;
     }
 
@@ -1156,7 +1155,8 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                       // ⭐ อัปเดตค่าเช่า
                       _rentalAmount =
                           (contract['contract_price'] ?? 0.0).toDouble();
-                      debugPrint('💰 อัปเดตค่าเช่า: $_rentalAmount');
+
+                      print(' อัปเดตค่าเช่า: $_rentalAmount');
                     });
                   },
             validator: (value) => value == null ? 'กรุณาเลือกสัญญาเช่า' : null,
@@ -2135,30 +2135,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  // ใช้จาก Formatmonthy แทน (monthName/formatThaiDate)
-
-  void _showErrorSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _showSuccessSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
       ),
     );
   }

@@ -1,10 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:manager_room_project/views/sadmin/branchlist_ui.dart';
+// Models //
+import '../../models/user_models.dart';
+// Middleware //
+import '../../middleware/auth_middleware.dart';
+// Services //
 import '../services/auth_service.dart';
-import '../middleware/auth_middleware.dart';
-import '../models/user_models.dart';
+// Page //
 import 'tenant/tenantdash_ui.dart';
+// Widgets //
+import 'widgets/snack_message.dart';
 
 class LoginUi extends StatefulWidget {
   const LoginUi({Key? key}) : super(key: key);
@@ -95,7 +101,8 @@ class _LoginUiState extends State<LoginUi> {
       final remaining = (status['remaining'] as Duration?) ?? Duration.zero;
       final m = remaining.inMinutes;
       final s = (remaining.inSeconds % 60).toString().padLeft(2, '0');
-      _showErrorMessage(
+      print('คุณล็อคอินผิดครบตามจำนวนแล้ว โปรดลองใหม่ภายหลัง (${m}:${s})');
+      SnackMessage.showError(context,
           'คุณล็อคอินผิดครบตามจำนวนแล้ว โปรดลองใหม่ภายหลัง (${m}:${s})');
       await _loadLockStatus();
       return;
@@ -121,32 +128,19 @@ class _LoginUiState extends State<LoginUi> {
             final UserModel user = result['user'];
 
             // Show enhanced welcome message with user info
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('ยินดีต้อนรับ, ${user.displayName}!'),
-                    Text('สถานะ: ${user.roleDisplayName}',
-                        style: const TextStyle(fontSize: 12)),
-                    if (user.detailedPermissions.isNotEmpty)
-                      Text(
-                          'สิทธิ์: ${user.detailedPermissionStrings.take(2).join(", ")}${user.detailedPermissionStrings.length > 2 ? "..." : ""}',
-                          style: const TextStyle(fontSize: 11)),
-                  ],
-                ),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 4),
-              ),
-            );
+            print(
+                'ยินดีต้อนรับ, ${user.displayName}! สถานะ: ${user.roleDisplayName} สิทธิ์: ${user.detailedPermissionStrings.take(2).join(", ")}${user.detailedPermissionStrings.length > 2 ? "..." : ""} ');
+            SnackMessage.showSuccess(context,
+                'ยินดีต้อนรับ, ${user.displayName}! สถานะ: ${user.roleDisplayName} สิทธิ์: ${user.detailedPermissionStrings.take(2).join(", ")}${user.detailedPermissionStrings.length > 2 ? "..." : ""} ');
 
             _emailOrUsernameController.clear();
             _passwordController.clear();
 
             await _navigateToDashboard(user);
           } else {
-            _showErrorMessage(result['message']);
+            print('เกิดข้อผิดพลาด ${result['message']}');
+            SnackMessage.showError(
+                context, 'เกิดข้อผิดพลาด ${result['message']}');
             // refresh lock status in case it just locked
             await _loadLockStatus();
           }
@@ -156,21 +150,12 @@ class _LoginUiState extends State<LoginUi> {
           setState(() {
             _isLoading = false;
           });
-          _showErrorMessage('เกิดข้อผิดพลาด: ${e.toString()}');
+          print('เกิดข้อผิดพลาด $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
           await _loadLockStatus();
         }
       }
     }
-  }
-
-  void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 
   Future<void> _navigateToDashboard(UserModel user) async {
@@ -180,8 +165,6 @@ class _LoginUiState extends State<LoginUi> {
 
       switch (user.userRole) {
         case UserRole.superAdmin:
-          targetPage = const BranchlistUi();
-          break;
         case UserRole.admin:
           targetPage = const BranchlistUi();
           break;
@@ -189,8 +172,7 @@ class _LoginUiState extends State<LoginUi> {
           targetPage = const TenantdashUi();
           break;
         case UserRole.user:
-        default:
-          targetPage = const LoginUi(); // หรือ user dashboard
+          targetPage = const LoginUi();
           break;
       }
 
@@ -215,8 +197,8 @@ class _LoginUiState extends State<LoginUi> {
         ),
       );
     } catch (e) {
-      print('Navigation error: $e');
-      _showErrorMessage('เกิดข้อผิดพลาดในการนำทาง');
+      print('เกิดข้อผิดพลาดในการนำทาง $e');
+      SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการนำทาง');
     }
   }
 

@@ -1,23 +1,27 @@
 import 'package:flutter/material.dart';
+// Services //
 import '../../services/contract_service.dart';
-import '../widgets/colors.dart';
+// Page //
 import 'contractlist_detail_ui.dart';
+// Widget //
+import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
 
-class ContractHistoryUI extends StatefulWidget {
+class ContractHistoryUi extends StatefulWidget {
   final String tenantId;
   final String? tenantName;
 
-  const ContractHistoryUI({
+  const ContractHistoryUi({
     Key? key,
     required this.tenantId,
     this.tenantName,
   }) : super(key: key);
 
   @override
-  State<ContractHistoryUI> createState() => _ContractHistoryUIState();
+  State<ContractHistoryUi> createState() => _ContractHistoryUiState();
 }
 
-class _ContractHistoryUIState extends State<ContractHistoryUI> {
+class _ContractHistoryUiState extends State<ContractHistoryUi> {
   bool _loading = true;
   List<Map<String, dynamic>> _contracts = [];
 
@@ -37,12 +41,9 @@ class _ContractHistoryUIState extends State<ContractHistoryUI> {
       if (mounted) setState(() => _contracts = list);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('โหลดประวัติสัญญาไม่สำเร็จ: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        print('เกิดข้อผิดพลาดในการโหลดประวัติสัญญาไม่สำเร็จ: $e');
+        SnackMessage.showError(
+            context, 'เกิดข้อผิดพลาดในการโหลดประวัติสัญญาไม่สำเร็จ');
       }
     } finally {
       if (mounted) setState(() => _loading = false);

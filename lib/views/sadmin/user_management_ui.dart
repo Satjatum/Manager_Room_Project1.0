@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+// Models //
 import '../../models/user_models.dart';
+// Services //
 import '../../services/user_service.dart';
+// Widgets //
+import '../widgets/snack_message.dart';
 
 class UserManagementUi extends StatefulWidget {
   const UserManagementUi({Key? key}) : super(key: key);
@@ -146,13 +150,13 @@ class _UserManagementUiState extends State<UserManagementUi> {
       final result = await UserService.deactivateUser(userId);
 
       if (mounted) {
-        _showSnackBar(
-          result['message'],
-          result['success'] ? Colors.green : Colors.red,
-        );
-
         if (result['success']) {
           _loadUsers();
+          print(result['message']);
+          SnackMessage.showSuccess(context, result['message']);
+        } else {
+          print('เกิดข้อผิดพลาด: ${result['message']}');
+          SnackMessage.showError(context, result['message']);
         }
       }
     }
@@ -233,38 +237,16 @@ class _UserManagementUiState extends State<UserManagementUi> {
       final result = await UserService.deleteUser(userId);
 
       if (mounted) {
-        _showSnackBar(
-          result['message'],
-          result['success'] ? Colors.green : Colors.red,
-        );
-
         if (result['success']) {
           _loadUsers();
+          print(result['message']);
+          SnackMessage.showSuccess(context, result['message']);
+        } else {
+          print('เกิดข้อผิดพลาด: ${result['message']}');
+          SnackMessage.showError(context, result['message']);
         }
       }
     }
-  }
-
-  void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(
-              color == Colors.green
-                  ? Icons.check_circle_rounded
-                  : Icons.error_rounded,
-              color: Colors.white,
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
   }
 
   UserRole _parseRole(String roleStr) {
@@ -743,30 +725,13 @@ class _AddUserDialogState extends State<AddUserDialog> {
     if (mounted) {
       setState(() => _isLoading = false);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(
-                result['success']
-                    ? Icons.check_circle_rounded
-                    : Icons.error_rounded,
-                color: Colors.white,
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: Text(result['message'])),
-            ],
-          ),
-          backgroundColor:
-              result['success'] ? Colors.green.shade600 : Colors.red.shade600,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-
       if (result['success']) {
         Navigator.pop(context, true);
+        print(result['message']);
+        SnackMessage.showSuccess(context, result['message']);
+      } else {
+        print('เกิดข้อผิดพลาด: ${result['message']}');
+        SnackMessage.showError(context, result['message']);
       }
     }
   }
@@ -1116,31 +1081,13 @@ class _EditUserDialogState extends State<EditUserDialog> {
 
     if (mounted) {
       setState(() => _isLoading = false);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(
-                result['success']
-                    ? Icons.check_circle_rounded
-                    : Icons.error_rounded,
-                color: Colors.white,
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: Text(result['message'])),
-            ],
-          ),
-          backgroundColor:
-              result['success'] ? Colors.green.shade600 : Colors.red.shade600,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-
       if (result['success']) {
         Navigator.pop(context, true);
+        print(result['message']);
+        SnackMessage.showSuccess(context, result['message']);
+      } else {
+        print('เกิดข้อผิดพลาด: ${result['message']}');
+        SnackMessage.showError(context, result['message']);
       }
     }
   }

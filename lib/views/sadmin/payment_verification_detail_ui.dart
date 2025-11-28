@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' as fnd;
-import 'package:manager_room_project/services/payment_service.dart';
-import 'package:manager_room_project/views/widgets/colors.dart';
-import 'package:url_launcher/url_launcher.dart';
+// Services //
+import '../../services/invoice_service.dart';
+import '../../services/meter_service.dart';
+import '../../services/payment_service.dart';
+// Widgets //
+import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
+// Utils //
+import '../../utils/formatMonthy.dart';
 
-import 'package:manager_room_project/services/invoice_service.dart';
-import 'package:manager_room_project/services/meter_service.dart';
-import 'package:manager_room_project/utils/formatMonthy.dart';
-
-class PaymentVerificationDetailPage extends StatefulWidget {
+class PaymentVerificationDetailUi extends StatefulWidget {
   final String? slipId;
   final String? invoiceId;
-  const PaymentVerificationDetailPage({
+  const PaymentVerificationDetailUi({
     super.key,
     this.slipId,
     this.invoiceId,
@@ -19,12 +20,12 @@ class PaymentVerificationDetailPage extends StatefulWidget {
             'Either slipId or invoiceId must be provided');
 
   @override
-  State<PaymentVerificationDetailPage> createState() =>
-      _PaymentVerificationDetailPageState();
+  State<PaymentVerificationDetailUi> createState() =>
+      _PaymentVerificationDetailUiState();
 }
 
-class _PaymentVerificationDetailPageState
-    extends State<PaymentVerificationDetailPage> {
+class _PaymentVerificationDetailUiState
+    extends State<PaymentVerificationDetailUi> {
   bool _loading = true;
   Map<String, dynamic>? _slip;
   Map<String, dynamic>? _invoice;
@@ -50,7 +51,7 @@ class _PaymentVerificationDetailPageState
       final out = <Map<String, dynamic>>[];
       for (final e in v) {
         if (e is Map) {
-          out.add(Map<String, dynamic>.from(e as Map));
+          out.add(Map<String, dynamic>.from(e));
         }
       }
       return out;
@@ -61,7 +62,7 @@ class _PaymentVerificationDetailPageState
   // Safe conversion: dynamic -> Map<String, dynamic>
   Map<String, dynamic> _asMap(dynamic v) {
     if (v is Map) {
-      return Map<String, dynamic>.from(v as Map);
+      return Map<String, dynamic>.from(v);
     }
     if (v is List && v.isNotEmpty && v.first is Map) {
       return Map<String, dynamic>.from(v.first as Map);
@@ -101,7 +102,7 @@ class _PaymentVerificationDetailPageState
           inv = _asMap(invRaw);
           // Preload meter reading(s) if present on utilities
           try {
-            final utils = _asListOfMap(inv?['utilities']);
+            final utils = _asListOfMap(inv['utilities']);
             final ids = utils
                 .map((u) => (u['reading_id'] ?? '').toString())
                 .where((id) => id.isNotEmpty)
@@ -155,45 +156,8 @@ class _PaymentVerificationDetailPageState
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('โหลดรายละเอียดไม่สำเร็จ: $e')),
-        );
-      }
-    }
-  }
-
-  String _firstFileUrl() {
-    final files = _asListOfMap(_slip?['files']);
-    if (files.isNotEmpty) {
-      final u = (files.first['file_url'] ?? '').toString();
-      if (u.isNotEmpty) return u;
-    }
-    return (_slip?['slip_image'] ?? '').toString();
-  }
-
-  Future<void> _openSlip() async {
-    final urlStr = _firstFileUrl();
-    if (urlStr.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ไม่พบลิงก์สลิป')),
-      );
-      return;
-    }
-    final uri = Uri.tryParse(urlStr);
-    if (uri == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ลิงก์สลิปไม่ถูกต้อง')),
-      );
-      return;
-    }
-    final ok = fnd.kIsWeb
-        ? await launchUrl(uri, webOnlyWindowName: '_blank')
-        : await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!ok) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('เปิดลิงก์ไม่สำเร็จ')),
-        );
+        print('เกิดข้อผิดพลาดในการโหลดรายละเอียด: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดรายละเอียด');
       }
     }
   }
@@ -287,9 +251,8 @@ class _PaymentVerificationDetailPageState
 
     final amount = double.tryParse(amtCtrl.text) ?? 0;
     if (amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('จำนวนเงินไม่ถูกต้อง')),
-      );
+      print('จำนวนเงินไม่ถูกต้อง');
+      SnackMessage.showError(context, 'จำนวนเงินไม่ถูกต้อง');
       return;
     }
 
@@ -302,11 +265,11 @@ class _PaymentVerificationDetailPageState
         (totalAmount - paidAmount).clamp(0.0, double.infinity).toDouble();
 
     if (amount > remaining) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(
-                'จำนวนเงินที่อนุมัติ (${amount.toStringAsFixed(2)}) ไม่สามารถเกินยอดคงเหลือ (${remaining.toStringAsFixed(2)}) ได้')),
-      );
+      print(
+          'จำนวนเงินที่อนุมัติ (${amount.toStringAsFixed(2)}) ไม่สามารถเกินยอดคงเหลือ (${remaining.toStringAsFixed(2)}) ได้');
+      SnackMessage.showError(context,
+          'จำนวนเงินที่อนุมัติ (${amount.toStringAsFixed(2)}) ไม่สามารถเกินยอดคงเหลือ (${remaining.toStringAsFixed(2)}) ได้');
+
       return;
     }
 
@@ -320,15 +283,15 @@ class _PaymentVerificationDetailPageState
         adminNotes: noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'] ?? 'สำเร็จ')));
+        print(result['message'] ?? 'อนุมัติสำเร็จ');
+        SnackMessage.showSuccess(context, 'อนุมัติสำเร็จ');
       }
       await _load();
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('อนุมัติไม่สำเร็จ: $e')));
+        print('อนุมัติไม่สำเร็จ: $e');
+        SnackMessage.showError(context, 'อนุมัติไม่สำเร็จ');
       }
     }
   }
@@ -407,15 +370,15 @@ class _PaymentVerificationDetailPageState
         reason: reasonCtrl.text.trim().isEmpty ? null : reasonCtrl.text.trim(),
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'] ?? 'สำเร็จ')));
+        print(result['message'] ?? 'อนุมัติสำเร็จ');
+        SnackMessage.showSuccess(context, 'อนุมัติสำเร็จ');
       }
       await _load();
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('ปฏิเสธไม่สำเร็จ: $e')));
+        print('ปฏิเสธไม่สำเร็จ: $e');
+        SnackMessage.showError(context, 'ปฏิเสธไม่สำเร็จ');
       }
     }
   }
@@ -609,7 +572,6 @@ class _PaymentVerificationDetailPageState
     final s = _slip!;
     final invFull = _asMap(_invoice ?? s['invoices']);
     final room = invFull.isNotEmpty ? (invFull['rooms'] ?? {}) : {};
-    final br = room.isNotEmpty ? (room['branches'] ?? {}) : {};
     final tenant = invFull.isNotEmpty ? (invFull['tenants'] ?? {}) : {};
 
     // ฟิลด์แบบ flat (เผื่อโครงสร้างบางส่วนไม่ครบ)
