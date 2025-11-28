@@ -125,7 +125,7 @@ class _MeterListUiState extends State<MeterListUi> {
       await _loadMeteredRates();
       await _loadRoomsAndPrevious();
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -305,7 +305,7 @@ class _MeterListUiState extends State<MeterListUi> {
 
       if (mounted) setState(() {});
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการโหลดห้อง: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดห้อง: $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดห้อง');
     } finally {
       if (mounted) setState(() => _loadingRooms = false);
@@ -2308,7 +2308,7 @@ class _MeterListUiState extends State<MeterListUi> {
     final tenantId = room['tenant_id']?.toString();
     final contractId = room['contract_id']?.toString();
     if (roomId == null || tenantId == null || contractId == null) {
-      print('กรุณากรอกข้อมูลให้ครบถ้วน');
+      debugPrint('กรุณากรอกข้อมูลให้ครบถ้วน');
       SnackMessage.showError(context, 'กรุณากรอกข้อมูลให้ครบถ้วน');
       return;
     }
@@ -2324,7 +2324,7 @@ class _MeterListUiState extends State<MeterListUi> {
       if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
     }
     if (waterRateId == null || electricRateId == null) {
-      print('กรุณาตั้งค่าเรตค่าน้ำและค่าไฟ');
+      debugPrint('กรุณาตั้งค่าเรตค่าน้ำและค่าไฟ');
       SnackMessage.showError(context, 'กรุณาตั้งค่าเรตค่าน้ำและค่าไฟ');
       return;
     }
@@ -2346,17 +2346,17 @@ class _MeterListUiState extends State<MeterListUi> {
     final curE = double.tryParse((cvECtrl?.text ?? '').trim());
 
     if (curW == null || curE == null) {
-      print('กรุณากรอกตัวเลขให้ถูกต้อง');
+      debugPrint('กรุณากรอกตัวเลขให้ถูกต้อง');
       SnackMessage.showError(context, 'กรุณากรอกตัวเลขให้ถูกต้อง');
       return;
     }
     if (curW <= prevW) {
-      print('ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
+      debugPrint('ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       SnackMessage.showError(context, 'ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       return;
     }
     if (curE <= prevE) {
-      print('ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
+      debugPrint('ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       SnackMessage.showError(context, 'ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       return;
     }
@@ -2379,11 +2379,11 @@ class _MeterListUiState extends State<MeterListUi> {
 
       final res = await MeterReadingService.createMeterReading(payload);
       if (res['success'] == true) {
-        print('บันทึกสำเร็จ');
+        debugPrint('บันทึกสำเร็จ');
         SnackMessage.showSuccess(context, 'บันทึกสำเร็จ');
         final warns = List.from(res['warnings'] ?? const []);
         if (warns.isNotEmpty) {
-          print('พบข้อมูลผิดพลาดไม่สามารถลบได้เนื่องจากออกบิลแล้ว');
+          debugPrint('พบข้อมูลผิดพลาดไม่สามารถลบได้เนื่องจากออกบิลแล้ว');
           SnackMessage.showError(
               context, 'พบข้อมูลผิดพลาดไม่สามารถลบได้เนื่องจากออกบิลแล้ว');
         }
@@ -2398,11 +2398,11 @@ class _MeterListUiState extends State<MeterListUi> {
         nCtrl.clear();
         setState(() {});
       } else {
-        print(res['message'] ?? 'บันทึกไม่สำเร็จ');
+        debugPrint(res['message'] ?? 'บันทึกไม่สำเร็จ');
         SnackMessage.showError(context, 'บันทึกไม่สำเร็จ');
       }
     } catch (e) {
-      print('เกิดข้อผิดพลาด: $e');
+      debugPrint('เกิดข้อผิดพลาด: $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
     } finally {
       if (mounted) setState(() => _savingRoomIds.remove(roomId));
@@ -2420,7 +2420,7 @@ class _MeterListUiState extends State<MeterListUi> {
       if (room.isNotEmpty) {
         await _saveRow(room);
       } else {
-        print('ไม่พบข้อมูลห้อง');
+        debugPrint('ไม่พบข้อมูลห้อง');
         SnackMessage.showError(context, 'ไม่พบข้อมูลห้อง');
       }
       return;
@@ -2442,7 +2442,7 @@ class _MeterListUiState extends State<MeterListUi> {
       if (electricRateId == null && _isElectricRate(r)) electricRateId = rid;
     }
     if (waterRateId == null || electricRateId == null) {
-      print('กรุณาตั้งค่าน้ำค่าไฟ');
+      debugPrint('กรุณาตั้งค่าน้ำค่าไฟ');
       SnackMessage.showError(context, 'กรุณาตั้งค่าน้ำค่าไฟ');
       return;
     }
@@ -2473,17 +2473,17 @@ class _MeterListUiState extends State<MeterListUi> {
         allowPrevElecEdit && prevEParsed != null ? prevEParsed : prevEExisting;
 
     if (curW == null || curE == null) {
-      print('กรุณากรอกตัวเลขให้ถูกต้อง');
+      debugPrint('กรุณากรอกตัวเลขให้ถูกต้อง');
       SnackMessage.showError(context, 'กรุณากรอกตัวเลขให้ถูกต้อง');
       return;
     }
     if (curW <= prevW) {
-      print('ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
+      debugPrint('ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       SnackMessage.showError(context, 'ค่าน้ำปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       return;
     }
     if (curE <= prevE) {
-      print('ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
+      debugPrint('ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       SnackMessage.showError(context, 'ค่าไฟปัจจุบันต้องมากกว่าค่าก่อนหน้า');
       return;
     }
@@ -2503,11 +2503,11 @@ class _MeterListUiState extends State<MeterListUi> {
       final res =
           await MeterReadingService.updateMeterReading(readingId, payload);
       if (res['success'] == true) {
-        print('บันทึกการแก้ไขสำเร็จ');
+        debugPrint('บันทึกการแก้ไขสำเร็จ');
         SnackMessage.showSuccess(context, 'บันทึกการแก้ไขสำเร็จ');
         final warns = List.from(res['warnings'] ?? const []);
         if (warns.isNotEmpty) {
-          print('พบข้อมูลผิดพลาดไม่สามารถลบได้เนื่องจากออกบิลแล้ว');
+          debugPrint('พบข้อมูลผิดพลาดไม่สามารถลบได้เนื่องจากออกบิลแล้ว');
           SnackMessage.showError(
               context, 'พบข้อมูลผิดพลาดไม่สามารถลบได้เนื่องจากออกบิลแล้ว');
         }
@@ -2520,11 +2520,11 @@ class _MeterListUiState extends State<MeterListUi> {
         nCtrl.clear();
         setState(() {});
       } else {
-        print(res['message'] ?? 'แก้ไขไม่สำเร็จ');
+        debugPrint(res['message'] ?? 'แก้ไขไม่สำเร็จ');
         SnackMessage.showError(context, 'แก้ไขไม่สำเร็จ');
       }
     } catch (e) {
-      print('เกิดข้อผิดพลาด: $e');
+      debugPrint('เกิดข้อผิดพลาด: $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
     } finally {
       if (mounted) setState(() => _savingRoomIds.remove(roomId));
@@ -2783,11 +2783,11 @@ class _MeterListUiState extends State<MeterListUi> {
       final res = await MeterReadingService.deleteMeterReading(readingId);
       if (mounted) Navigator.of(context).pop(); // close loading dialog
       if (res['success'] == true) {
-        print('ลบข้อมูลสำเร็จ');
+        debugPrint('ลบข้อมูลสำเร็จ');
         SnackMessage.showSuccess(context, 'ลบข้อมูลสำเร็จ');
         final warns = List.from(res['warnings'] ?? const []);
         if (warns.isNotEmpty) {
-          print('พบข้อมูลผิดพลาดไม่สามารถลบได้เนื่องจากออกบิลแล้ว');
+          debugPrint('พบข้อมูลผิดพลาดไม่สามารถลบได้เนื่องจากออกบิลแล้ว');
           SnackMessage.showError(
               context, 'พบข้อมูลผิดพลาดไม่สามารถลบได้เนื่องจากออกบิลแล้ว');
         }
@@ -2839,12 +2839,12 @@ class _MeterListUiState extends State<MeterListUi> {
         } catch (_) {}
         setState(() {});
       } else {
-        print(res['message'] ?? 'ลบไม่สำเร็จ');
+        debugPrint(res['message'] ?? 'ลบไม่สำเร็จ');
         SnackMessage.showError(context, 'ลบไม่สำเร็จ');
       }
     } catch (e) {
       if (mounted) Navigator.of(context).pop();
-      print('เกิดข้อผิดพลาด: $e');
+      debugPrint('เกิดข้อผิดพลาด: $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
     } finally {
       if (mounted) setState(() => _savingRoomIds.remove(roomId));
@@ -3103,7 +3103,7 @@ class _MeterListUiState extends State<MeterListUi> {
         if (delInv['success'] != true) {
           if (mounted) Navigator.of(context).pop(); // ปิด loading dialog
 
-          print(delInv['message'] ?? 'ลบใบแจ้งหนี้ไม่สำเร็จ');
+          debugPrint(delInv['message'] ?? 'ลบใบแจ้งหนี้ไม่สำเร็จ');
           SnackMessage.showError(context, 'ลบใบแจ้งหนี้ไม่สำเร็จ');
           return;
         }
@@ -3115,7 +3115,7 @@ class _MeterListUiState extends State<MeterListUi> {
 
       if (mounted) {
         if (delRead['success'] == true) {
-          print('ลบข้อมูลและบิลของเดือนนี้สำเร็จ');
+          debugPrint('ลบข้อมูลและบิลของเดือนนี้สำเร็จ');
           SnackMessage.showSuccess(context, 'ลบข้อมูลและบิลของเดือนนี้สำเร็จ');
           _existingByRoom.remove(roomId);
           _savedRoomIds.remove(roomId);
@@ -3133,7 +3133,7 @@ class _MeterListUiState extends State<MeterListUi> {
           } catch (_) {}
           setState(() {});
         } else {
-          print(delRead['message'] ?? 'ลบค่ามิเตอร์ไม่สำเร็จ');
+          debugPrint(delRead['message'] ?? 'ลบค่ามิเตอร์ไม่สำเร็จ');
           SnackMessage.showError(context, 'ลบค่ามิเตอร์ไม่สำเร็จ');
         }
       }
@@ -3142,7 +3142,7 @@ class _MeterListUiState extends State<MeterListUi> {
         Navigator.of(context).pop(); // ปิด loading dialog
       }
       if (mounted) {
-        print('เกิดข้อผิดพลาด: $e');
+        debugPrint('เกิดข้อผิดพลาด: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     } finally {

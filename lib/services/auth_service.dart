@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_models.dart';
@@ -10,7 +11,8 @@ class AuthService {
   // Device-wide lockout keys (not per-account)
   static const String _failCountKey = 'login_fail_count';
   static const String _lockUntilKey = 'login_lock_until';
-  static const String _lockLevelKey = 'login_lock_level'; // 0:15m,1:30m,2:60m (cap)
+  static const String _lockLevelKey =
+      'login_lock_level'; // 0:15m,1:30m,2:60m (cap)
 
   // Initialize session on app start
   static Future<void> initializeSession() async {
@@ -28,7 +30,7 @@ class AuthService {
       // Do not attempt anonymous sign-in; follow the same flow as admin/superadmin
       // Any required storage access should be handled by existing RLS/policies
     } catch (e) {
-      print('Error initializing session: $e');
+      debugPrint('Error initializing session: $e');
       await clearUserSession();
     }
   }
@@ -224,7 +226,7 @@ class AuthService {
       final userData = await _getUserWithInfo(userId);
       return UserModel.fromDatabase(userData);
     } catch (e) {
-      print('Error getting current user: $e');
+      debugPrint('Error getting current user: $e');
       return null;
     }
   }
@@ -272,7 +274,7 @@ class AuthService {
 
       return true;
     } catch (e) {
-      print('Error validating session: $e');
+      debugPrint('Error validating session: $e');
       await clearUserSession();
       return false;
     }
@@ -291,7 +293,7 @@ class AuthService {
             .eq('token', sessionToken);
       }
     } catch (e) {
-      print('Error during sign out: $e');
+      debugPrint('Error during sign out: $e');
     } finally {
       await clearUserSession();
     }
@@ -422,7 +424,7 @@ class AuthService {
 
       return sessions;
     } catch (e) {
-      print('Error getting login history: $e');
+      debugPrint('Error getting login history: $e');
       return [];
     }
   }
@@ -435,7 +437,7 @@ class AuthService {
           .delete()
           .lt('expires_at', DateTime.now().toIso8601String());
     } catch (e) {
-      print('Error cleaning expired sessions: $e');
+      debugPrint('Error cleaning expired sessions: $e');
     }
   }
 
@@ -453,7 +455,7 @@ class AuthService {
 
       return sessions.length;
     } catch (e) {
-      print('Error getting active sessions count: $e');
+      debugPrint('Error getting active sessions count: $e');
       return 0;
     }
   }
@@ -538,7 +540,7 @@ class AuthService {
       return true;
     } catch (e) {
       // debug log เงียบ ๆ และ fallback local
-      // print('auth_update_lockout rpc error: $e');
+      // debugPrint('auth_update_lockout rpc error: $e');
       return false;
     }
   }

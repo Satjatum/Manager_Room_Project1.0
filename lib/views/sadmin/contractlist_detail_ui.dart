@@ -41,7 +41,7 @@ class _ContractDetailUIState extends State<ContractDetailUI> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }

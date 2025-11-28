@@ -83,7 +83,7 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        print('เกิดข้อผิดพลาดโหลดข้อมูล: $e');
+        debugPrint('เกิดข้อผิดพลาดโหลดข้อมูล: $e');
         SnackMessage.showError(
           context,
           'เกิดข้อผิดพลาดโหลดข้อมูล',
@@ -381,7 +381,7 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
                       child: ElevatedButton(
                         onPressed: () {
                           if (nameController.text.trim().isEmpty) {
-                            print('กรุณากรอกชื่อสิ่งอำนวยความสะดวก');
+                            debugPrint('กรุณากรอกชื่อสิ่งอำนวยความสะดวก');
                             SnackMessage.showError(
                               context,
                               'กรุณากรอกชื่อสิ่งอำนวยความสะดวก',
@@ -450,14 +450,14 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
 
         if (mounted) {
           if (response['success']) {
-            print(response['message']);
+            debugPrint(response['message']);
             SnackMessage.showSuccess(
               context,
               response['message'],
             );
             await _loadAmenities();
           } else {
-            print("เกิดข้อผิดพลาด: ${response['message']}");
+            debugPrint("เกิดข้อผิดพลาด: ${response['message']}");
             throw Exception(response['message']);
           }
         }
@@ -466,7 +466,7 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
           Navigator.pop(context);
         }
         if (mounted) {
-          print("เกิดข้อผิดพลาด: $e");
+          debugPrint("เกิดข้อผิดพลาด: $e");
         }
       }
     }
@@ -698,14 +698,14 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
 
         if (mounted) {
           if (result['success']) {
-            print(result['message'] ?? 'ลบสำเร็จ');
+            debugPrint(result['message'] ?? 'ลบสำเร็จ');
             SnackMessage.showSuccess(
               context,
               result['message'] ?? 'ลบสำเร็จ',
             );
             await _loadAmenities();
           } else {
-            print("เกิดข้อผิดพลาด: ${result['message']}");
+            debugPrint("เกิดข้อผิดพลาด: ${result['message']}");
           }
         }
       } catch (e) {
@@ -713,7 +713,7 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
           Navigator.of(context).pop();
         }
         if (mounted) {
-          print("เกิดข้อผิดพลาด: $e");
+          debugPrint("เกิดข้อผิดพลาด: $e");
         }
       }
     }

@@ -68,7 +68,7 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
 
       if (_currentUser == null) {
         if (mounted) {
-          print('กรุณาเข้าสู่ระบบใหม่');
+          debugPrint('กรุณาเข้าสู่ระบบใหม่');
           SnackMessage.showError(context, 'กรุณาเข้าสู่ระบบใหม่');
           Navigator.of(context).pop();
         }
@@ -88,7 +88,7 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
             _branchName = contractInfo['branch_name'];
           } else {
             if (mounted) {
-              print('ไม่พบข้อมูลห้องพัก กรุณาติดต่อผู้ดูแลระบบ');
+              debugPrint('ไม่พบข้อมูลห้องพัก กรุณาติดต่อผู้ดูแลระบบ');
               SnackMessage.showError(
                   context, 'ไม่พบข้อมูลห้องพัก กรุณาติดต่อผู้ดูแลระบบ');
               Navigator.of(context).pop();
@@ -97,7 +97,7 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
           }
         } else {
           if (mounted) {
-            print('ไม่พบข้อมูลผู้เช่า กรุณาติดต่อผู้ดูแลระบบ');
+            debugPrint('ไม่พบข้อมูลผู้เช่า กรุณาติดต่อผู้ดูแลระบบ');
             SnackMessage.showError(
                 context, 'ไม่พบข้อมูลผู้เช่า กรุณาติดต่อผู้ดูแลระบบ');
             Navigator.of(context).pop();
@@ -110,7 +110,7 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
     } catch (e) {
       setState(() => _isLoadingData = false);
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
@@ -140,14 +140,14 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
       }
       return null;
     } catch (e) {
-      print('Error getting tenant contract info: $e');
+      debugPrint('Error getting tenant contract info: $e');
       return null;
     }
   }
 
   Future<void> _pickImages() async {
     if (_selectedImages.length >= maxImages) {
-      print('สามารถเลือกรูปภาพได้สูงสุด $maxImages รูป');
+      debugPrint('สามารถเลือกรูปภาพได้สูงสุด $maxImages รูป');
       SnackMessage.showError(
           context, 'สามารถเลือกรูปภาพได้สูงสุด $maxImages รูป');
 
@@ -162,7 +162,7 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
       }
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการเลือกภาพ: $e');
+        debugPrint('เกิดข้อผิดพลาดในการเลือกภาพ: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการเลือกภาพ');
       }
     }
@@ -185,11 +185,11 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
       });
 
       if (images.length > remainingSlots) {
-        print('เลือกได้เพียง $remainingSlots รูป (สูงสุด $maxImages รูป)');
+        debugPrint('เลือกได้เพียง $remainingSlots รูป (สูงสุด $maxImages รูป)');
         SnackMessage.showError(context,
             'เลือกได้เพียง $remainingSlots รูป (สูงสุด $maxImages รูป)');
       } else {
-        print('เลือกรูปภาพ ${imagesToAdd.length} รูป');
+        debugPrint('เลือกรูปภาพ ${imagesToAdd.length} รูป');
         SnackMessage.showSuccess(
             context, 'เลือกรูปภาพ ${imagesToAdd.length} รูป');
       }
@@ -315,7 +315,7 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
         setState(() {
           _selectedImages.add(photo);
         });
-        print('ถ่ายรูปสำเร็จ');
+        debugPrint('ถ่ายรูปสำเร็จ');
         SnackMessage.showSuccess(context, 'ถ่ายรูปสำเร็จ');
       }
     } else {
@@ -334,11 +334,12 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
         });
 
         if (images.length > remainingSlots) {
-          print('เลือกได้เพียง $remainingSlots รูป (สูงสุด $maxImages รูป)');
+          debugPrint(
+              'เลือกได้เพียง $remainingSlots รูป (สูงสุด $maxImages รูป)');
           SnackMessage.showError(context,
               'เลือกได้เพียง $remainingSlots รูป (สูงสุด $maxImages รูป)');
         } else {
-          print('เลือกรูปภาพ ${imagesToAdd.length} รูป');
+          debugPrint('เลือกรูปภาพ ${imagesToAdd.length} รูป');
           SnackMessage.showSuccess(
               context, 'เลือกรูปภาพ ${imagesToAdd.length} รูป');
         }
@@ -350,7 +351,7 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
     setState(() {
       _selectedImages.removeAt(index);
     });
-    print('ลบรูปภาพแล้ว');
+    debugPrint('ลบรูปภาพแล้ว');
     SnackMessage.showSuccess(context, 'ลบรูปภาพแล้ว');
   }
 
@@ -358,7 +359,7 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_roomId == null) {
-      print('ไม่พบข้อมูลห้องพัก');
+      debugPrint('ไม่พบข้อมูลห้องพัก');
       SnackMessage.showError(context, 'ไม่พบข้อมูลห้องพัก');
       return;
     }
@@ -531,28 +532,28 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
                 uploadResult['url'],
               );
             } else {
-              print(uploadResult['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+              debugPrint(uploadResult['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
               SnackMessage.showError(context, 'อัปโหลดรูปภาพไม่สำเร็จ');
             }
           }
         }
 
         if (mounted) {
-          print('เกิดข้อผิดพลาด: ${result['message']}');
+          debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
           SnackMessage.showError(
               context, 'เกิดข้อผิดพลาด: ${result['message']}');
           Navigator.of(context).pop(true);
         }
       } else {
         if (mounted) {
-          print('เกิดข้อผิดพลาด: ${result['message']}');
+          debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
           SnackMessage.showError(
               context, 'เกิดข้อผิดพลาด: ${result['message']}');
         }
       }
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาด: $e');
+        debugPrint('เกิดข้อผิดพลาด: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     } finally {

@@ -93,7 +93,7 @@ class _ContractEditUiState extends State<ContractEditUi> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
@@ -160,7 +160,7 @@ class _ContractEditUiState extends State<ContractEditUi> {
       }
     } catch (e) {
       if (mounted && context.mounted) {
-        print('เกิดข้อผิดพลาดในการเลือกไฟล์: $e');
+        debugPrint('เกิดข้อผิดพลาดในการเลือกไฟล์: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการเลือกไฟล์');
       }
     }
@@ -188,7 +188,7 @@ class _ContractEditUiState extends State<ContractEditUi> {
   Future<void> _updateContract() async {
     if (!_formKey.currentState!.validate()) return;
     if (_startDate == null || _endDate == null) {
-      print('กรุณาเลือกวันที่เริ่มและสิ้นสุดสัญญา');
+      debugPrint('กรุณาเลือกวันที่เริ่มและสิ้นสุดสัญญา');
       SnackMessage.showError(context, 'กรุณาเลือกวันที่เริ่มและสิ้นสุดสัญญา');
       return;
     }
@@ -291,18 +291,18 @@ class _ContractEditUiState extends State<ContractEditUi> {
         setState(() => _isSaving = false);
 
         if (result['success']) {
-          print(result['message']);
+          debugPrint(result['message']);
           SnackMessage.showSuccess(context, result['message']);
           Navigator.pop(context, true);
         } else {
-          print('เกิดข้อผิดพลาด: ${result['message']}');
+          debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
           SnackMessage.showError(context, result['message']);
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
-        print('เกิดข้อผิดพลาด: $e');
+        debugPrint('เกิดข้อผิดพลาด: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     }

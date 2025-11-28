@@ -91,7 +91,7 @@ class _PaymentVerificationUiState extends State<PaymentVerificationUi>
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
@@ -129,7 +129,7 @@ class _PaymentVerificationUiState extends State<PaymentVerificationUi>
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }

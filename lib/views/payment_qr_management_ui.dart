@@ -44,7 +44,7 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
       }
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     } finally {
@@ -64,7 +64,7 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
           .toList();
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการโหลดบัญชี/QR $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดบัญชี/QR $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลด บัญชี/QR');
       }
     } finally {
@@ -751,7 +751,7 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                                       if (mounted) {
                                                         if (res['success'] ==
                                                             true) {
-                                                          print(isActive
+                                                          debugPrint(isActive
                                                               ? 'ปิดใช้งานแล้ว'
                                                               : 'เปิดใช้งานแล้ว');
                                                           SnackMessage
@@ -762,7 +762,7 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                                                 : 'เปิดใช้งานแล้ว',
                                                           );
                                                         } else {
-                                                          print(
+                                                          debugPrint(
                                                               'เกิดข้อผิดพลาด ${res['message'] ?? 'ทำรายการไม่สำเร็จ'}');
                                                           SnackMessage
                                                               .showError(
@@ -1065,14 +1065,15 @@ class _PaymentQrManagementUiState extends State<PaymentQrManagementUi> {
                                                       if (mounted) {
                                                         if (res['success'] ==
                                                             true) {
-                                                          print('ลบสำเร็จ');
+                                                          debugPrint(
+                                                              'ลบสำเร็จ');
                                                           SnackMessage
                                                               .showSuccess(
                                                             context,
                                                             'ลบสำเร็จ',
                                                           );
                                                         } else {
-                                                          print(
+                                                          debugPrint(
                                                               'เกิดข้อผิดพลาด ${res['message'] ?? 'ลบไม่สำเร็จ'}');
                                                           SnackMessage
                                                               .showError(
@@ -1167,13 +1168,13 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
 
       if (!mounted) return;
       if (res['success'] == true) {
-        print(
+        debugPrint(
           'บันทึกสำเร็จ',
         );
         SnackMessage.showSuccess(context, 'บันทึกสำเร็จ');
         Navigator.pop(context, true);
       } else {
-        print('เกิดข้อผิดพลาด ${res['message'] ?? 'บันทึกไม่สำเร็จ'}');
+        debugPrint('เกิดข้อผิดพลาด ${res['message'] ?? 'บันทึกไม่สำเร็จ'}');
         SnackMessage.showError(
           context,
           res['message'] ?? 'บันทึกไม่สำเร็จ',
@@ -1181,7 +1182,7 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
       }
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาด $e');
+        debugPrint('เกิดข้อผิดพลาด $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     } finally {

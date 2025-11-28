@@ -156,7 +156,7 @@ class _PaymentVerificationDetailUiState
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการโหลดรายละเอียด: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดรายละเอียด: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดรายละเอียด');
       }
     }
@@ -251,7 +251,7 @@ class _PaymentVerificationDetailUiState
 
     final amount = double.tryParse(amtCtrl.text) ?? 0;
     if (amount <= 0) {
-      print('จำนวนเงินไม่ถูกต้อง');
+      debugPrint('จำนวนเงินไม่ถูกต้อง');
       SnackMessage.showError(context, 'จำนวนเงินไม่ถูกต้อง');
       return;
     }
@@ -265,7 +265,7 @@ class _PaymentVerificationDetailUiState
         (totalAmount - paidAmount).clamp(0.0, double.infinity).toDouble();
 
     if (amount > remaining) {
-      print(
+      debugPrint(
           'จำนวนเงินที่อนุมัติ (${amount.toStringAsFixed(2)}) ไม่สามารถเกินยอดคงเหลือ (${remaining.toStringAsFixed(2)}) ได้');
       SnackMessage.showError(context,
           'จำนวนเงินที่อนุมัติ (${amount.toStringAsFixed(2)}) ไม่สามารถเกินยอดคงเหลือ (${remaining.toStringAsFixed(2)}) ได้');
@@ -283,14 +283,14 @@ class _PaymentVerificationDetailUiState
         adminNotes: noteCtrl.text.trim().isEmpty ? null : noteCtrl.text.trim(),
       );
       if (mounted) {
-        print(result['message'] ?? 'อนุมัติสำเร็จ');
+        debugPrint(result['message'] ?? 'อนุมัติสำเร็จ');
         SnackMessage.showSuccess(context, 'อนุมัติสำเร็จ');
       }
       await _load();
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        print('อนุมัติไม่สำเร็จ: $e');
+        debugPrint('อนุมัติไม่สำเร็จ: $e');
         SnackMessage.showError(context, 'อนุมัติไม่สำเร็จ');
       }
     }
@@ -370,14 +370,14 @@ class _PaymentVerificationDetailUiState
         reason: reasonCtrl.text.trim().isEmpty ? null : reasonCtrl.text.trim(),
       );
       if (mounted) {
-        print(result['message'] ?? 'อนุมัติสำเร็จ');
+        debugPrint(result['message'] ?? 'อนุมัติสำเร็จ');
         SnackMessage.showSuccess(context, 'อนุมัติสำเร็จ');
       }
       await _load();
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        print('ปฏิเสธไม่สำเร็จ: $e');
+        debugPrint('ปฏิเสธไม่สำเร็จ: $e');
         SnackMessage.showError(context, 'ปฏิเสธไม่สำเร็จ');
       }
     }

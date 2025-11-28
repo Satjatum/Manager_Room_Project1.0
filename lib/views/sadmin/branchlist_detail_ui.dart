@@ -79,7 +79,7 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
       if (mounted) {
         setState(() => _isLoadingManagers = false);
       }
-      print('เกิดข้อผิดพลาดในการโหลดผู้จัดการ: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดผู้จัดการ: $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดผู้จัดการ');
     }
   }
@@ -103,7 +103,7 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
@@ -387,11 +387,11 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
 
         if (mounted) {
           if (result['success']) {
-            print(result['message']);
+            debugPrint(result['message']);
             SnackMessage.showSuccess(context, result['message']);
             await _loadBranchDetails();
           } else {
-            print("เกิดข้อผิดพลาด ${result['message']}");
+            debugPrint("เกิดข้อผิดพลาด ${result['message']}");
             throw Exception(result['message']);
           }
         }
@@ -400,7 +400,7 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
           Navigator.of(context).pop();
         }
         if (mounted) {
-          print('เกิดข้อผิดพลาด: $e');
+          debugPrint('เกิดข้อผิดพลาด: $e');
         }
       }
     }
@@ -619,11 +619,11 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
         if (mounted) {
           if (result['success']) {
             Navigator.pop(context, true);
-            print(result['message'] ?? 'ลบสาขาเรียบร้อยแล้ว');
+            debugPrint(result['message'] ?? 'ลบสาขาเรียบร้อยแล้ว');
             SnackMessage.showSuccess(
                 context, result['message'] ?? 'ลบสาขาเรียบร้อยแล้ว');
           } else {
-            print(
+            debugPrint(
                 "เกิดข้อผิดพลาด: ${result['message'] ?? 'ลบสาขาเรียบร้อยแล้ว'} ");
           }
         }
@@ -632,7 +632,7 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
           Navigator.pop(context);
         }
         if (mounted) {
-          print("เกิดข้อผิดพลาด: $e");
+          debugPrint("เกิดข้อผิดพลาด: $e");
         }
       }
     }

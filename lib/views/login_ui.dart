@@ -56,7 +56,7 @@ class _LoginUiState extends State<LoginUi> {
         }
       }
     } catch (e) {
-      print('Error during initialization: $e');
+      debugPrint('Error during initialization: $e');
       if (mounted) {
         setState(() {
           _isCheckingSession = false;
@@ -101,7 +101,7 @@ class _LoginUiState extends State<LoginUi> {
       final remaining = (status['remaining'] as Duration?) ?? Duration.zero;
       final m = remaining.inMinutes;
       final s = (remaining.inSeconds % 60).toString().padLeft(2, '0');
-      print('คุณล็อคอินผิดครบตามจำนวนแล้ว โปรดลองใหม่ภายหลัง (${m}:${s})');
+      debugPrint('คุณล็อคอินผิดครบตามจำนวนแล้ว โปรดลองใหม่ภายหลัง (${m}:${s})');
       SnackMessage.showError(context,
           'คุณล็อคอินผิดครบตามจำนวนแล้ว โปรดลองใหม่ภายหลัง (${m}:${s})');
       await _loadLockStatus();
@@ -128,7 +128,7 @@ class _LoginUiState extends State<LoginUi> {
             final UserModel user = result['user'];
 
             // Show enhanced welcome message with user info
-            print(
+            debugPrint(
                 'ยินดีต้อนรับ, ${user.displayName}! สถานะ: ${user.roleDisplayName} สิทธิ์: ${user.detailedPermissionStrings.take(2).join(", ")}${user.detailedPermissionStrings.length > 2 ? "..." : ""} ');
             SnackMessage.showSuccess(context,
                 'ยินดีต้อนรับ, ${user.displayName}! สถานะ: ${user.roleDisplayName} สิทธิ์: ${user.detailedPermissionStrings.take(2).join(", ")}${user.detailedPermissionStrings.length > 2 ? "..." : ""} ');
@@ -138,7 +138,7 @@ class _LoginUiState extends State<LoginUi> {
 
             await _navigateToDashboard(user);
           } else {
-            print('เกิดข้อผิดพลาด ${result['message']}');
+            debugPrint('เกิดข้อผิดพลาด ${result['message']}');
             SnackMessage.showError(
                 context, 'เกิดข้อผิดพลาด ${result['message']}');
             // refresh lock status in case it just locked
@@ -150,7 +150,7 @@ class _LoginUiState extends State<LoginUi> {
           setState(() {
             _isLoading = false;
           });
-          print('เกิดข้อผิดพลาด $e');
+          debugPrint('เกิดข้อผิดพลาด $e');
           SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
           await _loadLockStatus();
         }
@@ -197,7 +197,7 @@ class _LoginUiState extends State<LoginUi> {
         ),
       );
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการนำทาง $e');
+      debugPrint('เกิดข้อผิดพลาดในการนำทาง $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการนำทาง');
     }
   }

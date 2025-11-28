@@ -78,7 +78,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
@@ -276,11 +276,11 @@ class _TenantDetailUIState extends State<TenantDetailUI>
 
         if (mounted) {
           if (result['success']) {
-            print(result['message']);
+            debugPrint(result['message']);
             SnackMessage.showSuccess(context, result['message']);
             _loadData();
           } else {
-            print('เกิดข้อผิดพลาด: ${result['message']}');
+            debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
             SnackMessage.showError(
                 context, 'เกิดข้อผิดพลาด: ${result['message']}');
           }
@@ -290,7 +290,7 @@ class _TenantDetailUIState extends State<TenantDetailUI>
           Navigator.pop(context);
         }
         if (mounted) {
-          print('เกิดข้อผิดพลาด: $e');
+          debugPrint('เกิดข้อผิดพลาด: $e');
           SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }

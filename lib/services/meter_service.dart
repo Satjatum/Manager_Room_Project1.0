@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import '../models/user_models.dart';
@@ -1064,7 +1065,7 @@ class MeterReadingService {
 
       return null;
     } catch (e) {
-      print('Error getting suggested previous readings: $e');
+      debugPrint('Error getting suggested previous readings: $e');
       return null;
     }
   }

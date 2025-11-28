@@ -87,7 +87,7 @@ class _RoomListUiState extends State<RoomListUi> {
         });
       }
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการโหลดสาขา: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดสาขา: $e');
     }
     await _loadTypeAndCategoryFilters();
     _loadRooms();
@@ -105,7 +105,7 @@ class _RoomListUiState extends State<RoomListUi> {
         });
       }
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการโหลดฟิลเตอร์: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดฟิลเตอร์: $e');
     }
   }
 
@@ -134,7 +134,7 @@ class _RoomListUiState extends State<RoomListUi> {
           final amenities = await RoomService.getRoomAmenities(room['room_id']);
           amenitiesMap[room['room_id']] = amenities;
         } catch (e) {
-          print(
+          debugPrint(
               'ไม่สามารถโหลดสิ่งอำนวยความสะดวกของห้องได้ ${room['room_id']}: $e');
           amenitiesMap[room['room_id']] = [];
         }
@@ -158,7 +158,7 @@ class _RoomListUiState extends State<RoomListUi> {
           _roomAmenities = {};
         });
 
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
@@ -548,12 +548,12 @@ class _RoomListUiState extends State<RoomListUi> {
 
         if (mounted) {
           if (result['success']) {
-            print(result['message']);
+            debugPrint(result['message']);
             SnackMessage.showSuccess(context, result['message']);
 
             await _loadRooms();
           } else {
-            print("เกิดข้อผิดพลาด {$result['message']}");
+            debugPrint("เกิดข้อผิดพลาด {$result['message']}");
             throw Exception(result['message']);
           }
         }
@@ -563,7 +563,7 @@ class _RoomListUiState extends State<RoomListUi> {
         }
 
         if (mounted) {
-          print('เกิดข้อผิดพลาด: $e');
+          debugPrint('เกิดข้อผิดพลาด: $e');
           SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }
@@ -811,11 +811,11 @@ class _RoomListUiState extends State<RoomListUi> {
 
         if (mounted) {
           if (result['success']) {
-            print(result['message']);
+            debugPrint(result['message']);
             SnackMessage.showSuccess(context, result['message']);
             await _loadRooms();
           } else {
-            print("เกิดข้อผิดพลาด {$result['message']}");
+            debugPrint("เกิดข้อผิดพลาด {$result['message']}");
             throw Exception(result['message']);
           }
         }
@@ -825,7 +825,7 @@ class _RoomListUiState extends State<RoomListUi> {
         }
 
         if (mounted) {
-          print('เกิดข้อผิดพลาด: $e');
+          debugPrint('เกิดข้อผิดพลาด: $e');
           SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }

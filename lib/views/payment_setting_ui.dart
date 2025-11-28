@@ -52,7 +52,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
 
       if (currentUser == null) {
         if (mounted) {
-          print('ข้อมูลผู้ใช้ไม่ถูกต้อง');
+          debugPrint('ข้อมูลผู้ใช้ไม่ถูกต้อง');
           SnackMessage.showError(context, 'ข้อมูลผู้ใช้ไม่ถูกต้อง');
 
           Navigator.pop(context);
@@ -70,7 +70,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
         );
       } else {
         if (mounted) {
-          print('ไม่มีสิทธิ์เข้าถึงหน้านี้');
+          debugPrint('ไม่มีสิทธิ์เข้าถึงหน้านี้');
           SnackMessage.showError(context, 'ไม่มีสิทธิ์เข้าถึงหน้านี้');
 
           Navigator.pop(context);
@@ -117,7 +117,7 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
     } catch (e) {
       if (mounted) {
         setState(() => isLoading = false);
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
@@ -125,26 +125,26 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
 
   Future<void> _saveSettings() async {
     if (currentUser == null || selectedBranchId == null) {
-      print('ข้อมูลผู้ใช้ไม่ถูกต้อง');
+      debugPrint('ข้อมูลผู้ใช้ไม่ถูกต้อง');
       SnackMessage.showError(context, 'ข้อมูลผู้ใช้ไม่ถูกต้อง');
       return;
     }
 
     if (enableLateFee) {
       if (lateFeeAmountController.text.isEmpty) {
-        print('กรุณากรอกจำนวนค่าปรับ');
+        debugPrint('กรุณากรอกจำนวนค่าปรับ');
         SnackMessage.showError(context, 'กรุณากรอกจำนวนค่าปรับ');
         return;
       }
       if (lateFeeStartDayController.text.isEmpty) {
-        print('กรุณากรอกวันที่เริ่มคิดค่าปรับ');
+        debugPrint('กรุณากรอกวันที่เริ่มคิดค่าปรับ');
         SnackMessage.showError(context, 'กรุณากรอกวันที่เริ่มคิดค่าปรับ');
         return;
       }
 
       final startDay = int.tryParse(lateFeeStartDayController.text) ?? 0;
       if (startDay < 1 || startDay > 31) {
-        print('วันที่เริ่มคิดต้องอยู่ระหว่าง 1-31');
+        debugPrint('วันที่เริ่มคิดต้องอยู่ระหว่าง 1-31');
         SnackMessage.showError(context, 'วันที่เริ่มคิดต้องอยู่ระหว่าง 1-31');
         return;
       }
@@ -181,13 +181,13 @@ class _PaymentSettingsUiState extends State<PaymentSettingsUi> {
 
       if (mounted) {
         Navigator.pop(context);
-        print('บันทึกการตั้งค่าเรียบร้อย');
+        debugPrint('บันทึกการตั้งค่าเรียบร้อย');
         SnackMessage.showSuccess(context, 'บันทึกการตั้งค่าเรียบร้อย');
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        print('เกิดข้อผิดพลาด $e');
+        debugPrint('เกิดข้อผิดพลาด $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     }

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import '../models/user_models.dart';
@@ -803,7 +804,7 @@ class InvoiceService {
           .neq('invoice_status', 'paid')
           .neq('invoice_status', 'cancelled');
     } catch (e) {
-      print('Error updating overdue invoices: $e');
+      debugPrint('Error updating overdue invoices: $e');
     }
   }
 

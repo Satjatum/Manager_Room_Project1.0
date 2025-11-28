@@ -119,7 +119,7 @@ class _BranchEditUiState extends State<BranchEditUi>
         });
       }
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
       if (mounted) {
         setState(() {
           _currentUser = null;
@@ -145,7 +145,7 @@ class _BranchEditUiState extends State<BranchEditUi>
       }
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการโหลดสาขา: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดสาขา: $e');
         SnackMessage.showError(
           context,
           'เกิดข้อผิดพลาดในการโหลดสาขา',
@@ -171,7 +171,7 @@ class _BranchEditUiState extends State<BranchEditUi>
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingManagers = false);
-        print('เกิดข้อผิดพลาดในการโหลดผู้ดูแล: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดผู้ดูแล: $e');
         SnackMessage.showError(
           context,
           'เกิดข้อผิดพลาดในการโหลดผู้ดูแล',
@@ -198,7 +198,7 @@ class _BranchEditUiState extends State<BranchEditUi>
         });
       }
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการโหลดผู้จัดการ: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดผู้จัดการ: $e');
     }
   }
 
@@ -238,7 +238,7 @@ class _BranchEditUiState extends State<BranchEditUi>
       }
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการเลือกภาพ: $e');
+        debugPrint('เกิดข้อผิดพลาดในการเลือกภาพ: $e');
         SnackMessage.showError(
           context,
           'เกิดข้อผิดพลาดในการเลือกภาพ',
@@ -402,7 +402,7 @@ class _BranchEditUiState extends State<BranchEditUi>
     try {
       if (bytes.length > 5 * 1024 * 1024) {
         if (mounted) {
-          print('ขนาดไฟล์เกิน 5MB');
+          debugPrint('ขนาดไฟล์เกิน 5MB');
           SnackMessage.showError(
             context,
             'ขนาดไฟล์เกิน 5MB',
@@ -413,7 +413,7 @@ class _BranchEditUiState extends State<BranchEditUi>
 
       if (bytes.isEmpty) {
         if (mounted) {
-          print('ไฟล์ว่างเปล่าหรือเสียหาย');
+          debugPrint('ไฟล์ว่างเปล่าหรือเสียหาย');
           SnackMessage.showError(
             context,
             'ไฟล์ว่างเปล่าหรือเสียหาย',
@@ -427,7 +427,7 @@ class _BranchEditUiState extends State<BranchEditUi>
 
       if (!allowedExtensions.contains(extension)) {
         if (mounted) {
-          print('เฉพาะไฟล์ JPG, JPEG, PNG, WebP เท่านั้น');
+          debugPrint('เฉพาะไฟล์ JPG, JPEG, PNG, WebP เท่านั้น');
           SnackMessage.showError(
             context,
             'เฉพาะไฟล์ JPG, JPEG, PNG, WebP เท่านั้น',
@@ -439,7 +439,7 @@ class _BranchEditUiState extends State<BranchEditUi>
       return true;
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
+        debugPrint('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
         SnackMessage.showError(
           context,
           'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
@@ -453,7 +453,7 @@ class _BranchEditUiState extends State<BranchEditUi>
     try {
       if (!await file.exists()) {
         if (mounted) {
-          print('ไม่พบไฟล์หรือไฟล์ถูกลบ');
+          debugPrint('ไม่พบไฟล์หรือไฟล์ถูกลบ');
           SnackMessage.showError(
             context,
             'ไม่พบไฟล์หรือไฟล์ถูกลบ',
@@ -465,7 +465,7 @@ class _BranchEditUiState extends State<BranchEditUi>
       final fileSize = await file.length();
       if (fileSize > 5 * 1024 * 1024) {
         if (mounted) {
-          print('ขนาดไฟล์เกิน 5MB');
+          debugPrint('ขนาดไฟล์เกิน 5MB');
           SnackMessage.showError(
             context,
             'ขนาดไฟล์เกิน 5MB',
@@ -476,7 +476,7 @@ class _BranchEditUiState extends State<BranchEditUi>
 
       if (fileSize == 0) {
         if (mounted) {
-          print('ไฟล์ว่างเปล่าหรือเสียหาย');
+          debugPrint('ไฟล์ว่างเปล่าหรือเสียหาย');
           SnackMessage.showError(
             context,
             'ไฟล์ว่างเปล่าหรือเสียหาย',
@@ -490,7 +490,7 @@ class _BranchEditUiState extends State<BranchEditUi>
 
       if (!allowedExtensions.contains(extension)) {
         if (mounted) {
-          print('เฉพาะไฟล์ JPG, JPEG, PNG, WebP เท่านั้น');
+          debugPrint('เฉพาะไฟล์ JPG, JPEG, PNG, WebP เท่านั้น');
           SnackMessage.showError(
             context,
             'เฉพาะไฟล์ JPG, JPEG, PNG, WebP เท่านั้น',
@@ -502,7 +502,7 @@ class _BranchEditUiState extends State<BranchEditUi>
       return true;
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
+        debugPrint('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
         SnackMessage.showError(
           context,
           'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
@@ -521,7 +521,7 @@ class _BranchEditUiState extends State<BranchEditUi>
       _imageChanged = true;
     });
 
-    print('ลบรูปภาพสำเร็จ');
+    debugPrint('ลบรูปภาพสำเร็จ');
     SnackMessage.showSuccess(
       context,
       'ลบรูปภาพสำเร็จ',
@@ -530,7 +530,7 @@ class _BranchEditUiState extends State<BranchEditUi>
 
   Future<void> _updateBranch() async {
     if (_currentUser == null) {
-      print('กรุณาเข้าสู่ระบบเพื่ออัปเดตสาขา');
+      debugPrint('กรุณาเข้าสู่ระบบเพื่ออัปเดตสาขา');
       SnackMessage.showError(
         context,
         'กรุณาเข้าสู่ระบบเพื่ออัปเดตสาขา',
@@ -547,7 +547,7 @@ class _BranchEditUiState extends State<BranchEditUi>
         _isAdminBranchManager;
 
     if (!allowedUI) {
-      print('คุณไม่มีสิทธิ์แก้ไขสาขานี้');
+      debugPrint('คุณไม่มีสิทธิ์แก้ไขสาขานี้');
       SnackMessage.showError(
         context,
         'คุณไม่มีสิทธิ์แก้ไขสาขานี้',
@@ -564,7 +564,7 @@ class _BranchEditUiState extends State<BranchEditUi>
 
     if (_currentUser!.userRole == UserRole.superAdmin) {
       if (_selectedManagerIds.isEmpty) {
-        print('กรุณาเลือกผู้จัดการอย่างน้อยหนึ่งคน');
+        debugPrint('กรุณาเลือกผู้จัดการอย่างน้อยหนึ่งคน');
         SnackMessage.showInfo(
           context,
           'กรุณาเลือกผู้จัดการอย่างน้อยหนึ่งคน',
@@ -686,7 +686,7 @@ class _BranchEditUiState extends State<BranchEditUi>
 
       if (mounted) {
         setState(() => _isLoading = false);
-        print('อัปเดตสาขาเรียบร้อยแล้ว');
+        debugPrint('อัปเดตสาขาเรียบร้อยแล้ว');
         SnackMessage.showSuccess(
           context,
           'อัปเดตสาขาเรียบร้อยแล้ว',
@@ -697,7 +697,7 @@ class _BranchEditUiState extends State<BranchEditUi>
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        print('เกิดข้อผิดพลาดในการอัปเดตสาขา $e');
+        debugPrint('เกิดข้อผิดพลาดในการอัปเดตสาขา $e');
         SnackMessage.showError(
           context,
           'เกิดข้อผิดพลาดในการอัปเดตสาขา',

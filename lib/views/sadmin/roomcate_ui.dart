@@ -65,7 +65,7 @@ class _RoomCateUiState extends State<RoomCateUi> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
@@ -358,7 +358,7 @@ class _RoomCateUiState extends State<RoomCateUi> {
                             ? null
                             : () async {
                                 if (nameController.text.trim().isEmpty) {
-                                  print('กรุณากรอกชื่อหมวดหมู่ห้อง');
+                                  debugPrint('กรุณากรอกชื่อหมวดหมู่ห้อง');
                                   SnackMessage.showError(
                                       context, 'กรุณากรอกชื่อหมวดหมู่ห้อง');
 
@@ -401,7 +401,7 @@ class _RoomCateUiState extends State<RoomCateUi> {
 
                                   if (mounted) {
                                     if (resp['success'] == true) {
-                                      print(resp['message'] ?? 'สำเร็จ');
+                                      debugPrint(resp['message'] ?? 'สำเร็จ');
                                       SnackMessage.showSuccess(
                                           context, 'สำเร็จ');
 
@@ -409,7 +409,7 @@ class _RoomCateUiState extends State<RoomCateUi> {
                                           .pop(); // close dialog
                                       await _loadCategories();
                                     } else {
-                                      print(
+                                      debugPrint(
                                           'เกิดข้อผิดพลาด: ${resp['message'] ?? 'ไม่สำเร็จ'}');
                                       throw Exception(
                                           resp['message'] ?? 'ไม่สำเร็จ');
@@ -422,7 +422,7 @@ class _RoomCateUiState extends State<RoomCateUi> {
                                   }
                                   setDialogState(() => isSubmitting = false);
                                   if (mounted) {
-                                    print('เกิดข้อผิดพลาด: $e');
+                                    debugPrint('เกิดข้อผิดพลาด: $e');
                                     SnackMessage.showError(
                                         context, 'เกิดข้อผิดพลาด');
                                   }
@@ -700,14 +700,14 @@ class _RoomCateUiState extends State<RoomCateUi> {
 
         if (mounted) {
           if (result['success'] == true) {
-            print(result['message'] ?? 'ลบสำเร็จ');
+            debugPrint(result['message'] ?? 'ลบสำเร็จ');
             SnackMessage.showSuccess(
               context,
               result['message'] ?? 'ลบสำเร็จ',
             );
             await _loadCategories();
           } else {
-            print('เกิดข้อผิดพลาด: ${result['message'] ?? 'ลบไม่สำเร็จ'}');
+            debugPrint('เกิดข้อผิดพลาด: ${result['message'] ?? 'ลบไม่สำเร็จ'}');
             throw Exception(result['message'] ?? 'ลบไม่สำเร็จ');
           }
         }
@@ -716,7 +716,7 @@ class _RoomCateUiState extends State<RoomCateUi> {
           Navigator.of(context).pop(); // ensure progress closed
         }
         if (mounted) {
-          print('เกิดข้อผิดพลาด: $e');
+          debugPrint('เกิดข้อผิดพลาด: $e');
           SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }

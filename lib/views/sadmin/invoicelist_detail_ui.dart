@@ -88,18 +88,18 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
                   await PaymentSettingsService.getPaymentSettingById(
                       paymentSettingId);
               if (settings != null) {
-                debugPrint('✅ โหลด payment_settings สำเร็จ: $paymentSettingId');
+                debugPrint('โหลด Payment Setting สำเร็จ: $paymentSettingId');
               } else {
-                debugPrint('⚠️ ไม่พบ payment_settings: $paymentSettingId');
+                debugPrint('ไม่พบ Payment Setting : $paymentSettingId');
               }
             } catch (e) {
-              debugPrint('❌ Error loading payment_settings: $e');
+              debugPrint('เกิดข้อผิดพลาดในการโหลด Payment Setting: $e');
             }
           } else {
-            debugPrint('ℹ️ บิลนี้ไม่มี payment_setting_id');
+            debugPrint('บิลนี้ไม่มี Payment Setting ID');
           }
         } catch (e) {
-          debugPrint('❌ โหลด payment_settings ไม่สำเร็จ: $e');
+          debugPrint('โหลด Payment Setting ID ไม่สำเร็จ: $e');
         }
 
         // preload meter readings for utilities
@@ -172,7 +172,7 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
     } catch (e) {
       setState(() => _loading = false);
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
@@ -554,12 +554,12 @@ class _InvoiceListDetailUiState extends State<InvoiceListDetailUi> {
                   await ReceiptPrintService.printSlipFromSlipRow(_latestSlip!);
                 } else {
                   // ถ้าไม่มี slip ให้แจ้งเตือน
-                  print('ไม่พบข้อมูลสลิปสำหรับดาวน์โหลด');
+                  debugPrint('ไม่พบข้อมูลสลิปสำหรับดาวน์โหลด');
                   SnackMessage.showError(
                       context, 'ไม่พบข้อมูลสลิปสำหรับดาวน์โหลด');
                 }
               } catch (e) {
-                print('ดาวน์โหลดสลิปไม่สำเร็จ: $e');
+                debugPrint('ดาวน์โหลดสลิปไม่สำเร็จ: $e');
                 SnackMessage.showError(context, 'ดาวน์โหลดสลิปไม่สำเร็จ');
               }
             },

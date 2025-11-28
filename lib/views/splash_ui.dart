@@ -189,7 +189,7 @@ class _SplashUiState extends State<SplashUi> with TickerProviderStateMixin {
         }
       }
     } catch (e) {
-      print('Error during initialization: $e');
+      debugPrint('Error during initialization: $e');
 
       if (mounted) {
         await _updateProgress(0.0, 'เกิดข้อผิดพลาด กำลังรีเซ็ต...');

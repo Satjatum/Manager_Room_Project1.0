@@ -113,7 +113,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
       _currentUser = await AuthService.getCurrentUser();
 
       if (_currentUser == null) {
-        print('กรุณาเข้าสู่ระบบใหม่');
+        debugPrint('กรุณาเข้าสู่ระบบใหม่');
         SnackMessage.showError(context, 'กรุณาเข้าสู่ระบบใหม่');
         setState(() => _isLoading = false);
         return;
@@ -132,16 +132,16 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         _invoiceYear =
             widget.initialData!['invoice_year'] ?? DateTime.now().year;
 
-        print(
+        debugPrint(
             'ข้อมูลเริ่มต้น: สาขา=$_selectedBranchId, ห้อง=$_selectedRoomId, มิเตอร์=$_readingId');
       }
 
       // 3. โหลด branches
       try {
         _branches = await RoomService.getBranchesForRoomFilter();
-        print('โหลดสาขาแล้ว ${_branches.length} สาขา');
+        debugPrint('โหลดสาขาแล้ว ${_branches.length} สาขา');
       } catch (e) {
-        print('ไม่สามารถโหลดข้อมูลสาขาได้: $e');
+        debugPrint('ไม่สามารถโหลดข้อมูลสาขาได้: $e');
         SnackMessage.showError(context, 'ไม่สามารถโหลดข้อมูลสาขาได้');
       }
 
@@ -152,7 +152,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
 
       setState(() {});
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
     } finally {
       setState(() => _isLoading = false);
@@ -213,7 +213,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         await _loadContractsForRoom();
       }
     } catch (e) {
-      print('ข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
+      debugPrint('ข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
       SnackMessage.showError(context, 'ข้อผิดพลาดในการโหลดข้อมูลสาขา');
     }
   }
@@ -271,7 +271,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     _electricCost = (_electricUsage * _electricRate);
 
     _calculateUtilitiesTotal();
-    print('ใช้ข้อมูลมิเตอร์: น้ำ=$_waterUsage, ไฟ=$_electricUsage');
+    debugPrint('ใช้ข้อมูลมิเตอร์: น้ำ=$_waterUsage, ไฟ=$_electricUsage');
   }
 
   // ⭐ ฟังก์ชันใหม่: โหลด contracts สำหรับห้อง พร้อมดึงค่าเช่า
@@ -279,7 +279,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     try {
       _contracts = await ContractService.getContractsByRoom(_selectedRoomId!);
 
-      print('โหลดสัญญาเช่าแล้ว ${_contracts.length} สัญญา');
+      debugPrint('โหลดสัญญาเช่าแล้ว ${_contracts.length} สัญญา');
       if (_contracts.isNotEmpty) {
         if (_selectedContractId == null) {
           // เลือก contract ที่ active
@@ -297,7 +297,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           // ⭐ ดึงค่าเช่าจาก contract
           _rentalAmount =
               (selectedContract['contract_price'] ?? 0.0).toDouble();
-          print('เลือกสัญญา: $_selectedContractId, เช่า: $_rentalAmount');
+          debugPrint('เลือกสัญญา: $_selectedContractId, เช่า: $_rentalAmount');
         } else {
           // ⭐ ถ้ามี contract_id แล้ว ให้ดึงค่าเช่าจาก contract ที่เลือก
           final selectedContract = _contracts.firstWhere(
@@ -307,7 +307,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           if (selectedContract.isNotEmpty) {
             _rentalAmount =
                 (selectedContract['contract_price'] ?? 0.0).toDouble();
-            print('ค่าเช่าจากสัญญา: $_rentalAmount');
+            debugPrint('ค่าเช่าจากสัญญา: $_rentalAmount');
           }
         }
       }
@@ -320,12 +320,12 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         if (suggestions != null) {
           _waterPreviousReading = suggestions['water_previous'] ?? 0.0;
           _electricPreviousReading = suggestions['electric_previous'] ?? 0.0;
-          print(
+          debugPrint(
               ' ค่าก่อนหน้าที่แนะนำ: น้ำ=$_waterPreviousReading, ไฟ=$_electricPreviousReading');
         }
       }
     } catch (e) {
-      print('ข้อผิดพลาดในการโหลดสัญญา: $e');
+      debugPrint('ข้อผิดพลาดในการโหลดสัญญา: $e');
     }
   }
 
@@ -371,7 +371,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
 
       setState(() {});
     } catch (e) {
-      print('ข้อผิดพลาดในการโหลดข้อมูลสัญญา: $e');
+      debugPrint('ข้อผิดพลาดในการโหลดข้อมูลสัญญา: $e');
     }
   }
 
@@ -425,26 +425,26 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     switch (_currentStep) {
       case 0:
         if (_selectedBranchId == null) {
-          print('กรุณาเลือกสาขา');
+          debugPrint('กรุณาเลือกสาขา');
           SnackMessage.showError(context, 'กรุณาเลือกสาขา');
 
           return false;
         }
         if (_selectedRoomId == null) {
-          print('กรุณาเลือกห้อง');
+          debugPrint('กรุณาเลือกห้อง');
           SnackMessage.showError(context, 'กรุณาเลือกห้อง');
 
           return false;
         }
         if (_selectedContractId == null) {
-          print('กรุณาเลือกสัญญาเช่า');
+          debugPrint('กรุณาเลือกสัญญาเช่า');
           SnackMessage.showError(context, 'กรุณาเลือกสัญญาเช่า');
 
           return false;
         }
         // ⭐ ตรวจสอบค่าเช่า
         if (_rentalAmount <= 0) {
-          print('ไม่พบค่าเช่าจากสัญญา กรุณาตรวจสอบข้อมูล');
+          debugPrint('ไม่พบค่าเช่าจากสัญญา กรุณาตรวจสอบข้อมูล');
           SnackMessage.showError(
               context, 'ไม่พบค่าเช่าจากสัญญา กรุณาตรวจสอบข้อมูล');
 
@@ -453,14 +453,14 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         return true;
       case 1:
         if (_waterCurrentReading < _waterPreviousReading) {
-          print('ค่ามิเตอร์น้ำปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า');
+          debugPrint('ค่ามิเตอร์น้ำปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า');
           SnackMessage.showError(context,
               'ค่ามิเตอร์น้ำปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า');
 
           return false;
         }
         if (_electricCurrentReading < _electricPreviousReading) {
-          print('ค่ามิเตอร์ไฟปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า');
+          debugPrint('ค่ามิเตอร์ไฟปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า');
           SnackMessage.showError(
               context, 'ค่ามิเตอร์ไฟปัจจุบันต้องมากกว่าหรือเท่ากับค่าก่อนหน้า');
           return false;
@@ -520,17 +520,17 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
 
       if (result['success']) {
         if (mounted) {
-          print("สร้างใบแจ้งหนี้สำเร็จ");
+          debugPrint("สร้างใบแจ้งหนี้สำเร็จ");
           SnackMessage.showSuccess(context, 'สร้างใบแจ้งหนี้สำเร็จ');
           Navigator.pop(context, {'success': true});
         }
       } else {
-        print("เกิดข้อผิดพลาด ${result['message']}");
+        debugPrint("เกิดข้อผิดพลาด ${result['message']}");
         SnackMessage.showSuccess(
             context, result['message'] ?? 'เกิดข้อผิดพลาด');
       }
     } catch (e) {
-      print('เกิดข้อผิดพลาด: $e');
+      debugPrint('เกิดข้อผิดพลาด: $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
     } finally {
       setState(() => _isSubmitting = false);
@@ -880,7 +880,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     }).toList();
 
     if (availableRates.isEmpty) {
-      print('เพิ่มค่าบริการครบแล้ว');
+      debugPrint('เพิ่มค่าบริการครบแล้ว');
       SnackMessage.showError(context, 'เพิ่มค่าบริการครบแล้ว');
       return;
     }
@@ -1156,7 +1156,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                       _rentalAmount =
                           (contract['contract_price'] ?? 0.0).toDouble();
 
-                      print(' อัปเดตค่าเช่า: $_rentalAmount');
+                      debugPrint(' อัปเดตค่าเช่า: $_rentalAmount');
                     });
                   },
             validator: (value) => value == null ? 'กรุณาเลือกสัญญาเช่า' : null,

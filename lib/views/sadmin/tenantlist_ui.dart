@@ -90,7 +90,7 @@ class _TenantListUIState extends State<TenantListUI> {
         });
       }
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
     }
     _loadTenants();
   }
@@ -132,7 +132,7 @@ class _TenantListUIState extends State<TenantListUI> {
           _tenants = [];
           _filteredTenants = [];
         });
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
@@ -513,12 +513,12 @@ class _TenantListUIState extends State<TenantListUI> {
 
         if (mounted) {
           if (result['success']) {
-            print(result['message']);
+            debugPrint(result['message']);
             SnackMessage.showSuccess(context, result['message']);
 
             await _loadTenants();
           } else {
-            print('เกิดข้อผิดพลาด: ${result['message']}');
+            debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
             throw Exception(result['message']);
           }
         }
@@ -528,7 +528,7 @@ class _TenantListUIState extends State<TenantListUI> {
         }
 
         if (mounted) {
-          print('เกิดข้อผิดพลาด: $e');
+          debugPrint('เกิดข้อผิดพลาด: $e');
           SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }
@@ -543,7 +543,7 @@ class _TenantListUIState extends State<TenantListUI> {
 
     // Check if user is superadmin
     if (_currentUser?.userRole != UserRole.superAdmin) {
-      print('เฉพาะ Super Admin เท่านั้นที่สามารถลบผู้เช่าได้');
+      debugPrint('เฉพาะ Super Admin เท่านั้นที่สามารถลบผู้เช่าได้');
       SnackMessage.showError(
           context, 'เฉพาะ Super Admin เท่านั้นที่สามารถลบผู้เช่าได้');
 
@@ -786,11 +786,11 @@ class _TenantListUIState extends State<TenantListUI> {
 
         if (mounted) {
           if (result['success']) {
-            print(result['message']);
+            debugPrint(result['message']);
             SnackMessage.showSuccess(context, result['message']);
             await _loadTenants();
           } else {
-            print('เกิดข้อผิดพลาด: ${result['message']}');
+            debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
 
             throw Exception(result['message']);
           }
@@ -801,7 +801,7 @@ class _TenantListUIState extends State<TenantListUI> {
         }
 
         if (mounted) {
-          print('เกิดข้อผิดพลาด: $e');
+          debugPrint('เกิดข้อผิดพลาด: $e');
           SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }

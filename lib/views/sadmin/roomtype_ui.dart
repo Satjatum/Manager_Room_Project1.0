@@ -180,7 +180,7 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
@@ -346,7 +346,7 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
                       child: ElevatedButton(
                         onPressed: () {
                           if (nameController.text.trim().isEmpty) {
-                            print('กรุณากรอกชื่อประเภทห้อง');
+                            debugPrint('กรุณากรอกชื่อประเภทห้อง');
                             SnackMessage.showError(
                                 context, 'กรุณากรอกชื่อประเภทห้อง');
 
@@ -417,11 +417,11 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
 
         if (mounted) {
           if (response['success']) {
-            print(response['message']);
+            debugPrint(response['message']);
             SnackMessage.showSuccess(context, response['message']);
             await _loadRoomTypes();
           } else {
-            print("เกิดข้อผิดพลาด {$response['message']}");
+            debugPrint("เกิดข้อผิดพลาด {$response['message']}");
             throw Exception(response['message']);
           }
         }
@@ -430,7 +430,7 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
           Navigator.pop(context);
         }
         if (mounted) {
-          print('เกิดข้อผิดพลาด: $e');
+          debugPrint('เกิดข้อผิดพลาด: $e');
           SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }
@@ -664,11 +664,11 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
 
         if (mounted) {
           if (result['success'] == true) {
-            print(result['message']);
+            debugPrint(result['message']);
             SnackMessage.showSuccess(context, result['message'] ?? 'ลบสำเร็จ');
             await _loadRoomTypes();
           } else {
-            print("เกิดข้อผิดพลาด {$result['message']}");
+            debugPrint("เกิดข้อผิดพลาด {$result['message']}");
             throw Exception(result['message']);
           }
         }
@@ -677,7 +677,7 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
           Navigator.of(context).pop();
         }
         if (mounted) {
-          print('เกิดข้อผิดพลาด: $e');
+          debugPrint('เกิดข้อผิดพลาด: $e');
           SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }

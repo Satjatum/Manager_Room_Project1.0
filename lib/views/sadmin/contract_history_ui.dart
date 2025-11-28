@@ -41,7 +41,7 @@ class _ContractHistoryUiState extends State<ContractHistoryUi> {
       if (mounted) setState(() => _contracts = list);
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการโหลดประวัติสัญญาไม่สำเร็จ: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดประวัติสัญญาไม่สำเร็จ: $e');
         SnackMessage.showError(
             context, 'เกิดข้อผิดพลาดในการโหลดประวัติสัญญาไม่สำเร็จ');
       }

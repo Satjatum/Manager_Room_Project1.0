@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import '../models/user_models.dart';
@@ -759,7 +760,7 @@ class TenantService {
         await _supabase.from('payments').delete().eq('tenant_id', tenantId);
         deletedItems.add('ข้อมูลการชำระเงิน');
       } catch (e) {
-        print('Error deleting payments: $e');
+        debugPrint('Error deleting payments: $e');
       }
 
       // 2. Delete invoices
@@ -767,7 +768,7 @@ class TenantService {
         await _supabase.from('invoices').delete().eq('tenant_id', tenantId);
         deletedItems.add('ใบแจ้งหนี้');
       } catch (e) {
-        print('Error deleting invoices: $e');
+        debugPrint('Error deleting invoices: $e');
       }
 
       // 3. Delete meter readings related to tenant's contracts
@@ -787,7 +788,7 @@ class TenantService {
           deletedItems.add('ข้อมูลมิเตอร์');
         }
       } catch (e) {
-        print('Error deleting meter readings: $e');
+        debugPrint('Error deleting meter readings: $e');
       }
 
       // 4. Delete rental contracts
@@ -798,7 +799,7 @@ class TenantService {
             .eq('tenant_id', tenantId);
         deletedItems.add('สัญญาเช่า');
       } catch (e) {
-        print('Error deleting contracts: $e');
+        debugPrint('Error deleting contracts: $e');
       }
 
       // 5. Finally, delete the tenant

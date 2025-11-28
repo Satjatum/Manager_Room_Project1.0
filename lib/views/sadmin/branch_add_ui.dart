@@ -92,7 +92,7 @@ class _BranchAddUiState extends State<BranchAddUi>
         });
       }
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       if (mounted) {
         setState(() {
@@ -118,7 +118,7 @@ class _BranchAddUiState extends State<BranchAddUi>
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingOwners = false);
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
         SnackMessage.showError(
           context,
           'เกิดข้อผิดพลาดในการโหลดข้อมูล',
@@ -158,7 +158,7 @@ class _BranchAddUiState extends State<BranchAddUi>
       }
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการเลือกภาพ $e');
+        debugPrint('เกิดข้อผิดพลาดในการเลือกภาพ $e');
         SnackMessage.showError(
           context,
           'เกิดข้อผิดพลาดในการเลือกภาพ',
@@ -320,7 +320,7 @@ class _BranchAddUiState extends State<BranchAddUi>
     try {
       if (bytes.length > 5 * 1024 * 1024) {
         if (mounted) {
-          print('ขนาดไฟล์เกิน 5MB');
+          debugPrint('ขนาดไฟล์เกิน 5MB');
           SnackMessage.showError(
             context,
             'ขนาดไฟล์เกิน 5MB',
@@ -331,7 +331,7 @@ class _BranchAddUiState extends State<BranchAddUi>
 
       if (bytes.isEmpty) {
         if (mounted) {
-          print('ไฟว่างเปล่าหรือเสียหาย');
+          debugPrint('ไฟว่างเปล่าหรือเสียหาย');
           SnackMessage.showError(
             context,
             'ไฟว่างเปล่าหรือเสียหาย',
@@ -345,7 +345,7 @@ class _BranchAddUiState extends State<BranchAddUi>
 
       if (!allowedExtensions.contains(extension)) {
         if (mounted) {
-          print('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
+          debugPrint('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
           SnackMessage.showError(
             context,
             'ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น',
@@ -357,7 +357,7 @@ class _BranchAddUiState extends State<BranchAddUi>
       return true;
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
+        debugPrint('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
         SnackMessage.showError(
           context,
           'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
@@ -371,7 +371,7 @@ class _BranchAddUiState extends State<BranchAddUi>
     try {
       if (!await file.exists()) {
         if (mounted) {
-          print('ไม่พบไฟล์หรือไฟล์ถูกลบ');
+          debugPrint('ไม่พบไฟล์หรือไฟล์ถูกลบ');
           SnackMessage.showError(
             context,
             'ไม่พบไฟล์หรือไฟล์ถูกลบ',
@@ -383,7 +383,7 @@ class _BranchAddUiState extends State<BranchAddUi>
       final fileSize = await file.length();
       if (fileSize > 5 * 1024 * 1024) {
         if (mounted) {
-          print('ขนาดไฟล์เกิน 5MB');
+          debugPrint('ขนาดไฟล์เกิน 5MB');
           SnackMessage.showError(
             context,
             'ขนาดไฟล์เกิน 5MB',
@@ -394,7 +394,7 @@ class _BranchAddUiState extends State<BranchAddUi>
 
       if (fileSize == 0) {
         if (mounted) {
-          print('ไฟล์ว่างเปล่าหรือเสียหาย');
+          debugPrint('ไฟล์ว่างเปล่าหรือเสียหาย');
           SnackMessage.showError(
             context,
             'ไฟล์ว่างเปล่าหรือเสียหาย',
@@ -408,7 +408,7 @@ class _BranchAddUiState extends State<BranchAddUi>
 
       if (!allowedExtensions.contains(extension)) {
         if (mounted) {
-          print('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
+          debugPrint('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
           SnackMessage.showError(
             context,
             'ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น',
@@ -420,7 +420,7 @@ class _BranchAddUiState extends State<BranchAddUi>
       return true;
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
+        debugPrint('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
         SnackMessage.showError(
           context,
           'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
@@ -437,7 +437,7 @@ class _BranchAddUiState extends State<BranchAddUi>
       _selectedImageName = null;
     });
 
-    print('ลบรูปภาพสำเร็จ');
+    debugPrint('ลบรูปภาพสำเร็จ');
     SnackMessage.showSuccess(
       context,
       'ลบรูปภาพสำเร็จ',
@@ -446,7 +446,7 @@ class _BranchAddUiState extends State<BranchAddUi>
 
   Future<void> _saveBranch() async {
     if (_currentUser == null) {
-      print('กรุณาเข้าสู่ระบบเพื่อเพิ่มสาขา');
+      debugPrint('กรุณาเข้าสู่ระบบเพื่อเพิ่มสาขา');
       SnackMessage.showError(
         context,
         'กรุณาเข้าสู่ระบบเพื่อเพิ่มสาขา',
@@ -457,7 +457,7 @@ class _BranchAddUiState extends State<BranchAddUi>
     }
 
     if (_currentUser!.userRole != UserRole.superAdmin) {
-      print('คุณไม่มีสิทธิ์ในการเพิ่มสาขา');
+      debugPrint('คุณไม่มีสิทธิ์ในการเพิ่มสาขา');
       SnackMessage.showError(
         context,
         'คุณไม่มีสิทธิ์ในการเพิ่มสาขา',
@@ -472,7 +472,7 @@ class _BranchAddUiState extends State<BranchAddUi>
     }
 
     if (_selectedManagerIds.isEmpty) {
-      print('กรุณาเลือกผู้จัดการอย่างน้อยหนึ่งคน');
+      debugPrint('กรุณาเลือกผู้จัดการอย่างน้อยหนึ่งคน');
       SnackMessage.showError(
         context,
         'กรุณาเลือกผู้จัดการอย่างน้อยหนึ่งคน',
@@ -584,14 +584,14 @@ class _BranchAddUiState extends State<BranchAddUi>
         );
 
         if (!managerResult['success']) {
-          print(
+          debugPrint(
               'เกิดข้อผิดพลาดในการเพิ่มผู้จัดการสาขา $managerId: ${managerResult['message']}');
         }
       }
 
       if (mounted) {
         setState(() => _isLoading = false);
-        print('สร้างสาขาเรียบร้อยแล้ว');
+        debugPrint('สร้างสาขาเรียบร้อยแล้ว');
         SnackMessage.showSuccess(
           context,
           'สร้างสาขาเรียบร้อยแล้ว',
@@ -602,7 +602,7 @@ class _BranchAddUiState extends State<BranchAddUi>
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        print('เกิดข้อผิดพลาดในการสร้างสาขา: $e');
+        debugPrint('เกิดข้อผิดพลาดในการสร้างสาขา: $e');
         SnackMessage.showError(
           context,
           'เกิดข้อผิดพลาดในการสร้างสาขา',

@@ -105,7 +105,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
 
       if (currentUser == null) {
         if (mounted) {
-          print('ข้อมูลผู้ใช้ไม่ถูกต้อง');
+          debugPrint('ข้อมูลผู้ใช้ไม่ถูกต้อง');
           SnackMessage.showError(context, 'ข้อมูลผู้ใช้ไม่ถูกต้อง');
         }
         return;
@@ -121,7 +121,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
         );
       } else {
         if (mounted) {
-          print('ไม่มีสิทธิ์เข้าถึงหน้านี้');
+          debugPrint('ไม่มีสิทธิ์เข้าถึงหน้านี้');
           SnackMessage.showError(context, 'ไม่มีสิทธิ์เข้าถึงหน้านี้');
         }
         return;
@@ -156,7 +156,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
     } catch (e) {
       if (mounted) {
         setState(() => isLoading = false);
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
@@ -406,7 +406,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                               final rateName = nameController.text.trim();
 
                               if (rateName.isEmpty) {
-                                print('กรุณากรอกชื่ออัตราค่าบริการ');
+                                debugPrint('กรุณากรอกชื่ออัตราค่าบริการ');
                                 SnackMessage.showError(
                                     context, 'กรุณากรอกชื่ออัตราค่าบริการ');
 
@@ -417,7 +417,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                               if (_isDuplicateName(rateName,
                                   excludeRateId:
                                       isEdit ? rate['rate_id'] : null)) {
-                                print(
+                                debugPrint(
                                     'ชื่ออัตราค่าบริการนี้มีอยู่แล้ว กรุณาใช้ชื่ออื่น');
                                 SnackMessage.showError(context,
                                     'ชื่ออัตราค่าบริการนี้มีอยู่แล้ว กรุณาใช้ชื่ออื่น');
@@ -435,7 +435,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                                         rateName.toLowerCase().contains('water')
                                     ? 'น้ำ'
                                     : 'ไฟ';
-                                print(
+                                debugPrint(
                                     'มีค่า$typeNameแบบมิเตอร์อยู่แล้ว ไม่สามารถเพิ่มซ้ำได้');
                                 SnackMessage.showError(context,
                                     'มีค่า$typeNameแบบมิเตอร์อยู่แล้ว ไม่สามารถเพิ่มซ้ำได้');
@@ -446,7 +446,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                               if (isMetered &&
                                   (priceController.text.isEmpty ||
                                       unitController.text.isEmpty)) {
-                                print(
+                                debugPrint(
                                     'กรุณากรอกราคาและหน่วยสำหรับค่าบริการแบบมิเตอร์');
                                 SnackMessage.showError(context,
                                     'กรุณากรอกราคาและหน่วยสำหรับค่าบริการแบบมิเตอร์');
@@ -455,7 +455,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                               }
 
                               if (isFixed && fixedController.text.isEmpty) {
-                                print('กรุณากรอกจำนวนเงินคงที่');
+                                debugPrint('กรุณากรอกจำนวนเงินคงที่');
                                 SnackMessage.showError(
                                     context, 'กรุณากรอกจำนวนเงินคงที่');
 
@@ -502,7 +502,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                                 }
 
                                 Navigator.pop(context);
-                                print(isEdit
+                                debugPrint(isEdit
                                     ? 'แก้ไขอัตราค่าบริการเรียบร้อย'
                                     : 'เพิ่มอัตราค่าบริการเรียบร้อย');
                                 SnackMessage.showSuccess(
@@ -512,7 +512,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                                         : 'เพิ่มอัตราค่าบริการเรียบร้อย');
                                 _loadData();
                               } catch (e) {
-                                print('เกิดข้อผิดพลาด $e');
+                                debugPrint('เกิดข้อผิดพลาด $e');
                                 SnackMessage.showError(
                                     context, 'เกิดข้อผิดพลาด');
                               }
@@ -960,7 +960,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
         if (mounted) Navigator.of(context).pop();
 
         if (mounted) {
-          print('ลบอัตราค่าบริการเรียบร้อย');
+          debugPrint('ลบอัตราค่าบริการเรียบร้อย');
           SnackMessage.showError(context, 'ลบอัตราค่าบริการเรียบร้อย');
           _loadData();
         }
@@ -969,7 +969,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
           Navigator.of(context).pop();
         }
         if (mounted) {
-          print('เกิดข้อผิดพลาด $e');
+          debugPrint('เกิดข้อผิดพลาด $e');
           SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }

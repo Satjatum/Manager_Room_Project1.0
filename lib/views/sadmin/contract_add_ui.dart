@@ -70,7 +70,7 @@ class _ContractAddUIState extends State<ContractAddUI> {
         await _loadRooms(_selectedBranchId!);
       } else {}
     } catch (e) {
-      print('ไม่สามารถโหลดข้อมูลได้: $e');
+      debugPrint('ไม่สามารถโหลดข้อมูลได้: $e');
       SnackMessage.showError(context, 'ไม่สามารถโหลดข้อมูลได้');
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -148,36 +148,36 @@ class _ContractAddUIState extends State<ContractAddUI> {
         });
       }
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการเลือกไฟล์: $e');
+      debugPrint('เกิดข้อผิดพลาดในการเลือกไฟล์: $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการเลือกไฟล์');
     }
   }
 
   Future<void> _save() async {
     if (_selectedBranchId == null || _selectedBranchId!.isEmpty) {
-      print('กรุณาเลือกสาขา');
+      debugPrint('กรุณาเลือกสาขา');
       SnackMessage.showError(context, 'กรุณาเลือกสาขา');
       return;
     }
     if (_selectedRoomId == null) {
-      print('กรุณาเลือกห้องพัก');
+      debugPrint('กรุณาเลือกห้องพัก');
       SnackMessage.showError(context, 'กรุณาเลือกห้องพัก');
       return;
     }
     if (_startDate == null || _endDate == null) {
-      print('กรุณาเลือกวันเริ่มและสิ้นสุดสัญญา');
+      debugPrint('กรุณาเลือกวันเริ่มและสิ้นสุดสัญญา');
       SnackMessage.showError(context, 'กรุณาเลือกวันเริ่มและสิ้นสุดสัญญา');
       return;
     }
     if ((_priceController.text.trim()).isEmpty ||
         double.tryParse(_priceController.text.trim()) == null) {
-      print('กรุณากรอกค่าเช่าที่ถูกต้อง');
+      debugPrint('กรุณากรอกค่าเช่าที่ถูกต้อง');
       SnackMessage.showError(context, 'กรุณากรอกค่าเช่าที่ถูกต้อง');
       return;
     }
     if ((_depositController.text.trim()).isEmpty ||
         double.tryParse(_depositController.text.trim()) == null) {
-      print('กรุณากรอกค่าประกันที่ถูกต้อง');
+      debugPrint('กรุณากรอกค่าประกันที่ถูกต้อง');
       SnackMessage.showError(context, 'กรุณากรอกค่าประกันที่ถูกต้อง');
       return;
     }
@@ -274,17 +274,17 @@ class _ContractAddUIState extends State<ContractAddUI> {
 
       if (result['success'] == true) {
         if (mounted) {
-          print('สร้างสัญญาสำเร็จ');
+          debugPrint('สร้างสัญญาสำเร็จ');
           SnackMessage.showSuccess(context, 'สร้างสัญญาสำเร็จ');
           Navigator.pop(context, true);
         }
       } else {
-        print(result['message'] ?? 'ไม่สามารถสร้างสัญญาได้');
+        debugPrint(result['message'] ?? 'ไม่สามารถสร้างสัญญาได้');
         SnackMessage.showError(
             context, result['message'] ?? 'ไม่สามารถสร้างสัญญาได้');
       }
     } catch (e) {
-      print('เกิดข้อผิดพลาด: $e');
+      debugPrint('เกิดข้อผิดพลาด: $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
     } finally {
       if (mounted) setState(() => _saving = false);

@@ -151,7 +151,7 @@ class _TenantAddUIState extends State<TenantAddUI>
         });
       }
     } catch (e) {
-      print('ไม่สามารถโหลดข้อมูลผู้ใช้ได้: $e');
+      debugPrint('ไม่สามารถโหลดข้อมูลผู้ใช้ได้: $e');
       if (mounted) {
         setState(() {
           _currentUser = null;
@@ -172,7 +172,7 @@ class _TenantAddUIState extends State<TenantAddUI>
       }
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
@@ -194,7 +194,7 @@ class _TenantAddUIState extends State<TenantAddUI>
       }
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูลห้องได้: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูลห้องได้: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูลห้องได้');
       }
     }
@@ -218,7 +218,7 @@ class _TenantAddUIState extends State<TenantAddUI>
       }
     } catch (e) {
       if (mounted && context.mounted) {
-        print('เกิดข้อผิดพลาดในการเลือกไฟล์: $e');
+        debugPrint('เกิดข้อผิดพลาดในการเลือกไฟล์: $e');
         SnackMessage.showError(
           context,
           'เกิดข้อผิดพลาดในการเลือกไฟล์',
@@ -236,7 +236,7 @@ class _TenantAddUIState extends State<TenantAddUI>
       }
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e');
+        debugPrint('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e');
         SnackMessage.showError(
           context,
           'เกิดข้อผิดพลาดในการเลือกรูปภาพ',
@@ -388,7 +388,7 @@ class _TenantAddUIState extends State<TenantAddUI>
     try {
       if (bytes.length > 5 * 1024 * 1024) {
         if (mounted) {
-          print('ขนาดไฟล์เกิน 5MB');
+          debugPrint('ขนาดไฟล์เกิน 5MB');
           SnackMessage.showError(context, 'ขนาดไฟล์เกิน 5MB ');
         }
         return false;
@@ -399,7 +399,7 @@ class _TenantAddUIState extends State<TenantAddUI>
 
       if (!allowedExtensions.contains(extension)) {
         if (mounted) {
-          print('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
+          debugPrint('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
           SnackMessage.showError(
             context,
             'ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น',
@@ -423,7 +423,7 @@ class _TenantAddUIState extends State<TenantAddUI>
       final fileSize = await file.length();
       if (fileSize > 5 * 1024 * 1024) {
         if (mounted) {
-          print('ขนาดไฟล์เกิน 5MB');
+          debugPrint('ขนาดไฟล์เกิน 5MB');
           SnackMessage.showError(context, 'ขนาดไฟล์เกิน 5MB ');
         }
         return false;
@@ -434,7 +434,7 @@ class _TenantAddUIState extends State<TenantAddUI>
 
       if (!allowedExtensions.contains(extension)) {
         if (mounted) {
-          print('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
+          debugPrint('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
           SnackMessage.showError(
             context,
             'ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น',
@@ -515,25 +515,25 @@ class _TenantAddUIState extends State<TenantAddUI>
     if (_currentTabIndex == 0) {
       // Tab ข้อมูลผู้เช่า
       if (_tenantIdCardController.text.trim().isEmpty) {
-        print('กรุณากรอกเลขบัตรประชาชน');
+        debugPrint('กรุณากรอกเลขบัตรประชาชน');
         SnackMessage.showError(context, 'กรุณากรอกเลขบัตรประชาชน');
 
         return false;
       }
       if (_tenantFullNameController.text.trim().isEmpty) {
-        print('กรุณากรอกชื่อ-นามสกุล');
+        debugPrint('กรุณากรอกชื่อ-นามสกุล');
         SnackMessage.showError(context, 'กรุณากรอกชื่อ-นามสกุล');
 
         return false;
       }
       if (_tenantPhoneController.text.trim().isEmpty) {
-        print('กรุณากรอกเบอร์โทรศัพท์');
+        debugPrint('กรุณากรอกเบอร์โทรศัพท์');
         SnackMessage.showError(context, 'กรุณากรอกเบอร์โทรศัพท์');
 
         return false;
       }
       if (_selectedBranchId == null) {
-        print('กรุณาเลือกสาขา');
+        debugPrint('กรุณาเลือกสาขา');
         SnackMessage.showError(context, 'กรุณาเลือกสาขา');
 
         return false;
@@ -542,19 +542,19 @@ class _TenantAddUIState extends State<TenantAddUI>
       // Tab บัญชีผู้ใช้
       if (_createUserAccount) {
         if (_userNameController.text.trim().isEmpty) {
-          print('กรุณากรอกชื่อผู้ใช้');
+          debugPrint('กรุณากรอกชื่อผู้ใช้');
           SnackMessage.showError(context, 'กรุณากรอกชื่อผู้ใช้');
 
           return false;
         }
         if (_userEmailController.text.trim().isEmpty) {
-          print('กรุณากรอกอีเมล');
+          debugPrint('กรุณากรอกอีเมล');
           SnackMessage.showError(context, 'กรุณากรอกอีเมล');
 
           return false;
         }
         if (_userPasswordController.text.trim().isEmpty) {
-          print('กรุณากรอกรหัสผ่าน');
+          debugPrint('กรุณากรอกรหัสผ่าน');
           SnackMessage.showError(context, 'กรุณากรอกรหัสผ่าน');
 
           return false;
@@ -563,29 +563,29 @@ class _TenantAddUIState extends State<TenantAddUI>
     } else if (_currentTabIndex == 2) {
       // Tab สัญญาเช่า
       if (_selectedRoomId == null) {
-        print('กรุณาเลือกห้องเช่า');
+        debugPrint('กรุณาเลือกห้องเช่า');
         SnackMessage.showError(context, 'กรุณาเลือกห้องเช่า');
         return false;
       }
       if (_contractStartDate == null || _contractEndDate == null) {
-        print('กรุณาระบุวันที่เริ่มต้นและสิ้นสุดสัญญา');
+        debugPrint('กรุณาระบุวันที่เริ่มต้นและสิ้นสุดสัญญา');
         SnackMessage.showError(
             context, 'กรุณาระบุวันที่เริ่มต้นและสิ้นสุดสัญญา');
         return false;
       }
       if (_contractEndDate!.isBefore(_contractStartDate!)) {
-        print('วันที่สิ้นสุดสัญญาต้องมาหลังวันที่เริ่มต้น');
+        debugPrint('วันที่สิ้นสุดสัญญาต้องมาหลังวันที่เริ่มต้น');
         SnackMessage.showError(
             context, 'วันที่สิ้นสุดสัญญาต้องมาหลังวันที่เริ่มต้น');
         return false;
       }
       if (_contractPriceController.text.trim().isEmpty) {
-        print('กรุณากรอกค่าเช่า');
+        debugPrint('กรุณากรอกค่าเช่า');
         SnackMessage.showError(context, 'กรุณากรอกค่าเช่า');
         return false;
       }
       if (_contractDepositController.text.trim().isEmpty) {
-        print('กรุณากรอกค่าประกัน');
+        debugPrint('กรุณากรอกค่าประกัน');
         SnackMessage.showError(context, 'กรุณากรอกค่าประกัน');
         return false;
       }
@@ -610,7 +610,7 @@ class _TenantAddUIState extends State<TenantAddUI>
 
   Future<void> _saveTenant() async {
     if (_currentUser == null) {
-      print('กรุณาเข้าสู่ระบบก่อนเพิ่มผู้เช่า');
+      debugPrint('กรุณาเข้าสู่ระบบก่อนเพิ่มผู้เช่า');
       SnackMessage.showError(context, 'กรุณาเข้าสู่ระบบก่อนเพิ่มผู้เช่า');
       Navigator.of(context).pop();
       return;
@@ -643,7 +643,7 @@ class _TenantAddUIState extends State<TenantAddUI>
     }
 
     if (!allowed) {
-      print('คุณไม่มีสิทธิ์เพิ่มผู้เช่าในสาขานี้');
+      debugPrint('คุณไม่มีสิทธิ์เพิ่มผู้เช่าในสาขานี้');
       SnackMessage.showError(context, 'คุณไม่มีสิทธิ์เพิ่มผู้เช่าในสาขานี้');
       return;
     }
@@ -812,7 +812,7 @@ class _TenantAddUIState extends State<TenantAddUI>
           if (mounted) Navigator.of(context).pop();
         } catch (e) {
           if (mounted) Navigator.of(context).pop();
-          print('ไม่สามารถอัปโหลดเอกสารได้: $e');
+          debugPrint('ไม่สามารถอัปโหลดเอกสารได้: $e');
           throw Exception('ไม่สามารถอัปโหลดเอกสารได้: $e');
         }
       }
@@ -836,7 +836,8 @@ class _TenantAddUIState extends State<TenantAddUI>
         if (!userResult['success']) {
           if (mounted) {
             setState(() => _isLoading = false);
-            print('ไม่สามารถสร้างบัญชีผู้ใช้ได้: ${userResult['message']}');
+            debugPrint(
+                'ไม่สามารถสร้างบัญชีผู้ใช้ได้: ${userResult['message']}');
             SnackMessage.showError(context,
                 'ไม่สามารถสร้างบัญชีผู้ใช้ได้: ${userResult['message']}');
           }
@@ -863,7 +864,7 @@ class _TenantAddUIState extends State<TenantAddUI>
       if (!tenantResult['success']) {
         if (mounted) {
           setState(() => _isLoading = false);
-          print('เกิดข้อผิดพลาด: ${tenantResult['message']}');
+          debugPrint('เกิดข้อผิดพลาด: ${tenantResult['message']}');
           SnackMessage.showError(
               context, 'เกิดข้อผิดพลาด: ${tenantResult['message']}');
         }
@@ -906,7 +907,7 @@ class _TenantAddUIState extends State<TenantAddUI>
 
       if (mounted) {
         setState(() => _isLoading = false);
-        print('สร้างผู้เช่าและสัญญาเช่าสำเร็จ'
+        debugPrint('สร้างผู้เช่าและสัญญาเช่าสำเร็จ'
             '${_createUserAccount ? ' พร้อมบัญชีผู้ใช้' : ''}');
         SnackMessage.showSuccess(
             context,
@@ -918,7 +919,7 @@ class _TenantAddUIState extends State<TenantAddUI>
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        print('เกิดข้อผิดพลาด: $e');
+        debugPrint('เกิดข้อผิดพลาด: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     }

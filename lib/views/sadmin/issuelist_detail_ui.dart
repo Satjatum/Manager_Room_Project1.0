@@ -67,7 +67,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
       final rows = await IssueResponseService.listResponses(widget.issueId);
       if (mounted) setState(() => _responses = rows);
     } catch (e) {
-      print('โหลดการตอบกลับไม่สำเร็จ: $e');
+      debugPrint('โหลดการตอบกลับไม่สำเร็จ: $e');
       SnackMessage.showError(context, 'โหลดการตอบกลับไม่สำเร็จ');
     }
   }
@@ -105,7 +105,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
@@ -246,7 +246,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                     await IssueResponseService.addResponseImage(
                         responseId: responseId, imageUrl: up['url']);
                   } else {
-                    print(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                    debugPrint(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
                     SnackMessage.showError(context, 'อัปโหลดรูปภาพไม่สำเร็จ');
                   }
                 } else {
@@ -269,7 +269,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                     await IssueResponseService.addResponseImage(
                         responseId: responseId, imageUrl: up['url']);
                   } else {
-                    print(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                    debugPrint(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
                     SnackMessage.showError(context, 'อัปโหลดรูปภาพไม่สำเร็จ');
                   }
                 }
@@ -278,7 +278,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
           } catch (_) {}
 
           if (mounted) {
-            print(updateResult['message']);
+            debugPrint(updateResult['message']);
             SnackMessage.showSuccess(context, updateResult['message']);
 
             _resolutionController.clear();
@@ -289,7 +289,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
         }
       } catch (e) {
         if (mounted) {
-          print('เกิดข้อผิดพลาด: $e');
+          debugPrint('เกิดข้อผิดพลาด: $e');
           SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       } finally {
@@ -402,7 +402,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
           final hasText = _resolutionController.text.trim().isNotEmpty;
           final hasImg = _resolveImages.isNotEmpty;
           if (!hasText && !hasImg) {
-            print('กรุณากรอกข้อความหรือแนบรูปอย่างน้อย 1 รายการ');
+            debugPrint('กรุณากรอกข้อความหรือแนบรูปอย่างน้อย 1 รายการ');
             SnackMessage.showError(
                 context, 'กรุณากรอกข้อความหรือแนบรูปอย่างน้อย 1 รายการ');
             return;
@@ -519,7 +519,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                       await IssueResponseService.addResponseImage(
                           responseId: responseId, imageUrl: up['url']);
                     } else {
-                      print(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                      debugPrint(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
                       SnackMessage.showError(context, 'อัปโหลดรูปภาพไม่สำเร็จ');
                     }
                   } else {
@@ -542,7 +542,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                       await IssueResponseService.addResponseImage(
                           responseId: responseId, imageUrl: up['url']);
                     } else {
-                      print(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
+                      debugPrint(up['message'] ?? 'อัปโหลดรูปภาพไม่สำเร็จ');
                       SnackMessage.showError(context, 'อัปโหลดรูปภาพไม่สำเร็จ');
                     }
                   }
@@ -552,17 +552,17 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
             _resolveImages.clear();
           }
           if (mounted) {
-            print(updateResult['message']);
+            debugPrint(updateResult['message']);
             SnackMessage.showSuccess(context, updateResult['message']);
             _resolutionController.clear();
           }
         } else {
-          print('เกิดข้อผิดพลาด: ${updateResult['message']}');
+          debugPrint('เกิดข้อผิดพลาด: ${updateResult['message']}');
           throw Exception(updateResult['message']);
         }
       } catch (e) {
         if (mounted) {
-          print('เกิดข้อผิดพลาด: $e');
+          debugPrint('เกิดข้อผิดพลาด: $e');
           SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       } finally {
@@ -589,7 +589,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
             Future<void> pickImages() async {
               // Check if already have 10 images
               if (localImages.length >= 10) {
-                print('สามารถแนบรูปภาพได้สูงสุด 10');
+                debugPrint('สามารถแนบรูปภาพได้สูงสุด 10');
                 SnackMessage.showError(context, 'สามารถแนบรูปภาพได้สูงสุด 10');
                 return;
               }
@@ -726,7 +726,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                   }
                 }
               } catch (e) {
-                print('เลือกไฟล์ไม่สำเร็จ: $e');
+                debugPrint('เลือกไฟล์ไม่สำเร็จ: $e');
                 SnackMessage.showError(context, 'เลือกไฟล์ไม่สำเร็จ');
               }
             }
@@ -958,7 +958,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
           final msg = statusRes['success'] == true
               ? 'มอบหมายและเริ่มดำเนินการแล้ว'
               : result['message'];
-          print(msg);
+          debugPrint(msg);
           SnackMessage.showSuccess(context, msg);
 
           _loadData();
@@ -968,7 +968,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
       }
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาด: $e');
+        debugPrint('เกิดข้อผิดพลาด: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     }

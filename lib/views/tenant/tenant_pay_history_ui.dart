@@ -109,7 +109,7 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
         } catch (e) {
           // OWASP A09:2021 - Security Logging and Monitoring
           // Log with context but don't expose sensitive data
-          print(
+          debugPrint(
               '[SECURITY_LOG] Error loading slip files - SlipID: ${slip['slip_id']}, Error: ${e.runtimeType}');
           slip['files'] = [];
         }
@@ -138,9 +138,9 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
       });
     } catch (e, stackTrace) {
       // OWASP A09:2021 - Comprehensive error logging
-      print(
+      debugPrint(
           '[SECURITY_LOG] Failed to load payment history - InvoiceID: ${widget.invoiceId}, Error: ${e.runtimeType}');
-      print('[DEBUG] Stack trace: $stackTrace');
+      debugPrint('[DEBUG] Stack trace: $stackTrace');
 
       // Check mounted before setState in catch block
       if (!mounted) return;
@@ -148,7 +148,7 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
       setState(() => _loading = false);
 
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการโหลดประวัติไม่สำเร็จ');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดประวัติไม่สำเร็จ');
         SnackMessage.showError(
             context, 'เกิดข้อผิดพลาดในการโหลดประวัติไม่สำเร็จ');
       }

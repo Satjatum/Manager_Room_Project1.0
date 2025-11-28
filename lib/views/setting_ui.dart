@@ -94,7 +94,7 @@ class _SettingUiState extends State<SettingUi> {
       await AuthService.cleanExpiredSessions();
       if (mounted) {
         Navigator.of(context).pop();
-        print('ออกจากระบบเรียบร้อยแล้ว');
+        debugPrint('ออกจากระบบเรียบร้อยแล้ว');
         SnackMessage.showSuccess(context, 'ออกจากระบบเรียบร้อยแล้ว');
 
         Navigator.of(context).pushAndRemoveUntil(
@@ -105,7 +105,7 @@ class _SettingUiState extends State<SettingUi> {
     } catch (e) {
       if (mounted) {
         Navigator.of(context).pop();
-        print('เกิดข้อผิดพลาดในการออกจากระบบ');
+        debugPrint('เกิดข้อผิดพลาดในการออกจากระบบ');
       }
     }
   }
@@ -146,7 +146,7 @@ class _SettingUiState extends State<SettingUi> {
       } catch (e) {
         if (mounted) {
           Navigator.of(context).pop();
-          print('เกิดข้อผิดพลาดในการยกเลิกเซสชัน $e');
+          debugPrint('เกิดข้อผิดพลาดในการยกเลิกเซสชัน $e');
           SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการยกเลิกเซสชัน');
         }
       }

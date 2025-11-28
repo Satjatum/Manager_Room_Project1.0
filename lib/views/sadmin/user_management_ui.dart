@@ -152,10 +152,10 @@ class _UserManagementUiState extends State<UserManagementUi> {
       if (mounted) {
         if (result['success']) {
           _loadUsers();
-          print(result['message']);
+          debugPrint(result['message']);
           SnackMessage.showSuccess(context, result['message']);
         } else {
-          print('เกิดข้อผิดพลาด: ${result['message']}');
+          debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
           SnackMessage.showError(context, result['message']);
         }
       }
@@ -239,10 +239,10 @@ class _UserManagementUiState extends State<UserManagementUi> {
       if (mounted) {
         if (result['success']) {
           _loadUsers();
-          print(result['message']);
+          debugPrint(result['message']);
           SnackMessage.showSuccess(context, result['message']);
         } else {
-          print('เกิดข้อผิดพลาด: ${result['message']}');
+          debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
           SnackMessage.showError(context, result['message']);
         }
       }
@@ -727,10 +727,10 @@ class _AddUserDialogState extends State<AddUserDialog> {
 
       if (result['success']) {
         Navigator.pop(context, true);
-        print(result['message']);
+        debugPrint(result['message']);
         SnackMessage.showSuccess(context, result['message']);
       } else {
-        print('เกิดข้อผิดพลาด: ${result['message']}');
+        debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
         SnackMessage.showError(context, result['message']);
       }
     }
@@ -1083,10 +1083,10 @@ class _EditUserDialogState extends State<EditUserDialog> {
       setState(() => _isLoading = false);
       if (result['success']) {
         Navigator.pop(context, true);
-        print(result['message']);
+        debugPrint(result['message']);
         SnackMessage.showSuccess(context, result['message']);
       } else {
-        print('เกิดข้อผิดพลาด: ${result['message']}');
+        debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
         SnackMessage.showError(context, result['message']);
       }
     }

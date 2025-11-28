@@ -81,7 +81,7 @@ class _IssueListUiState extends State<IssueListUi>
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
@@ -95,7 +95,7 @@ class _IssueListUiState extends State<IssueListUi>
         _branches = await BranchService.getBranchesByUser();
       }
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการโหลดสาขา: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดสาขา: $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดสาขา');
       _branches = [];
     }
@@ -121,7 +121,7 @@ class _IssueListUiState extends State<IssueListUi>
       }
       _applyFilters();
     } catch (e) {
-      print('Error loading issues: $e');
+      debugPrint('Error loading issues: $e');
       _allIssues = [];
       _filteredIssues = [];
     }
@@ -142,7 +142,7 @@ class _IssueListUiState extends State<IssueListUi>
       );
       setState(() {});
     } catch (e) {
-      print('Error loading statistics: $e');
+      debugPrint('Error loading statistics: $e');
     }
   }
 

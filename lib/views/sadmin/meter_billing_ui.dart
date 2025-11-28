@@ -84,7 +84,7 @@ class _MeterBillingPageState extends State<MeterBillingPage> {
       _categories = cats;
     } catch (e) {
       if (!mounted) return;
-      print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
     } finally {
       if (mounted) setState(() => _loading = false);

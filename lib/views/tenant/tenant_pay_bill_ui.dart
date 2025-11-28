@@ -69,7 +69,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       } catch (_) {}
       if (inv == null) {
         if (!mounted) return;
-        print('ไม่พบบิล');
+        debugPrint('ไม่พบบิล');
         SnackMessage.showError(context, 'ไม่พบบิล');
         Navigator.pop(context);
         return;
@@ -101,7 +101,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     } catch (e) {
       setState(() => _loading = false);
       if (!mounted) return;
-      print('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
     }
   }
@@ -125,7 +125,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       if (files.isEmpty) return;
       if (_slipFiles.length + files.length > _maxFiles) {
         if (mounted) {
-          print('แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล');
+          debugPrint('แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล');
           SnackMessage.showError(
               context, 'แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล');
         }
@@ -134,7 +134,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       setState(() => _slipFiles.addAll(files.take(space)));
     } catch (e) {
       if (!mounted) return;
-      print('เลือกภาพไม่สำเร็จ: $e');
+      debugPrint('เลือกภาพไม่สำเร็จ: $e');
       SnackMessage.showError(context, 'เลือกภาพไม่สำเร็จ: $e');
     }
   }
@@ -256,7 +256,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         if (files.isEmpty) return;
         if (_slipFiles.length + files.length > _maxFiles) {
           if (mounted) {
-            print('แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล');
+            debugPrint('แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล');
             SnackMessage.showError(
                 context, 'แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล');
           }
@@ -267,7 +267,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         // For camera, allow single image
         if (_slipFiles.length >= _maxFiles) {
           if (mounted) {
-            print('แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล');
+            debugPrint('แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล');
             SnackMessage.showError(
                 context, 'แนบรูปได้ไม่เกิน $_maxFiles รูปต่อบิล');
           }
@@ -285,7 +285,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       }
     } catch (e) {
       if (!mounted) return;
-      print('เลือกภาพไม่สำเร็จ: $e');
+      debugPrint('เลือกภาพไม่สำเร็จ: $e');
       SnackMessage.showError(context, 'เลือกภาพไม่สำเร็จ: $e');
     }
   }
@@ -383,19 +383,19 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     if (_invoice == null) return;
     final amount = double.tryParse(_amountCtrl.text) ?? 0;
     if (amount <= 0) {
-      print('กรุณากรอกจำนวนเงิน');
+      debugPrint('กรุณากรอกจำนวนเงิน');
       SnackMessage.showError(context, 'กรุณากรอกจำนวนเงิน');
 
       return;
     }
     if (_selectedDate == null || _selectedTime == null) {
-      print('กรุณาเลือกวันที่และเวลาในการชำระ');
+      debugPrint('กรุณาเลือกวันที่และเวลาในการชำระ');
       SnackMessage.showError(context, 'กรุณาเลือกวันที่และเวลาในการชำระ');
 
       return;
     }
     if (_slipFiles.isEmpty) {
-      print('กรุณาอัปโหลดรูปสลิปอย่างน้อย 1 รูป');
+      debugPrint('กรุณาอัปโหลดรูปสลิปอย่างน้อย 1 รูป');
       SnackMessage.showError(context, 'กรุณาอัปโหลดรูปสลิปอย่างน้อย 1 รูป');
 
       return;
@@ -414,7 +414,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
         // Block only if there's a pending slip (not yet verified)
         if (latest != null && verifiedAt.isEmpty && paymentId.isEmpty) {
           if (mounted) {
-            print('มีสลิปรอตรวจสอบอยู่ กรุณาตรวจสอบผลก่อน');
+            debugPrint('มีสลิปรอตรวจสอบอยู่ กรุณาตรวจสอบผลก่อน');
             SnackMessage.showError(
                 context, 'มีสลิปรอตรวจสอบอยู่ กรุณาตรวจสอบผลก่อน');
           }
@@ -481,16 +481,16 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
           }
         }
         if (!mounted) return;
-        print(res['message'] ?? 'ส่งสลิปสำเร็จ');
+        debugPrint(res['message'] ?? 'ส่งสลิปสำเร็จ');
         SnackMessage.showSuccess(context, res['message'] ?? 'ส่งสลิปสำเร็จ');
       } else {
         if (!mounted) return;
-        print(res['message'] ?? 'ส่งสลิปไม่สำเร็จ');
+        debugPrint(res['message'] ?? 'ส่งสลิปไม่สำเร็จ');
         SnackMessage.showSuccess(context, res['message'] ?? 'ส่งสลิปไม่สำเร็จ');
       }
     } catch (e) {
       if (!mounted) return;
-      print('เกิดข้อผิดพลาด $e');
+      debugPrint('เกิดข้อผิดพลาด $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -499,7 +499,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
 
   void _showQrDialog() {
     if (_selectedQrId == null) {
-      print('กรุณาเลือกบัญชีธนาคาร');
+      debugPrint('กรุณาเลือกบัญชีธนาคาร');
       SnackMessage.showError(context, 'กรุณาเลือกบัญชีธนาคาร');
 
       return;
@@ -512,7 +512,7 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     final bankName = (acct['bank_name'] ?? '').toString();
     final accName = (acct['account_name'] ?? '').toString();
     if (accNum.isEmpty) {
-      print('กรุณาเลือกบัญชีธนาคาร');
+      debugPrint('กรุณาเลือกบัญชีธนาคาร');
       SnackMessage.showError(context, 'กรุณาเลือกบัญชีธนาคาร');
       return;
     }

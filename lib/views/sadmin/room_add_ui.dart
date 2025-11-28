@@ -103,7 +103,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
         });
       }
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
       SnackMessage.showError(
         context,
         'เกิดข้อผิดพลาดในการโหลดข้อมูล',
@@ -142,7 +142,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingData = false);
-        print('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
+        debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
@@ -157,7 +157,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
       }
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e');
+        debugPrint('เกิดข้อผิดพลาดในการเลือกรูปภาพ: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการเลือกรูปภาพ');
       }
     }
@@ -342,7 +342,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
     try {
       if (bytes.length > 5 * 1024 * 1024) {
         if (mounted) {
-          print('ขนาดไฟล์เกิน 5MB');
+          debugPrint('ขนาดไฟล์เกิน 5MB');
           SnackMessage.showError(context, 'ขนาดไฟล์เกิน 5MB ');
         }
         return false;
@@ -350,7 +350,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
 
       if (bytes.isEmpty) {
         if (mounted) {
-          print('ไฟว่างเปล่าหรือเสียหาย');
+          debugPrint('ไฟว่างเปล่าหรือเสียหาย');
           SnackMessage.showError(context, 'ไฟว่างเปล่าหรือเสียหาย');
         }
         return false;
@@ -361,7 +361,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
 
       if (!allowedExtensions.contains(extension)) {
         if (mounted) {
-          print('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
+          debugPrint('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
           SnackMessage.showError(
             context,
             'ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น',
@@ -373,7 +373,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
       return true;
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
+        debugPrint('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
         SnackMessage.showError(
           context,
           'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
@@ -387,7 +387,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
     try {
       if (!await file.exists()) {
         if (mounted) {
-          print('ไม่พบไฟล์หรือไฟล์ถูกลบ');
+          debugPrint('ไม่พบไฟล์หรือไฟล์ถูกลบ');
           SnackMessage.showError(
             context,
             'ไม่พบไฟล์หรือไฟล์ถูกลบ',
@@ -399,7 +399,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
       final fileSize = await file.length();
       if (fileSize > 5 * 1024 * 1024) {
         if (mounted) {
-          print('ขนาดไฟล์เกิน 5MB');
+          debugPrint('ขนาดไฟล์เกิน 5MB');
           SnackMessage.showError(
             context,
             'ขนาดไฟล์เกิน 5MB',
@@ -410,7 +410,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
 
       if (fileSize == 0) {
         if (mounted) {
-          print('ไฟล์ว่างเปล่าหรือเสียหาย');
+          debugPrint('ไฟล์ว่างเปล่าหรือเสียหาย');
           SnackMessage.showError(
             context,
             'ไฟล์ว่างเปล่าหรือเสียหาย',
@@ -424,7 +424,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
 
       if (!allowedExtensions.contains(extension)) {
         if (mounted) {
-          print('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
+          debugPrint('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
           SnackMessage.showError(
             context,
             'ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น',
@@ -436,7 +436,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
       return true;
     } catch (e) {
       if (mounted) {
-        print('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
+        debugPrint('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
         SnackMessage.showError(
           context,
           'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
@@ -460,7 +460,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
 
   Future<void> _saveRoom() async {
     if (_currentUser == null) {
-      print('กรุณาเข้าสู่ระบบเพื่อเพิ่มห้อง');
+      debugPrint('กรุณาเข้าสู่ระบบเพื่อเพิ่มห้อง');
       SnackMessage.showError(
         context,
         'กรุณาเข้าสู่ระบบเพื่อเพิ่มห้อง',
@@ -516,7 +516,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
                 });
               }
             } catch (e) {
-              print('เกิดข้อผิดพลาดในการบันทึกสิ่งอำนวยความสะดวก: $e');
+              debugPrint('เกิดข้อผิดพลาดในการบันทึกสิ่งอำนวยความสะดวก: $e');
               SnackMessage.showError(
                   context, 'เกิดข้อผิดพลาดในการบันทึกสิ่งอำนวยความสะดวก');
             }
@@ -615,7 +615,7 @@ class _RoomAddUIState extends State<RoomAddUI> {
             }
           }
 
-          print(
+          debugPrint(
             result['message'] +
                 (_selectedAmenities.isNotEmpty
                     ? ' พร้อมสิ่งอำนวยความสะดวก ${_selectedAmenities.length} รายการ'
@@ -630,14 +630,14 @@ class _RoomAddUIState extends State<RoomAddUI> {
           );
           Navigator.of(context).pop(true);
         } else {
-          print(result['message']);
+          debugPrint(result['message']);
           SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        print('เกิดข้อผิดพลาด: $e');
+        debugPrint('เกิดข้อผิดพลาด: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
       }
     }

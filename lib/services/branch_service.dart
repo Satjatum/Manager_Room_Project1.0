@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import '../models/user_models.dart';
@@ -37,7 +38,7 @@ class BranchService {
 
       return List<Map<String, dynamic>>.from(result);
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
       throw Exception('เกิดข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
     }
   }
@@ -168,7 +169,7 @@ class BranchService {
 
       return List<Map<String, dynamic>>.from(result);
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
       throw Exception('เกิดข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
     }
   }
@@ -184,7 +185,7 @@ class BranchService {
 
       return result;
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
       throw Exception('เกิดข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
     }
   }
@@ -1152,7 +1153,7 @@ class BranchService {
 
       return List<Map<String, dynamic>>.from(result);
     } catch (e) {
-      print('เกิดข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
       throw Exception('เกิดข้อผิดพลาดในการโหลดข้อมูลสาขา: $e');
     }
   }
