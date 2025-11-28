@@ -462,6 +462,7 @@ class _IssueListUiState extends State<IssueListUi>
                     ? _buildEmptyState()
                     : RefreshIndicator(
                         onRefresh: _loadData,
+                        backgroundColor: Colors.white,
                         color: AppTheme.primary,
                         child: ListView.builder(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),

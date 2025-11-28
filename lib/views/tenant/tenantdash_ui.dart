@@ -2,21 +2,27 @@ import 'package:flutter/material.dart';
 // Page //
 import '../sadmin/invoicelist_ui.dart';
 import '../sadmin/issuelist_ui.dart';
-import '../setting_ui.dart';
 import '../tenant/tenant_pay_history_ui.dart';
 // Widgets //
 import '../widgets/colors.dart';
+import '../widgets/mainnavbar.dart';
 
 class TenantdashUi extends StatefulWidget {
   final String? tenantName;
   final String? roomNumber;
   final String? profileImageUrl;
+  final String? roomType;
+  final String? branchName;
+  final double? rentalFee;
 
   const TenantdashUi({
     super.key,
     this.tenantName,
     this.roomNumber,
     this.profileImageUrl,
+    this.roomType,
+    this.branchName,
+    this.rentalFee,
   });
 
   @override
@@ -31,7 +37,6 @@ class _TenantdashUiState extends State<TenantdashUi> {
       _DashItem(
         icon: Icons.payment,
         label: 'ชำระค่าเช่า',
-        description: 'ชำระค่าห้องพัก',
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const InvoiceListUi()),
@@ -39,8 +44,7 @@ class _TenantdashUiState extends State<TenantdashUi> {
       ),
       _DashItem(
         icon: Icons.history,
-        label: 'ประวัติการใช้งาน',
-        description: 'ดูรายการย้อนหลัง',
+        label: 'ประวัติการชำระ',
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const TenantPayHistoryUi()),
@@ -49,25 +53,23 @@ class _TenantdashUiState extends State<TenantdashUi> {
       _DashItem(
         icon: Icons.build_outlined,
         label: 'แจ้งปัญหา',
-        description: 'รายงานปัญหา',
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const IssueListUi()),
         ),
       ),
-      _DashItem(
-        icon: Icons.headset_mic_outlined,
-        label: 'ตั้งค่า',
-        description: 'ตั้งค่า',
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const SettingUi()),
-        ),
-      ),
+      // _DashItem(
+      //   icon: Icons.headset_mic_outlined,
+      //   label: 'ตั้งค่า',
+      //   onTap: () => Navigator.push(
+      //     context,
+      //     MaterialPageRoute(builder: (_) => const SettingUi()),
+      //   ),
+      // ),
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: Colors.white,
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
@@ -76,17 +78,20 @@ class _TenantdashUiState extends State<TenantdashUi> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header with Profile
-                _WelcomeHeader(
-                  name: widget.tenantName ?? 'ผู้เช่า',
-                  roomNumber: widget.roomNumber,
+                // Tenant Info Card
+                _TenantInfoCard(
+                  tenantName: widget.tenantName ?? 'ผู้เช่า',
+                  roomType: widget.roomType ?? '-',
+                  roomNumber: widget.roomNumber ?? '-',
+                  branchName: widget.branchName ?? '-',
+                  rentalFee: widget.rentalFee ?? 0.0,
                   profileImageUrl: widget.profileImageUrl,
                 ),
                 const SizedBox(height: 24),
 
                 // Quick Actions Title
                 const Text(
-                  'Quick Actions',
+                  'เมนู',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -95,69 +100,177 @@ class _TenantdashUiState extends State<TenantdashUi> {
                 ),
                 const SizedBox(height: 16),
 
-                // Quick Actions Grid (2x2)
-                _QuickActionsGrid(items: items),
+                // Quick Actions Wrap (Auto wrap)
+                _QuickActionsWrap(items: items),
               ],
             ),
           ),
+        ),
+      ),
+      bottomNavigationBar: const Mainnavbar(currentIndex: 0),
+    );
+  }
+}
+
+// ---------------------- Tenant Info Card ----------------------
+class _TenantInfoCard extends StatelessWidget {
+  final String tenantName;
+  final String roomType;
+  final String roomNumber;
+  final String branchName;
+  final double rentalFee;
+  final String? profileImageUrl;
+
+  const _TenantInfoCard({
+    required this.tenantName,
+    required this.roomType,
+    required this.roomNumber,
+    required this.branchName,
+    required this.rentalFee,
+    this.profileImageUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with Profile
+            Row(
+              children: [
+                // Profile Image
+                CircleAvatar(
+                  radius: 32,
+                  backgroundColor: AppTheme.primary.withOpacity(0.1),
+                  backgroundImage: profileImageUrl != null
+                      ? NetworkImage(profileImageUrl!)
+                      : null,
+                  child: profileImageUrl == null
+                      ? Icon(Icons.person, size: 36, color: AppTheme.primary)
+                      : null,
+                ),
+                const SizedBox(width: 16),
+                // Name
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'ข้อมูลผู้เช่า',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        tenantName,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Divider
+            Divider(color: Colors.grey[200], height: 1),
+            const SizedBox(height: 16),
+            // Info Grid
+            Row(
+              children: [
+                Expanded(
+                  child: _InfoItem(
+                    icon: Icons.category_outlined,
+                    label: 'ประเภทห้อง',
+                    value: roomType,
+                  ),
+                ),
+                Expanded(
+                  child: _InfoItem(
+                    icon: Icons.meeting_room_outlined,
+                    label: 'เลขห้อง',
+                    value: roomNumber,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _InfoItem(
+                    icon: Icons.business_outlined,
+                    label: 'สาขา',
+                    value: branchName,
+                  ),
+                ),
+                Expanded(
+                  child: _InfoItem(
+                    icon: Icons.payments_outlined,
+                    label: 'ค่าเช่าตามสัญญา',
+                    value: '฿${rentalFee.toStringAsFixed(2)}',
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-// ---------------------- Welcome Header ----------------------
-class _WelcomeHeader extends StatelessWidget {
-  final String name;
-  final String? roomNumber;
-  final String? profileImageUrl;
+class _InfoItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
 
-  const _WelcomeHeader({
-    required this.name,
-    this.roomNumber,
-    this.profileImageUrl,
+  const _InfoItem({
+    required this.icon,
+    required this.label,
+    required this.value,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Profile Image
-        CircleAvatar(
-          radius: 28,
-          backgroundColor: AppTheme.primary.withOpacity(0.1),
-          backgroundImage:
-              profileImageUrl != null ? NetworkImage(profileImageUrl!) : null,
-          child: profileImageUrl == null
-              ? Icon(Icons.person, size: 32, color: AppTheme.primary)
-              : null,
-        ),
-        const SizedBox(width: 12),
-
-        // Welcome Text
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Welcome, $name!',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+        Row(
+          children: [
+            Icon(icon, size: 16, color: AppTheme.primary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
               ),
-              if (roomNumber != null && roomNumber!.isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text(
-                  'Unit: $roomNumber',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
           ),
         ),
       ],
@@ -165,24 +278,34 @@ class _WelcomeHeader extends StatelessWidget {
   }
 }
 
-// ---------------------- Quick Actions Grid (2x2) ----------------------
-class _QuickActionsGrid extends StatelessWidget {
+// ---------------------- Quick Actions Wrap (Auto wrap) ----------------------
+class _QuickActionsWrap extends StatelessWidget {
   final List<_DashItem> items;
-  const _QuickActionsGrid({required this.items});
+  const _QuickActionsWrap({required this.items});
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.0,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, index) => _ActionCard(item: items[index]),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isCompact = constraints.maxWidth < 600;
+        final double spacing = 12;
+        final double minTileW = isCompact ? 100 : 130;
+        int columns = (constraints.maxWidth / minTileW).floor();
+        if (columns < 1) columns = 1;
+        final double itemW =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final it in items)
+              SizedBox(
+                width: itemW,
+                child: _ActionCard(item: it),
+              )
+          ],
+        );
+      },
     );
   }
 }
@@ -190,13 +313,11 @@ class _QuickActionsGrid extends StatelessWidget {
 class _DashItem {
   final IconData icon;
   final String label;
-  final String description;
   final VoidCallback onTap;
 
   _DashItem({
     required this.icon,
     required this.label,
-    required this.description,
     required this.onTap,
   });
 }
@@ -208,59 +329,51 @@ class _ActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.1),
+      color: Colors.transparent,
       child: InkWell(
         onTap: item.onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Icon
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2196F3).withOpacity(0.1),
-                  shape: BoxShape.circle,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Icon
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    item.icon,
+                    color: AppTheme.primary,
+                    size: 24,
+                  ),
                 ),
-                child: Icon(
-                  item.icon,
-                  color: const Color(0xFF2196F3),
-                  size: 28,
-                ),
-              ),
-              const SizedBox(height: 12),
+                const SizedBox(height: 12),
 
-              // Label
-              Text(
-                item.label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                // Label
+                Text(
+                  item.label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-
-              // Description
-              Text(
-                item.description,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey[600],
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+                const SizedBox(height: 4),
+              ],
+            ),
           ),
         ),
       ),

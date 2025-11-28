@@ -375,6 +375,8 @@ class _InvoiceListUiState extends State<InvoiceListUi>
                       child: CircularProgressIndicator(color: AppTheme.primary),
                     )
                   : RefreshIndicator(
+                      backgroundColor: Colors.white,
+                      color: AppTheme.primary,
                       onRefresh: _load,
                       child: _buildListView(),
                     ),

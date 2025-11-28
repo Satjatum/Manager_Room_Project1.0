@@ -169,7 +169,7 @@ class _SettingUiState extends State<SettingUi> {
         appBar: AppBar(title: const Text('ตั้งค่า')),
         body: const Center(child: Text('ไม่สามารถโหลดข้อมูลผู้ใช้ได้')),
         // Default to settings tab index for non-tenant roles
-        bottomNavigationBar: const Mainnavbar(currentIndex: 2),
+        bottomNavigationBar: const Mainnavbar(currentIndex: 1),
       );
     }
 
@@ -181,7 +181,7 @@ class _SettingUiState extends State<SettingUi> {
         elevation: 1,
       ),
       body: _buildResponsiveBody(isMobile, isTablet, isWeb),
-      bottomNavigationBar: const Mainnavbar(currentIndex: 2),
+      bottomNavigationBar: const Mainnavbar(currentIndex: 1),
     );
   }
 

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:manager_room_project/views/widgets/colors.dart';
 
 // Services //
 import '../services/branch_service.dart';
 import '../services/branch_payment_qr_service.dart';
 // Widgets //
 import 'widgets/snack_message.dart';
+import 'widgets/colors.dart';
 
 class PaymentQrManagementUi extends StatefulWidget {
   final String? branchId;

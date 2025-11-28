@@ -218,6 +218,8 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
                       child: CircularProgressIndicator(color: AppTheme.primary),
                     )
                   : RefreshIndicator(
+                      backgroundColor: Colors.white,
+                      color: AppTheme.primary,
                       onRefresh: _loadHistory,
                       child: _buildHistoryList(),
                     ),
@@ -379,7 +381,6 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
     final dueDate = slip['due_date']?.toString() ?? '';
     final tenantNotes = slip['tenant_notes']?.toString() ?? '';
     final rejectionReason = slip['rejection_reason']?.toString() ?? '';
-    //final slipImage = slip['slip_image']?.toString() ?? '';
     final isVerified =
         slip['payment_id'] != null && slip['payment_id'].toString().isNotEmpty;
     final isRejected = !isVerified &&
@@ -415,7 +416,7 @@ class _TenantPayHistoryUiState extends State<TenantPayHistoryUi> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: statusColor.withOpacity(0.3), width: 1),
+        side: BorderSide(color: Colors.grey[300]!, width: 1),
       ),
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(

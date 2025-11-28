@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:manager_room_project/views/sadmin/branchlist_ui.dart';
+import 'package:manager_room_project/views/tenant/tenantdash_ui.dart';
 import 'package:manager_room_project/views/widgets/colors.dart';
 import '../../middleware/auth_middleware.dart';
 import '../../models/user_models.dart';
@@ -39,7 +40,7 @@ class _MainnavbarState extends State<Mainnavbar> {
         });
       }
     } catch (e) {
-      print('Error loading user: $e');
+      debugPrint('ไม่สามารถโหลดข้อมูลผู้ใช้ได้ $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -66,9 +67,7 @@ class _MainnavbarState extends State<Mainnavbar> {
         _setupUserNavigation();
         break;
       case UserRole.tenant:
-        // Remove tenant navigation entirely per requirement
-        _navigationItems = [];
-        _pages = [];
+        _setupTenantNavigation();
         break;
     }
   }
@@ -109,6 +108,26 @@ class _MainnavbarState extends State<Mainnavbar> {
 
     _pages = [
       const BranchlistUi(),
+      const SettingUi(),
+    ];
+  }
+
+  void _setupTenantNavigation() {
+    _navigationItems = [
+      NavItem(
+        icon: Icons.business_outlined,
+        activeIcon: Icons.business,
+        label: 'หน้าหลัก',
+      ),
+      NavItem(
+        icon: Icons.settings_outlined,
+        activeIcon: Icons.settings,
+        label: 'ตั้งค่า',
+      ),
+    ];
+
+    _pages = [
+      const TenantdashUi(),
       const SettingUi(),
     ];
   }
