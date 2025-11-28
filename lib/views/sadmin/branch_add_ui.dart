@@ -3,15 +3,17 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
-//--------
+// Model //
 import '../../models/user_models.dart';
-//--------
+// Middleware //
 import '../../middleware/auth_middleware.dart';
-//--------
+// Services //
 import '../../services/branch_service.dart';
 import '../../services/user_service.dart';
 import '../../services/image_service.dart';
 import '../../services/branch_manager_service.dart';
+// Widget //
+import '../widgets/snack_message.dart';
 
 class BranchAddUi extends StatefulWidget {
   const BranchAddUi({Key? key}) : super(key: key);
@@ -116,20 +118,10 @@ class _BranchAddUiState extends State<BranchAddUi>
     } catch (e) {
       if (mounted) {
         setState(() => _isLoadingOwners = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 12),
-                Expanded(child: Text('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e')),
-              ],
-            ),
-            backgroundColor: Colors.orange.shade600,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
+        SnackMessage.showError(
+          context,
+          'เกิดข้อผิดพลาดในการโหลดข้อมูล',
         );
       }
     }
@@ -166,18 +158,10 @@ class _BranchAddUiState extends State<BranchAddUi>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 12),
-                Expanded(child: Text('เกิดข้อผิดพลาดในการเลือกภาพ: $e')),
-              ],
-            ),
-            backgroundColor: Colors.red.shade600,
-            behavior: SnackBarBehavior.floating,
-          ),
+        print('เกิดข้อผิดพลาดในการเลือกภาพ $e');
+        SnackMessage.showError(
+          context,
+          'เกิดข้อผิดพลาดในการเลือกภาพ',
         );
       }
     }
@@ -336,12 +320,10 @@ class _BranchAddUiState extends State<BranchAddUi>
     try {
       if (bytes.length > 5 * 1024 * 1024) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('ขนาดไฟล์เกิน 5MB'),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-            ),
+          print('ขนาดไฟล์เกิน 5MB');
+          SnackMessage.showError(
+            context,
+            'ขนาดไฟล์เกิน 5MB',
           );
         }
         return false;
@@ -349,12 +331,10 @@ class _BranchAddUiState extends State<BranchAddUi>
 
       if (bytes.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('ไฟล์ว่างเปล่าหรือเสียหาย'),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-            ),
+          print('ไฟว่างเปล่าหรือเสียหาย');
+          SnackMessage.showError(
+            context,
+            'ไฟว่างเปล่าหรือเสียหาย',
           );
         }
         return false;
@@ -365,12 +345,10 @@ class _BranchAddUiState extends State<BranchAddUi>
 
       if (!allowedExtensions.contains(extension)) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น'),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-            ),
+          print('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
+          SnackMessage.showError(
+            context,
+            'ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น',
           );
         }
         return false;
@@ -379,12 +357,10 @@ class _BranchAddUiState extends State<BranchAddUi>
       return true;
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e'),
-            backgroundColor: Colors.red.shade600,
-            behavior: SnackBarBehavior.floating,
-          ),
+        print('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
+        SnackMessage.showError(
+          context,
+          'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
         );
       }
       return false;
@@ -395,12 +371,10 @@ class _BranchAddUiState extends State<BranchAddUi>
     try {
       if (!await file.exists()) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('ไม่พบไฟล์หรือไฟล์ถูกลบ'),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-            ),
+          print('ไม่พบไฟล์หรือไฟล์ถูกลบ');
+          SnackMessage.showError(
+            context,
+            'ไม่พบไฟล์หรือไฟล์ถูกลบ',
           );
         }
         return false;
@@ -409,12 +383,10 @@ class _BranchAddUiState extends State<BranchAddUi>
       final fileSize = await file.length();
       if (fileSize > 5 * 1024 * 1024) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('ขนาดไฟล์เกิน 5MB'),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-            ),
+          print('ขนาดไฟล์เกิน 5MB');
+          SnackMessage.showError(
+            context,
+            'ขนาดไฟล์เกิน 5MB',
           );
         }
         return false;
@@ -422,12 +394,10 @@ class _BranchAddUiState extends State<BranchAddUi>
 
       if (fileSize == 0) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('ไฟล์ว่างเปล่าหรือเสียหาย'),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-            ),
+          print('ไฟล์ว่างเปล่าหรือเสียหาย');
+          SnackMessage.showError(
+            context,
+            'ไฟล์ว่างเปล่าหรือเสียหาย',
           );
         }
         return false;
@@ -438,12 +408,10 @@ class _BranchAddUiState extends State<BranchAddUi>
 
       if (!allowedExtensions.contains(extension)) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น'),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-            ),
+          print('ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น');
+          SnackMessage.showError(
+            context,
+            'ไฟล์ที่อนุญาต: JPG, JPEG, PNG, WebP เท่านั้น',
           );
         }
         return false;
@@ -452,12 +420,10 @@ class _BranchAddUiState extends State<BranchAddUi>
       return true;
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e'),
-            backgroundColor: Colors.red.shade600,
-            behavior: SnackBarBehavior.floating,
-          ),
+        print('เกิดข้อผิดพลาดในการตรวจสอบไฟล์: $e');
+        SnackMessage.showError(
+          context,
+          'เกิดข้อผิดพลาดในการตรวจสอบไฟล์',
         );
       }
       return false;
@@ -472,43 +438,32 @@ class _BranchAddUiState extends State<BranchAddUi>
       _branchImageUrl = null;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.white),
-            SizedBox(width: 12),
-            Text('ลบรูปภาพแล้ว'),
-          ],
-        ),
-        backgroundColor: Colors.green.shade600,
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
+    print('ลบรูปภาพสำเร็จ');
+    SnackMessage.showSuccess(
+      context,
+      'ลบรูปภาพสำเร็จ',
     );
   }
 
   Future<void> _saveBranch() async {
     if (_currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('กรุณาเข้าสู่ระบบเพื่อเพิ่มสาขา'),
-          backgroundColor: Colors.red.shade600,
-          behavior: SnackBarBehavior.floating,
-        ),
+      print('กรุณาเข้าสู่ระบบเพื่อเพิ่มสาขา');
+      SnackMessage.showError(
+        context,
+        'กรุณาเข้าสู่ระบบเพื่อเพิ่มสาขา',
       );
+
       Navigator.of(context).pop();
       return;
     }
 
     if (_currentUser!.userRole != UserRole.superAdmin) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('คุณไม่มีสิทธิ์ในการเพิ่มสาขา'),
-          backgroundColor: Colors.red.shade600,
-          behavior: SnackBarBehavior.floating,
-        ),
+      print('คุณไม่มีสิทธิ์ในการเพิ่มสาขา');
+      SnackMessage.showError(
+        context,
+        'คุณไม่มีสิทธิ์ในการเพิ่มสาขา',
       );
+
       Navigator.of(context).pop();
       return;
     }
@@ -518,12 +473,10 @@ class _BranchAddUiState extends State<BranchAddUi>
     }
 
     if (_selectedManagerIds.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('กรุณาเลือกผู้จัดการอย่างน้อยหนึ่งคน'),
-          backgroundColor: Colors.orange.shade600,
-          behavior: SnackBarBehavior.floating,
-        ),
+      print('กรุณาเลือกผู้จัดการอย่างน้อยหนึ่งคน');
+      SnackMessage.showError(
+        context,
+        'กรุณาเลือกผู้จัดการอย่างน้อยหนึ่งคน',
       );
       _tabController.animateTo(1);
       return;
@@ -639,20 +592,10 @@ class _BranchAddUiState extends State<BranchAddUi>
 
       if (mounted) {
         setState(() => _isLoading = false);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 12),
-                Expanded(child: Text('สร้างสาขาเรียบร้อยแล้ว')),
-              ],
-            ),
-            backgroundColor: Colors.green.shade600,
-            duration: Duration(seconds: 3),
-            behavior: SnackBarBehavior.floating,
-          ),
+        print('สร้างสาขาเรียบร้อยแล้ว');
+        SnackMessage.showSuccess(
+          context,
+          'สร้างสาขาเรียบร้อยแล้ว',
         );
 
         Navigator.of(context).pop(true);
@@ -660,14 +603,10 @@ class _BranchAddUiState extends State<BranchAddUi>
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาด: $e'),
-            backgroundColor: Colors.red.shade600,
-            duration: Duration(seconds: 4),
-            behavior: SnackBarBehavior.floating,
-          ),
+        print('เกิดข้อผิดพลาดในการสร้างสาขา: $e');
+        SnackMessage.showError(
+          context,
+          'เกิดข้อผิดพลาดในการสร้างสาขา',
         );
       }
     }

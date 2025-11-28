@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+//  Page //
 import 'package:manager_room_project/views/sadmin/invoicelist_ui.dart';
 import 'package:manager_room_project/views/sadmin/roomlist_ui.dart';
 import 'package:manager_room_project/views/sadmin/tenantlist_ui.dart';
@@ -7,10 +8,12 @@ import 'package:manager_room_project/views/sadmin/meterlist_ui.dart';
 import 'package:manager_room_project/views/sadmin/meter_billing_ui.dart';
 import 'package:manager_room_project/views/sadmin/payment_verification_ui.dart';
 import 'package:manager_room_project/views/sadmin/settingbranch_ui.dart';
-import 'package:manager_room_project/views/widgets/colors.dart';
+// Services //
 import 'package:manager_room_project/services/branch_service.dart';
 import 'package:manager_room_project/services/issue_service.dart';
 import 'package:manager_room_project/services/invoice_service.dart';
+// Widget //
+import 'package:manager_room_project/views/widgets/colors.dart';
 
 class BranchDashboardPage extends StatelessWidget {
   final String? branchId;
@@ -22,24 +25,114 @@ class BranchDashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Future<bool> _confirmExit() async {
-      final ok = await showDialog<bool>(
+      final confirm = await showDialog<bool>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('ออกจากแดชบอร์ดสาขา'),
-          content: const Text('คุณต้องการกลับไปหน้าก่อนหน้าหรือไม่?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('ยกเลิก'),
+        builder: (context) => Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon Header
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.exit_to_app,
+                    color: Colors.blue.shade600,
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Title
+                const Text(
+                  'ออกจากแดชบอร์ดสาขา',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Description
+                Text(
+                  'คุณต้องการกลับไปหน้าก่อนหน้าหรือไม่?',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[700],
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+
+                // Action Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.grey[700],
+                          side: BorderSide(
+                            color: Colors.grey[300]!,
+                            width: 1.5,
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          'ยกเลิก',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'ยืนยัน',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('ยืนยัน'),
-            ),
-          ],
+          ),
         ),
       );
-      return ok == true;
+
+      return confirm == true;
     }
 
     Future<Map<String, dynamic>> _loadStats() async {
@@ -349,7 +442,7 @@ class BranchDashboardPage extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4.0),
                           child: Text(
-                            'Quick Actions',
+                            'เมนู',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
@@ -404,7 +497,7 @@ class _StatsSection extends StatelessWidget {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 4.0),
           child: Text(
-            "Today's Performance",
+            "สถิติ",
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,

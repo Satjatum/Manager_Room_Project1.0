@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-//--------
+// Model //
 import '../../models/user_models.dart';
-//--------
+// Middleware //
 import '../../middleware/auth_middleware.dart';
-//--------
+// Services //
 import '../../services/branch_service.dart';
 import '../../services/branch_manager_service.dart';
-//--------
+// Page //
 import 'branch_edit_ui.dart';
+// Widget //
+import '../widgets/snack_message.dart';
 
 class BranchlistDetailUi extends StatefulWidget {
   final String branchId;
@@ -78,6 +80,7 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
         setState(() => _isLoadingManagers = false);
       }
       print('เกิดข้อผิดพลาดในการโหลดผู้จัดการ: $e');
+      SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดผู้จัดการ');
     }
   }
 
@@ -100,23 +103,8 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error_outline, color: Colors.white),
-                SizedBox(width: 12),
-                Expanded(
-                    child:
-                        Text('เกิดข้อผิดพลาดในการโหลดข้อมูล: ${e.toString()}')),
-              ],
-            ),
-            backgroundColor: Colors.red.shade600,
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
+        print('เกิดข้อผิดพลาดในการโหลดข้อมูล $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
     }
   }
@@ -399,21 +387,11 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
 
         if (mounted) {
           if (result['success']) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.white),
-                    SizedBox(width: 12),
-                    Expanded(child: Text(result['message'])),
-                  ],
-                ),
-                backgroundColor: Colors.green.shade600,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+            print(result['message']);
+            SnackMessage.showSuccess(context, result['message']);
             await _loadBranchDetails();
           } else {
+            print(result['message']);
             throw Exception(result['message']);
           }
         }
@@ -422,13 +400,8 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
           Navigator.of(context).pop();
         }
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+          print('เกิดข้อผิดพลาด: $e');
+          SnackMessage.showSuccess(context, 'เกิดข้อผิดพลาด');
         }
       }
     }

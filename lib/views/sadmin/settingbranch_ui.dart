@@ -26,12 +26,11 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
     final String? lockedBranchId =
         (widget.branchId.trim().isEmpty) ? null : widget.branchId;
 
-    // เตรียมรายการการตั้งค่า (แยกข้อมูลออกเพื่อใช้กับ List/Grid)
+    // เตรียมรายการการตั้งค่า (แยกข้อมูลออกเพื่อใช้กับ Wrap)
     final List<_SettingItem> items = [
       _SettingItem(
         icon: Icons.bolt,
         title: 'ตั้งค่าอัตราค่าบริการ',
-        subtitle: 'ค่าไฟฟ้า ค่าน้ำ ค่าส่วนกลางของสาขานี้',
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
@@ -42,7 +41,6 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
       _SettingItem(
         icon: Icons.account_balance_wallet,
         title: 'ตั้งค่าค่าปรับ',
-        subtitle: 'ค่าปรับชำระล่าช้า ',
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
@@ -52,8 +50,7 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
       ),
       _SettingItem(
         icon: Icons.qr_code_2,
-        title: 'ตั้งค่าบัญชีชำระเงิน ',
-        subtitle: 'เพิ่ม/แก้ไข/ปิดใช้งาน บัญชีธนาคารและ QR ของสาขานี้',
+        title: 'ตั้งค่าบัญชีชำระเงิน',
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
@@ -64,7 +61,6 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
       _SettingItem(
         icon: Icons.stars,
         title: 'สิ่งอำนวยความสะดวก',
-        subtitle: 'เพิ่ม/แก้ไขรายการสิ่งอำนวยความสะดวกของห้องพัก',
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const AmenitiesUI()),
@@ -73,7 +69,6 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
       _SettingItem(
         icon: Icons.category,
         title: 'ประเภทห้อง',
-        subtitle: 'จัดการประเภทห้อง เช่น ห้องพัดลม ห้องแอร์',
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const RoomTypesUI()),
@@ -82,7 +77,6 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
       _SettingItem(
         icon: Icons.grid_view,
         title: 'หมวดหมู่ห้อง',
-        subtitle: 'จัดการหมวดหมู่ห้อง เช่น ห้องเดี่ยว ห้องคู่',
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const RoomCategoriesUI()),
@@ -144,60 +138,39 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
               ),
             ),
 
-            // รายการการ์ด (responsive)
+            // รายการการ์ด (Auto Wrap)
             Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  // ถ้าเป็น Mobile (Android/iOS) ให้แสดงแบบคอลัมน์ (List) เสมอ
-                  if (isMobileApp) {
-                    return ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                      itemCount: items.length,
-                      itemBuilder: (context, index) => Column(
-                        children: [
-                          _SettingGridCard(item: items[index]),
-                          const SizedBox(height: 16),
-                        ],
-                      ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // คำนวณขนาดการ์ดให้พอดีตามหน้าจอ
+                    double cardWidth;
+                    if (constraints.maxWidth > 1200) {
+                      cardWidth =
+                          (constraints.maxWidth - 72) / 4; // 4 การ์ดต่อแถว
+                    } else if (constraints.maxWidth > 900) {
+                      cardWidth =
+                          (constraints.maxWidth - 48) / 3; // 3 การ์ดต่อแถว
+                    } else if (constraints.maxWidth > 600) {
+                      cardWidth =
+                          (constraints.maxWidth - 32) / 2; // 2 การ์ดต่อแถว
+                    } else {
+                      cardWidth = constraints.maxWidth; // 1 การ์ดต่อแถว
+                    }
+
+                    return Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      children: items.map((item) {
+                        return SizedBox(
+                          width: cardWidth,
+                          child: _SettingGridCard(item: item),
+                        );
+                      }).toList(),
                     );
-                  }
-
-                  int crossAxisCount = 1;
-                  if (constraints.maxWidth > 1200) {
-                    crossAxisCount = 4;
-                  } else if (constraints.maxWidth > 900) {
-                    crossAxisCount = 3;
-                  } else if (constraints.maxWidth > 600) {
-                    crossAxisCount = 2;
-                  }
-
-                  if (crossAxisCount == 1) {
-                    return ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                      itemCount: items.length,
-                      itemBuilder: (context, index) => Column(
-                        children: [
-                          _SettingGridCard(item: items[index]),
-                          const SizedBox(height: 16),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return GridView.builder(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 1.25,
-                    ),
-                    itemCount: items.length,
-                    itemBuilder: (context, index) => _SettingGridCard(
-                      item: items[index],
-                    ),
-                  );
-                },
+                  },
+                ),
               ),
             ),
           ],
@@ -210,12 +183,10 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
 class _SettingItem {
   final IconData icon;
   final String title;
-  final String subtitle;
   final VoidCallback onTap;
   _SettingItem({
     required this.icon,
     required this.title,
-    required this.subtitle,
     required this.onTap,
   });
 }
@@ -238,9 +209,10 @@ class _SettingGridCard extends StatelessWidget {
             border: Border.all(color: Colors.grey[300]!),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(24),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
                   padding: const EdgeInsets.all(14),
@@ -248,9 +220,9 @@ class _SettingGridCard extends StatelessWidget {
                     color: AppTheme.primary.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(item.icon, color: AppTheme.primary, size: 28),
+                  child: Icon(item.icon, color: AppTheme.primary, size: 32),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Text(
                   item.title,
                   style: const TextStyle(
@@ -258,26 +230,9 @@ class _SettingGridCard extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
                   ),
+                  textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  item.subtitle,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Icon(
-                      Icons.arrow_forward,
-                      size: 18,
-                      color: Colors.grey[500],
-                    ),
-                  ],
                 ),
               ],
             ),

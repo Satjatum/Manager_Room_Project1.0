@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/room_service.dart';
 import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
 
 class RoomTypesUI extends StatefulWidget {
   const RoomTypesUI({Key? key}) : super(key: key);
@@ -177,11 +178,9 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
+        SnackMessage.showError(
+          context,
+          'เกิดข้อผิดพลาด: ${e.toString()}',
         );
       }
     }
@@ -347,11 +346,9 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                       child: ElevatedButton(
                         onPressed: () {
                           if (nameController.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('กรุณากรอกชื่อประเภทห้อง'),
-                                backgroundColor: Colors.orange,
-                              ),
+                            SnackMessage.showWarning(
+                              context,
+                              'กรุณากรอกชื่อประเภทห้อง',
                             );
                             return;
                           }
@@ -420,11 +417,9 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
 
         if (mounted) {
           if (response['success']) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(response['message']),
-                backgroundColor: Colors.green,
-              ),
+            SnackMessage.showSuccess(
+              context,
+              response['message'],
             );
             await _loadRoomTypes();
           } else {
@@ -436,11 +431,9 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
           Navigator.pop(context);
         }
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
-              backgroundColor: Colors.red,
-            ),
+          SnackMessage.showError(
+            context,
+            e.toString().replaceAll('Exception: ', ''),
           );
         }
       }
@@ -674,18 +667,9 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
 
         if (mounted) {
           if (result['success'] == true) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.white),
-                    SizedBox(width: 12),
-                    Expanded(child: Text(result['message'] ?? 'ลบสำเร็จ')),
-                  ],
-                ),
-                backgroundColor: Colors.green.shade600,
-                behavior: SnackBarBehavior.floating,
-              ),
+            SnackMessage.showSuccess(
+              context,
+              result['message'] ?? 'ลบสำเร็จ',
             );
             await _loadRoomTypes();
           } else {
@@ -697,12 +681,9 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
           Navigator.of(context).pop();
         }
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-            ),
+          SnackMessage.showError(
+            context,
+            e.toString().replaceAll('Exception: ', ''),
           );
         }
       }
@@ -858,319 +839,57 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                         : LayoutBuilder(
                             builder: (context, constraints) {
                               final width = constraints.maxWidth;
-                              final bool isMobile = width < 768;
 
-                              if (isMobile) {
-                                // Mobile: Wrap-based auto-fit, like amenities
-                                return SingleChildScrollView(
-                                  physics: AlwaysScrollableScrollPhysics(),
-                                  padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
-                                  child: Wrap(
-                                    spacing: 12,
-                                    runSpacing: 12,
-                                    children: List.generate(
-                                        _filteredRoomTypes.length, (index) {
-                                      final t = _filteredRoomTypes[index];
-                                      return Container(
-                                        width: double.infinity,
-                                        child: InkWell(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          onTap: () =>
-                                              _showAddEditDialog(roomType: t),
-                                          child: Stack(
-                                            children: [
-                                              Container(
-                                                decoration: BoxDecoration(
-                                                  color: Colors.white,
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                  border: Border.all(
-                                                    color: Colors.grey[300]!,
-                                                  ),
-                                                ),
-                                                padding: EdgeInsets.all(12),
-                                                child: Column(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Align(
-                                                      alignment:
-                                                          Alignment.topRight,
-                                                      child: PopupMenuButton<
-                                                          String>(
-                                                        shape:
-                                                            RoundedRectangleBorder(
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                            12,
-                                                          ),
-                                                        ),
-                                                        onSelected: (value) {
-                                                          if (value == 'edit') {
-                                                            _showAddEditDialog(
-                                                              roomType: t,
-                                                            );
-                                                          } else if (value ==
-                                                              'delete') {
-                                                            _deleteRoomType(t);
-                                                          }
-                                                        },
-                                                        itemBuilder:
-                                                            (context) => [
-                                                          PopupMenuItem(
-                                                            value: 'edit',
-                                                            child: Row(
-                                                              children: [
-                                                                Icon(
-                                                                  Icons.edit,
-                                                                  color: Colors
-                                                                      .blue,
-                                                                ),
-                                                                SizedBox(
-                                                                    width: 8),
-                                                                Text('แก้ไข'),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                          PopupMenuItem(
-                                                            value: 'delete',
-                                                            child: Row(
-                                                              children: [
-                                                                Icon(
-                                                                  Icons.delete,
-                                                                  color: Colors
-                                                                      .red,
-                                                                ),
-                                                                SizedBox(
-                                                                    width: 8),
-                                                                Text('ลบ'),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ],
-                                                        icon: Icon(
-                                                          Icons.more_vert,
-                                                          color:
-                                                              Colors.grey[700],
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    SizedBox(height: 6),
-                                                    Container(
-                                                      padding:
-                                                          EdgeInsets.all(16),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.orange
-                                                            .withOpacity(0.08),
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(
-                                                          12,
-                                                        ),
-                                                        border: Border.all(
-                                                          color: Colors.orange
-                                                              .withOpacity(
-                                                                  0.25),
-                                                        ),
-                                                      ),
-                                                      child: Icon(
-                                                        _getIconData(
-                                                          t['roomtype_icon']
-                                                              ?.toString(),
-                                                        ),
-                                                        color: Colors.orange,
-                                                        size: 40,
-                                                      ),
-                                                    ),
-                                                    SizedBox(height: 12),
-                                                    Text(
-                                                      t['roomtype_name'] ?? '',
-                                                      style: TextStyle(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                      ),
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    }),
-                                  ),
-                                );
-                              }
-
-                              // Larger screens: responsive fixed columns grid (like amenities)
-                              int cols = 2;
-                              if (width <= 320) {
-                                cols = 1; // Mobile S
-                              } else if (width <= 375) {
-                                cols = 1; // Mobile M
-                              } else if (width <= 425) {
-                                cols = 2; // Mobile L
-                              } else if (width <= 768) {
-                                cols = 3; // Tablet
-                              } else if (width <= 1024) {
-                                cols = 4; // Laptop
-                              } else if (width <= 1440) {
-                                cols = 5; // Laptop L
+                              // คำนวณขนาด Card ตามความกว้างหน้าจอ
+                              double cardWidth;
+                              if (width < 600) {
+                                cardWidth = width - 48; // Full width on mobile
+                              } else if (width < 900) {
+                                cardWidth = (width - 60) / 2; // 2 columns
+                              } else if (width < 1200) {
+                                cardWidth = (width - 72) / 3; // 3 columns
+                              } else if (width < 1600) {
+                                cardWidth = (width - 96) / 4; // 4 columns
                               } else {
-                                cols = 6; // Larger
+                                cardWidth = (width - 120) / 5; // 5 columns
                               }
 
-                              final double aspect = (width <= 425)
-                                  ? 0.85
-                                  : (width <= 768 ? 0.9 : 1.50);
-
-                              return GridView.builder(
+                              return SingleChildScrollView(
                                 physics: AlwaysScrollableScrollPhysics(),
-                                padding: EdgeInsets.fromLTRB(12, 10, 12, 20),
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: cols,
-                                  crossAxisSpacing: 10,
-                                  mainAxisSpacing: 10,
-                                  childAspectRatio: aspect,
-                                ),
-                                itemCount: _filteredRoomTypes.length,
-                                itemBuilder: (context, index) {
-                                  final t = _filteredRoomTypes[index];
-
-                                  if (width <= 375) {
-                                    return InkWell(
-                                      borderRadius: BorderRadius.circular(12),
-                                      onTap: () =>
-                                          _showAddEditDialog(roomType: t),
-                                      child: Container(
-                                        width: double.infinity,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: Colors.grey[300]!,
-                                          ),
-                                        ),
-                                        padding: const EdgeInsets.all(20),
-                                        child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(12),
-                                              decoration: BoxDecoration(
-                                                color: Colors.orange
-                                                    .withOpacity(0.08),
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                                border: Border.all(
-                                                  color: Colors.orange
-                                                      .withOpacity(0.25),
-                                                ),
-                                              ),
-                                              child: Icon(
-                                                _getIconData(
-                                                  t['roomtype_icon']
-                                                      ?.toString(),
-                                                ),
-                                                color: Colors.orange,
-                                                size: 32,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Text(
-                                                t['roomtype_name'] ?? '',
-                                                style: const TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            PopupMenuButton<String>(
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              onSelected: (value) {
-                                                if (value == 'edit') {
-                                                  _showAddEditDialog(
-                                                    roomType: t,
-                                                  );
-                                                } else if (value == 'delete') {
-                                                  _deleteRoomType(t);
-                                                }
-                                              },
-                                              itemBuilder: (context) => const [
-                                                PopupMenuItem(
-                                                  value: 'edit',
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(
-                                                        Icons.edit,
-                                                        color: Colors.blue,
-                                                      ),
-                                                      SizedBox(width: 8),
-                                                      Text('แก้ไข'),
-                                                    ],
-                                                  ),
-                                                ),
-                                                PopupMenuItem(
-                                                  value: 'delete',
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(
-                                                        Icons.delete,
-                                                        color: Colors.red,
-                                                      ),
-                                                      SizedBox(width: 8),
-                                                      Text('ลบ'),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                              icon: Icon(
-                                                Icons.more_vert,
-                                                color: Colors.grey[700],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  }
-
-                                  return InkWell(
-                                    borderRadius: BorderRadius.circular(12),
-                                    onTap: () =>
-                                        _showAddEditDialog(roomType: t),
-                                    child: Stack(
-                                      children: [
-                                        Container(
+                                padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
+                                child: Wrap(
+                                  spacing: 16,
+                                  runSpacing: 16,
+                                  children: _filteredRoomTypes.map((t) {
+                                    return SizedBox(
+                                      width: cardWidth,
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(16),
+                                        onTap: () =>
+                                            _showAddEditDialog(roomType: t),
+                                        child: Container(
                                           decoration: BoxDecoration(
                                             color: Colors.white,
                                             borderRadius:
-                                                BorderRadius.circular(12),
+                                                BorderRadius.circular(16),
                                             border: Border.all(
                                               color: Colors.grey[300]!,
+                                              width: 1.5,
                                             ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black
+                                                    .withOpacity(0.05),
+                                                blurRadius: 8,
+                                                offset: Offset(0, 2),
+                                              ),
+                                            ],
                                           ),
-                                          padding: EdgeInsets.all(12),
+                                          padding: EdgeInsets.all(20),
                                           child: Column(
+                                            mainAxisSize: MainAxisSize.min,
                                             children: [
+                                              // Popup menu มุมขวาบน
                                               Align(
                                                 alignment: Alignment.topRight,
                                                 child: PopupMenuButton<String>(
@@ -1182,8 +901,7 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                                                   onSelected: (value) {
                                                     if (value == 'edit') {
                                                       _showAddEditDialog(
-                                                        roomType: t,
-                                                      );
+                                                          roomType: t);
                                                     } else if (value ==
                                                         'delete') {
                                                       _deleteRoomType(t);
@@ -1194,10 +912,9 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                                                       value: 'edit',
                                                       child: Row(
                                                         children: [
-                                                          Icon(
-                                                            Icons.edit,
-                                                            color: Colors.blue,
-                                                          ),
+                                                          Icon(Icons.edit,
+                                                              color:
+                                                                  Colors.blue),
                                                           SizedBox(width: 8),
                                                           Text('แก้ไข'),
                                                         ],
@@ -1207,10 +924,9 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                                                       value: 'delete',
                                                       child: Row(
                                                         children: [
-                                                          Icon(
-                                                            Icons.delete,
-                                                            color: Colors.red,
-                                                          ),
+                                                          Icon(Icons.delete,
+                                                              color:
+                                                                  Colors.red),
                                                           SizedBox(width: 8),
                                                           Text('ลบ'),
                                                         ],
@@ -1220,51 +936,53 @@ class _RoomTypesUIState extends State<RoomTypesUI> {
                                                   icon: Icon(
                                                     Icons.more_vert,
                                                     color: Colors.grey[700],
+                                                    size: 20,
                                                   ),
                                                 ),
                                               ),
-                                              SizedBox(height: 6),
+                                              SizedBox(height: 8),
+                                              // ไอคอนตรงกลาง
                                               Container(
-                                                padding: EdgeInsets.all(16),
+                                                padding: EdgeInsets.all(24),
                                                 decoration: BoxDecoration(
-                                                  color:
-                                                      Colors.orange.withOpacity(
-                                                    0.08,
-                                                  ),
+                                                  color: Colors.orange
+                                                      .withOpacity(0.08),
                                                   borderRadius:
-                                                      BorderRadius.circular(12),
+                                                      BorderRadius.circular(16),
                                                   border: Border.all(
                                                     color: Colors.orange
                                                         .withOpacity(0.25),
+                                                    width: 1.5,
                                                   ),
                                                 ),
                                                 child: Icon(
                                                   _getIconData(
-                                                    t['roomtype_icon']
-                                                        ?.toString(),
-                                                  ),
+                                                      t['roomtype_icon']
+                                                          ?.toString()),
                                                   color: Colors.orange,
-                                                  size: 40,
+                                                  size: 56,
                                                 ),
                                               ),
-                                              SizedBox(height: 12),
+                                              SizedBox(height: 16),
+                                              // ชื่ออยู่ใต้ไอคอน
                                               Text(
                                                 t['roomtype_name'] ?? '',
                                                 style: TextStyle(
-                                                  fontSize: 14,
+                                                  fontSize: 16,
                                                   fontWeight: FontWeight.w700,
+                                                  color: Colors.black87,
                                                 ),
                                                 textAlign: TextAlign.center,
-                                                maxLines: 1,
+                                                maxLines: 2,
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ],
                                           ),
                                         ),
-                                      ],
-                                    ),
-                                  );
-                                },
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
                               );
                             },
                           ),
