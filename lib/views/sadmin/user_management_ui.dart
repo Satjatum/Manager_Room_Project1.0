@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-// Models //
-import '../../models/user_models.dart';
 // Services //
 import '../../services/user_service.dart';
 // Widgets //
 import '../widgets/snack_message.dart';
+import '../widgets/colors.dart';
 
 class UserManagementUi extends StatefulWidget {
   const UserManagementUi({Key? key}) : super(key: key);
@@ -17,7 +16,6 @@ class _UserManagementUiState extends State<UserManagementUi> {
   List<Map<String, dynamic>> users = [];
   bool isLoading = true;
   String? errorMessage;
-  String searchQuery = '';
 
   @override
   void initState() {
@@ -33,7 +31,6 @@ class _UserManagementUiState extends State<UserManagementUi> {
 
     try {
       final result = await UserService.getAllUsers(
-        searchQuery: searchQuery.isEmpty ? null : searchQuery,
         roleFilter: 'admin',
       );
 
@@ -76,51 +73,130 @@ class _UserManagementUiState extends State<UserManagementUi> {
   }
 
   Future<void> _deactivateUser(String userId, String userName) async {
-    final confirmed = await showDialog<bool>(
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
+        child: Container(
           padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 400),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Icon Header
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(12),
+                  shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.block_rounded,
-                  color: Colors.orange.shade700,
-                  size: 28,
+                  color: Colors.orange.shade600,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title
+              const Text(
+                'ปิดใช้งานผู้ใช้นี้หรือไม่?',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // User Name
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.person, size: 18, color: Colors.grey[700]),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        userName,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'ยืนยันการปิดใช้งาน',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'คุณต้องการปิดใช้งานผู้ใช้ "$userName" หรือไม่?',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+
+              // Warning Box
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.orange.shade100,
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_rounded,
+                      color: Colors.orange.shade600,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'ผู้ใช้นี้จะไม่สามารถเข้าสู่ระบบได้',
+                        style: TextStyle(
+                          color: Colors.orange.shade800,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
+
+              // Action Buttons
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context, false),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: const Text('ยกเลิก'),
+                      child: const Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -128,14 +204,26 @@ class _UserManagementUiState extends State<UserManagementUi> {
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context, true),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
+                        backgroundColor: Colors.orange.shade600,
                         foregroundColor: Colors.white,
-                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
+                        elevation: 0,
                       ),
-                      child: const Text('ปิดใช้งาน'),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'ปิดใช้งาน',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -146,68 +234,228 @@ class _UserManagementUiState extends State<UserManagementUi> {
       ),
     );
 
-    if (confirmed == true) {
-      final result = await UserService.deactivateUser(userId);
+    if (confirm == true) {
+      try {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Animated Icon Container
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: CircularProgressIndicator(
+                            color: Colors.orange.shade600,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                        Icon(
+                          Icons.block_rounded,
+                          color: Colors.orange.shade600,
+                          size: 28,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
-      if (mounted) {
-        if (result['success']) {
-          _loadUsers();
-          debugPrint(result['message']);
-          SnackMessage.showSuccess(context, result['message']);
-        } else {
-          debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
-          SnackMessage.showError(context, result['message']);
+                  // Loading Text
+                  const Text(
+                    'กำลังปิดใช้งานผู้ใช้',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'กรุณารอสักครู่...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        final result = await UserService.deactivateUser(userId);
+        if (mounted) Navigator.of(context).pop();
+
+        if (mounted) {
+          if (result['success']) {
+            debugPrint(result['message']);
+            SnackMessage.showSuccess(context, result['message']);
+            _loadUsers();
+          } else {
+            debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
+            throw Exception(result['message']);
+          }
+        }
+      } catch (e) {
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        if (mounted) {
+          debugPrint('เกิดข้อผิดพลาด: $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }
     }
   }
 
   Future<void> _deleteUser(String userId, String userName) async {
-    final confirmed = await showDialog<bool>(
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
+        child: Container(
           padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 400),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Icon Header
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(12),
+                  shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.delete_forever_rounded,
-                  color: Colors.red.shade700,
-                  size: 28,
+                  Icons.delete_outline,
+                  color: Colors.red.shade600,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title
+              const Text(
+                'ลบผู้ใช้นี้หรือไม่?',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // User Name
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.person, size: 18, color: Colors.grey[700]),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        userName,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'ยืนยันการลบถาวร',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'คุณต้องการลบบัญชีผู้ใช้ "$userName" ถาวรหรือไม่?\n\nคำเตือน: การลบนี้ไม่สามารถย้อนกลับได้',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+
+              // Warning Box
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.shade100, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning,
+                      color: Colors.red.shade600,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'ข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
+                        style: TextStyle(
+                          color: Colors.red.shade800,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
+
+              // Action Buttons
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context, false),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                      child: const Text('ยกเลิก'),
+                      child: const Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -215,14 +463,27 @@ class _UserManagementUiState extends State<UserManagementUi> {
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context, true),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
+                        backgroundColor: Colors.red.shade600,
                         foregroundColor: Colors.white,
-                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
+                        elevation: 0,
                       ),
-                      child: const Text('ลบถาวร'),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(width: 8),
+                          Text(
+                            'ลบ',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -233,110 +494,172 @@ class _UserManagementUiState extends State<UserManagementUi> {
       ),
     );
 
-    if (confirmed == true) {
-      final result = await UserService.deleteUser(userId);
+    if (confirm == true) {
+      try {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Animated Icon Container
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: CircularProgressIndicator(
+                            color: Colors.red.shade600,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                        Icon(
+                          Icons.delete_outline,
+                          color: Colors.red.shade600,
+                          size: 28,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
-      if (mounted) {
-        if (result['success']) {
-          _loadUsers();
-          debugPrint(result['message']);
-          SnackMessage.showSuccess(context, result['message']);
-        } else {
-          debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
-          SnackMessage.showError(context, result['message']);
+                  // Loading Text
+                  const Text(
+                    'กำลังลบผู้ใช้',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'กรุณารอสักครู่...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        final result = await UserService.deleteUser(userId);
+        if (mounted) Navigator.of(context).pop();
+
+        if (mounted) {
+          if (result['success']) {
+            debugPrint(result['message'] ?? 'ลบผู้ใช้สำเร็จ');
+            SnackMessage.showSuccess(
+                context, result['message'] ?? 'ลบผู้ใช้สำเร็จ');
+            _loadUsers();
+          } else {
+            debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
+            throw Exception(result['message']);
+          }
+        }
+      } catch (e) {
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        if (mounted) {
+          debugPrint('เกิดข้อผิดพลาด: $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
         }
       }
-    }
-  }
-
-  UserRole _parseRole(String roleStr) {
-    switch (roleStr.toLowerCase()) {
-      case 'superadmin':
-        return UserRole.superAdmin;
-      case 'admin':
-        return UserRole.admin;
-      default:
-        return UserRole.user;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text(
-          'จัดการผู้ดูแลสาขา',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: const Color(0xff10B981),
-        foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      backgroundColor: Colors.white,
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddUserDialog,
-        backgroundColor: const Color(0xff10B981),
+        backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
         elevation: 4,
         child: const Icon(Icons.add_rounded, size: 28),
       ),
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Search Section
-            Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xff10B981),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'ค้นหาชื่อผู้ใช้หรืออีเมล',
-                      hintStyle: TextStyle(color: Colors.grey.shade400),
-                      prefixIcon: const Icon(
-                        Icons.search,
-                        color: Color(0xFF1ABC9C),
-                        size: 22,
-                      ),
-                      border: InputBorder.none,
-                      suffixIcon: searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: Icon(Icons.clear, color: Colors.grey[600]),
-                              onPressed: () {
-                                setState(() => searchQuery = '');
-                                _loadUsers();
-                              },
-                            )
-                          : null,
-                    ),
-                    onChanged: (value) {
-                      setState(() => searchQuery = value);
-                      _loadUsers();
+            // Header Section
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new,
+                        color: Colors.black87),
+                    onPressed: () {
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
                     },
+                    tooltip: 'ย้อนกลับ',
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'จัดการผู้ดูแลสาขา',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'สำหรับจัดการผู้ดูแลระบบ',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
 
             // Users List
             Expanded(
               child: isLoading
-                  ? const Center(
+                  ? Center(
                       child: CircularProgressIndicator(
-                        color: Color(0xff10B981),
+                        color: AppTheme.primary,
                         strokeWidth: 3,
                       ),
                     )
@@ -371,7 +694,7 @@ class _UserManagementUiState extends State<UserManagementUi> {
                                 icon: const Icon(Icons.refresh_rounded),
                                 label: const Text('ลองใหม่'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xff10B981),
+                                  backgroundColor: AppTheme.primary,
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 24,
@@ -438,8 +761,6 @@ class _UserManagementUiState extends State<UserManagementUi> {
   }
 
   Widget _buildUserCard(Map<String, dynamic> user) {
-    final role = _parseRole(user['role']);
-    final roleDisplay = _getRoleDisplay(role);
     final isActive = user['is_active'] ?? false;
 
     return Container(
@@ -447,10 +768,11 @@ class _UserManagementUiState extends State<UserManagementUi> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[300]!),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
@@ -460,212 +782,144 @@ class _UserManagementUiState extends State<UserManagementUi> {
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor:
-                        isActive ? const Color(0xff10B981) : Colors.grey,
-                    child: Text(
-                      user['user_name']
-                          .toString()
-                          .substring(0, 1)
-                          .toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+              // Avatar
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isActive ? AppTheme.primary : Colors.grey,
+                    width: 2,
+                  ),
+                ),
+                child: CircleAvatar(
+                  radius: 28,
+                  backgroundColor: isActive
+                      ? AppTheme.primary.withOpacity(0.15)
+                      : Colors.grey.shade200,
+                  child: Text(
+                    user['user_name'].toString().substring(0, 1).toUpperCase(),
+                    style: TextStyle(
+                      color: isActive ? AppTheme.primary : Colors.grey.shade600,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user['user_name'],
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                            decoration:
-                                isActive ? null : TextDecoration.lineThrough,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          user['user_email'],
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    icon: Icon(
-                      Icons.more_vert_rounded,
-                      color: Colors.grey.shade600,
-                    ),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: const [
-                            Icon(Icons.edit_rounded,
-                                color: Color(0xFF1ABC9C), size: 18),
-                            SizedBox(width: 8),
-                            Text('แก้ไข'),
-                          ],
-                        ),
-                      ),
-                      if (isActive)
-                        PopupMenuItem(
-                          value: 'deactivate',
-                          child: Row(
-                            children: const [
-                              Icon(Icons.block_rounded,
-                                  color: Colors.orange, size: 18),
-                              SizedBox(width: 8),
-                              Text('ปิดใช้งาน'),
-                            ],
-                          ),
-                        ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: const [
-                            Icon(Icons.delete_outline_rounded,
-                                color: Colors.red, size: 18),
-                            SizedBox(width: 8),
-                            Text('ลบถาวร', style: TextStyle(color: Colors.red)),
-                          ],
-                        ),
-                      ),
-                    ],
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        _showEditUserDialog(user);
-                      } else if (value == 'deactivate') {
-                        _deactivateUser(user['user_id'], user['user_name']);
-                      } else if (value == 'delete') {
-                        _deleteUser(user['user_id'], user['user_name']);
-                      }
-                    },
-                  ),
-                ],
+                ),
               ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: _getRoleColor(role).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                          color: _getRoleColor(role).withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.shield_rounded,
-                            size: 14, color: _getRoleColor(role)),
-                        const SizedBox(width: 4),
-                        Text(
-                          roleDisplay,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: _getRoleColor(role),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? const Color(0xFFD1FAE5)
-                          : const Color(0xFFF3F4F6),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isActive
-                            ? const Color(0xFF10B981)
-                            : Colors.grey.shade300,
+              const SizedBox(width: 14),
+              // ชื่อและอีเมล
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user['user_name'],
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: Colors.black87,
+                        decoration:
+                            isActive ? null : TextDecoration.lineThrough,
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    const SizedBox(height: 4),
+                    Row(
                       children: [
                         Icon(
-                          isActive
-                              ? Icons.check_circle_rounded
-                              : Icons.cancel_rounded,
+                          Icons.email_outlined,
                           size: 14,
-                          color: isActive
-                              ? const Color(0xFF065F46)
-                              : const Color(0xFF6B7280),
+                          color: Colors.grey.shade500,
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          isActive ? 'ใช้งาน' : 'ปิด',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: isActive
-                                ? const Color(0xFF065F46)
-                                : const Color(0xFF6B7280),
+                        Expanded(
+                          child: Text(
+                            user['user_email'],
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Popup Menu Button
+              PopupMenuButton<String>(
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.more_vert_rounded,
+                  color: Colors.grey.shade700,
+                  size: 20,
+                ),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit_outlined,
+                            size: 20, color: Color(0xFF14B8A6)),
+                        SizedBox(width: 12),
+                        Text('แก้ไข'),
+                      ],
+                    ),
+                  ),
+                  if (isActive)
+                    PopupMenuItem(
+                      value: 'deactivate',
+                      child: Row(
+                        children: [
+                          Icon(
+                            isActive
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            size: 20,
+                            color: isActive ? Colors.orange : Colors.green,
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
+                            style: TextStyle(
+                              color: isActive ? Colors.orange : Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                        SizedBox(width: 12),
+                        Text('ลบสาขา', style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
                   ),
                 ],
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    _showEditUserDialog(user);
+                  } else if (value == 'deactivate') {
+                    _deactivateUser(user['user_id'], user['user_name']);
+                  } else if (value == 'delete') {
+                    _deleteUser(user['user_id'], user['user_name']);
+                  }
+                },
               ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  String _getRoleDisplay(UserRole role) {
-    switch (role) {
-      case UserRole.superAdmin:
-        return 'ผู้ดูแลระบบหลัก';
-      case UserRole.admin:
-        return 'ผู้ดูแลสาขา';
-      case UserRole.user:
-        return 'ผู้ใช้งาน';
-      case UserRole.tenant:
-        return 'ผู้เช่า';
-    }
-  }
-
-  Color _getRoleColor(UserRole role) {
-    switch (role) {
-      case UserRole.superAdmin:
-        return Colors.purple;
-      case UserRole.admin:
-        return Colors.blue;
-      case UserRole.user:
-        return Colors.green;
-      case UserRole.tenant:
-        return Colors.orange;
-    }
   }
 }
 
@@ -766,7 +1020,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-            prefixIcon: Icon(icon, color: const Color(0xFF1ABC9C), size: 20),
+            prefixIcon: Icon(icon, color: AppTheme.primary, size: 20),
             suffixIcon: suffixIcon,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -778,7 +1032,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF1ABC9C), width: 2),
+              borderSide: BorderSide(color: AppTheme.primary, width: 2),
             ),
             filled: true,
             fillColor: Colors.grey.shade50,
@@ -817,12 +1071,12 @@ class _AddUserDialogState extends State<AddUserDialog> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1ABC9C).withOpacity(0.1),
+                          color: AppTheme.primary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.person_add_rounded,
-                          color: Color(0xFF1ABC9C),
+                          color: AppTheme.primary,
                           size: 24,
                         ),
                       ),
@@ -831,10 +1085,10 @@ class _AddUserDialogState extends State<AddUserDialog> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'เพิ่มผู้ดูแลสาขา',
                               style: TextStyle(
-                                color: Color(0xFF1ABC9C),
+                                color: AppTheme.primary,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 18,
                               ),
@@ -988,7 +1242,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _submitForm,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1ABC9C),
+                            backgroundColor: AppTheme.primary,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             elevation: 0,
@@ -1122,7 +1376,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-            prefixIcon: Icon(icon, color: const Color(0xFF1ABC9C), size: 20),
+            prefixIcon: Icon(icon, color: AppTheme.primary, size: 20),
             suffixIcon: suffixIcon,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -1134,7 +1388,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF1ABC9C), width: 2),
+              borderSide: BorderSide(color: AppTheme.primary, width: 2),
             ),
             filled: true,
             fillColor: Colors.grey.shade50,

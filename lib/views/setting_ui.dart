@@ -23,8 +23,6 @@ class SettingUi extends StatefulWidget {
 class _SettingUiState extends State<SettingUi> {
   UserModel? currentUser;
   bool isLoading = true;
-  int activeSessionsCount = 0;
-  List<Map<String, dynamic>> loginHistory = [];
 
   @override
   void initState() {
@@ -35,13 +33,9 @@ class _SettingUiState extends State<SettingUi> {
   Future<void> _loadUserData() async {
     try {
       final user = await AuthMiddleware.getCurrentUser();
-      final sessionsCount = await AuthService.getActiveSessionsCount();
-      final history = await AuthService.getUserLoginHistory(limit: 5);
       if (mounted) {
         setState(() {
           currentUser = user;
-          activeSessionsCount = sessionsCount;
-          loginHistory = history;
           isLoading = false;
         });
       }
@@ -56,30 +50,111 @@ class _SettingUiState extends State<SettingUi> {
   Future<void> _showLogoutConfirmation() async {
     final result = await showDialog<bool>(
       context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return _ConfirmDialog(
-          icon: Icons.logout,
-          iconColor: Colors.orange,
-          title: 'ออกจากระบบ',
-          body: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('คุณต้องการออกจากระบบหรือไม่?'),
-              const SizedBox(height: 8),
-              Text('เซสชันทั้งหมด: $activeSessionsCount',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              const Text('คุณจะต้องเข้าสู่ระบบใหม่ในครั้งต่อไป',
-                  style: TextStyle(fontSize: 12, color: Colors.grey)),
+              // Icon Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.exit_to_app,
+                  color: Colors.red.shade600,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title
+              const Text(
+                'คุณต้องการออกจากระบบหรือไม่?',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Description
+              Text(
+                'คุณจะต้องเข้าสู่ระบบใหม่ในครั้งต่อไป',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[700],
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1.5,
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'ยืนยัน',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-          cancelText: 'ยกเลิก',
-          okText: 'ออกจากระบบ',
-          okColor: Colors.orange,
-        );
-      },
+        ),
+      ),
     );
+
     if (result == true) await _performLogout();
   }
 
@@ -110,49 +185,6 @@ class _SettingUiState extends State<SettingUi> {
     }
   }
 
-  Future<void> _terminateOtherSessions() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => _ConfirmDialog(
-        title: 'ยกเลิกเซสชันอื่น',
-        icon: Icons.logout,
-        iconColor: Colors.red,
-        body: Text(
-          'คุณต้องการยกเลิกเซสชันอื่นทั้งหมดหรือไม่? ($activeSessionsCount เซสชันทั้งหมด)\n\nการกระทำนี้จะทำให้อุปกรณ์อื่นที่เข้าสู่ระบบออกจากระบบใหม่',
-        ),
-        cancelText: 'ยกเลิก',
-        okText: 'ยกเลิกเซสชันอื่น',
-        okColor: Colors.red,
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) =>
-              const Center(child: CircularProgressIndicator()),
-        );
-        final result = await AuthService.terminateOtherSessions();
-        if (mounted) {
-          if (result['success']) {
-            SnackMessage.showSuccess(context, result['message']);
-            _loadUserData();
-          } else {
-            SnackMessage.showError(context, result['message']);
-          }
-        }
-      } catch (e) {
-        if (mounted) {
-          Navigator.of(context).pop();
-          debugPrint('เกิดข้อผิดพลาดในการยกเลิกเซสชัน $e');
-          SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการยกเลิกเซสชัน');
-        }
-      }
-    }
-  }
-
   // ===== Build =====
   @override
   Widget build(BuildContext context) {
@@ -162,25 +194,24 @@ class _SettingUiState extends State<SettingUi> {
     final isWeb = size.width >= 1200;
 
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
     if (currentUser == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('ตั้งค่า')),
+        backgroundColor: Colors.white,
         body: const Center(child: Text('ไม่สามารถโหลดข้อมูลผู้ใช้ได้')),
-        // Default to settings tab index for non-tenant roles
         bottomNavigationBar: const Mainnavbar(currentIndex: 1),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('ตั้งค่า'),
-        backgroundColor: const Color(0xff10B981),
-        foregroundColor: Colors.white,
-        elevation: 1,
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: _buildResponsiveBody(isMobile, isTablet, isWeb),
       ),
-      body: _buildResponsiveBody(isMobile, isTablet, isWeb),
       bottomNavigationBar: const Mainnavbar(currentIndex: 1),
     );
   }
@@ -191,46 +222,66 @@ class _SettingUiState extends State<SettingUi> {
         : isTablet
             ? 16.0
             : 20.0;
-    return CustomScrollView(
-      slivers: [
-        SliverPadding(
-          padding: EdgeInsets.fromLTRB(horizontal, 12, horizontal, 24),
-          sliver: SliverList.list(children: [
-            _UserCard(user: currentUser!, isMobile: isMobile),
-            const SizedBox(height: 12),
-            if (currentUser!.detailedPermissions.isNotEmpty)
-              _PermissionsCard(user: currentUser!, isMobile: isMobile),
-            const SizedBox(height: 12),
-            _SettingsGroup(
-              isMobile: isMobile,
-              currentUser: currentUser!,
-              onOpenUserManagement: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const UserManagementUi()),
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header Section
+        Padding(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'ตั้งค่าระบบ',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            _SessionCard(
-              isMobile: isMobile,
-              activeSessionsCount: activeSessionsCount,
-              onRefresh: _loadUserData,
-              onTerminateOthers: _terminateOtherSessions,
-            ),
-            const SizedBox(height: 12),
-            if (loginHistory.isNotEmpty)
-              _LoginHistoryCard(isMobile: isMobile, loginHistory: loginHistory),
-            const SizedBox(height: 16),
-            _FullWidthButton(
-              label: 'ออกจากระบบ',
-              icon: Icons.logout,
-              background: Colors.orange,
-              foreground: Colors.white,
-              onPressed: _showLogoutConfirmation,
-            ),
-            const SizedBox(height: 10),
-            _VersionInfo(),
-          ]),
+              SizedBox(height: 4),
+              Text(
+                'จัดการข้อมูลส่วนตัวและการตั้งค่า',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Content
+        Expanded(
+          child: CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(horizontal, 0, horizontal, 24),
+                sliver: SliverList.list(children: [
+                  _UserCard(user: currentUser!, isMobile: isMobile),
+                  const SizedBox(height: 12),
+                  _SettingsGroup(
+                    isMobile: isMobile,
+                    currentUser: currentUser!,
+                    onOpenUserManagement: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const UserManagementUi()),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _FullWidthButton(
+                    label: 'ออกจากระบบ',
+                    icon: Icons.logout,
+                    background: Colors.red,
+                    foreground: Colors.white,
+                    onPressed: _showLogoutConfirmation,
+                  ),
+                ]),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -250,12 +301,9 @@ class _Surface extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.black12),
-        boxShadow: const [
-          BoxShadow(blurRadius: 12, spreadRadius: -2, color: Color(0x11000000)),
-        ],
+        border: Border.all(color: Colors.grey[300]!),
       ),
       padding: padding ?? const EdgeInsets.all(16),
       child: child,
@@ -264,21 +312,19 @@ class _Surface extends StatelessWidget {
 }
 
 class _ChipPill extends StatelessWidget {
-  const _ChipPill(this.text, {this.color});
+  const _ChipPill(this.text);
   final String text;
-  final Color? color;
   @override
   Widget build(BuildContext context) {
     final primary = const Color(0xff10B981);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: (color ?? primary).withOpacity(.08),
+        color: (primary).withOpacity(.08),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: (color ?? primary).withOpacity(.25)),
+        border: Border.all(color: (primary).withOpacity(.25)),
       ),
-      child:
-          Text(text, style: TextStyle(color: color ?? primary, fontSize: 12)),
+      child: Text(text, style: TextStyle(color: primary, fontSize: 12)),
     );
   }
 }
@@ -373,36 +419,6 @@ class _UserCard extends StatelessWidget {
   }
 }
 
-class _PermissionsCard extends StatelessWidget {
-  const _PermissionsCard({required this.user, required this.isMobile});
-  final UserModel user;
-  final bool isMobile;
-  @override
-  Widget build(BuildContext context) {
-    return _Surface(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const _SectionHeader(
-            icon: Icons.security, title: 'สิทธิการใช้งาน', tint: Colors.teal),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: user.detailedPermissionStrings
-              .take(8)
-              .map((e) => _ChipPill(e, color: Colors.teal))
-              .toList(),
-        ),
-        if (user.detailedPermissionStrings.length > 8) ...[
-          const SizedBox(height: 8),
-          Text('+${user.detailedPermissionStrings.length - 8} สิทธิเพิ่มเติม',
-              style: TextStyle(
-                  color: Colors.grey[600], fontStyle: FontStyle.italic)),
-        ]
-      ]),
-    );
-  }
-}
-
 class _SettingsGroup extends StatelessWidget {
   const _SettingsGroup({
     required this.isMobile,
@@ -487,104 +503,6 @@ class _SettingTile extends StatelessWidget {
   }
 }
 
-class _SessionCard extends StatelessWidget {
-  const _SessionCard({
-    required this.isMobile,
-    required this.activeSessionsCount,
-    required this.onRefresh,
-    required this.onTerminateOthers,
-  });
-  final bool isMobile;
-  final int activeSessionsCount;
-  final VoidCallback onRefresh;
-  final VoidCallback onTerminateOthers;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Surface(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const _SectionHeader(
-            icon: Icons.devices, title: 'จัดการเซสชัน', tint: Colors.orange),
-        const SizedBox(height: 8),
-        Row(children: [
-          Expanded(
-            child: Text('เซสชันที่ใช้งานอยู่: $activeSessionsCount',
-                style:
-                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-          ),
-          IconButton(
-            tooltip: 'รีเฟรช',
-            onPressed: onRefresh,
-            icon: const Icon(Icons.refresh),
-          )
-        ]),
-        if (activeSessionsCount > 1) ...[
-          const SizedBox(height: 8),
-          _FullWidthButton(
-            label: 'ยกเลิกเซสชันอื่นทั้งหมด',
-            icon: Icons.logout,
-            background: Colors.orange.shade100,
-            foreground: Colors.orange.shade800,
-            onPressed: onTerminateOthers,
-          ),
-        ]
-      ]),
-    );
-  }
-}
-
-class _LoginHistoryCard extends StatelessWidget {
-  const _LoginHistoryCard({required this.isMobile, required this.loginHistory});
-  final bool isMobile;
-  final List<Map<String, dynamic>> loginHistory;
-  @override
-  Widget build(BuildContext context) {
-    return _Surface(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const _SectionHeader(
-            icon: Icons.history,
-            title: 'ประวัติการเข้าสู่ระบบล่าสุด',
-            tint: Colors.purple),
-        const SizedBox(height: 12),
-        ...loginHistory.take(3).map((session) {
-          final createdAt = DateTime.parse(session['created_at']);
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.grey[200]!),
-            ),
-            child: Row(children: [
-              Icon(Icons.computer,
-                  size: isMobile ? 16 : 18, color: Colors.grey[700]),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(session['user_agent'] ?? 'อุปกรณ์ไม่ทราบ',
-                          style: TextStyle(
-                              fontSize: isMobile ? 11 : 12,
-                              fontWeight: FontWeight.w500)),
-                      Text(
-                        '${createdAt.day}/${createdAt.month}  '
-                        '${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}',
-                        style: TextStyle(
-                            fontSize: isMobile ? 10 : 11,
-                            color: Colors.grey[600]),
-                      ),
-                    ]),
-              )
-            ]),
-          );
-        }).toList(),
-      ]),
-    );
-  }
-}
-
 class _FullWidthButton extends StatelessWidget {
   const _FullWidthButton({
     required this.label,
@@ -602,7 +520,6 @@ class _FullWidthButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 54,
       child: ElevatedButton.icon(
         onPressed: onPressed,
         icon: Icon(icon),
@@ -612,64 +529,11 @@ class _FullWidthButton extends StatelessWidget {
           backgroundColor: background,
           foregroundColor: foreground,
           elevation: 2,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
-    );
-  }
-}
-
-class _VersionInfo extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    return Center(
-      child: Text(
-        'Build: ${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}',
-        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-      ),
-    );
-  }
-}
-
-class _ConfirmDialog extends StatelessWidget {
-  const _ConfirmDialog({
-    required this.title,
-    required this.icon,
-    required this.iconColor,
-    required this.body,
-    required this.cancelText,
-    required this.okText,
-    required this.okColor,
-  });
-  final String title;
-  final IconData icon;
-  final Color iconColor;
-  final Widget body;
-  final String cancelText;
-  final String okText;
-  final Color okColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Row(children: [
-        Icon(icon, color: iconColor),
-        const SizedBox(width: 8),
-        Text(title),
-      ]),
-      content: body,
-      actions: [
-        TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(cancelText)),
-        ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          style: ElevatedButton.styleFrom(backgroundColor: okColor),
-          child: Text(okText, style: const TextStyle(color: Colors.white)),
-        ),
-      ],
     );
   }
 }
