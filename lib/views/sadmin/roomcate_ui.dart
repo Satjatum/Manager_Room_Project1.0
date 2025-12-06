@@ -922,6 +922,7 @@ class _RoomCateUiState extends State<RoomCateUi> {
                                               Align(
                                                 alignment: Alignment.topRight,
                                                 child: PopupMenuButton<String>(
+                                                  color: Colors.white,
                                                   shape: RoundedRectangleBorder(
                                                     borderRadius:
                                                         BorderRadius.circular(
@@ -941,10 +942,13 @@ class _RoomCateUiState extends State<RoomCateUi> {
                                                       value: 'edit',
                                                       child: Row(
                                                         children: [
-                                                          Icon(Icons.edit,
-                                                              color:
-                                                                  Colors.blue),
-                                                          SizedBox(width: 8),
+                                                          Icon(
+                                                              Icons
+                                                                  .edit_outlined,
+                                                              size: 20,
+                                                              color: Color(
+                                                                  0xFF14B8A6)),
+                                                          SizedBox(width: 12),
                                                           Text('แก้ไข'),
                                                         ],
                                                       ),
@@ -953,11 +957,17 @@ class _RoomCateUiState extends State<RoomCateUi> {
                                                       value: 'delete',
                                                       child: Row(
                                                         children: [
-                                                          Icon(Icons.delete,
+                                                          Icon(
+                                                              Icons
+                                                                  .delete_outline,
+                                                              size: 20,
                                                               color:
                                                                   Colors.red),
-                                                          SizedBox(width: 8),
-                                                          Text('ลบ'),
+                                                          SizedBox(width: 12),
+                                                          Text('ลบสาขา',
+                                                              style: TextStyle(
+                                                                  color: Colors
+                                                                      .red)),
                                                         ],
                                                       ),
                                                     ),

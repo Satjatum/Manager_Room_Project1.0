@@ -123,9 +123,10 @@ class _MeterListUiState extends State<MeterListUi> {
       final roomId = (room['room_id'] ?? '').toString();
       final existing = _existingByRoom[roomId];
 
+      // Fix: Use previous from existing data if available, otherwise use _prevReadings
       final previous = existing != null
           ? (existing[previousKey] ?? 0.0).toDouble()
-          : (_prevReadings['${roomId}_$utilityType'] ?? 0.0);
+          : _prevReadings['${roomId}_$utilityType'] ?? 0.0;
 
       final controller = _controllers['${roomId}_${rateId}_current'];
       final current = existing != null
@@ -277,36 +278,57 @@ class _MeterListUiState extends State<MeterListUi> {
         (data.existing?['reading_status'] ?? '').toString() == 'billed';
     final items = <PopupMenuEntry<String>>[];
 
+    // กรณี 1: ยังไม่มีข้อมูล + เป็นเดือนปัจจุบัน → แก้ไขได้ทั้งหมด
     if (data.isNew && data.canCreate) {
       items.add(
-          _buildMenuItem('create', 'กรอก', Icons.edit_outlined, Colors.teal));
+        PopupMenuItem(
+          value: 'create',
+          child: Row(
+            children: [
+              Icon(Icons.edit_outlined, size: 20, color: Color(0xFF14B8A6)),
+              SizedBox(width: 12),
+              Text('กรอก'),
+            ],
+          ),
+        ),
+      );
     }
 
+    // กรณี 2: มีข้อมูลแล้ว + เป็นเดือนปัจจุบัน → แก้ไขได้เฉพาะมิเตอร์ปัจจุบัน
     if (!data.isNew && _isCurrentPeriod && !billed) {
       items.add(
-          _buildMenuItem('edit', 'แก้ไข', Icons.edit_outlined, Colors.teal));
+        PopupMenuItem(
+          value: 'edit',
+          child: Row(
+            children: [
+              Icon(Icons.edit_outlined, size: 20, color: Color(0xFF14B8A6)),
+              SizedBox(width: 12),
+              Text('แก้ไข'),
+            ],
+          ),
+        ),
+      );
     }
 
+    // กรณี 3: เดือนที่ผ่านมา → ไม่สามารถแก้ไข/ลบได้
+    // เฉพาะเดือนปัจจุบันเท่านั้นที่แสดงปุ่มลบ
     if (!data.isNew && _isCurrentPeriod) {
       final action = billed ? 'delete_billed' : 'delete';
-      items.add(_buildMenuItem(action, 'ลบ', Icons.delete_outline, Colors.red));
+      items.add(
+        PopupMenuItem(
+          value: action,
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline, size: 20, color: Colors.red),
+              SizedBox(width: 12),
+              Text('ลบสาขา', style: TextStyle(color: Colors.red)),
+            ],
+          ),
+        ),
+      );
     }
 
     return items;
-  }
-
-  PopupMenuItem<String> _buildMenuItem(
-      String value, String text, IconData icon, Color color) {
-    return PopupMenuItem(
-      value: value,
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: color),
-          const SizedBox(width: 12),
-          Text(text, style: TextStyle(color: color)),
-        ],
-      ),
-    );
   }
 
   Future<void> _handleMenuAction(String action, MeterReadingData data) async {
@@ -318,15 +340,10 @@ class _MeterListUiState extends State<MeterListUi> {
         await _showEditDialog(data.roomId);
         break;
       case 'delete':
+        await _deleteMeterReading(data);
+        break;
       case 'delete_billed':
-        final readingId = (data.existing?['reading_id'] ?? '').toString();
-        if (readingId.isNotEmpty) {
-          if (action == 'delete_billed') {
-            // Handle billed deletion
-          } else {
-            // Handle normal deletion
-          }
-        }
+        await _deleteBilledMeterReading(data);
         break;
     }
   }
@@ -424,10 +441,22 @@ class _MeterListUiState extends State<MeterListUi> {
               onChanged: (v) => setState(() => _searchQuery = v),
               decoration: InputDecoration(
                 hintText: 'ค้นหา',
-                prefixIcon: const Icon(Icons.search),
+                hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                prefixIcon:
+                    Icon(Icons.search, color: Colors.grey[600], size: 20),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.clear,
+                            color: Colors.grey[600], size: 20),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
                 border: InputBorder.none,
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
             ),
           ),
@@ -516,32 +545,40 @@ class _MeterListUiState extends State<MeterListUi> {
 
     final filteredRooms = _getFilteredRooms();
 
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          _buildSummaryBar(filteredRooms),
-          const TabBar(
-            labelColor: Colors.black87,
-            tabs: [
-              Tab(
-                  icon: Icon(Icons.water_drop, color: Colors.blue),
-                  text: 'ค่าน้ำ'),
-              Tab(
-                  icon: Icon(Icons.electric_bolt, color: Colors.orange),
-                  text: 'ค่าไฟ'),
-            ],
-          ),
-          Expanded(
-            child: TabBarView(
+    return Column(
+      children: [
+        _buildSummaryBar(filteredRooms),
+        DefaultTabController(
+          length: 2,
+          child: Expanded(
+            child: Column(
               children: [
-                _buildTabContent(filteredRooms, 'water'),
-                _buildTabContent(filteredRooms, 'electric'),
+                const TabBar(
+                  labelColor: Colors.black87,
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: AppTheme.primary,
+                  tabs: [
+                    Tab(
+                        icon: Icon(Icons.water_drop, color: Colors.blue),
+                        text: 'ค่าน้ำ'),
+                    Tab(
+                        icon: Icon(Icons.electric_bolt, color: Colors.orange),
+                        text: 'ค่าไฟ'),
+                  ],
+                ),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      _buildTabContent(filteredRooms, 'water'),
+                      _buildTabContent(filteredRooms, 'electric'),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -559,7 +596,7 @@ class _MeterListUiState extends State<MeterListUi> {
     }).length;
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -574,7 +611,7 @@ class _MeterListUiState extends State<MeterListUi> {
                 Icons.check_circle, 'บันทึกแล้ว', savedCount, AppTheme.second),
             const SizedBox(width: 8),
             _buildCountChip(
-                Icons.receipt_long, 'ออกบิลแล้ว', billedCount, Colors.green),
+                Icons.receipt_long, 'ออกบิลแล้ว', billedCount, Colors.purple),
           ],
         ),
       ),
@@ -656,7 +693,7 @@ class _MeterListUiState extends State<MeterListUi> {
       if (_currentUser == null) return;
       await _loadData();
     } catch (e) {
-      debugPrint('Error initializing: $e');
+      debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
       if (mounted) {
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
       }
@@ -671,16 +708,20 @@ class _MeterListUiState extends State<MeterListUi> {
       final branchId = widget.branchId;
       if (branchId?.isNotEmpty == true) {
         final rates = await UtilityRatesService.getMeteredRates(branchId!);
-        _meteredRates = rates.where((r) {
-          final name = (r['rate_name'] ?? '').toString().toLowerCase();
-          return name.contains('น้ำ') ||
-              name.contains('water') ||
-              name.contains('ไฟ') ||
-              name.contains('electric');
-        }).toList();
+        if (mounted) {
+          _meteredRates = rates.where((r) {
+            final name = (r['rate_name'] ?? '').toString().toLowerCase();
+            return name.contains('น้ำ') ||
+                name.contains('water') ||
+                name.contains('ไฟ') ||
+                name.contains('electric');
+          }).toList();
+        }
       }
     } catch (e) {
-      _meteredRates = [];
+      if (mounted) {
+        _meteredRates = [];
+      }
     }
 
     // Load rooms
@@ -688,6 +729,8 @@ class _MeterListUiState extends State<MeterListUi> {
       _rooms = await MeterReadingService.getActiveRoomsForMeterReading(
         branchId: widget.branchId,
       );
+
+      if (!mounted) return;
 
       // Sort and prepare categories
       _rooms.sort((a, b) {
@@ -704,7 +747,9 @@ class _MeterListUiState extends State<MeterListUi> {
 
       // Load existing readings and setup controllers
       await _loadExistingReadings();
-      _initializeControllers();
+      if (mounted) {
+        _initializeControllers();
+      }
     } catch (e) {
       debugPrint('Error loading rooms: $e');
     }
@@ -734,27 +779,38 @@ class _MeterListUiState extends State<MeterListUi> {
           _existingByRoom[roomId] = list.first;
         }
 
-        // Load previous readings for rooms without history
+        // Load previous readings from the month before the selected month/year
         final prev = await MeterReadingService.getPreviousForMonth(
             roomId, _selectedMonth, _selectedYear);
 
         if (prev != null) {
+          // Fix: Use correct keys from service response
           _prevReadings['${roomId}_water'] =
-              (prev['water_previous'] ?? 0.0).toDouble();
+              (prev['water_previous'] ?? 0.0) is double
+                  ? prev['water_previous']
+                  : (prev['water_previous'] as num).toDouble();
           _prevReadings['${roomId}_electric'] =
-              (prev['electric_previous'] ?? 0.0).toDouble();
+              (prev['electric_previous'] ?? 0.0) is double
+                  ? prev['electric_previous']
+                  : (prev['electric_previous'] as num).toDouble();
+        } else {
+          // If no previous reading found, set to 0
+          _prevReadings['${roomId}_water'] = 0.0;
+          _prevReadings['${roomId}_electric'] = 0.0;
         }
       } catch (e) {
-        // Handle error silently
+        // Handle error silently - set default values
+        debugPrint('Error loading meter readings for room $roomId: $e');
+        _prevReadings['${roomId}_water'] = 0.0;
+        _prevReadings['${roomId}_electric'] = 0.0;
       }
     }));
   }
 
   void _initializeControllers() {
-    // Clear existing controllers
-    for (final controller in _controllers.values) {
-      controller.dispose();
-    }
+    // Safely dispose existing controllers
+    final oldControllers =
+        Map<String, TextEditingController>.from(_controllers);
     _controllers.clear();
 
     // Create new controllers for each room and rate
@@ -769,11 +825,25 @@ class _MeterListUiState extends State<MeterListUi> {
         }
       }
     }
+
+    // Dispose old controllers after creating new ones
+    Future.microtask(() {
+      for (final controller in oldControllers.values) {
+        controller.dispose();
+      }
+    });
   }
 
   Future<void> _showCreateDialog(Map<String, dynamic> room) async {
     final roomId = room['room_id']?.toString();
     if (roomId == null) return;
+
+    // กรณี 3: ถ้าไม่ใช่เดือนปัจจุบัน ไม่อนุญาตให้เพิ่มข้อมูล
+    if (!_isCurrentPeriod) {
+      SnackMessage.showError(
+          context, 'ไม่สามารถเพิ่มข้อมูลในเดือนที่ผ่านมาแล้วได้');
+      return;
+    }
 
     final waterRateId = _getRateId('water');
     final electricRateId = _getRateId('electric');
@@ -783,6 +853,7 @@ class _MeterListUiState extends State<MeterListUi> {
     final electricPrevController = TextEditingController();
     final electricCurrentController = TextEditingController();
 
+    // กรณี 1: ยังไม่มีข้อมูล → แก้ไขได้ทั้งหมด (แต่ค่าก่อนหน้ายังต้อง readonly)
     waterPrevController.text =
         (_prevReadings['${roomId}_water'] ?? 0.0).toStringAsFixed(0);
     electricPrevController.text =
@@ -826,65 +897,158 @@ class _MeterListUiState extends State<MeterListUi> {
               ),
             ],
           ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('ผู้เช่า: ${room['tenant_name'] ?? '-'}'),
-                const SizedBox(height: 20),
+          content: SizedBox(
+            width: 500,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('ผู้เช่า: ${room['tenant_name'] ?? '-'}'),
+                  const SizedBox(height: 20),
 
-                // Water meter section
-                const Text('ค่าน้ำ',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                        fontSize: 16)),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: waterPrevController,
-                  readOnly: true,
-                  decoration: const InputDecoration(
-                    labelText: 'เลขมิเตอร์ก่อนหน้า',
-                    border: OutlineInputBorder(),
+                  // Water meter section
+                  const Text('ค่าน้ำ',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                          fontSize: 16)),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: waterPrevController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'มิเตอร์ค่าน้ำก่อนหน้า *',
+                      labelStyle: TextStyle(
+                        color: Colors.grey[700],
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1.2,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: AppTheme.primary,
+                          width: 1.6,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: waterCurrentController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'เลขมิเตอร์ปัจจุบัน',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 20),
 
-                // Electric meter section
-                const Text('ค่าไฟ',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
-                        fontSize: 16)),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: electricPrevController,
-                  readOnly: true,
-                  decoration: const InputDecoration(
-                    labelText: 'เลขมิเตอร์ก่อนหน้า',
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: waterCurrentController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'มิเตอร์ค่าน้ำปัจจุบัน *',
+                      labelStyle: TextStyle(
+                        color: Colors.grey[700],
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1.2,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: AppTheme.primary,
+                          width: 1.6,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: electricCurrentController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'เลขมิเตอร์ปัจจุบัน',
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 20),
+
+                  // Electric meter section
+                  const Text('ค่าไฟ',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange,
+                          fontSize: 16)),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: electricPrevController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'มิเตอร์ค่าไฟก่อนหน้า *',
+                      labelStyle: TextStyle(
+                        color: Colors.grey[700],
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1.2,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: AppTheme.primary,
+                          width: 1.6,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ],
+
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: electricCurrentController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'มิเตอร์ค่าไฟปัจจุบัน *',
+                      labelStyle: TextStyle(
+                        color: Colors.grey[700],
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1.2,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: AppTheme.primary,
+                          width: 1.6,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -965,12 +1129,28 @@ class _MeterListUiState extends State<MeterListUi> {
     final existingReading = _existingByRoom[roomId];
     if (existingReading == null) return;
 
+    // กรณี 3: ถ้าไม่ใช่เดือนปัจจุบัน ไม่อนุญาตให้แก้ไข
+    if (!_isCurrentPeriod) {
+      SnackMessage.showError(
+          context, 'ไม่สามารถแก้ไขข้อมูลในเดือนที่ผ่านมาแล้วได้');
+      return;
+    }
+
+    // ตรวจสอบว่าออกบิลแล้วหรือยัง
+    final isBilled =
+        (existingReading['reading_status'] ?? '').toString() == 'billed';
+    if (isBilled) {
+      SnackMessage.showError(context, 'ไม่สามารถแก้ไขข้อมูลที่ออกบิลแล้วได้');
+      return;
+    }
+
     // Create temporary controllers for the dialog
     final waterPrevController = TextEditingController();
     final waterCurrentController = TextEditingController();
     final electricPrevController = TextEditingController();
     final electricCurrentController = TextEditingController();
 
+    // กรณี 2: มีข้อมูลเดือนก่อนแล้ว → แก้ไขได้เฉพาะมิเตอร์ปัจจุบัน (ล็อคค่าก่อนหน้า)
     // Set existing values
     waterPrevController.text =
         (existingReading['water_previous_reading'] ?? 0.0).toStringAsFixed(0);
@@ -1023,95 +1203,225 @@ class _MeterListUiState extends State<MeterListUi> {
               ),
             ],
           ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('ผู้เช่า: ${room['tenant_name'] ?? '-'}'),
-                const SizedBox(height: 20),
+          content: SizedBox(
+            width: 500,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('ผู้เช่า: ${room['tenant_name'] ?? '-'}'),
+                  const SizedBox(height: 20),
 
-                // Water meter section
-                const Text('ค่าน้ำ',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue,
-                        fontSize: 16)),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: waterPrevController,
-                  readOnly: true,
-                  decoration: const InputDecoration(
-                    labelText: 'เลขมิเตอร์ก่อนหน้า',
-                    border: OutlineInputBorder(),
+                  // Water meter section
+                  const Text('ค่าน้ำ',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                          fontSize: 16)),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: waterPrevController,
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      labelText: 'มิเตอร์ค่าน้ำก่อนหน้า *',
+                      labelStyle: TextStyle(
+                        color: Colors.grey[700],
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1.2,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: AppTheme.primary,
+                          width: 1.6,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: waterCurrentController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'เลขมิเตอร์ปัจจุบัน',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 20),
 
-                // Electric meter section
-                const Text('ค่าไฟ',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
-                        fontSize: 16)),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: electricPrevController,
-                  readOnly: true,
-                  decoration: const InputDecoration(
-                    labelText: 'เลขมิเตอร์ก่อนหน้า',
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: waterCurrentController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'มิเตอร์ค่าน้ำปัจจุบัน *',
+                      labelStyle: TextStyle(
+                        color: Colors.grey[700],
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1.2,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: AppTheme.primary,
+                          width: 1.6,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: electricCurrentController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'เลขมิเตอร์ปัจจุบัน',
-                    border: OutlineInputBorder(),
+                  const SizedBox(height: 20),
+
+                  // Electric meter section
+                  const Text('ค่าไฟ',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange,
+                          fontSize: 16)),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: electricPrevController,
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      labelText: 'มิเตอร์ค่าไฟก่อนหน้า *',
+                      labelStyle: TextStyle(
+                        color: Colors.grey[700],
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1.2,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: AppTheme.primary,
+                          width: 1.6,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ],
+
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: electricCurrentController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'มิเตอร์ค่าไฟปัจจุบัน *',
+                      labelStyle: TextStyle(
+                        color: Colors.grey[700],
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1.2,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: AppTheme.primary,
+                          width: 1.6,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () {
-                waterPrevController.dispose();
-                waterCurrentController.dispose();
-                electricPrevController.dispose();
-                electricCurrentController.dispose();
-                Navigator.of(context).pop();
-              },
-              child: const Text('ยกเลิก'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                await _updateMeterReadings(
-                  existingReading['reading_id']?.toString(),
-                  waterPrevController.text,
-                  waterCurrentController.text,
-                  electricPrevController.text,
-                  electricCurrentController.text,
-                );
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      waterPrevController.dispose();
+                      waterCurrentController.dispose();
+                      electricPrevController.dispose();
+                      electricCurrentController.dispose();
+                      Navigator.of(context).pop();
+                    },
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      'ยกเลิก',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await _updateMeterReadings(
+                        existingReading['reading_id']?.toString(),
+                        waterPrevController.text,
+                        waterCurrentController.text,
+                        electricPrevController.text,
+                        electricCurrentController.text,
+                      );
 
-                waterPrevController.dispose();
-                waterCurrentController.dispose();
-                electricPrevController.dispose();
-                electricCurrentController.dispose();
-                Navigator.of(context).pop();
-              },
-              child: const Text('บันทึก'),
+                      waterPrevController.dispose();
+                      waterCurrentController.dispose();
+                      electricPrevController.dispose();
+                      electricCurrentController.dispose();
+                      Navigator.of(context).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text(
+                      'แก้ไข',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                )
+              ],
             ),
           ],
         );
@@ -1153,10 +1463,21 @@ class _MeterListUiState extends State<MeterListUi> {
         return;
       }
 
+      // Get tenant_id and contract_id from room data
+      final room = _rooms.firstWhere((r) => r['room_id']?.toString() == roomId,
+          orElse: () => {});
+      final tenantId = room['tenant_id']?.toString();
+      final contractId = room['contract_id']?.toString();
+
+      if (tenantId == null || contractId == null) {
+        SnackMessage.showError(context, 'ไม่พบข้อมูลผู้เช่าหรือสัญญาเช่า');
+        return;
+      }
+
       final result = await MeterReadingService.createMeterReading({
         'room_id': roomId,
-        'tenant_id': 'temp_tenant_id',
-        'contract_id': 'temp_contract_id',
+        'tenant_id': tenantId,
+        'contract_id': contractId,
         'reading_month': _selectedMonth,
         'reading_year': _selectedYear,
         'water_previous_reading': waterPrevVal,
@@ -1166,17 +1487,25 @@ class _MeterListUiState extends State<MeterListUi> {
       });
 
       if (result['success'] == true) {
-        SnackMessage.showSuccess(context, 'บันทึกข้อมูลสำเร็จ');
-        await _loadData(); // Refresh data
+        if (mounted) {
+          SnackMessage.showSuccess(context, 'บันทึกข้อมูลสำเร็จ');
+          await _loadData(); // Refresh data
+        }
       } else {
-        SnackMessage.showError(
-            context, result['message'] ?? 'เกิดข้อผิดพลาดในการบันทึก');
+        if (mounted) {
+          SnackMessage.showError(
+              context, result['message'] ?? 'เกิดข้อผิดพลาดในการบันทึก');
+        }
       }
     } catch (e) {
-      debugPrint('Error saving meter reading: $e');
-      SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      debugPrint('เกิดข้อผิดพลาดในการบันทึกข้อมูล: $e');
+      if (mounted) {
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      }
     } finally {
-      setState(() => _savingRoomIds.remove(roomId));
+      if (mounted) {
+        setState(() => _savingRoomIds.remove(roomId));
+      }
     }
   }
 
@@ -1225,8 +1554,467 @@ class _MeterListUiState extends State<MeterListUi> {
             context, result['message'] ?? 'เกิดข้อผิดพลาดในการอัปเดต');
       }
     } catch (e) {
-      debugPrint('Error updating meter reading: $e');
+      debugPrint('เกิดข้อผิดพลาดในการอัปเดตข้อมูล: $e');
       SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล');
+    }
+  }
+
+  // Delete meter reading (not billed)
+  Future<void> _deleteMeterReading(MeterReadingData data) async {
+    // กรณี 3: ถ้าไม่ใช่เดือนปัจจุบัน ไม่อนุญาตให้ลบ
+    if (!_isCurrentPeriod) {
+      SnackMessage.showError(
+          context, 'ไม่สามารถลบข้อมูลในเดือนที่ผ่านมาแล้วได้');
+      return;
+    }
+
+    final readingId = data.existing?['reading_id']?.toString();
+    if (readingId == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.delete_outline,
+                  color: Colors.red.shade600,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title
+              const Text(
+                'ลบข้อมูลมิเตอร์นี้หรือไม่?',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Warning Box
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.shade100, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning,
+                      color: Colors.red.shade600,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'ข้อมูลมิเตอร์ทั้งน้ำและไฟจะถูกลบอย่างถาวร',
+                        style: TextStyle(
+                          color: Colors.red.shade800,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'ลบ',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        // Show loading dialog
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: AppTheme.primary),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'กำลังลบข้อมูล',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'กรุณารอสักครู่...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        final result = await MeterReadingService.deleteMeterReading(readingId);
+        if (mounted) Navigator.of(context).pop(); // Close loading dialog
+
+        if (mounted) {
+          if (result['success']) {
+            SnackMessage.showSuccess(context, 'ลบข้อมูลสำเร็จ');
+            await _loadData();
+          } else {
+            SnackMessage.showError(
+                context, result['message'] ?? 'เกิดข้อผิดพลาดในการลบ');
+          }
+        }
+      } catch (e) {
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        if (mounted) {
+          debugPrint('เกิดข้อผิดพลาดในการลบข้อมูล: $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการลบข้อมูล');
+        }
+      }
+    }
+  }
+
+  // Delete billed meter reading (requires confirmation)
+  Future<void> _deleteBilledMeterReading(MeterReadingData data) async {
+    // กรณี 3: ถ้าไม่ใช่เดือนปัจจุบัน ไม่อนุญาตให้ลบ
+    if (!_isCurrentPeriod) {
+      SnackMessage.showError(
+          context, 'ไม่สามารถลบข้อมูลในเดือนที่ผ่านมาแล้วได้');
+      return;
+    }
+
+    final readingId = data.existing?['reading_id']?.toString();
+    if (readingId == null) return;
+
+    final roomNumber = data.roomNo;
+    final tenantName = data.tenant;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.orange.shade600,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title
+              const Text(
+                'ลบข้อมูลที่ออกบิลแล้ว?',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Room Info
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.meeting_room,
+                            size: 18, color: Colors.grey[700]),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'ห้อง $roomNumber',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      tenantName,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Warning Box
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.orange.shade100, width: 1.5),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning,
+                      color: Colors.orange.shade600,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'ข้อมูลนี้ได้ออกบิลแล้ว การลบอาจส่งผลต่อบิลที่เกี่ยวข้อง',
+                        style: TextStyle(
+                          color: Colors.orange.shade900,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'ยืนยันลบ',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        // Show loading dialog
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: AppTheme.primary),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'กำลังลบข้อมูล',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'กรุณารอสักครู่...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        final result = await MeterReadingService.deleteMeterReading(readingId);
+        if (mounted) Navigator.of(context).pop(); // Close loading dialog
+
+        if (mounted) {
+          if (result['success']) {
+            SnackMessage.showSuccess(context, 'ลบข้อมูลสำเร็จ');
+            await _loadData();
+          } else {
+            SnackMessage.showError(
+                context, result['message'] ?? 'เกิดข้อผิดพลาดในการลบ');
+          }
+        }
+      } catch (e) {
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+        if (mounted) {
+          debugPrint('เกิดข้อผิดพลาดในการลบข้อมูล: $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการลบข้อมูล');
+        }
+      }
     }
   }
 }

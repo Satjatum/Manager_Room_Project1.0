@@ -523,6 +523,7 @@ class MeterReadingService {
         'data': result,
       };
     } on PostgrestException catch (e) {
+      debugPrint('เกิดข้อผิดพลาด: ${e.message}');
       return {
         'success': false,
         'message': 'เกิดข้อผิดพลาด: ${e.message}',
@@ -693,9 +694,10 @@ class MeterReadingService {
         'warnings': warnings,
       };
     } on PostgrestException catch (e) {
+      debugPrint('เกิดข้อผิดพลาด: ${e.message}');
       return {
         'success': false,
-        'message': 'เกิดข้อผิดพลาด: ${e.message}',
+        'message': 'เกิดข้อผิดพลาด',
       };
     } catch (e) {
       return {
