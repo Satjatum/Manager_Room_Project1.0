@@ -155,11 +155,9 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
                     } else if (constraints.maxWidth > 900) {
                       cardWidth =
                           (constraints.maxWidth - 48) / 3; // 3 การ์ดต่อแถว
-                    } else if (constraints.maxWidth > 600) {
+                    } else {
                       cardWidth =
                           (constraints.maxWidth - 32) / 2; // 2 การ์ดต่อแถว
-                    } else {
-                      cardWidth = constraints.maxWidth; // 1 การ์ดต่อแถว
                     }
 
                     return Wrap(
@@ -229,7 +227,7 @@ class _SettingGridCard extends StatelessWidget {
                 Text(
                   item.title,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
                   ),

@@ -444,6 +444,7 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           padding: EdgeInsets.all(24),
@@ -465,7 +466,7 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
               ),
               SizedBox(height: 20),
               Text(
-                'Delete Room Type?',
+                'ลบประเภทห้องหรือไม่?',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -519,7 +520,7 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'การดำเนินการนี้ไม่สามารถย้อนกลับได้\nข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
+                        'ข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
                         style: TextStyle(
                           color: Colors.red.shade800,
                           fontSize: 13,
@@ -545,7 +546,7 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
                         ),
                       ),
                       child: Text(
-                        'Cancel',
+                        'ยกเลิก',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -569,10 +570,8 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.delete_outline, size: 18),
-                          SizedBox(width: 8),
                           Text(
-                            'Delete',
+                            'ลบ',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -836,9 +835,7 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
 
                               // คำนวณขนาด Card ตามความกว้างหน้าจอ
                               double cardWidth;
-                              if (width < 600) {
-                                cardWidth = width - 48; // Full width on mobile
-                              } else if (width < 900) {
+                              if (width < 900) {
                                 cardWidth = (width - 60) / 2; // 2 columns
                               } else if (width < 1200) {
                                 cardWidth = (width - 72) / 3; // 3 columns

@@ -879,9 +879,7 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
 
                               // คำนวณขนาด Card ตามความกว้างหน้าจอ
                               double cardWidth;
-                              if (width < 600) {
-                                cardWidth = width - 48; // Full width on mobile
-                              } else if (width < 900) {
+                              if (width < 900) {
                                 cardWidth = (width - 60) / 2; // 2 columns
                               } else if (width < 1200) {
                                 cardWidth = (width - 72) / 3; // 3 columns
