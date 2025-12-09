@@ -166,7 +166,6 @@ class _SettingUiState extends State<SettingUi> {
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
       await AuthService.signOut();
-      await AuthService.cleanExpiredSessions();
       if (mounted) {
         Navigator.of(context).pop();
         debugPrint('ออกจากระบบเรียบร้อยแล้ว');

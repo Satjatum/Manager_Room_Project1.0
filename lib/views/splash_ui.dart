@@ -130,10 +130,6 @@ class _SplashUiState extends State<SplashUi> with TickerProviderStateMixin {
       await AuthService.initializeSession();
       await _updateProgress(0.3, 'ตรวจสอบการเข้าสู่ระบบ...');
 
-      // Clean expired sessions
-      await AuthService.cleanExpiredSessions();
-      await _updateProgress(0.4, 'ทำความสะอาดเซสชันเก่า...');
-
       // Check authentication
       final isAuthenticated = await AuthMiddleware.isAuthenticated();
       await _updateProgress(0.6, 'กำลังตรวจสอบสิทธิ์...');
