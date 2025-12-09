@@ -66,4 +66,3 @@ flutter:
     - assets/fonts/THSarabunNew/THSarabunNew.ttf
     - assets/fonts/THSarabunNew/THSarabunNew Bold.ttf
     - assets/images/
-    - .env.local
