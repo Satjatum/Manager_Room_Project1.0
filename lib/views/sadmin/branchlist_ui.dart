@@ -675,7 +675,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'ข้อมูลทั้งหมดจะถูกลบอย่างถาวร',
+                        'การลบสาขาไม่สามารถย้อนกลับได้',
                         style: TextStyle(
                           color: Colors.red.shade800,
                           fontSize: 13,
@@ -727,9 +727,8 @@ class _BranchlistUiState extends State<BranchlistUi> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          SizedBox(width: 8),
                           Text(
-                            'ลบ',
+                            'ลบสาขา',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,

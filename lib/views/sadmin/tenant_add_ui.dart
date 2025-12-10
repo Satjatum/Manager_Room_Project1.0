@@ -844,6 +844,18 @@ class _TenantAddUIState extends State<TenantAddUI>
           return;
         }
 
+        // Check if we need to redirect to login (session was cleared)
+        if (userResult['requireRelogin'] == true) {
+          if (mounted) {
+            setState(() => _isLoading = false);
+            SnackMessage.showSuccess(context, userResult['message']);
+            // Redirect to login page
+            Navigator.of(context)
+                .pushNamedAndRemoveUntil('/', (route) => false);
+          }
+          return;
+        }
+
         userId = userResult['data']['user_id'];
       }
 

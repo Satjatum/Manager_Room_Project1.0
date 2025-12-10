@@ -1,363 +1,238 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_models.dart';
 
+/// AuthService - Supabase Auth Integration
+///
+/// Features:
+/// - Email/Username login via Supabase Auth
+/// - Auto-generate password for admin-created users
+/// - Session management via Supabase Auth
+/// - No custom lockout system (relies on Supabase)
 class AuthService {
   static final SupabaseClient _supabase = Supabase.instance.client;
-  static const String _sessionKey = 'user_session';
-  static const String _userIdKey = 'current_user_id';
-  static const String _deviceIdKey = 'device_id';
-  // Device-wide lockout keys (not per-account)
-  static const String _failCountKey = 'login_fail_count';
-  static const String _lockUntilKey = 'login_lock_until';
-  static const String _lockLevelKey =
-      'login_lock_level'; // 0:15m,1:30m,2:60m (cap)
 
-  // Initialize session on app start
+  // ============================================
+  // Initialize Session
+  // ============================================
+
+  /// Initialize session on app start
+  /// Check if there's an existing Supabase Auth session
   static Future<void> initializeSession() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final sessionData = prefs.getString(_sessionKey);
-
-      if (sessionData != null) {
-        final isValid = await validateSession();
-        if (!isValid) {
-          await clearUserSession();
-        }
-      }
-
-      // Do not attempt anonymous sign-in; follow the same flow as admin/superadmin
-      // Any required storage access should be handled by existing RLS/policies
+      // Supabase Auth automatically manages session persistence
+      // No manual initialization needed
+      debugPrint('Auth session initialized');
     } catch (e) {
       debugPrint('Error initializing session: $e');
-      await clearUserSession();
     }
   }
 
-  // Sign in with email/username and password
+  // ============================================
+  // Sign In with Email or Username
+  // ============================================
+
+  /// Sign in with email or username + password
+  /// Supports both email and username login
   static Future<Map<String, dynamic>> signIn({
     required String emailOrUsername,
     required String password,
   }) async {
     try {
-      // Check device-wide lockout before any request (server-first, fallback local)
-      final lockInfo = await getLockStatus();
-      if (lockInfo['locked'] == true) {
-        final remaining = lockInfo['remaining'] as Duration?;
-        final minutes = (remaining?.inMinutes ?? 0).toString();
-        final seconds = (remaining != null)
-            ? (remaining.inSeconds % 60).toString().padLeft(2, '0')
-            : '00';
+      String? email;
+
+      // Check if input is email (contains @)
+      if (emailOrUsername.contains('@')) {
+        email = emailOrUsername.trim();
+      } else {
+        // Convert username to email via database function
+        email = await _getUsernameToEmail(emailOrUsername.trim());
+
+        if (email == null) {
+          return {
+            'success': false,
+            'message': 'ไม่พบผู้ใช้งานนี้ในระบบ',
+          };
+        }
+      }
+
+      // Sign in with Supabase Auth
+      final authResponse = await _supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      if (authResponse.user == null) {
         return {
           'success': false,
-          'message':
-              'คุณล็อคอินผิดครบตามจำนวนแล้ว โปรดลองใหม่ภายหลัง (${minutes}:${seconds})',
+          'message': 'เข้าสู่ระบบไม่สำเร็จ',
         };
       }
 
-      // Query user by email or username
-      final userQuery = await _findActiveUserByEmailOrUsername(emailOrUsername);
+      // Get user data from public.users
+      final userData = await _getUserWithInfo(authResponse.user!.id);
 
-      if (userQuery == null) {
-        // Always record local fail; also try server update (best-effort)
-        await _recordFailedAttempt();
-        await _serverUpdateLockout(success: false);
+      if (userData == null) {
+        // User not found in public.users (should not happen with trigger)
+        await _supabase.auth.signOut();
         return {
           'success': false,
-          'message': 'ไม่พบผู้ใช้งานนี้ในระบบ',
+          'message': 'ไม่พบข้อมูลผู้ใช้ในระบบ',
         };
       }
 
-      // Verify password using database function
-      final passwordCheck = await _supabase.rpc('verify_password', params: {
-        'password': password,
-        'hash': userQuery['user_pass'],
-      });
-
-      if (!passwordCheck) {
-        // Always record local fail; also try server update (best-effort)
-        await _recordFailedAttempt();
-        await _serverUpdateLockout(success: false);
+      // Check if user is active
+      if (userData['is_active'] != true) {
+        await _supabase.auth.signOut();
         return {
           'success': false,
-          'message': 'รหัสผ่านไม่ถูกต้อง',
+          'message': 'บัญชีของคุณถูกปิดการใช้งาน',
         };
       }
 
-      // Update last_login timestamp
-      await _supabase.from('users').update({
-        'last_login': DateTime.now().toIso8601String(),
-      }).eq('user_id', userQuery['user_id']);
-
-      // Generate new session token
-      final sessionToken = await _generateSessionToken();
-      final expiresAt = DateTime.now().add(const Duration(days: 7));
-
-      // Create session in database with additional tracking info
-      await _supabase.from('user_sessions').insert({
-        'user_id': userQuery['user_id'],
-        'token': sessionToken,
-        'expires_at': expiresAt.toIso8601String(),
-        'last_activity': DateTime.now().toIso8601String(),
-        'user_agent': await _getUserAgent(),
-        'ip_address': await _getClientIP(),
-      });
-
-      // Get user data and create UserModel
-      final userData = await _getUserWithInfo(userQuery['user_id']);
       final user = UserModel.fromDatabase(userData);
-
-      // Store session locally
-      await _storeUserSession(user.userId, sessionToken);
-
-      // Reset failures on success (local + server best-effort)
-      await _resetFailedAttempts();
-      await _serverUpdateLockout(success: true);
 
       return {
         'success': true,
         'user': user,
         'message': 'เข้าสู่ระบบสำเร็จ',
       };
-    } catch (e) {
+    } on AuthException catch (e) {
+      // Handle Supabase Auth errors
+      String message = 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+
+      if (e.message.contains('Invalid login credentials')) {
+        message = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+      } else if (e.message.contains('Email not confirmed')) {
+        message = 'กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ';
+      } else if (e.message.contains('Too many requests')) {
+        message = 'พยายามเข้าสู่ระบบหลายครั้งเกินไป กรุณารอสักครู่';
+      }
+
       return {
         'success': false,
-        'message': 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ: $e',
+        'message': message,
+      };
+    } catch (e) {
+      debugPrint('Login error: $e');
+      return {
+        'success': false,
+        'message': 'เกิดข้อผิดพลาด: $e',
       };
     }
   }
 
-  // Safer user lookup to avoid building raw filter strings
-  static Future<Map<String, dynamic>?> _findActiveUserByEmailOrUsername(
-      String value) async {
-    // Try by email
-    final byEmail = await _supabase
-        .from('users')
-        .select('*')
-        .eq('user_email', value)
-        .eq('is_active', true)
-        .maybeSingle();
-    if (byEmail != null) return byEmail;
+  // ============================================
+  // Sign Out
+  // ============================================
 
-    // Try by username
-    final byUsername = await _supabase
-        .from('users')
-        .select('*')
-        .eq('user_name', value)
-        .eq('is_active', true)
-        .maybeSingle();
-    return byUsername;
-  }
-
-  // Get user with additional info
-  static Future<Map<String, dynamic>> _getUserWithInfo(String userId) async {
-    final userResponse = await _supabase
-        .from('users')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .single();
-
-    // If user is tenant, get tenant info
-    if (userResponse['role'] == 'tenant') {
-      try {
-        final tenantResponse = await _supabase
-            .from('tenants')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('is_active', true)
-            .single();
-
-        return {
-          ...userResponse,
-          'tenant_info': tenantResponse,
-        };
-      } catch (e) {
-        return userResponse;
-      }
-    }
-
-    return userResponse;
-  }
-
-  // Generate session token
-  static Future<String> _generateSessionToken() async {
-    final result = await _supabase.rpc('generate_token');
-    return result as String;
-  }
-
-  // Get user agent (simplified for Flutter)
-  static Future<String> _getUserAgent() async {
+  /// Sign out current user
+  static Future<void> signOut() async {
     try {
-      // You can implement device info here
-      return 'Flutter App';
+      await _supabase.auth.signOut();
+      debugPrint('User signed out successfully');
     } catch (e) {
-      return 'Unknown';
+      debugPrint('Error during sign out: $e');
     }
   }
 
-  // Get client IP (placeholder - would need proper implementation)
-  static Future<String?> _getClientIP() async {
-    try {
-      // This would require proper IP detection implementation
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
+  // ============================================
+  // Get Current User
+  // ============================================
 
-  // Store session locally
-  static Future<void> _storeUserSession(
-      String userId, String sessionToken) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_sessionKey, sessionToken);
-    await prefs.setString(_userIdKey, userId);
-  }
-
-  // Get current user from session
+  /// Get current authenticated user
   static Future<UserModel?> getCurrentUser() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getString(_userIdKey);
+      final authUser = _supabase.auth.currentUser;
 
-      if (userId == null) return null;
+      if (authUser == null) {
+        debugPrint('⚠️ No authenticated user found');
+        return null;
+      }
 
-      final userData = await _getUserWithInfo(userId);
-      return UserModel.fromDatabase(userData);
+      debugPrint('✅ Auth User ID: ${authUser.id}');
+      final userData = await _getUserWithInfo(authUser.id);
+
+      if (userData == null) {
+        debugPrint('⚠️ User data not found in database');
+        return null;
+      }
+
+      debugPrint(
+          '✅ User data: ${userData['user_name']} - Role: ${userData['role']}');
+
+      if (userData['is_active'] != true) {
+        debugPrint('⚠️ User is not active');
+        return null;
+      }
+
+      final userModel = UserModel.fromDatabase(userData);
+      debugPrint(
+          '✅ UserModel created: ${userModel.userName} - ${userModel.userRole}');
+
+      return userModel;
     } catch (e) {
-      debugPrint('Error getting current user: $e');
+      debugPrint('❌ Error getting current user: $e');
       return null;
     }
   }
 
-  // Validate current session
-  static Future<bool> validateSession() async {
+  // ============================================
+  // Check Authentication
+  // ============================================
+
+  /// Check if user is authenticated
+  static Future<bool> isAuthenticated() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final sessionToken = prefs.getString(_sessionKey);
-      final userId = prefs.getString(_userIdKey);
+      final session = _supabase.auth.currentSession;
+      if (session == null) return false;
 
-      if (sessionToken == null || userId == null) return false;
-
-      // Check session in database
-      final sessionResponse = await _supabase
-          .from('user_sessions')
-          .select('*')
-          .eq('token', sessionToken)
-          .eq('user_id', userId)
-          .gte('expires_at', DateTime.now().toIso8601String())
-          .maybeSingle();
-
-      if (sessionResponse == null) {
-        await clearUserSession();
-        return false;
-      }
-
-      // Update last activity
-      await _supabase.from('user_sessions').update({
-        'last_activity': DateTime.now().toIso8601String(),
-      }).eq('token', sessionToken);
-
-      // Check if user is still active
-      final userResponse = await _supabase
-          .from('users')
-          .select('is_active')
-          .eq('user_id', userId)
-          .eq('is_active', true)
-          .maybeSingle();
-
-      if (userResponse == null) {
-        await clearUserSession();
-        return false;
-      }
-
-      return true;
+      // Check if user exists and is active
+      final user = await getCurrentUser();
+      return user != null;
     } catch (e) {
-      debugPrint('Error validating session: $e');
-      await clearUserSession();
+      debugPrint('Error checking authentication: $e');
       return false;
     }
   }
 
-  // Sign out
-  static Future<void> signOut() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final sessionToken = prefs.getString(_sessionKey);
+  // ============================================
+  // Password Management
+  // ============================================
 
-      if (sessionToken != null) {
-        await _supabase
-            .from('user_sessions')
-            .delete()
-            .eq('token', sessionToken);
-      }
-    } catch (e) {
-      debugPrint('Error during sign out: $e');
-    } finally {
-      await clearUserSession();
-    }
-  }
-
-  // Clear user session locally
-  static Future<void> clearUserSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_sessionKey);
-    await prefs.remove(_userIdKey);
-  }
-
-  // Check if user is authenticated
-  static Future<bool> isAuthenticated() async {
-    return await validateSession();
-  }
-
-  // Update password
+  /// Update password (for logged-in user)
   static Future<Map<String, dynamic>> updatePassword({
-    required String currentPassword,
     required String newPassword,
   }) async {
     try {
-      final currentUser = await getCurrentUser();
-      if (currentUser == null) {
+      final authUser = _supabase.auth.currentUser;
+
+      if (authUser == null) {
         return {
           'success': false,
           'message': 'กรุณาเข้าสู่ระบบใหม่',
         };
       }
 
-      // Get current password hash
-      final userQuery = await _supabase
-          .from('users')
-          .select('user_pass')
-          .eq('user_id', currentUser.userId)
-          .single();
-
-      // Verify current password
-      final passwordCheck = await _supabase.rpc('verify_password', params: {
-        'password': currentPassword,
-        'hash': userQuery['user_pass'],
-      });
-
-      if (!passwordCheck) {
-        return {
-          'success': false,
-          'message': 'รหัสผ่านปัจจุบันไม่ถูกต้อง',
-        };
-      }
-
-      // Hash new password
-      final hashedPassword = await _supabase.rpc('hash_password', params: {
-        'password': newPassword,
-      });
-
-      // Update password
-      await _supabase.from('users').update({'user_pass': hashedPassword}).eq(
-          'user_id', currentUser.userId);
+      await _supabase.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
 
       return {
         'success': true,
         'message': 'เปลี่ยนรหัสผ่านสำเร็จ',
       };
+    } on AuthException catch (e) {
+      String message = 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน';
+
+      if (e.message.contains('Password should be at least')) {
+        message = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร และมีตัวพิมพ์เล็กและใหญ่';
+      }
+
+      return {
+        'success': false,
+        'message': message,
+      };
     } catch (e) {
       return {
         'success': false,
@@ -366,29 +241,33 @@ class AuthService {
     }
   }
 
-  // Update user permissions (admin function)
-  static Future<Map<String, dynamic>> updateUserPermissions({
-    required String userId,
-    required List<String> permissions,
+  /// Send password reset email
+  static Future<Map<String, dynamic>> sendPasswordResetEmail({
+    required String email,
   }) async {
     try {
-      final currentUser = await getCurrentUser();
-      if (currentUser == null ||
-          !currentUser.hasPermission(DetailedPermission.manageUsers)) {
-        return {
-          'success': false,
-          'message': 'ไม่มีสิทธิ์ในการแก้ไขข้อมูลผู้ใช้',
-        };
-      }
+      // For Web: redirect to current origin + /reset-password
+      // For Mobile: use deep link manager-room://reset-password
+      final redirectUrl = Uri.base.origin.contains('localhost') || 
+                          Uri.base.origin.contains('http')
+          ? '${Uri.base.origin}/reset-password' // Web URL
+          : 'manager-room://reset-password'; // Deep Link for Mobile
 
-      // Update user permissions
-      await _supabase.from('users').update({
-        'permissions': permissions,
-      }).eq('user_id', userId);
+      debugPrint('🔗 Reset password redirect URL: $redirectUrl');
+
+      await _supabase.auth.resetPasswordForEmail(
+        email,
+        redirectTo: redirectUrl,
+      );
 
       return {
         'success': true,
-        'message': 'อัปเดตสิทธิ์การใช้งานสำเร็จ',
+        'message': 'ส่งอีเมลรีเซ็ตรหัสผ่านแล้ว กรุณาตรวจสอบอีเมลของคุณ',
+      };
+    } on AuthException catch (e) {
+      return {
+        'success': false,
+        'message': 'เกิดข้อผิดพลาด: ${e.message}',
       };
     } catch (e) {
       return {
@@ -398,264 +277,71 @@ class AuthService {
     }
   }
 
-  // Get user login history
-  static Future<List<Map<String, dynamic>>> getUserLoginHistory({
-    String? userId,
-    int limit = 10,
-  }) async {
+  // ============================================
+  // Helper Functions
+  // ============================================
+
+  /// Convert username to email using database function
+  static Future<String?> _getUsernameToEmail(String username) async {
     try {
-      final currentUser = await getCurrentUser();
-      if (currentUser == null) return [];
+      final result = await _supabase.rpc(
+        'get_email_from_username',
+        params: {'p_username': username},
+      );
+      return result as String?;
+    } catch (e) {
+      debugPrint('Error converting username to email: $e');
+      return null;
+    }
+  }
 
-      final targetUserId = userId ?? currentUser.userId;
+  /// Get user data with additional info from public.users
+  static Future<Map<String, dynamic>?> _getUserWithInfo(String authUid) async {
+    try {
+      final userResponse = await _supabase
+          .from('users')
+          .select('*')
+          .eq('auth_uid', authUid)
+          .maybeSingle();
 
-      // Only allow users to see their own history unless they're admin
-      if (targetUserId != currentUser.userId &&
-          !currentUser.hasPermission(DetailedPermission.manageUsers)) {
-        return [];
+      if (userResponse == null) {
+        return null;
       }
 
-      final sessions = await _supabase
-          .from('user_sessions')
-          .select('created_at, last_activity, user_agent, ip_address')
-          .eq('user_id', targetUserId)
-          .order('created_at', ascending: false)
-          .limit(limit);
+      // If user is tenant, get tenant info
+      if (userResponse['role'] == 'tenant') {
+        try {
+          final tenantResponse = await _supabase
+              .from('tenants')
+              .select('*')
+              .eq('user_id', userResponse['user_id'])
+              .eq('is_active', true)
+              .maybeSingle();
 
-      return sessions;
-    } catch (e) {
-      debugPrint('Error getting login history: $e');
-      return [];
-    }
-  }
-
-  // Clean expired sessions
-  static Future<void> cleanExpiredSessions() async {
-    try {
-      await _supabase
-          .from('user_sessions')
-          .delete()
-          .lt('expires_at', DateTime.now().toIso8601String());
-    } catch (e) {
-      debugPrint('Error cleaning expired sessions: $e');
-    }
-  }
-
-  // Get active sessions count for current user
-  static Future<int> getActiveSessionsCount() async {
-    try {
-      final currentUser = await getCurrentUser();
-      if (currentUser == null) return 0;
-
-      final sessions = await _supabase
-          .from('user_sessions')
-          .select('session_id')
-          .eq('user_id', currentUser.userId)
-          .gte('expires_at', DateTime.now().toIso8601String());
-
-      return sessions.length;
-    } catch (e) {
-      debugPrint('Error getting active sessions count: $e');
-      return 0;
-    }
-  }
-
-  // Terminate all other sessions (keep current one)
-  static Future<Map<String, dynamic>> terminateOtherSessions() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final currentSessionToken = prefs.getString(_sessionKey);
-      final currentUser = await getCurrentUser();
-
-      if (currentUser == null || currentSessionToken == null) {
-        return {
-          'success': false,
-          'message': 'ไม่พบเซสชันปัจจุบัน',
-        };
+          if (tenantResponse != null) {
+            return {
+              ...userResponse,
+              'tenant_info': tenantResponse,
+            };
+          }
+        } catch (e) {
+          debugPrint('Error getting tenant info: $e');
+        }
       }
 
-      await _supabase
-          .from('user_sessions')
-          .delete()
-          .eq('user_id', currentUser.userId)
-          .neq('token', currentSessionToken);
-
-      return {
-        'success': true,
-        'message': 'ยกเลิกเซสชันอื่นทั้งหมดสำเร็จ',
-      };
+      return userResponse;
     } catch (e) {
-      return {
-        'success': false,
-        'message': 'เกิดข้อผิดพลาด: $e',
-      };
+      debugPrint('Error getting user info: $e');
+      return null;
     }
   }
 
-  // ========== Device-wide lockout helpers ==========
-  static Future<Map<String, dynamic>> getLockStatus() async {
-    // Try server-based status first
-    try {
-      final result = await _serverGetLockStatus();
-      return result;
-    } catch (e) {
-      // fallback local
-    }
-    return await _getLocalLockStatus();
-  }
+  // ============================================
+  // Auth State Stream
+  // ============================================
 
-  // Server-first helpers
-  static Future<Map<String, dynamic>> _serverGetLockStatus() async {
-    final deviceId = await _getOrCreateDeviceId();
-    final res = await _supabase.rpc('auth_get_lock_status', params: {
-      'p_device_id': deviceId,
-    });
-
-    Map<String, dynamic>? row;
-    if (res is List && res.isNotEmpty) {
-      final first = res.first;
-      if (first is Map<String, dynamic>) row = first;
-    } else if (res is Map<String, dynamic>) {
-      row = res;
-    }
-
-    if (row == null) {
-      return {'locked': false, 'remaining': Duration.zero};
-    }
-
-    final locked = row['locked'] == true;
-    final remainingSeconds = (row['remaining_seconds'] as num?)?.toInt() ?? 0;
-    // Trust server status when available; only fallback to local when RPC fails upstream
-    return {'locked': locked, 'remaining': Duration(seconds: remainingSeconds)};
-  }
-
-  static Future<bool> _serverUpdateLockout({required bool success}) async {
-    try {
-      final deviceId = await _getOrCreateDeviceId();
-      // ส่งเฉพาะพารามิเตอร์ที่จำเป็น เพื่อหลีกเลี่ยงปัญหาชนิดข้อมูล (inet/text)
-      await _supabase.rpc('auth_update_lockout', params: {
-        'p_device_id': deviceId,
-        'p_success': success,
-      });
-      return true;
-    } catch (e) {
-      // debug log เงียบ ๆ และ fallback local
-      // debugPrint('auth_update_lockout rpc error: $e');
-      return false;
-    }
-  }
-
-  static Future<String> _getOrCreateDeviceId() async {
-    final prefs = await SharedPreferences.getInstance();
-    final existing = prefs.getString(_deviceIdKey);
-    if (existing != null && existing.isNotEmpty) return existing;
-    // generate from server to avoid adding deps
-    final generated = await _generateSessionToken();
-    await prefs.setString(_deviceIdKey, generated);
-    return generated;
-  }
-
-  // ========== Admin unlock helpers ==========
-  static Future<Map<String, dynamic>> adminUnlockDevice({
-    required String deviceId,
-    bool fullReset = false, // ถ้า true จะรีเซ็ต lock_level = 0 ด้วย
-  }) async {
-    try {
-      await _supabase.rpc('auth_unlock_device', params: {
-        'p_device_id': deviceId,
-        'p_full_reset': fullReset,
-      });
-
-      // ถ้าเป็นอุปกรณ์นี้เอง ให้ล้างสถานะ local ด้วย
-      final currentDeviceId = await _getOrCreateDeviceId();
-      if (currentDeviceId == deviceId) {
-        await _clearLocalLock(fullReset: fullReset);
-      }
-
-      return {'success': true};
-    } catch (e) {
-      return {
-        'success': false,
-        'message': e.toString(),
-      };
-    }
-  }
-
-  static Future<void> _clearLocalLock({bool fullReset = false}) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_lockUntilKey);
-    await prefs.setInt(_failCountKey, 0);
-    if (fullReset) {
-      await prefs.setInt(_lockLevelKey, 0);
-    }
-  }
-
-  // ========== Local fallback lockout helpers ==========
-  static Future<Map<String, dynamic>> _getLocalLockStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final lockUntilIso = prefs.getString(_lockUntilKey);
-    if (lockUntilIso == null) {
-      return {'locked': false, 'remaining': Duration.zero};
-    }
-    final lockUntil = DateTime.tryParse(lockUntilIso);
-    if (lockUntil == null) {
-      await prefs.remove(_lockUntilKey);
-      return {'locked': false, 'remaining': Duration.zero};
-    }
-    final now = DateTime.now();
-    if (now.isBefore(lockUntil)) {
-      return {'locked': true, 'remaining': lockUntil.difference(now)};
-    }
-    // expired
-    await prefs.remove(_lockUntilKey);
-    return {'locked': false, 'remaining': Duration.zero};
-  }
-
-  static Future<bool> isDeviceLocked() async {
-    final status = await getLockStatus();
-    return status['locked'] == true;
-  }
-
-  static Future<void> _recordFailedAttempt() async {
-    final prefs = await SharedPreferences.getInstance();
-    final current = prefs.getInt(_failCountKey) ?? 0;
-    final newCount = current + 1;
-    await prefs.setInt(_failCountKey, newCount);
-    if (newCount >= 3) {
-      // apply lock and escalate level
-      await _applyLockout();
-      await prefs.setInt(_failCountKey, 0);
-    }
-  }
-
-  static Future<void> _resetFailedAttempts() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_failCountKey, 0);
-    // Do NOT reset level; requirement doesn't specify demotion
-  }
-
-  static Future<void> _applyLockout() async {
-    final prefs = await SharedPreferences.getInstance();
-    int level = prefs.getInt(_lockLevelKey) ?? 0; // 0,1,2 capped
-    Duration duration;
-    switch (level) {
-      case 0:
-        duration = const Duration(minutes: 15);
-        break;
-      case 1:
-        duration = const Duration(minutes: 30);
-        break;
-      default:
-        duration = const Duration(hours: 1);
-        break;
-    }
-    final lockUntil = DateTime.now().add(duration).toIso8601String();
-    await prefs.setString(_lockUntilKey, lockUntil);
-    // escalate level (cap at 2)
-    if (level < 2) {
-      await prefs.setInt(_lockLevelKey, level + 1);
-    } else {
-      await prefs.setInt(_lockLevelKey, 2);
-    }
+  /// Listen to auth state changes
+  static Stream<AuthState> get authStateChanges {
+    return _supabase.auth.onAuthStateChange;
   }
 }

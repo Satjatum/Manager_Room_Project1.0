@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 // Model //
 import '../../models/user_models.dart';
 // Middleware //
@@ -576,6 +577,7 @@ class _BranchAddUiState extends State<BranchAddUi>
 
       final branchId = branchResult['data']['branch_id'];
 
+      // เพิ่มผู้จัดการสาขา
       for (String managerId in _selectedManagerIds) {
         final managerResult = await BranchManagerService.addBranchManager(
           branchId: branchId,
@@ -589,12 +591,15 @@ class _BranchAddUiState extends State<BranchAddUi>
         }
       }
 
+      // สร้างข้อมูลเริ่มต้นสำหรับสาขาใหม่
+      await _createDefaultData(branchId);
+
       if (mounted) {
         setState(() => _isLoading = false);
         debugPrint('สร้างสาขาเรียบร้อยแล้ว');
         SnackMessage.showSuccess(
           context,
-          'สร้างสาขาเรียบร้อยแล้ว',
+          'สร้างสาขาและข้อมูลเริ่มต้นเรียบร้อยแล้ว',
         );
 
         Navigator.of(context).pop(true);
@@ -1709,5 +1714,81 @@ class _BranchAddUiState extends State<BranchAddUi>
         ],
       ),
     );
+  }
+
+  /// สร้างข้อมูลเริ่มต้นสำหรับสาขาใหม่
+  Future<void> _createDefaultData(String branchId) async {
+    try {
+      debugPrint('🔧 เริ่มสร้างข้อมูลเริ่มต้นสำหรับสาขา: $branchId');
+      final supabase = Supabase.instance.client;
+
+      // 1. สร้าง Utility Rates (ค่าน้ำค่าไฟ)
+      try {
+        await supabase.from('utility_rates').insert([
+          {
+            'branch_id': branchId,
+            'rate_name': 'ค่าไฟ',
+            'rate_price': 0,
+            'rate_unit': 'หน่วย',
+            'is_metered': true,
+            'is_fixed': false,
+            'fixed_amount': 0,
+            'is_active': true,
+          },
+          {
+            'branch_id': branchId,
+            'rate_name': 'ค่าน้ำ',
+            'rate_price': 0,
+            'rate_unit': 'หน่วย',
+            'is_metered': true,
+            'is_fixed': false,
+            'fixed_amount': 0,
+            'is_active': true,
+          },
+        ]);
+        debugPrint('✅ สร้าง Utility Rates สำเร็จ');
+      } catch (e) {
+        debugPrint('⚠️ เกิดข้อผิดพลาดในการสร้าง Utility Rates: $e');
+      }
+
+      // 2. สร้าง Amenity (WIFI)
+      try {
+        await supabase.from('amenities').insert({
+          'branch_id': branchId,
+          'amenities_name': 'WIFI',
+          'amenities_icon': 'wifi',
+        });
+        debugPrint('✅ สร้าง Amenity (WIFI) สำเร็จ');
+      } catch (e) {
+        debugPrint('⚠️ เกิดข้อผิดพลาดในการสร้าง Amenity: $e');
+      }
+
+      // 3. สร้าง Room Type (พัดลม)
+      try {
+        await supabase.from('room_types').insert({
+          'branch_id': branchId,
+          'roomtype_name': 'ห้องพัดลม',
+        });
+        debugPrint('✅ สร้าง Room Type (พัดลม) สำเร็จ');
+      } catch (e) {
+        debugPrint('⚠️ เกิดข้อผิดพลาดในการสร้าง Room Type: $e');
+      }
+
+      // 4. สร้าง Room Category (ห้อง)
+      try {
+        await supabase.from('room_categories').insert({
+          'branch_id': branchId,
+          'roomcate_name': 'ห้อง',
+        });
+        debugPrint('✅ สร้าง Room Category (ห้อง) สำเร็จ');
+      } catch (e) {
+        debugPrint('⚠️ เกิดข้อผิดพลาดในการสร้าง Room Category: $e');
+      }
+
+      debugPrint('🎉 สร้างข้อมูลเริ่มต้นสำเร็จทั้งหมด');
+    } catch (e) {
+      debugPrint('❌ เกิดข้อผิดพลาดในการสร้างข้อมูลเริ่มต้น: $e');
+      // ไม่ throw error เพื่อไม่ให้ขัดขวางการสร้างสาขา
+    }
   }
 }

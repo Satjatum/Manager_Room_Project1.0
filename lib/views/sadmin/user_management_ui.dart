@@ -61,17 +61,6 @@ class _UserManagementUiState extends State<UserManagementUi> {
     }
   }
 
-  Future<void> _showEditUserDialog(Map<String, dynamic> user) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => EditUserDialog(user: user),
-    );
-
-    if (result == true) {
-      _loadUsers();
-    }
-  }
-
   Future<void> _deactivateUser(String userId, String userName) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -777,146 +766,126 @@ class _UserManagementUiState extends State<UserManagementUi> {
           ),
         ],
       ),
-      child: InkWell(
-        onTap: () => _showEditUserDialog(user),
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // Avatar
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isActive ? AppTheme.primary : Colors.grey,
-                    width: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            // Avatar
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isActive ? AppTheme.primary : Colors.grey,
+                  width: 2,
+                ),
+              ),
+              child: CircleAvatar(
+                radius: 28,
+                backgroundColor: isActive
+                    ? AppTheme.primary.withOpacity(0.15)
+                    : Colors.grey.shade200,
+                child: Text(
+                  user['user_name'].toString().substring(0, 1).toUpperCase(),
+                  style: TextStyle(
+                    color: isActive ? AppTheme.primary : Colors.grey.shade600,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                child: CircleAvatar(
-                  radius: 28,
-                  backgroundColor: isActive
-                      ? AppTheme.primary.withOpacity(0.15)
-                      : Colors.grey.shade200,
-                  child: Text(
-                    user['user_name'].toString().substring(0, 1).toUpperCase(),
+              ),
+            ),
+            const SizedBox(width: 14),
+            // ชื่อและอีเมล
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    user['user_name'],
                     style: TextStyle(
-                      color: isActive ? AppTheme.primary : Colors.grey.shade600,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      color: Colors.black87,
+                      decoration: isActive ? null : TextDecoration.lineThrough,
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              // ชื่อและอีเมล
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user['user_name'],
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                        color: Colors.black87,
-                        decoration:
-                            isActive ? null : TextDecoration.lineThrough,
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.email_outlined,
+                        size: 14,
+                        color: Colors.grey.shade500,
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.email_outlined,
-                          size: 14,
-                          color: Colors.grey.shade500,
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          user['user_email'],
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            user['user_email'],
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Popup Menu Button
-              PopupMenuButton<String>(
-                color: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.more_vert_rounded,
-                  color: Colors.grey.shade700,
-                  size: 20,
-                ),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit_outlined,
-                            size: 20, color: Color(0xFF14B8A6)),
-                        SizedBox(width: 12),
-                        Text('แก้ไข'),
-                      ],
-                    ),
-                  ),
-                  if (isActive)
-                    PopupMenuItem(
-                      value: 'deactivate',
-                      child: Row(
-                        children: [
-                          Icon(
-                            isActive
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            size: 20,
-                            color: isActive ? Colors.orange : Colors.green,
-                          ),
-                          SizedBox(width: 12),
-                          Text(
-                            isActive ? 'ปิดใช้งาน' : 'เปิดใช้งาน',
-                            style: TextStyle(
-                              color: isActive ? Colors.orange : Colors.green,
-                            ),
-                          ),
-                        ],
                       ),
-                    ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                        SizedBox(width: 12),
-                        Text('ลบสาขา', style: TextStyle(color: Colors.red)),
-                      ],
-                    ),
+                    ],
                   ),
                 ],
-                onSelected: (value) {
-                  if (value == 'edit') {
-                    _showEditUserDialog(user);
-                  } else if (value == 'deactivate') {
-                    _deactivateUser(user['user_id'], user['user_name']);
-                  } else if (value == 'delete') {
-                    _deleteUser(user['user_id'], user['user_name']);
-                  }
-                },
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+            // Popup Menu Button
+            PopupMenuButton<String>(
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.more_vert_rounded,
+                color: Colors.grey.shade700,
+                size: 20,
+              ),
+              itemBuilder: (context) => [
+                if (isActive)
+                  PopupMenuItem(
+                    value: 'deactivate',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.visibility_off_outlined,
+                          size: 20,
+                          color: Colors.orange,
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          'ปิดใช้งาน',
+                          style: TextStyle(
+                            color: Colors.orange,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                      SizedBox(width: 12),
+                      Text('ลบผู้ใช้', style: TextStyle(color: Colors.red)),
+                    ],
+                  ),
+                ),
+              ],
+              onSelected: (value) {
+                if (value == 'deactivate') {
+                  _deactivateUser(user['user_id'], user['user_name']);
+                } else if (value == 'delete') {
+                  _deleteUser(user['user_id'], user['user_name']);
+                }
+              },
+            ),
+          ],
         ),
       ),
     );

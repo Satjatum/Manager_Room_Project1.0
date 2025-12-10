@@ -166,7 +166,6 @@ class _SettingUiState extends State<SettingUi> {
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
       await AuthService.signOut();
-      await AuthService.cleanExpiredSessions();
       if (mounted) {
         Navigator.of(context).pop();
         debugPrint('ออกจากระบบเรียบร้อยแล้ว');
@@ -181,6 +180,277 @@ class _SettingUiState extends State<SettingUi> {
       if (mounted) {
         Navigator.of(context).pop();
         debugPrint('เกิดข้อผิดพลาดในการออกจากระบบ');
+      }
+    }
+  }
+
+  Future<void> _showResetPasswordConfirmation() async {
+    if (currentUser == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.email_outlined,
+                  color: Colors.blue.shade600,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title
+              const Text(
+                'ส่งอีเมลรีเซ็ตรหัสผ่าน?',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Email Display
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.email, size: 18, color: Colors.grey[700]),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        currentUser!.userEmail,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Info Box
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.blue.shade100,
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.blue.shade600,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'ระบบจะส่งอีเมลพร้อมลิงก์สำหรับรีเซ็ตรหัสผ่านไปยังอีเมลของคุณ',
+                        style: TextStyle(
+                          color: Colors.blue.shade800,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.send, size: 18),
+                          SizedBox(width: 8),
+                          Text(
+                            'ส่ง',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (confirm == true) await _sendPasswordResetEmail();
+  }
+
+  Future<void> _sendPasswordResetEmail() async {
+    if (currentUser == null) return;
+
+    try {
+      // Show Loading Dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 50,
+                        height: 50,
+                        child: CircularProgressIndicator(
+                          color: Colors.blue.shade600,
+                          strokeWidth: 3,
+                        ),
+                      ),
+                      Icon(
+                        Icons.email_outlined,
+                        color: Colors.blue.shade600,
+                        size: 28,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'กำลังส่งอีเมล',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'กรุณารอสักครู่...',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Send password reset email
+      final result = await AuthService.sendPasswordResetEmail(
+        email: currentUser!.userEmail,
+      );
+
+      if (mounted) Navigator.of(context).pop(); // Close loading dialog
+
+      if (mounted) {
+        if (result['success']) {
+          debugPrint(result['message']);
+          SnackMessage.showSuccess(context, result['message']);
+        } else {
+          debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
+          SnackMessage.showError(context, result['message']);
+        }
+      }
+    } catch (e) {
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+      if (mounted) {
+        debugPrint('เกิดข้อผิดพลาด: $e');
+        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการส่งอีเมล');
       }
     }
   }
@@ -269,6 +539,7 @@ class _SettingUiState extends State<SettingUi> {
                       MaterialPageRoute(
                           builder: (context) => const UserManagementUi()),
                     ),
+                    onResetPassword: _showResetPasswordConfirmation,
                   ),
                   const SizedBox(height: 16),
                   _FullWidthButton(
@@ -424,17 +695,15 @@ class _SettingsGroup extends StatelessWidget {
     required this.isMobile,
     required this.currentUser,
     required this.onOpenUserManagement,
+    required this.onResetPassword,
   });
   final bool isMobile;
   final UserModel currentUser;
   final VoidCallback onOpenUserManagement;
+  final VoidCallback onResetPassword;
 
   @override
   Widget build(BuildContext context) {
-    // ในหน้า Settings หลัก ให้แสดงเฉพาะ "จัดการผู้ใช้งาน" ตามที่ต้องการ
-    final canSeeSettings = currentUser.userRole == UserRole.superAdmin;
-    if (!canSeeSettings) return const SizedBox.shrink();
-
     return _Surface(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const _SectionHeader(
@@ -443,12 +712,25 @@ class _SettingsGroup extends StatelessWidget {
             tint: Colors.indigo),
         const SizedBox(height: 6),
         const Divider(height: 20),
+
+        // เมนูรีเซ็ตรหัสผ่าน - แสดงให้ทุกคน
         _SettingTile(
-          icon: Icons.admin_panel_settings,
-          title: 'จัดการผู้ใช้งาน',
-          subtitle: 'เพิ่ม แก้ไข และจัดการผู้ใช้ระบบ',
-          onTap: onOpenUserManagement,
+          icon: Icons.lock_reset,
+          title: 'รีเซ็ตรหัสผ่าน',
+          subtitle: 'เปลี่ยนรหัสผ่านของคุณ',
+          onTap: onResetPassword,
         ),
+
+        // เมนูจัดการผู้ใช้ - แสดงเฉพาะ SuperAdmin
+        if (currentUser.userRole == UserRole.superAdmin) ...[
+          const Divider(height: 20),
+          _SettingTile(
+            icon: Icons.admin_panel_settings,
+            title: 'จัดการผู้ใช้งาน',
+            subtitle: 'เพิ่ม แก้ไข และจัดการผู้ใช้ระบบ',
+            onTap: onOpenUserManagement,
+          ),
+        ],
       ]),
     );
   }

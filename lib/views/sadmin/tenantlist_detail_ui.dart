@@ -542,7 +542,8 @@ class _TenantDetailUIState extends State<TenantDetailUI>
           ),
         );
 
-        final result = await TenantService.deleteTenant(widget.tenantId);
+        final result =
+            await TenantService.deleteTenantWithRelatedData(widget.tenantId);
 
         if (mounted) Navigator.of(context).pop();
 
@@ -591,6 +592,226 @@ class _TenantDetailUIState extends State<TenantDetailUI>
 
     if (result == true) {
       _loadData();
+    }
+  }
+
+  Future<void> _terminateContract(String contractId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.cancel_outlined,
+                  color: Colors.red.shade600,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'ยกเลิกสัญญาหรือไม่?',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.red.shade100,
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_rounded,
+                      color: Colors.red.shade600,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'สัญญานี้จะถูกยกเลิกและไม่สามารถกลับมาใช้งานได้',
+                        style: TextStyle(
+                          color: Colors.red.shade800,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.grey[700],
+                        side: BorderSide(color: Colors.grey[300]!, width: 1.5),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'ยกเลิก',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'ยกเลิกสัญญา',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        // Show loading dialog
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: CircularProgressIndicator(
+                            color: Colors.red.shade600,
+                            strokeWidth: 3,
+                          ),
+                        ),
+                        Icon(
+                          Icons.cancel_outlined,
+                          color: Colors.red.shade600,
+                          size: 28,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'กำลังยกเลิกสัญญา',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'กรุณารอสักครู่...',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        final result = await ContractService.terminateContract(contractId);
+
+        if (mounted) Navigator.pop(context);
+
+        if (mounted) {
+          if (result['success']) {
+            debugPrint(result['message']);
+            SnackMessage.showSuccess(context, result['message']);
+            _loadData();
+          } else {
+            debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
+            SnackMessage.showError(
+                context, 'เกิดข้อผิดพลาด: ${result['message']}');
+          }
+        }
+      } catch (e) {
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+        if (mounted) {
+          debugPrint('เกิดข้อผิดพลาด: $e');
+          SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการยกเลิกสัญญา');
+        }
+      }
     }
   }
 
@@ -1298,6 +1519,10 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                                           ),
                                         ).then((_) => _loadData());
                                         break;
+                                      case 'terminate':
+                                        _terminateContract(
+                                            latest['contract_id']);
+                                        break;
                                     }
                                   },
                                   itemBuilder: (context) {
@@ -1331,6 +1556,26 @@ class _TenantDetailUIState extends State<TenantDetailUI>
                                                   color: Color(0xFF14B8A6)),
                                               SizedBox(width: 12),
                                               Text('แก้ไข'),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                    // เพิ่มปุ่มยกเลิกสัญญา (เฉพาะสัญญาที่ active)
+                                    if (canEdit &&
+                                        latest['contract_status'] == 'active') {
+                                      items.add(
+                                        PopupMenuItem<String>(
+                                          value: 'terminate',
+                                          child: Row(
+                                            children: const [
+                                              Icon(Icons.cancel_outlined,
+                                                  size: 20, color: Colors.red),
+                                              SizedBox(width: 12),
+                                              Text('ยกเลิกสัญญา',
+                                                  style: TextStyle(
+                                                    color: Colors.red,
+                                                  )),
                                             ],
                                           ),
                                         ),

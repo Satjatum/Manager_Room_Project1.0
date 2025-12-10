@@ -1275,103 +1275,12 @@ class _RoomListUiState extends State<RoomListUi> {
                       : RefreshIndicator(
                           onRefresh: _loadRooms,
                           color: AppTheme.primary,
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final width = constraints.maxWidth;
-
-                              // Responsive Grid Columns based on screen width
-                              int cols = 1;
-                              double horizontalPadding = 24;
-                              double crossSpacing = 12;
-                              double mainSpacing = 12;
-
-                              // Breakpoints for responsive columns
-                              if (width >= 2560) {
-                                // 4K screens - 5 columns
-                                cols = 5;
-                                horizontalPadding = 32;
-                                crossSpacing = 16;
-                                mainSpacing = 16;
-                              } else if (width >= 1440) {
-                                // Laptop L - 4 columns
-                                cols = 4;
-                                horizontalPadding = 28;
-                                crossSpacing = 14;
-                                mainSpacing = 14;
-                              } else if (width >= 1024) {
-                                // Laptop - 3 columns
-                                cols = 3;
-                                horizontalPadding = 24;
-                                crossSpacing = 12;
-                                mainSpacing = 12;
-                              } else if (width >= 768) {
-                                // Tablet - 2 columns
-                                cols = 2;
-                                horizontalPadding = 20;
-                                crossSpacing = 10;
-                                mainSpacing = 10;
-                              }
-
-                              // Mobile - use ListView
-                              if (cols == 1) {
-                                return ListView.builder(
-                                  padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
-                                  itemCount: _filteredRooms.length,
-                                  itemBuilder: (context, index) {
-                                    final room = _filteredRooms[index];
-                                    return _buildRoomCard(room, _canManage);
-                                  },
-                                );
-                              }
-
-                              // Calculate dynamic aspect ratio for grid
-                              final double availableWidth = width -
-                                  (horizontalPadding * 2) -
-                                  (crossSpacing * (cols - 1));
-                              final double tileWidth = availableWidth / cols;
-
-                              // Responsive height estimation based on screen size
-                              // เพิ่มความสูงการ์ดมากขึ้นเพื่อแก้ไข overflow
-                              double estimatedTileHeight;
-
-                              if (width >= 2560) {
-                                // 4K - slightly reduced height
-                                estimatedTileHeight = tileWidth * 1.40;
-                              } else if (width >= 1440) {
-                                // Laptop L - reduce height for better aesthetics
-                                estimatedTileHeight = tileWidth * 1.50;
-                              } else if (width >= 1024) {
-                                // Laptop - reduce height for better aesthetics
-                                estimatedTileHeight = tileWidth * 1.45;
-                              } else if (width >= 768) {
-                                // Tablet
-                                estimatedTileHeight = tileWidth * 1.35;
-                              } else {
-                                // Fallback
-                                estimatedTileHeight = tileWidth * 1.40;
-                              }
-
-                              double dynamicAspect =
-                                  tileWidth / estimatedTileHeight;
-                              // ปรับ clamp range ให้รองรับการ์ดที่สูงขึ้นมาก
-                              dynamicAspect = dynamicAspect.clamp(0.55, 0.85);
-
-                              return GridView.builder(
-                                padding: EdgeInsets.fromLTRB(horizontalPadding,
-                                    8, horizontalPadding, 24),
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: cols,
-                                  crossAxisSpacing: crossSpacing,
-                                  mainAxisSpacing: mainSpacing,
-                                  childAspectRatio: dynamicAspect,
-                                ),
-                                itemCount: _filteredRooms.length,
-                                itemBuilder: (context, index) {
-                                  final room = _filteredRooms[index];
-                                  return _buildRoomCard(room, _canManage);
-                                },
-                              );
+                          child: ListView.builder(
+                            padding: EdgeInsets.fromLTRB(24, 8, 24, 24),
+                            itemCount: _filteredRooms.length,
+                            itemBuilder: (context, index) {
+                              final room = _filteredRooms[index];
+                              return _buildRoomCard(room, _canManage);
                             },
                           ),
                         ),

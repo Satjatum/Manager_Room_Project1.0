@@ -780,7 +780,8 @@ class _TenantListUIState extends State<TenantListUI> {
           ),
         );
 
-        final result = await TenantService.deleteTenant(tenantId);
+        final result =
+            await TenantService.deleteTenantWithRelatedData(tenantId);
 
         if (mounted) Navigator.of(context).pop();
 

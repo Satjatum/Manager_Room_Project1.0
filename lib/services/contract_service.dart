@@ -358,9 +358,9 @@ class ContractService {
 
   /// ยกเลิกสัญญา (Terminate)
   static Future<Map<String, dynamic>> terminateContract(
-    String contractId,
-    String reason,
-  ) async {
+    String contractId, {
+    String? reason,
+  }) async {
     try {
       final currentUser = await AuthService.getCurrentUser();
       if (currentUser == null) {
@@ -377,7 +377,7 @@ class ContractService {
       // ดึงข้อมูลสัญญา
       final contract = await _supabase
           .from('rental_contracts')
-          .select('contract_id, room_id')
+          .select('contract_id, room_id, contract_status')
           .eq('contract_id', contractId)
           .maybeSingle();
 
@@ -385,11 +385,24 @@ class ContractService {
         return {'success': false, 'message': 'ไม่พบสัญญาที่ต้องการ'};
       }
 
+      if (contract['contract_status'] == 'terminated') {
+        return {'success': false, 'message': 'สัญญานี้ถูกยกเลิกแล้ว'};
+      }
+
       // อัปเดตสถานะสัญญาเป็น terminated
-      await _supabase.from('rental_contracts').update({
+      final updateData = <String, dynamic>{
         'contract_status': 'terminated',
-        'contract_note': reason,
-      }).eq('contract_id', contractId);
+      };
+      
+      // เพิ่มเหตุผลถ้ามีส่งมา
+      if (reason != null && reason.isNotEmpty) {
+        updateData['contract_note'] = reason;
+      }
+
+      await _supabase
+          .from('rental_contracts')
+          .update(updateData)
+          .eq('contract_id', contractId);
 
       // อัปเดตสถานะห้องกลับเป็น available
       await _supabase.from('rooms').update({'room_status': 'available'}).eq(

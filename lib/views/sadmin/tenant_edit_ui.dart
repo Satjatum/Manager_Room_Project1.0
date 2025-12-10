@@ -62,11 +62,6 @@ class _TenantEditUIState extends State<TenantEditUI>
   bool _isLoadingContract = true;
 
   // Account state
-  String? _linkedUserId;
-  bool _hasLinkedAccount = false;
-  bool _createUserAccount = false;
-  bool _userIsActive = true;
-  bool _showPassword = false;
 
   File? _selectedImage;
   Uint8List? _selectedImageBytes;
@@ -91,7 +86,7 @@ class _TenantEditUIState extends State<TenantEditUI>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     // Rebuild when tab index changes so bottom nav reflects Back/Next/Save correctly
     _tabController.addListener(() {
       if (mounted) setState(() {});
@@ -141,8 +136,6 @@ class _TenantEditUIState extends State<TenantEditUI>
     // preload account link
     final userId = widget.tenantData['user_id']?.toString();
     if (userId != null && userId.isNotEmpty) {
-      _linkedUserId = userId;
-      _hasLinkedAccount = true;
       _loadLinkedUser(userId);
     }
   }
@@ -154,7 +147,6 @@ class _TenantEditUIState extends State<TenantEditUI>
         setState(() {
           _userNameController.text = user['user_name'] ?? '';
           _userEmailController.text = user['user_email'] ?? '';
-          _userIsActive = user['is_active'] ?? true;
         });
       }
     } catch (e) {
@@ -660,120 +652,12 @@ class _TenantEditUIState extends State<TenantEditUI>
       } else if (_tabController.index == 1) {
         // Save contract data
         await _saveContractData();
-      } else {
-        // Save account data
-        await _saveAccountData();
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         debugPrint('เกิดข้อผิดพลาด: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
-      }
-    }
-  }
-
-  Future<void> _saveAccountData() async {
-    try {
-      // If already linked, update existing user
-      if (_hasLinkedAccount && _linkedUserId != null) {
-        final result = await UserService.updateUser(_linkedUserId!, {
-          'user_name': _userNameController.text.trim(),
-          'user_email': _userEmailController.text.trim(),
-          if (_userPasswordController.text.trim().isNotEmpty)
-            'user_pass': _userPasswordController.text,
-          'is_active': _userIsActive,
-        });
-
-        if (mounted) {
-          setState(() => _isLoading = false);
-          if (result['success'] == true) {
-            debugPrint('อัปเดตบัญชีผู้ใช้สำเร็จ');
-            SnackMessage.showSuccess(context, 'อัปเดตบัญชีผู้ใช้สำเร็จ');
-            Navigator.of(context).pop(true);
-          } else {
-            debugPrint(result['message'] ?? 'อัปเดตบัญชีล้มเหลว');
-            SnackMessage.showError(
-                context, result['message'] ?? 'อัปเดตบัญชีล้มเหลว');
-          }
-        }
-        return;
-      }
-
-      // Create new account if requested
-      if (_createUserAccount) {
-        if (_userNameController.text.trim().isEmpty ||
-            _userEmailController.text.trim().isEmpty ||
-            _userPasswordController.text.trim().isEmpty) {
-          setState(() => _isLoading = false);
-
-          debugPrint('กรุณากรอกข้อมูลบัญชีให้ครบถ้วน');
-          SnackMessage.showError(context, 'กรุณากรอกข้อมูลบัญชีให้ครบถ้วน');
-
-          return;
-        }
-
-        final create = await UserService.createUser({
-          'user_name': _userNameController.text.trim(),
-          'user_email': _userEmailController.text.trim(),
-          'user_pass': _userPasswordController.text,
-          'role': 'tenant',
-          'permissions': [
-            'view_own_data',
-            'create_issues',
-            'view_invoices',
-            'make_payments',
-          ],
-          'is_active': _userIsActive,
-        });
-
-        if (create['success'] != true) {
-          if (mounted) {
-            setState(() => _isLoading = false);
-
-            debugPrint(create['message'] ?? 'ไม่สามารถสร้างบัญชีได้');
-            SnackMessage.showError(
-                context, create['message'] ?? 'ไม่สามารถสร้างบัญชีได้');
-          }
-          return;
-        }
-
-        final newUserId = create['data']?['user_id']?.toString();
-        if (newUserId == null || newUserId.isEmpty) {
-          if (mounted) {
-            setState(() => _isLoading = false);
-
-            debugPrint('สร้างบัญชีสำเร็จแต่ไม่พบรหัสผู้ใช้');
-            SnackMessage.showError(
-                context, 'สร้างบัญชีสำเร็จแต่ไม่พบรหัสผู้ใช้');
-          }
-          return;
-        }
-
-        // Link to tenant
-        await _supabase
-            .from('tenants')
-            .update({'user_id': newUserId}).eq('tenant_id', widget.tenantId);
-
-        if (mounted) {
-          setState(() => _isLoading = false);
-          debugPrint('สร้างบัญชีและเชื่อมโยงสำเร็จ');
-          SnackMessage.showSuccess(context, 'สร้างบัญชีและเชื่อมโยงสำเร็จ');
-          Navigator.of(context).pop(true);
-        }
-      } else {
-        // nothing to save
-        if (mounted) {
-          setState(() => _isLoading = false);
-          debugPrint('ไม่ได้เปิดการสร้างบัญชีผู้ใช้');
-          SnackMessage.showError(context, 'ไม่ได้เปิดการสร้างบัญชีผู้ใช้');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        debugPrint('เกิดข้อผิดพลาดในการบันทึกบัญชี: $e');
-        SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการบันทึกบัญชี');
       }
     }
   }
@@ -944,7 +828,6 @@ class _TenantEditUIState extends State<TenantEditUI>
               indicatorWeight: 3,
               tabs: const [
                 Tab(icon: Icon(Icons.person), text: 'ข้อมูลผู้เช่า'),
-                Tab(icon: Icon(Icons.account_circle), text: 'บัญชีผู้ใช้'),
                 Tab(icon: Icon(Icons.description), text: 'ข้อมูลสัญญา'),
               ],
             ),
@@ -966,7 +849,6 @@ class _TenantEditUIState extends State<TenantEditUI>
                       controller: _tabController,
                       children: [
                         _buildTenantTab(),
-                        _buildAccountTab(),
                         _buildContractTab(),
                       ],
                     ),
@@ -1107,241 +989,6 @@ class _TenantEditUIState extends State<TenantEditUI>
       ),
     );
   }
-
-  Widget _buildAccountTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Color(0xFF10B981).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(Icons.account_circle_outlined,
-                          color: Color(0xFF10B981), size: 20),
-                    ),
-                    SizedBox(width: 12),
-                    Text(
-                      'บัญชีผู้ใช้',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const Spacer(),
-                    if (!_hasLinkedAccount)
-                      Switch(
-                        value: _createUserAccount,
-                        onChanged: (v) {
-                          setState(() {
-                            _createUserAccount = v;
-                            if (!v) {
-                              _userNameController.clear();
-                              _userEmailController.clear();
-                              _userPasswordController.clear();
-                            }
-                          });
-                        },
-                        activeColor: AppTheme.primary,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _hasLinkedAccount
-                      ? 'บัญชีผู้ใช้เชื่อมโยงกับผู้เช่าแล้ว สามารถแก้ไขข้อมูลได้'
-                      : (_createUserAccount
-                          ? 'สร้างบัญชีผู้ใช้ใหม่สำหรับผู้เช่ารายนี้'
-                          : 'ยังไม่มีบัญชีที่เชื่อมโยง เปิดสวิตช์เพื่อสร้างบัญชีใหม่'),
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                ),
-                const SizedBox(height: 16),
-
-                // Username
-                TextFormField(
-                  controller: _userNameController,
-                  enabled: _hasLinkedAccount || _createUserAccount,
-                  decoration: InputDecoration(
-                    labelText: 'ชื่อผู้ใช้${_hasLinkedAccount ? '' : ' *'}',
-                    prefixIcon: const Icon(Icons.person_outline),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: Color(0xff10B981), width: 2),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          BorderSide(color: Colors.grey[300]!, width: 1),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Email
-                TextFormField(
-                  controller: _userEmailController,
-                  enabled: _hasLinkedAccount || _createUserAccount,
-                  decoration: InputDecoration(
-                    labelText: 'อีเมล${_hasLinkedAccount ? '' : ' *'}',
-                    prefixIcon: const Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: Color(0xff10B981), width: 2),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          BorderSide(color: Colors.grey[300]!, width: 1),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 16),
-
-                // Password
-                TextFormField(
-                  controller: _userPasswordController,
-                  enabled: _hasLinkedAccount || _createUserAccount,
-                  decoration: InputDecoration(
-                    labelText: _hasLinkedAccount
-                        ? 'รหัสผ่านใหม่ (ถ้าต้องการ)'
-                        : 'รหัสผ่าน *',
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _showPassword ? Icons.visibility_off : Icons.visibility,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _showPassword = !_showPassword;
-                        });
-                      },
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: Color(0xff10B981), width: 2),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          BorderSide(color: Colors.grey[300]!, width: 1),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                  ),
-                  obscureText: !_showPassword,
-                ),
-                const SizedBox(height: 16),
-
-                // Active toggle
-                // Container(
-                //   padding: const EdgeInsets.all(12),
-                //   decoration: BoxDecoration(
-                //     border: Border.all(color: Colors.grey.shade300),
-                //     borderRadius: BorderRadius.circular(12),
-                //     color: Colors.grey.shade50,
-                //   ),
-                //   child: Row(
-                //     children: [
-                //       Icon(Icons.toggle_on, color: Colors.grey[600]),
-                //       const SizedBox(width: 8),
-                //       const Expanded(
-                //         child: Text('เปิดใช้งานบัญชีผู้ใช้'),
-                //       ),
-                //       Switch(
-                //         value: _userIsActive,
-                //         onChanged: (_hasLinkedAccount || _createUserAccount)
-                //             ? (v) => setState(() => _userIsActive = v)
-                //             : null,
-                //         activeColor: AppTheme.primary,
-                //       ),
-                //     ],
-                //   ),
-                // ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Widget _buildContractInfoCard() {
-  //   return Container(
-  //     padding: const EdgeInsets.all(16),
-  //     decoration: BoxDecoration(
-  //       color: Colors.white,
-  //       borderRadius: BorderRadius.circular(12),
-  //       border: Border.all(color: Colors.grey[300]!),
-  //     ),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         Row(
-  //           children: [
-  //             Icon(Icons.info_outline, color: Color(0xFF10B981)),
-  //             const SizedBox(width: 8),
-  //             Text(
-  //               'ข้อมูลสัญญาปัจจุบัน',
-  //               style: TextStyle(
-  //                 fontSize: 18,
-  //                 fontWeight: FontWeight.bold,
-  //                 color: Colors.black87,
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //         const SizedBox(height: 16),
-  //         _buildInfoRow(
-  //           icon: Icons.assignment,
-  //           label: 'เลขที่สัญญา',
-  //           value: _activeContract?['contract_num']?.toString() ?? '-',
-  //         ),
-  //         const Divider(height: 24),
-  //         _buildInfoRow(
-  //           icon: Icons.home,
-  //           label: (_activeContract?['room_category_name']?.toString() ??
-  //               _activeContract?['roomcate_name']?.toString() ??
-  //               'ประเภทห้อง'),
-  //           value: _activeContract?['rooms']?['room_number']?.toString() ?? '-',
-  //         ),
-  //         const Divider(height: 24),
-  //       ],
-  //     ),
-  //   );
-  // }
 
   Widget _buildContractEditSection() {
     return Container(
@@ -2259,7 +1906,7 @@ class _TenantEditUIState extends State<TenantEditUI>
           if (_tabController.index > 0) const SizedBox(width: 12),
           Expanded(
             flex: _tabController.index == 0 ? 1 : 2,
-            child: _tabController.index < 2
+            child: _tabController.index < 1
                 ? ElevatedButton.icon(
                     onPressed: _isLoading
                         ? null

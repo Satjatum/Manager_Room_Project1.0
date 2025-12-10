@@ -27,15 +27,11 @@ class _LoginUiState extends State<LoginUi> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _isCheckingSession = true;
-  bool _isLocked = false;
-  Duration _lockRemaining = Duration.zero;
-  Timer? _lockTimer;
 
   @override
   void initState() {
     super.initState();
     _initializeAndCheckSession();
-    _loadLockStatus();
   }
 
   Future<void> _initializeAndCheckSession() async {
@@ -65,49 +61,7 @@ class _LoginUiState extends State<LoginUi> {
     }
   }
 
-  Future<void> _loadLockStatus() async {
-    final status = await AuthService.getLockStatus();
-    if (!mounted) return;
-    setState(() {
-      _isLocked = status['locked'] == true;
-      _lockRemaining = (status['remaining'] as Duration?) ?? Duration.zero;
-    });
-    _startLockCountdownIfNeeded();
-  }
-
-  void _startLockCountdownIfNeeded() {
-    _lockTimer?.cancel();
-    if (_isLocked && _lockRemaining > Duration.zero) {
-      _lockTimer = Timer.periodic(const Duration(seconds: 1), (t) async {
-        final status = await AuthService.getLockStatus();
-        if (!mounted) return;
-        final locked = status['locked'] == true;
-        final remaining = (status['remaining'] as Duration?) ?? Duration.zero;
-        setState(() {
-          _isLocked = locked;
-          _lockRemaining = remaining;
-        });
-        if (!locked) {
-          t.cancel();
-        }
-      });
-    }
-  }
-
   Future<void> _login() async {
-    // Prevent attempt while locked
-    final status = await AuthService.getLockStatus();
-    if (status['locked'] == true) {
-      final remaining = (status['remaining'] as Duration?) ?? Duration.zero;
-      final m = remaining.inMinutes;
-      final s = (remaining.inSeconds % 60).toString().padLeft(2, '0');
-      debugPrint('คุณล็อคอินผิดครบตามจำนวนแล้ว โปรดลองใหม่ภายหลัง (${m}:${s})');
-      SnackMessage.showError(context,
-          'คุณล็อคอินผิดครบตามจำนวนแล้ว โปรดลองใหม่ภายหลัง (${m}:${s})');
-      await _loadLockStatus();
-      return;
-    }
-
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
@@ -141,8 +95,6 @@ class _LoginUiState extends State<LoginUi> {
             debugPrint('เกิดข้อผิดพลาด ${result['message']}');
             SnackMessage.showError(
                 context, 'เกิดข้อผิดพลาด ${result['message']}');
-            // refresh lock status in case it just locked
-            await _loadLockStatus();
           }
         }
       } catch (e) {
@@ -152,7 +104,6 @@ class _LoginUiState extends State<LoginUi> {
           });
           debugPrint('เกิดข้อผิดพลาด $e');
           SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
-          await _loadLockStatus();
         }
       }
     }
@@ -230,28 +181,6 @@ class _LoginUiState extends State<LoginUi> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (_isLocked)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.withOpacity(0.2)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.lock_clock, color: Colors.red),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'คุณล็อคอินผิดครบตามจำนวนแล้ว โปรดลองใหม่ภายหลัง (${_lockRemaining.inMinutes}:${(_lockRemaining.inSeconds % 60).toString().padLeft(2, '0')})',
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 // Logo with enhanced styling
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -379,7 +308,7 @@ class _LoginUiState extends State<LoginUi> {
             width: double.infinity,
             height: 55,
             child: ElevatedButton(
-              onPressed: _isLoading || _isLocked ? null : _login,
+              onPressed: _isLoading ? null : _login,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xff10B981),
                 shape: RoundedRectangleBorder(
@@ -430,7 +359,6 @@ class _LoginUiState extends State<LoginUi> {
   void dispose() {
     _emailOrUsernameController.dispose();
     _passwordController.dispose();
-    _lockTimer?.cancel();
     super.dispose();
   }
 }

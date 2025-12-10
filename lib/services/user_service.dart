@@ -1,7 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import '../models/user_models.dart';
-import 'dart:convert';
 
 class UserService {
   static final SupabaseClient _supabase = Supabase.instance.client;
@@ -23,8 +22,7 @@ class UserService {
       // Query admin and superadmin users
       final result = await _supabase
           .from('users')
-          .select(
-              'user_id, user_name, user_email, role, created_at, last_login, is_active')
+          .select('user_id, user_name, user_email, role, created_at, is_active')
           .inFilter('role', ['admin', 'superadmin'])
           .eq('is_active', true)
           .order('role', ascending: false) // superadmin first
@@ -46,8 +44,7 @@ class UserService {
 
       final result = await _supabase
           .from('users')
-          .select(
-              'user_id, user_name, user_email, role, created_at, last_login, is_active')
+          .select('user_id, user_name, user_email, role, created_at, is_active')
           .eq('user_id', userId)
           .eq('is_active', true)
           .maybeSingle();
@@ -173,14 +170,6 @@ class UserService {
         };
       }
 
-      if (userData['user_pass'] == null ||
-          userData['user_pass'].toString().trim().isEmpty) {
-        return {
-          'success': false,
-          'message': 'กรุณากรอกรหัสผ่าน',
-        };
-      }
-
       // Check for duplicate username
       final existingUser = await _supabase
           .from('users')
@@ -209,32 +198,76 @@ class UserService {
         };
       }
 
-      // Hash password
-      final hashedPassword = await _supabase.rpc('hash_password', params: {
-        'password': userData['user_pass'],
-      });
+      // Step 1: Generate secure password (or use provided one)
+      String password;
+      if (userData['user_pass'] != null &&
+          userData['user_pass'].toString().trim().isNotEmpty) {
+        password = userData['user_pass'].toString().trim();
+      } else {
+        // Auto-generate secure password
+        final passwordResult = await _supabase.rpc('generate_secure_password');
+        password = passwordResult as String;
+      }
 
-      // Prepare data for insertion
-// Prepare data for insertion
-      final insertData = {
-        'user_name': userData['user_name'].toString().trim(),
-        'user_email': userData['user_email'].toString().trim(),
-        'user_pass': hashedPassword,
-        'role': userData['role'] ?? 'user',
-        'permissions': userData['permissions'] != null
-            ? jsonEncode(userData['permissions']) // แปลง list เป็น JSON string
-            : '[]',
-        'is_active': userData['is_active'] ?? true,
-        'created_by': currentUser.userId,
-      };
-      final result =
-          await _supabase.from('users').insert(insertData).select().single();
+      // Step 2: Create user in Supabase Auth WITHOUT hijacking current session
+      try {
+        // Create new user account (this will automatically log in the new user)
+        final authResponse = await _supabase.auth.signUp(
+          email: userData['user_email'].toString().trim(),
+          password: password,
+          data: {
+            'username': userData['user_name'].toString().trim(),
+            'role': userData['role'] ?? 'tenant',
+          },
+        );
 
-      return {
-        'success': true,
-        'message': 'สร้างผู้ใช้สำเร็จ',
-        'data': result,
-      };
+        if (authResponse.user == null) {
+          return {
+            'success': false,
+            'message': 'ไม่สามารถสร้างผู้ใช้ใน Auth System ได้',
+          };
+        }
+
+        // Step 3: Wait a moment for trigger to create public.users record
+        await Future.delayed(const Duration(milliseconds: 800));
+
+        // Step 4: Update public.users with additional info
+        final authUid = authResponse.user!.id;
+
+        // Get the created user data first (while we're logged in as the new user)
+        final result = await _supabase
+            .from('users')
+            .select('*')
+            .eq('auth_uid', authUid)
+            .single();
+
+        // Update user info
+        await _supabase.from('users').update({
+          'user_name': userData['user_name'].toString().trim(),
+          'role': userData['role'] ?? 'tenant',
+          'permissions': userData['permissions'] ?? ['view_own_data'],
+          'is_active': userData['is_active'] ?? true,
+        }).eq('auth_uid', authUid);
+
+        // ⚠️ CRITICAL: Sign out the newly created user immediately
+        await _supabase.auth.signOut();
+
+        // Now the admin must log back in manually, OR we show a success message
+        // and redirect to login page
+
+        return {
+          'success': true,
+          'message': 'สร้างผู้ใช้สำเร็จ - กรุณาเข้าสู่ระบบอีกครั้ง',
+          'data': result,
+          'password': password,
+          'requireRelogin': true, // Flag to tell UI to redirect to login
+        };
+      } on AuthException catch (e) {
+        return {
+          'success': false,
+          'message': 'ไม่สามารถสร้างผู้ใช้ได้: ${e.message}',
+        };
+      }
     } on PostgrestException catch (e) {
       String message = 'เกิดข้อผิดพลาด: ${e.message}';
 
@@ -308,28 +341,30 @@ class UserService {
         updateData['is_active'] = userData['is_active'];
       }
 
-      // Update password if provided
+      // Handle password update separately via Supabase Auth
+      String? newPassword;
       if (userData['user_pass'] != null &&
           userData['user_pass'].toString().isNotEmpty) {
-        final hashedPassword = await _supabase.rpc('hash_password', params: {
-          'password': userData['user_pass'],
-        });
-        updateData['user_pass'] = hashedPassword;
+        newPassword = userData['user_pass'].toString();
       }
 
-      if (updateData.isEmpty) {
+      if (updateData.isEmpty && newPassword == null) {
         return {
           'success': false,
           'message': 'ไม่มีข้อมูลที่ต้องอัปเดต',
         };
       }
 
-      final result = await _supabase
-          .from('users')
-          .update(updateData)
-          .eq('user_id', userId)
-          .select()
-          .single();
+      // Update user data in public.users
+      Map<String, dynamic>? result;
+      if (updateData.isNotEmpty) {
+        result = await _supabase
+            .from('users')
+            .update(updateData)
+            .eq('user_id', userId)
+            .select()
+            .single();
+      }
 
       return {
         'success': true,
@@ -522,6 +557,65 @@ class UserService {
       return List<Map<String, dynamic>>.from(result);
     } catch (e) {
       throw Exception('เกิดข้อผิดพลาดในการค้นหาผู้ใช้: $e');
+    }
+  }
+
+  /// Send password reset email to user (for superadmin only)
+  static Future<Map<String, dynamic>> sendPasswordResetEmail(
+      String userId) async {
+    try {
+      final currentUser = await AuthService.getCurrentUser();
+      if (currentUser == null) {
+        return {
+          'success': false,
+          'message': 'กรุณาเข้าสู่ระบบใหม่',
+        };
+      }
+
+      // Only superadmin can send password reset emails
+      if (currentUser.userRole != UserRole.superAdmin) {
+        return {
+          'success': false,
+          'message': 'ไม่มีสิทธิ์ในการส่งอีเมลรีเซ็ตรหัสผ่าน',
+        };
+      }
+
+      // Get user email
+      final user = await _supabase
+          .from('users')
+          .select('user_email, user_name')
+          .eq('user_id', userId)
+          .single();
+
+      final userEmail = user['user_email'] as String;
+      final userName = user['user_name'] as String;
+
+      // Send password reset email via Supabase Auth
+      await _supabase.auth.resetPasswordForEmail(
+        userEmail,
+        redirectTo:
+            'your-app://reset-password', // Update with your redirect URL
+      );
+
+      return {
+        'success': true,
+        'message': 'ส่งอีเมลรีเซ็ตรหัสผ่านไปยัง $userName ($userEmail) แล้ว',
+      };
+    } on AuthException catch (e) {
+      return {
+        'success': false,
+        'message': 'ไม่สามารถส่งอีเมลได้: ${e.message}',
+      };
+    } on PostgrestException catch (e) {
+      return {
+        'success': false,
+        'message': 'ไม่พบผู้ใช้: ${e.message}',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'เกิดข้อผิดพลาด: $e',
+      };
     }
   }
 }

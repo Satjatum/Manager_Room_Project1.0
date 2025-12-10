@@ -130,10 +130,6 @@ class _SplashUiState extends State<SplashUi> with TickerProviderStateMixin {
       await AuthService.initializeSession();
       await _updateProgress(0.3, 'ตรวจสอบการเข้าสู่ระบบ...');
 
-      // Clean expired sessions
-      await AuthService.cleanExpiredSessions();
-      await _updateProgress(0.4, 'ทำความสะอาดเซสชันเก่า...');
-
       // Check authentication
       final isAuthenticated = await AuthMiddleware.isAuthenticated();
       await _updateProgress(0.6, 'กำลังตรวจสอบสิทธิ์...');
@@ -142,34 +138,17 @@ class _SplashUiState extends State<SplashUi> with TickerProviderStateMixin {
         final currentUser = await AuthMiddleware.getCurrentUser();
 
         if (currentUser != null && currentUser.isActive) {
-          await _updateProgress(0.8, 'พบผู้ใช้: ${currentUser.displayName}');
+          await _updateProgress(0.9, 'พบผู้ใช้: ${currentUser.displayName}');
+          await _updateProgress(1.0, 'เข้าสู่ระบบสำเร็จ');
 
-          // Validate session
-          final isValid = await AuthService.validateSession();
-          await _updateProgress(0.9, 'ตรวจสอบ session...');
+          // Show welcome message
+          await _updateProgress(
+              1.0, 'ยินดีต้อนรับ ${currentUser.displayName}!');
 
-          if (isValid) {
-            await _updateProgress(1.0, 'เข้าสู่ระบบสำเร็จ');
+          await Future.delayed(const Duration(milliseconds: 800));
 
-            // Show welcome message with last login info
-            await _updateProgress(
-                1.0,
-                'ยินดีต้อนรับ ${currentUser.displayName}!\n'
-                'เข้าสู่ระบบล่าสุด: ${currentUser.lastLoginDisplay}');
-
-            await Future.delayed(const Duration(milliseconds: 800));
-
-            if (mounted) {
-              _navigateToDashboard(currentUser);
-            }
-          } else {
-            await _updateProgress(0.8, 'Session หมดอายุ');
-            await AuthService.signOut();
-            await Future.delayed(const Duration(milliseconds: 800));
-
-            if (mounted) {
-              _navigateToLogin();
-            }
+          if (mounted) {
+            _navigateToDashboard(currentUser);
           }
         } else {
           await _updateProgress(0.6, 'ข้อมูลผู้ใช้ไม่ถูกต้อง');
