@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:manager_room_project/views/splash_ui.dart';
-import 'package:manager_room_project/views/reset_password_ui.dart';
-// import 'config/superbase_config.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
@@ -24,17 +22,7 @@ class ManagerRoomProject extends StatelessWidget {
     return MaterialApp(
       title: 'ระบบจัดการห้องเช่า',
       theme: ThemeData(),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const SplashUi(),
-        '/reset-password': (context) => const ResetPasswordUi(),
-      },
-      // Handle unknown routes
-      onUnknownRoute: (settings) {
-        return MaterialPageRoute(
-          builder: (context) => const SplashUi(),
-        );
-      },
+      home: SplashUi(),
       debugShowCheckedModeBanner: false,
     );
   }

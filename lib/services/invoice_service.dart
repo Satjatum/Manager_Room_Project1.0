@@ -253,12 +253,11 @@ class InvoiceService {
       }
       // ค่าบริการคงที่ (fixed rates) ให้นับเป็นค่าใช้จ่ายอื่น ๆ ตามเดิม
       double otherExpenses = fixedRatesTotal;
-      final discount = (invoiceData["discount_amount"] ?? 0.0).toDouble();
 
       // ✅ ค่า utilities รวม = น้ำ + ไฟ (ไม่รวมค่าคงที่)
       final utilitiesTotal = waterCost + electricCost;
       final baseTotal = roomRent + utilitiesTotal + otherExpenses;
-      final computedTotal = baseTotal - discount;
+      final computedTotal = baseTotal;
 
       // เตรียมข้อมูลสำหรับบันทึก invoice หลัก
       final insertData = {
@@ -283,9 +282,7 @@ class InvoiceService {
         // ✅ ค่าใช้จ่ายอื่นๆ
         "other_charges": otherExpenses,
 
-        // ✅ ส่วนลด
-        "discount_type": invoiceData["discount_type"] ?? "none",
-        "discount_amount": discount,
+        // Discount functionality removed
 
         // ✅ ค่าปรับล่าช้า (ตอนสร้างบิลจะเป็น 0 เสมอ จะคำนวณตอนชำระเงิน)
         "late_fee_amount": (invoiceData["late_fee_amount"] ?? 0.0).toDouble(),
@@ -322,8 +319,6 @@ class InvoiceService {
             rental_amount,
             utilities_amount,
             other_charges,
-            discount_type,
-            discount_amount,
             late_fee_amount,
             late_fee_days,
             payment_setting_id,
@@ -458,21 +453,17 @@ class InvoiceService {
           invoiceData['utilities_amount'] ?? existing['utilities_amount'];
       final otherCharges =
           invoiceData['other_charges'] ?? existing['other_charges'];
-      final discountAmount =
-          invoiceData['discount_amount'] ?? existing['discount_amount'];
       final lateFeeAmount =
           invoiceData['late_fee_amount'] ?? existing['late_fee_amount'];
 
       final baseTotalCalc = rentalAmount + utilitiesAmount + otherCharges;
-      final totalAmount = baseTotalCalc - discountAmount + lateFeeAmount;
+      final totalAmount = baseTotalCalc + lateFeeAmount;
 
       Map<String, dynamic> updateData = {
         'rental_amount': rentalAmount,
         'utilities_amount': utilitiesAmount,
         'other_charges': otherCharges,
-        'discount_type': invoiceData['discount_type'],
-        'discount_amount': discountAmount,
-        'discount_reason': invoiceData['discount_reason'],
+        // Discount functionality removed
         'late_fee_amount': lateFeeAmount,
         'late_fee_days': invoiceData['late_fee_days'],
         'subtotal': baseTotalCalc,
@@ -498,7 +489,6 @@ class InvoiceService {
             rental_amount,
             utilities_amount,
             other_charges,
-            discount_amount,
             late_fee_amount,
             subtotal,
             total_amount,
@@ -1135,7 +1125,6 @@ class InvoiceService {
         rental_amount,
         utilities_amount,
         other_charges,
-        discount_amount,
         late_fee_amount,
         issue_date,
         due_date,
@@ -1174,7 +1163,6 @@ class InvoiceService {
         totalRental += invoice['rental_amount'] ?? 0.0;
         totalUtilities += invoice['utilities_amount'] ?? 0.0;
         totalOtherCharges += invoice['other_charges'] ?? 0.0;
-        totalDiscount += invoice['discount_amount'] ?? 0.0;
         totalLateFee += invoice['late_fee_amount'] ?? 0.0;
         totalCollected += paid;
 
@@ -1251,9 +1239,7 @@ class InvoiceService {
         final newBaseTotalCalc = (invoice['rental_amount'] ?? 0.0) +
             (invoice['utilities_amount'] ?? 0.0) +
             newOtherCharges;
-        final newTotal = newBaseTotalCalc -
-            (invoice['discount_amount'] ?? 0.0) +
-            (invoice['late_fee_amount'] ?? 0.0);
+        final newTotal = newBaseTotalCalc + (invoice['late_fee_amount'] ?? 0.0);
 
         await _supabase.from('invoices').update({
           'other_charges': newOtherCharges,
@@ -1303,9 +1289,7 @@ class InvoiceService {
         final newBaseTotalCalc = (invoice['rental_amount'] ?? 0.0) +
             (invoice['utilities_amount'] ?? 0.0) +
             newOtherCharges;
-        final newTotal = newBaseTotalCalc -
-            (invoice['discount_amount'] ?? 0.0) +
-            (invoice['late_fee_amount'] ?? 0.0);
+        final newTotal = newBaseTotalCalc - (invoice['late_fee_amount'] ?? 0.0);
 
         await _supabase.from('invoices').update({
           'other_charges': newOtherCharges,
@@ -1326,63 +1310,7 @@ class InvoiceService {
     }
   }
 
-  /// ใช้ส่วนลดกับใบแจ้งหนี้
-  static Future<Map<String, dynamic>> applyDiscount({
-    required String invoiceId,
-    required String discountType,
-    required double discountAmount,
-    String? discountReason,
-  }) async {
-    try {
-      final currentUser = await AuthService.getCurrentUser();
-      if (currentUser == null) {
-        return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
-      }
-
-      final invoice = await getInvoiceById(invoiceId);
-      if (invoice == null) {
-        return {'success': false, 'message': 'ไม่พบข้อมูลใบแจ้งหนี้'};
-      }
-
-      if (invoice['invoice_status'] == 'paid') {
-        return {
-          'success': false,
-          'message': 'ไม่สามารถใช้ส่วนลดกับบิลที่ชำระแล้ว'
-        };
-      }
-
-      final baseTotalCalc = (invoice['rental_amount'] ?? 0.0) +
-          (invoice['utilities_amount'] ?? 0.0) +
-          (invoice['other_charges'] ?? 0.0);
-      final newTotal =
-          baseTotalCalc - discountAmount + (invoice['late_fee_amount'] ?? 0.0);
-
-      if (newTotal < 0) {
-        return {
-          'success': false,
-          'message': 'ยอดส่วนลดมากกว่ายอดรวม',
-        };
-      }
-
-      await _supabase.from('invoices').update({
-        'discount_type': discountType,
-        'discount_amount': discountAmount,
-        'discount_reason': discountReason,
-        'subtotal': baseTotalCalc,
-        'total_amount': newTotal,
-      }).eq('invoice_id', invoiceId);
-
-      return {
-        'success': true,
-        'message': 'ใช้ส่วนลดสำเร็จ',
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'เกิดข้อผิดพลาด: $e',
-      };
-    }
-  }
+  // applyDiscount() method removed - Discount system disabled
 
   /// Export ข้อมูลใบแจ้งหนี้เป็น CSV
   static Future<String> exportInvoicesToCSV({
@@ -1402,7 +1330,7 @@ class InvoiceService {
 
       // Header
       csv.writeln(
-          'เลขที่บิล,เดือน,ปี,ห้อง,ผู้เช่า,ค่าเช่า,ค่าน้ำ-ไฟ,ค่าใช้จ่ายอื่น,ส่วนลด,ค่าปรับ,ยอดรวม,ชำระแล้ว,คงเหลือ,สถานะ,วันครบกำหนด');
+          'เลขที่บิล,เดือน,ปี,ห้อง,ผู้เช่า,ค่าเช่า,ค่าน้ำ-ไฟ,ค่าใช้จ่ายอื่น,ค่าปรับ,ยอดรวม,ชำระแล้ว,คงเหลือ,สถานะ,วันครบกำหนด');
 
       // Data
       for (var invoice in invoices) {
@@ -1410,7 +1338,7 @@ class InvoiceService {
             (invoice['total_amount'] ?? 0.0) - (invoice['paid_amount'] ?? 0.0);
 
         csv.writeln(
-            '${invoice['invoice_number']},${invoice['invoice_month']},${invoice['invoice_year']},${invoice['room_number']},${invoice['tenant_name']},${invoice['rental_amount']},${invoice['utilities_amount']},${invoice['other_charges']},${invoice['discount_amount']},${invoice['late_fee_amount']},${invoice['total_amount']},${invoice['paid_amount']},$remaining,${invoice['invoice_status']},${invoice['due_date']}');
+            '${invoice['invoice_number']},${invoice['invoice_month']},${invoice['invoice_year']},${invoice['room_number']},${invoice['tenant_name']},${invoice['rental_amount']},${invoice['utilities_amount']},${invoice['other_charges']},${invoice['late_fee_amount']},${invoice['total_amount']},${invoice['paid_amount']},$remaining,${invoice['invoice_status']},${invoice['due_date']}');
       }
 
       return csv.toString();

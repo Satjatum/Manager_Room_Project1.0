@@ -66,7 +66,12 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
         title: 'สิ่งอำนวยความสะดวก',
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const AmenitiesUI()),
+          MaterialPageRoute(
+            builder: (_) => AmenitiesUI(
+              branchId: lockedBranchId,
+              branchName: widget.branchName,
+            ),
+          ),
         ),
       ),
       _SettingItem(
@@ -74,7 +79,12 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
         title: 'ประเภทห้อง',
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const RoomTypesUi()),
+          MaterialPageRoute(
+            builder: (_) => RoomTypesUi(
+              branchId: lockedBranchId,
+              branchName: widget.branchName,
+            ),
+          ),
         ),
       ),
       _SettingItem(
@@ -82,7 +92,12 @@ class _SettingbranchUiState extends State<SettingbranchUi> {
         title: 'หมวดหมู่ห้อง',
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => const RoomCateUi()),
+          MaterialPageRoute(
+            builder: (_) => RoomCateUi(
+              branchId: lockedBranchId,
+              branchName: widget.branchName,
+            ),
+          ),
         ),
       ),
     ];

@@ -1448,7 +1448,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
                                     children: [
                                       TextSpan(
                                           text:
-                                              '${branch['manager_count'] ?? 1} ผู้จัดการ'),
+                                              '${branch['manager_count'] ?? 1} ผู้จัดการ '),
                                       if (branch['manager_count'] != null &&
                                           branch['manager_count'] > 1)
                                         TextSpan(text: 'หลัก: '),

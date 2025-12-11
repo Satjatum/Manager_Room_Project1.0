@@ -6,6 +6,11 @@ import '../tenant/tenant_pay_history_ui.dart';
 // Widgets //
 import '../widgets/colors.dart';
 import '../widgets/mainnavbar.dart';
+// Services //
+import '../../services/auth_service.dart';
+import '../../services/tenant_service.dart';
+import '../../services/contract_service.dart';
+import '../../models/user_models.dart';
 
 class TenantdashUi extends StatefulWidget {
   final String? tenantName;
@@ -30,8 +35,157 @@ class TenantdashUi extends StatefulWidget {
 }
 
 class _TenantdashUiState extends State<TenantdashUi> {
+  UserModel? currentUser;
+  Map<String, dynamic>? tenantInfo;
+  Map<String, dynamic>? activeContract;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTenantData();
+  }
+
+  Future<void> _loadTenantData() async {
+    try {
+      // Get current user
+      currentUser = await AuthService.getCurrentUser();
+      debugPrint(
+          'Current User: ${currentUser?.userName}, Tenant ID: ${currentUser?.tenantId}');
+
+      if (currentUser?.tenantId != null) {
+        // Get tenant info
+        tenantInfo = await TenantService.getTenantById(currentUser!.tenantId!);
+        debugPrint('Tenant Info: $tenantInfo');
+
+        // Get active contract for this tenant
+        final contracts = await ContractService.getAllContracts(
+          tenantId: currentUser!.tenantId!,
+          status: 'active',
+          limit: 1,
+        );
+
+        debugPrint('Found ${contracts.length} active contracts');
+        if (contracts.isNotEmpty) {
+          activeContract = contracts.first;
+          debugPrint('Active Contract Data: $activeContract');
+          debugPrint('Contract Keys: ${activeContract!.keys.toList()}');
+          debugPrint('Contract Price: ${activeContract!['contract_price']}');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading tenant data: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  // Helper methods to get tenant data or fallback to widget params or "-"
+  String _getTenantName() {
+    return tenantInfo?['tenant_fullname'] ??
+        currentUser?.tenantFullName ??
+        widget.tenantName ??
+        'ผู้เช่า';
+  }
+
+  String _getRoomType() {
+    return activeContract?['roomcate_name'] ?? widget.roomType ?? '-';
+  }
+
+  String _getRoomNumber() {
+    return activeContract?['room_number'] ?? widget.roomNumber ?? '-';
+  }
+
+  String _getBranchName() {
+    return activeContract?['branch_name'] ?? widget.branchName ?? '-';
+  }
+
+  double _getRentalFee() {
+    // Debug log to check available fields
+    if (activeContract != null) {
+      debugPrint('Checking rental fee fields in contract...');
+    }
+
+    // Try different possible field names for rental fee
+    // contract_price is the main field according to database schema
+    final possibleFeeFields = [
+      'contract_price', // Main field from database schema
+      'rental_fee',
+      'rent_amount',
+      'monthly_rent',
+      'rent_fee',
+      'contract_amount',
+      'amount',
+      'room_price',
+      'fee'
+    ];
+
+    if (activeContract != null) {
+      for (String field in possibleFeeFields) {
+        if (activeContract![field] != null) {
+          final value = activeContract![field];
+          debugPrint('Found $field: $value');
+          if (value is num && value > 0) {
+            return value.toDouble();
+          }
+        }
+      }
+
+      // Also check nested room data
+      if (activeContract!['rooms'] is Map) {
+        final roomData = activeContract!['rooms'] as Map<String, dynamic>;
+        debugPrint('Room data: $roomData');
+
+        final possibleRoomFields = ['room_price', 'price'];
+        for (String field in possibleRoomFields) {
+          if (roomData[field] != null) {
+            final value = roomData[field];
+            debugPrint('Found room $field: $value');
+            if (value is num && value > 0) {
+              return value.toDouble();
+            }
+          }
+        }
+      }
+    }
+
+    if (widget.rentalFee != null && widget.rentalFee! > 0) {
+      return widget.rentalFee!;
+    }
+    return 0.0;
+  }
+
+  String _getRentalFeeDisplay() {
+    final fee = _getRentalFee();
+    if (fee > 0) {
+      return '฿${fee.toStringAsFixed(2)}';
+    }
+    return '-';
+  }
+
+  String? _getProfileImageUrl() {
+    return tenantInfo?['tenant_profile'] ??
+        currentUser?.tenantProfile ??
+        widget.profileImageUrl;
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: const Center(
+          child: CircularProgressIndicator(
+            color: AppTheme.primary,
+          ),
+        ),
+        bottomNavigationBar: const Mainnavbar(currentIndex: 0),
+      );
+    }
     // Quick actions with descriptions
     final items = [
       _DashItem(
@@ -80,12 +234,12 @@ class _TenantdashUiState extends State<TenantdashUi> {
               children: [
                 // Tenant Info Card
                 _TenantInfoCard(
-                  tenantName: widget.tenantName ?? 'ผู้เช่า',
-                  roomType: widget.roomType ?? '-',
-                  roomNumber: widget.roomNumber ?? '-',
-                  branchName: widget.branchName ?? '-',
-                  rentalFee: widget.rentalFee ?? 0.0,
-                  profileImageUrl: widget.profileImageUrl,
+                  tenantName: _getTenantName(),
+                  roomType: _getRoomType(),
+                  roomNumber: _getRoomNumber(),
+                  branchName: _getBranchName(),
+                  rentalFeeDisplay: _getRentalFeeDisplay(),
+                  profileImageUrl: _getProfileImageUrl(),
                 ),
                 const SizedBox(height: 24),
 
@@ -118,7 +272,7 @@ class _TenantInfoCard extends StatelessWidget {
   final String roomType;
   final String roomNumber;
   final String branchName;
-  final double rentalFee;
+  final String rentalFeeDisplay;
   final String? profileImageUrl;
 
   const _TenantInfoCard({
@@ -126,7 +280,7 @@ class _TenantInfoCard extends StatelessWidget {
     required this.roomType,
     required this.roomNumber,
     required this.branchName,
-    required this.rentalFee,
+    required this.rentalFeeDisplay,
     this.profileImageUrl,
   });
 
@@ -147,15 +301,41 @@ class _TenantInfoCard extends StatelessWidget {
             Row(
               children: [
                 // Profile Image
-                CircleAvatar(
-                  radius: 32,
-                  backgroundColor: AppTheme.primary.withOpacity(0.1),
-                  backgroundImage: profileImageUrl != null
-                      ? NetworkImage(profileImageUrl!)
-                      : null,
-                  child: profileImageUrl == null
-                      ? Icon(Icons.person, size: 36, color: AppTheme.primary)
-                      : null,
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.grey.shade200,
+                    border: Border.all(color: AppTheme.primary, width: 2.5),
+                  ),
+                  child: ClipOval(
+                    child: profileImageUrl != null &&
+                            profileImageUrl!.isNotEmpty &&
+                            (profileImageUrl!.startsWith('http://') ||
+                                profileImageUrl!.startsWith('https://'))
+                        ? Image.network(
+                            profileImageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                _buildInitialAvatar(tenantName),
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes !=
+                                          null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                      : null,
+                                  strokeWidth: 2,
+                                  color: AppTheme.primary,
+                                ),
+                              );
+                            },
+                          )
+                        : _buildInitialAvatar(tenantName),
+                  ),
                 ),
                 const SizedBox(width: 16),
                 // Name
@@ -222,7 +402,7 @@ class _TenantInfoCard extends StatelessWidget {
                   child: _InfoItem(
                     icon: Icons.payments_outlined,
                     label: 'ค่าเช่าตามสัญญา',
-                    value: '฿${rentalFee.toStringAsFixed(2)}',
+                    value: rentalFeeDisplay,
                   ),
                 ),
               ],
@@ -231,6 +411,33 @@ class _TenantInfoCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // 🎨 Avatar fallback ตอนโหลดรูปไม่ได้ / ไม่มีรูป
+  Widget _buildInitialAvatar(String name) {
+    return Container(
+      color: Colors.grey.shade300,
+      alignment: Alignment.center,
+      child: Text(
+        _getInitials(name),
+        style: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 18,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
+  String _getInitials(String name) {
+    if (name.isEmpty) return 'T';
+
+    final words = name.trim().split(' ');
+    if (words.length >= 2) {
+      return '${words[0][0]}${words[1][0]}'.toUpperCase();
+    } else {
+      return words[0][0].toUpperCase();
+    }
   }
 }
 

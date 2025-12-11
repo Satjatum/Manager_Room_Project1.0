@@ -183,4 +183,86 @@ class BranchManagerService {
       return {'success': false, 'message': 'เกิดข้อผิดพลาด: $e'};
     }
   }
+
+  // Check if user has access to branch
+  static Future<bool> checkUserBranchAccess(String? branchId) async {
+    try {
+      if (branchId == null || branchId.isEmpty) {
+        return false;
+      }
+
+      final currentUser = await AuthService.getCurrentUser();
+      if (currentUser == null) {
+        return false;
+      }
+
+      // SuperAdmin has access to all branches
+      if (currentUser.userRole == UserRole.superAdmin) {
+        return true;
+      }
+
+      // Admin needs to be listed in branch_managers
+      if (currentUser.userRole == UserRole.admin) {
+        final managerRecord = await _supabase
+            .from('branch_managers')
+            .select('id')
+            .eq('branch_id', branchId)
+            .eq('user_id', currentUser.userId)
+            .maybeSingle();
+
+        return managerRecord != null;
+      }
+
+      // Other roles: check if they have branch_id in their user record
+      return currentUser.branchId == branchId;
+    } catch (e) {
+      // On error, deny access
+      return false;
+    }
+  }
+
+  // Get branches that current user has access to
+  static Future<List<String>> getUserAccessibleBranches() async {
+    try {
+      final currentUser = await AuthService.getCurrentUser();
+      if (currentUser == null) {
+        return [];
+      }
+
+      // SuperAdmin has access to all branches
+      if (currentUser.userRole == UserRole.superAdmin) {
+        final result = await _supabase
+            .from('branches')
+            .select('branch_id')
+            .eq('is_active', true);
+
+        return List<Map<String, dynamic>>.from(result)
+            .map((branch) => branch['branch_id'].toString())
+            .where((id) => id.isNotEmpty)
+            .toList();
+      }
+
+      // Admin: get managed branches
+      if (currentUser.userRole == UserRole.admin) {
+        final result = await _supabase
+            .from('branch_managers')
+            .select('branch_id')
+            .eq('user_id', currentUser.userId);
+
+        return List<Map<String, dynamic>>.from(result)
+            .map((manager) => manager['branch_id'].toString())
+            .where((id) => id.isNotEmpty)
+            .toList();
+      }
+
+      // Other roles: return their assigned branch
+      if (currentUser.branchId != null && currentUser.branchId!.isNotEmpty) {
+        return [currentUser.branchId!];
+      }
+
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
 }

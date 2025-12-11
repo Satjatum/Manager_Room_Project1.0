@@ -367,82 +367,129 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppTheme.primary.withOpacity(0.8),
-                    AppTheme.primary,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(8),
+                color: AppTheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.send, color: Colors.white, size: 24),
+              child: Icon(
+                Icons.add_circle_rounded,
+                color: AppTheme.primary,
+                size: 24,
+              ),
             ),
-            const SizedBox(width: 12),
-            const Expanded(child: Text('ยืนยันการรายงาน')),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('คุณต้องการรายงานปัญหานี้ใช่หรือไม่?'),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
+            const SizedBox(width: 8),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Icon(Icons.info_outline,
-                          color: Colors.blue.shade700, size: 18),
-                      const SizedBox(width: 8),
-                      Text(
-                        'สรุปรายการ',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade900,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    'ยีนยันการแจ้งปัญหา',
+                    style: const TextStyle(
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                    ),
                   ),
-                  _buildSummaryRow('หัวข้อ', _titleController.text),
-                  _buildSummaryRow(
-                      'ประเภท', _getIssueTypeText(_selectedIssueType)),
-                  if (_selectedImages.isNotEmpty)
-                    _buildSummaryRow('รูปภาพ', '${_selectedImages.length} รูป'),
                 ],
               ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('ยกเลิก'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.info_outline,
+                              color: Colors.blue.shade700, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            'สรุปรายการ',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade900,
+                            ),
+                          ),
+                        ],
+                      ),
+                      _buildSummaryRow('หัวข้อ', _titleController.text),
+                      _buildSummaryRow(
+                          'ประเภท', _getIssueTypeText(_selectedIssueType)),
+                      if (_selectedImages.isNotEmpty)
+                        _buildSummaryRow(
+                            'รูปภาพ', '${_selectedImages.length} รูป'),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            child: const Text('ยืนยัน'),
+          ),
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'ยกเลิก',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'ยืนยัน',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+              )
+            ],
           ),
         ],
       ),
@@ -539,9 +586,9 @@ class _CreateIssueScreenState extends State<CreateIssueScreen> {
         }
 
         if (mounted) {
-          debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
-          SnackMessage.showError(
-              context, 'เกิดข้อผิดพลาด: ${result['message']}');
+          debugPrint('อัปโหลดรูปสำเร็จ: ${result['message']}');
+          SnackMessage.showSuccess(
+              context, 'อัปโหลดรูปสำเร็จ: ${result['message']}');
           Navigator.of(context).pop(true);
         }
       } else {

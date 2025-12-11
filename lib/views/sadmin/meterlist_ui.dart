@@ -6,6 +6,7 @@ import '../../models/user_models.dart';
 import '../../services/meter_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/utility_rate_service.dart';
+import '../../services/branch_manager_service.dart';
 // Widgets //
 import '../widgets/colors.dart';
 import '../widgets/snack_message.dart';
@@ -690,7 +691,25 @@ class _MeterListUiState extends State<MeterListUi> {
     setState(() => _isLoading = true);
     try {
       _currentUser = await AuthService.getCurrentUser();
-      if (_currentUser == null) return;
+      if (_currentUser == null) {
+        if (mounted) {
+          SnackMessage.showError(context, 'กรุณาเข้าสู่ระบบใหม่');
+          Navigator.of(context).pop();
+        }
+        return;
+      }
+
+      // ตรวจสอบสิทธิ์การเข้าถึงสาขา
+      final hasAccess =
+          await BranchManagerService.checkUserBranchAccess(widget.branchId);
+      if (!hasAccess) {
+        if (mounted) {
+          SnackMessage.showError(context, 'คุณไม่มีสิทธิ์เข้าถึงสาขานี้');
+          Navigator.of(context).pop();
+        }
+        return;
+      }
+
       await _loadData();
     } catch (e) {
       debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
@@ -898,7 +917,7 @@ class _MeterListUiState extends State<MeterListUi> {
             ],
           ),
           content: SizedBox(
-            width: 500,
+            width: double.maxFinite,
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1444,6 +1463,14 @@ class _MeterListUiState extends State<MeterListUi> {
     setState(() => _savingRoomIds.add(roomId));
 
     try {
+      // ตรวจสอบสิทธิ์การเข้าถึงสาขาก่อนอื่น
+      final hasAccess =
+          await BranchManagerService.checkUserBranchAccess(widget.branchId);
+      if (!hasAccess) {
+        SnackMessage.showError(context, 'คุณไม่มีสิทธิ์เข้าถึงสาขานี้');
+        return;
+      }
+
       final waterCurrentVal = double.tryParse(waterCurrent);
       final electricCurrentVal = double.tryParse(electricCurrent);
 

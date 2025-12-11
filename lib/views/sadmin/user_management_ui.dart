@@ -949,11 +949,12 @@ class _AddUserDialogState extends State<AddUserDialog> {
       setState(() => _isLoading = false);
 
       if (result['success']) {
+        // สร้าง user สำเร็จ - ไม่ต้อง logout เพราะ UserService จะ restore session อัตโนมัติ
         Navigator.pop(context, true);
-        debugPrint(result['message']);
+        debugPrint('✅ ${result['message']}');
         SnackMessage.showSuccess(context, result['message']);
       } else {
-        debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
+        debugPrint('❌ เกิดข้อผิดพลาด: ${result['message']}');
         SnackMessage.showError(context, result['message']);
       }
     }

@@ -30,7 +30,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
   final _pageController = PageController();
 
   // Controllers
-  final _discountAmountController = TextEditingController();
   final _discountReasonController = TextEditingController();
   final _lateFeeAmountController = TextEditingController();
   final _lateFeeReasonController = TextEditingController();
@@ -63,7 +62,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
   double _rentalAmount = 0.0;
   double _utilitiesAmount = 0.0;
   double _otherCharges = 0.0;
-  double _discountAmount = 0.0;
   double _lateFeeAmount = 0.0;
 
   // Water and Electric meter data
@@ -94,7 +92,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
 
   @override
   void dispose() {
-    _discountAmountController.dispose();
     _discountReasonController.dispose();
     _lateFeeAmountController.dispose();
     _lateFeeReasonController.dispose();
@@ -386,15 +383,12 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
   // ⭐ ฟังก์ชันใหม่: คำนวดยอดรวมพร้อมใช้ payment settings
   double _calculateGrandTotal() {
     final baseTotal = _calculateBaseTotal();
-    // ปิดการหักส่วนลดยกอัตโนมัติระหว่างสร้างบิล
-    _discountAmount = 0.0;
-    _discountAmountController.text = '0.00';
 
     // ปิดการคิดค่าปรับล่าช้าอัตโนมัติระหว่างสร้างบิล
     _lateFeeAmount = 0.0;
     _lateFeeAmountController.text = '0.00';
 
-    return baseTotal - _discountAmount + _lateFeeAmount;
+    return baseTotal + _lateFeeAmount;
   }
 
   void _nextStep() {
@@ -505,9 +499,6 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
 
         // ✅ ค่าใช้จ่ายอื่นๆ
         'other_expenses': _otherCharges,
-
-        // ✅ ส่วนลด
-        'discount_amount': 0.0,
 
         // ✅ รายการค่าบริการคงที่
         'fixed_rates': _selectedFixedRates,
@@ -891,9 +882,34 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         backgroundColor: Colors.white,
         title: Row(
           children: [
-            Icon(Icons.add_circle, color: AppTheme.primary),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.add_circle_rounded,
+                color: AppTheme.primary,
+                size: 24,
+              ),
+            ),
             const SizedBox(width: 8),
-            const Text('เลือกค่าบริการ'),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'เลือกค่าบริการ',
+                    style: const TextStyle(
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
         content: SizedBox(
@@ -909,20 +925,21 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
               final total = fixedAmount + additionalCharge;
 
               return Card(
+                color: Colors.white,
                 child: ListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.purple.withOpacity(0.1),
+                      color: AppTheme.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Colors.purple.withOpacity(0.3),
+                        color: AppTheme.primary.withOpacity(0.3),
                         width: 1,
                       ),
                     ),
                     child: Icon(
                       _getIconForRate(rate['rate_name']),
-                      color: Colors.purple,
+                      color: AppTheme.primary,
                     ),
                   ),
                   title: Text(
@@ -949,7 +966,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: Colors.purple,
+                          color: AppTheme.primary,
                         ),
                       ),
                       const Text(
@@ -968,9 +985,28 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: Colors.grey.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text(
+                    'ยกเลิก',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1920,10 +1956,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                     }),
                   ],
                   const Divider(height: 24),
-                  if (_paymentSettings != null &&
-                      _paymentSettings!['is_active'] == true &&
-                      _paymentSettings!['enable_discount'] == true)
-                    _moneyRow('ส่วนลด', _discountAmount, emphasis: true),
+                  // Discount functionality removed
                   if (_paymentSettings != null &&
                       _paymentSettings!['is_active'] == true &&
                       _paymentSettings!['enable_late_fee'] == true)

@@ -703,7 +703,8 @@ class RoomService {
   }
 
   /// Get room types
-  static Future<List<Map<String, dynamic>>> getRoomTypes({String? branchId}) async {
+  static Future<List<Map<String, dynamic>>> getRoomTypes(
+      {String? branchId}) async {
     try {
       String? effectiveBranchId = branchId;
       try {
@@ -726,7 +727,8 @@ class RoomService {
   }
 
   /// Get room categories
-  static Future<List<Map<String, dynamic>>> getRoomCategories({String? branchId}) async {
+  static Future<List<Map<String, dynamic>>> getRoomCategories(
+      {String? branchId}) async {
     try {
       String? effectiveBranchId = branchId;
       try {
@@ -749,7 +751,8 @@ class RoomService {
   }
 
   /// Get amenities
-  static Future<List<Map<String, dynamic>>> getAmenities({String? branchId}) async {
+  static Future<List<Map<String, dynamic>>> getAmenities(
+      {String? branchId}) async {
     try {
       String? effectiveBranchId = branchId;
       try {
@@ -887,8 +890,8 @@ class RoomService {
   // ============================================
 
   /// Create room type
-  static Future<Map<String, dynamic>> createRoomType(
-      Map<String, dynamic> data) async {
+  static Future<Map<String, dynamic>> createRoomType(Map<String, dynamic> data,
+      {String? branchId}) async {
     try {
       final currentUser = await AuthService.getCurrentUser();
       if (currentUser == null) {
@@ -899,7 +902,10 @@ class RoomService {
         return {'success': false, 'message': 'ไม่มีสิทธิ์ในการสร้างประเภทห้อง'};
       }
 
-      if ((currentUser.branchId ?? '').isEmpty) {
+      // Use provided branchId if available, otherwise fallback to currentUser.branchId
+      final targetBranchId = branchId ?? currentUser.branchId;
+
+      if ((targetBranchId ?? '').isEmpty) {
         return {
           'success': false,
           'message': 'กรุณาเลือกสาขา (branch) ก่อนเพิ่มประเภทห้อง',
@@ -908,7 +914,7 @@ class RoomService {
 
       final insertData = {
         ...data,
-        'branch_id': currentUser.branchId,
+        'branch_id': targetBranchId,
         'updated_at': DateTime.now().toIso8601String(),
       };
 
@@ -1013,7 +1019,8 @@ class RoomService {
 
   /// Create room category
   static Future<Map<String, dynamic>> createRoomCategory(
-      Map<String, dynamic> data) async {
+      Map<String, dynamic> data,
+      {String? branchId}) async {
     try {
       final currentUser = await AuthService.getCurrentUser();
       if (currentUser == null) {
@@ -1027,7 +1034,10 @@ class RoomService {
         };
       }
 
-      if ((currentUser.branchId ?? '').isEmpty) {
+      // Use provided branchId if available, otherwise fallback to currentUser.branchId
+      final targetBranchId = branchId ?? currentUser.branchId;
+
+      if ((targetBranchId ?? '').isEmpty) {
         return {
           'success': false,
           'message': 'กรุณาเลือกสาขา (branch) ก่อนเพิ่มหมวดหมู่ห้อง',
@@ -1036,7 +1046,7 @@ class RoomService {
 
       final insertData = {
         ...data,
-        'branch_id': currentUser.branchId,
+        'branch_id': targetBranchId,
         'updated_at': DateTime.now().toIso8601String(),
       };
 
@@ -1143,8 +1153,8 @@ class RoomService {
   // ============================================
 
   /// Create amenity
-  static Future<Map<String, dynamic>> createAmenity(
-      Map<String, dynamic> data) async {
+  static Future<Map<String, dynamic>> createAmenity(Map<String, dynamic> data,
+      {String? branchId}) async {
     try {
       final currentUser = await AuthService.getCurrentUser();
       if (currentUser == null) {
@@ -1158,7 +1168,10 @@ class RoomService {
         };
       }
 
-      if ((currentUser.branchId ?? '').isEmpty) {
+      // ใช้ branchId ที่ส่งมา หรือใช้ของ currentUser
+      final targetBranchId = branchId ?? currentUser.branchId;
+
+      if ((targetBranchId ?? '').isEmpty) {
         return {
           'success': false,
           'message': 'กรุณาเลือกสาขา (branch) ก่อนเพิ่มสิ่งอำนวยความสะดวก',
@@ -1167,7 +1180,7 @@ class RoomService {
 
       final insertData = {
         ...data,
-        'branch_id': currentUser.branchId,
+        'branch_id': targetBranchId,
         'updated_at': DateTime.now().toIso8601String(),
       };
 

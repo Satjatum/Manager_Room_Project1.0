@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 // Services //
 import '../../services/room_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/branch_service.dart';
+// Models //
+import '../../models/user_models.dart';
 // Widgets //
 import '../widgets/colors.dart';
 import '../widgets/snack_message.dart';
 
 class AmenitiesUI extends StatefulWidget {
-  const AmenitiesUI({Key? key}) : super(key: key);
+  final String? branchId;
+  final String? branchName;
+
+  const AmenitiesUI({Key? key, this.branchId, this.branchName})
+      : super(key: key);
 
   @override
   State<AmenitiesUI> createState() => _AmenitiesUIState();
@@ -17,6 +25,8 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
   List<Map<String, dynamic>> _filteredAmenities = [];
   bool _isLoading = true;
   String _searchQuery = '';
+  String? _selectedBranchId;
+  String _selectedBranchName = '';
   final TextEditingController _searchController = TextEditingController();
 
   // รายการไอคอนที่สามารถเลือกได้
@@ -58,7 +68,17 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
   @override
   void initState() {
     super.initState();
-    _loadAmenities();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    // ใช้ branchId และ branchName จาก widget (ส่งมาจากหน้าอื่น)
+    setState(() {
+      _selectedBranchId = widget.branchId;
+      _selectedBranchName = widget.branchName ?? '';
+    });
+
+    await _loadAmenities();
   }
 
   @override
@@ -72,7 +92,10 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
     setState(() => _isLoading = true);
 
     try {
-      final amenities = await RoomService.getAmenities();
+      // ส่ง branchId ไปดึงข้อมูลเฉพาะสาขา
+      final amenities = await RoomService.getAmenities(
+        branchId: _selectedBranchId,
+      );
       if (mounted) {
         setState(() {
           _amenities = amenities;
@@ -195,7 +218,7 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context, false),
+                      onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.grey[700],
                         side: BorderSide(color: Colors.grey[300]!, width: 2),
@@ -443,7 +466,10 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
             data,
           );
         } else {
-          response = await RoomService.createAmenity(data);
+          response = await RoomService.createAmenity(
+            data,
+            branchId: _selectedBranchId,
+          );
         }
 
         if (mounted) Navigator.pop(context);
@@ -458,7 +484,10 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
             await _loadAmenities();
           } else {
             debugPrint("เกิดข้อผิดพลาด: ${response['message']}");
-            throw Exception(response['message']);
+            SnackMessage.showError(
+              context,
+              response['message'] ?? 'เกิดข้อผิดพลาด',
+            );
           }
         }
       } catch (e) {
@@ -467,6 +496,10 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
         }
         if (mounted) {
           debugPrint("เกิดข้อผิดพลาด: $e");
+          SnackMessage.showError(
+            context,
+            'เกิดข้อผิดพลาด: ${e.toString()}',
+          );
         }
       }
     }
@@ -727,7 +760,7 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header (match roomlist_ui.dart)
+            // Header
             Padding(
               padding: EdgeInsets.all(24),
               child: Row(
@@ -746,7 +779,7 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           'สิ่งอำนวยความสะดวก',
                           style: TextStyle(
@@ -766,6 +799,37 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
                 ],
               ),
             ),
+            // แสดงชื่อสาขา (ถ้ามี)
+            // if (_selectedBranchName.isNotEmpty)
+            //   Padding(
+            //     padding: EdgeInsets.symmetric(horizontal: 24),
+            //     child: Container(
+            //       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            //       decoration: BoxDecoration(
+            //         color: Colors.blue[50],
+            //         borderRadius: BorderRadius.circular(10),
+            //         border: Border.all(color: Colors.blue[200]!, width: 1.5),
+            //       ),
+            //       child: Row(
+            //         children: [
+            //           Icon(Icons.business, color: Colors.blue[700], size: 20),
+            //           SizedBox(width: 12),
+            //           Expanded(
+            //             child: Text(
+            //               _selectedBranchName,
+            //               style: TextStyle(
+            //                 fontSize: 15,
+            //                 fontWeight: FontWeight.w600,
+            //                 color: Colors.black87,
+            //               ),
+            //               overflow: TextOverflow.ellipsis,
+            //             ),
+            //           ),
+            //         ],
+            //       ),
+            //     ),
+            //   ),
+            if (_selectedBranchName.isNotEmpty) SizedBox(height: 16),
             // Search (match style)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24),

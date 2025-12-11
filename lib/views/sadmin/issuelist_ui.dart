@@ -129,20 +129,16 @@ class _IssueListUiState extends State<IssueListUi>
 
   Future<void> _loadStatistics() async {
     try {
-      // For Admin without a specific branch filter, aggregate from loaded issues (managed branches only)
-      if (_currentUser?.userRole == UserRole.admin &&
-          (_selectedBranchId == null || _selectedBranchId!.isEmpty)) {
-        _statistics = _computeStatisticsFromIssues(_allIssues);
-        setState(() {});
-        return;
-      }
-
-      _statistics = await IssueService.getIssueStatistics(
+      // Use role-based statistics method that handles permissions properly
+      _statistics = await IssueService.getIssueStatisticsByUser(
         branchId: _selectedBranchId,
       );
       setState(() {});
     } catch (e) {
       debugPrint('Error loading statistics: $e');
+      // Fallback to compute from loaded issues if API call fails
+      _statistics = _computeStatisticsFromIssues(_allIssues);
+      setState(() {});
     }
   }
 

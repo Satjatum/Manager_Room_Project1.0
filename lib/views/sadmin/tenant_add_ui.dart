@@ -9,9 +9,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 // Models //
 import '../../models/user_models.dart';
-// Middleware //
-import '../../middleware/auth_middleware.dart';
 // Services //
+import '../../services/auth_service.dart';
 import '../../services/tenant_service.dart';
 import '../../services/room_service.dart';
 import '../../services/image_service.dart';
@@ -144,7 +143,7 @@ class _TenantAddUIState extends State<TenantAddUI>
 
   Future<void> _loadCurrentUser() async {
     try {
-      final user = await AuthMiddleware.getCurrentUser();
+      final user = await AuthService.getCurrentUser();
       if (mounted) {
         setState(() {
           _currentUser = user;
@@ -819,7 +818,8 @@ class _TenantAddUIState extends State<TenantAddUI>
 
       // Create user account if requested
       if (_createUserAccount) {
-        final userResult = await UserService.createUser({
+        final userResult =
+            await UserService.createTenantUserWithoutSessionHijack({
           'user_name': _userNameController.text.trim(),
           'user_email': _userEmailController.text.trim(),
           'user_pass': _userPasswordController.text,
@@ -840,22 +840,20 @@ class _TenantAddUIState extends State<TenantAddUI>
                 'ไม่สามารถสร้างบัญชีผู้ใช้ได้: ${userResult['message']}');
             SnackMessage.showError(context,
                 'ไม่สามารถสร้างบัญชีผู้ใช้ได้: ${userResult['message']}');
+
+            // If session was lost, redirect to login
+            if (userResult['requireRelogin'] == true) {
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                '/login',
+                (route) => false,
+              );
+            }
           }
           return;
         }
 
-        // Check if we need to redirect to login (session was cleared)
-        if (userResult['requireRelogin'] == true) {
-          if (mounted) {
-            setState(() => _isLoading = false);
-            SnackMessage.showSuccess(context, userResult['message']);
-            // Redirect to login page
-            Navigator.of(context)
-                .pushNamedAndRemoveUntil('/', (route) => false);
-          }
-          return;
-        }
-
+        // สร้าง user สำเร็จ และ admin session ยังคงอยู่
+        debugPrint('สร้างบัญชีผู้ใช้สำเร็จ: ${userResult['message']}');
         userId = userResult['data']['user_id'];
       }
 
@@ -871,18 +869,20 @@ class _TenantAddUIState extends State<TenantAddUI>
         'user_id': userId,
       };
 
+      debugPrint('📝 กำลังสร้างผู้เช่าด้วยข้อมูล: $tenantData');
       final tenantResult = await TenantService.createTenant(tenantData);
 
       if (!tenantResult['success']) {
         if (mounted) {
           setState(() => _isLoading = false);
-          debugPrint('เกิดข้อผิดพลาด: ${tenantResult['message']}');
+          debugPrint('❌ สร้างผู้เช่าไม่สำเร็จ: ${tenantResult['message']}');
           SnackMessage.showError(
               context, 'เกิดข้อผิดพลาด: ${tenantResult['message']}');
         }
         return;
       }
 
+      debugPrint('✅ สร้างผู้เช่าสำเร็จ: ${tenantResult['data']}');
       final tenantId = tenantResult['data']['tenant_id'];
 
       // Create rental contract

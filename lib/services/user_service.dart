@@ -292,6 +292,203 @@ class UserService {
     }
   }
 
+  /// Create tenant user WITHOUT affecting current admin session
+  static Future<Map<String, dynamic>> createTenantUserWithoutSessionHijack(
+      Map<String, dynamic> userData) async {
+    try {
+      final currentUser = await AuthService.getCurrentUser();
+      if (currentUser == null) {
+        return {
+          'success': false,
+          'message': 'กรุณาเข้าสู่ระบบใหม่',
+        };
+      }
+
+      // Store current admin session data
+      final adminSession = _supabase.auth.currentSession;
+      final adminAccessToken = adminSession?.accessToken;
+      final adminRefreshToken = adminSession?.refreshToken;
+
+      // Validate required fields
+      if (userData['user_name'] == null ||
+          userData['user_name'].toString().trim().isEmpty) {
+        return {
+          'success': false,
+          'message': 'กรุณากรอกชื่อผู้ใช้',
+        };
+      }
+
+      if (userData['user_email'] == null ||
+          userData['user_email'].toString().trim().isEmpty) {
+        return {
+          'success': false,
+          'message': 'กรุณากรอกอีเมล',
+        };
+      }
+
+      if (userData['user_pass'] == null ||
+          userData['user_pass'].toString().trim().isEmpty) {
+        return {
+          'success': false,
+          'message': 'กรุณากรอกรหัสผ่าน',
+        };
+      }
+
+      // Check for duplicate username
+      final existingUser = await _supabase
+          .from('users')
+          .select('user_id')
+          .eq('user_name', userData['user_name'].toString().trim())
+          .maybeSingle();
+
+      if (existingUser != null) {
+        return {
+          'success': false,
+          'message': 'ชื่อผู้ใช้นี้มีอยู่แล้วในระบบ',
+        };
+      }
+
+      // Check for duplicate email
+      final existingEmail = await _supabase
+          .from('users')
+          .select('user_id')
+          .eq('user_email', userData['user_email'].toString().trim())
+          .maybeSingle();
+
+      if (existingEmail != null) {
+        return {
+          'success': false,
+          'message': 'อีเมลนี้มีอยู่แล้วในระบบ',
+        };
+      }
+
+      final password = userData['user_pass'].toString().trim();
+      final email = userData['user_email'].toString().trim();
+      final username = userData['user_name'].toString().trim();
+
+      try {
+        // Create new user account (this will hijack current session)
+        final authResponse = await _supabase.auth.signUp(
+          email: email,
+          password: password,
+          data: {
+            'username': username,
+            'role': userData['role'] ?? 'tenant',
+          },
+        );
+
+        if (authResponse.user == null) {
+          return {
+            'success': false,
+            'message': 'ไม่สามารถสร้างผู้ใช้ใน Auth System ได้',
+          };
+        }
+
+        // Wait for trigger to create public.users record
+        await Future.delayed(const Duration(milliseconds: 800));
+
+        final authUid = authResponse.user!.id;
+
+        // Get the created user data (while we're logged in as the new user)
+        final createdUser = await _supabase
+            .from('users')
+            .select('*')
+            .eq('auth_uid', authUid)
+            .single();
+
+        // Update user info
+        await _supabase.from('users').update({
+          'user_name': username,
+          'role': userData['role'] ?? 'tenant',
+          'permissions': userData['permissions'] ?? ['view_own_data'],
+          'is_active': userData['is_active'] ?? true,
+        }).eq('auth_uid', authUid);
+
+        // CRITICAL: Restore admin session immediately
+        if (adminAccessToken != null && adminRefreshToken != null) {
+          try {
+            await _supabase.auth.setSession(adminRefreshToken);
+
+            // Verify the session was restored correctly
+            final restoredUser = await AuthService.getCurrentUser();
+            if (restoredUser?.userId != currentUser.userId) {
+              // Session restore failed, sign out to prevent confusion
+              await _supabase.auth.signOut();
+              return {
+                'success': false,
+                'message':
+                    'สร้างผู้ใช้สำเร็จแต่ไม่สามารถกู้คืน session ได้ กรุณาเข้าสู่ระบบใหม่',
+                'data': createdUser,
+                'requireRelogin': true,
+              };
+            }
+          } catch (e) {
+            // Session restore failed, sign out to prevent confusion
+            await _supabase.auth.signOut();
+            return {
+              'success': false,
+              'message':
+                  'สร้างผู้ใช้สำเร็จแต่ไม่สามารถกู้คืน session ได้ กรุณาเข้าสู่ระบบใหม่',
+              'data': createdUser,
+              'requireRelogin': true,
+            };
+          }
+        } else {
+          // No admin session to restore, sign out
+          await _supabase.auth.signOut();
+          return {
+            'success': false,
+            'message':
+                'สร้างผู้ใช้สำเร็จแต่ไม่สามารถกู้คืน session ได้ กรุณาเข้าสู่ระบบใหม่',
+            'data': createdUser,
+            'requireRelogin': true,
+          };
+        }
+
+        return {
+          'success': true,
+          'message': 'สร้างผู้ใช้สำเร็จ',
+          'data': createdUser,
+        };
+      } on AuthException catch (e) {
+        // Restore admin session on auth error
+        if (adminAccessToken != null && adminRefreshToken != null) {
+          try {
+            await _supabase.auth.setSession(adminRefreshToken);
+          } catch (_) {
+            // Ignore restore errors
+          }
+        }
+
+        return {
+          'success': false,
+          'message': 'ไม่สามารถสร้างผู้ใช้ได้: ${e.message}',
+        };
+      }
+    } on PostgrestException catch (e) {
+      String message = 'เกิดข้อผิดพลาด: ${e.message}';
+
+      if (e.code == '23505') {
+        // Unique constraint violation
+        if (e.message.contains('user_name')) {
+          message = 'ชื่อผู้ใช้นี้มีอยู่แล้วในระบบ';
+        } else if (e.message.contains('user_email')) {
+          message = 'อีเมลนี้มีอยู่แล้วในระบบ';
+        }
+      }
+
+      return {
+        'success': false,
+        'message': message,
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'เกิดข้อผิดพลาดในการสร้างผู้ใช้: $e',
+      };
+    }
+  }
+
   /// Update user (for superadmin only)
   static Future<Map<String, dynamic>> updateUser(
     String userId,

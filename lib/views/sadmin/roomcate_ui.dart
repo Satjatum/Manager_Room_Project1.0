@@ -6,7 +6,11 @@ import '../widgets/colors.dart';
 import '../widgets/snack_message.dart';
 
 class RoomCateUi extends StatefulWidget {
-  const RoomCateUi({Key? key}) : super(key: key);
+  final String? branchId;
+  final String? branchName;
+
+  const RoomCateUi({Key? key, this.branchId, this.branchName})
+      : super(key: key);
 
   @override
   State<RoomCateUi> createState() => _RoomCateUiState();
@@ -17,6 +21,8 @@ class _RoomCateUiState extends State<RoomCateUi> {
   List<Map<String, dynamic>> _filteredCategories = [];
   bool _isLoading = true;
   String _searchQuery = '';
+  String? _selectedBranchId;
+  // String _selectedBranchName = '';
   final TextEditingController _searchController = TextEditingController();
 
   // ไอคอนสำหรับหมวดหมู่ห้อง (แนวเดียวกับ amenities/roomtype)
@@ -40,6 +46,8 @@ class _RoomCateUiState extends State<RoomCateUi> {
   @override
   void initState() {
     super.initState();
+    _selectedBranchId = widget.branchId;
+    // _selectedBranchName = widget.branchName ?? '';
     _loadCategories();
   }
 
@@ -56,9 +64,16 @@ class _RoomCateUiState extends State<RoomCateUi> {
     try {
       final categories = await RoomService.getRoomCategories();
       if (mounted) {
+        // Filter by branchId if provided
+        final filteredByBranch = _selectedBranchId != null
+            ? categories.where((cat) {
+                return cat['branch_id']?.toString() == _selectedBranchId;
+              }).toList()
+            : categories;
+
         setState(() {
-          _categories = categories;
-          _filteredCategories = categories;
+          _categories = filteredByBranch;
+          _filteredCategories = filteredByBranch;
           _isLoading = false;
         });
       }
@@ -173,7 +188,7 @@ class _RoomCateUiState extends State<RoomCateUi> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context, false),
+                      onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.grey[700],
                         side: BorderSide(color: Colors.grey[300]!, width: 1.5),
@@ -296,7 +311,7 @@ class _RoomCateUiState extends State<RoomCateUi> {
                 TextField(
                   controller: nameController,
                   decoration: InputDecoration(
-                    labelText: 'ชื่อหมวดหมู่ห้อง *',
+                    labelText: 'ชื่อหมวดหมู่ห้อง',
                     labelStyle: TextStyle(
                       color: Colors.grey[700],
                     ),
@@ -389,8 +404,24 @@ class _RoomCateUiState extends State<RoomCateUi> {
                                       payload,
                                     );
                                   } else {
+                                    // Validate branch selection for create operation
+                                    if (_selectedBranchId == null) {
+                                      if (mounted &&
+                                          Navigator.canPop(context)) {
+                                        Navigator.of(context)
+                                            .pop(); // close spinner
+                                      }
+                                      setDialogState(
+                                          () => isSubmitting = false);
+                                      if (mounted) {
+                                        SnackMessage.showError(context,
+                                            'กรุณาเลือกสาขา (branch) ก่อนเพิ่มหมวดหมู่ห้อง');
+                                      }
+                                      return;
+                                    }
                                     resp = await RoomService.createRoomCategory(
                                       payload,
+                                      branchId: _selectedBranchId,
                                     );
                                   }
 
@@ -676,7 +707,7 @@ class _RoomCateUiState extends State<RoomCateUi> {
                   ),
                   SizedBox(height: 20),
                   Text(
-                    'Deleting Room Category',
+                    'กำลังลบหมวดหมู่ห้อง...',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -685,7 +716,7 @@ class _RoomCateUiState extends State<RoomCateUi> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Please wait a moment...',
+                    'กรุณารอสักครู่...',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                 ],
@@ -961,7 +992,7 @@ class _RoomCateUiState extends State<RoomCateUi> {
                                                               color:
                                                                   Colors.red),
                                                           SizedBox(width: 12),
-                                                          Text('ลบสาขา',
+                                                          Text('ลบ',
                                                               style: TextStyle(
                                                                   color: Colors
                                                                       .red)),

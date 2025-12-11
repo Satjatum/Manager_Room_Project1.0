@@ -561,13 +561,13 @@ class IssueService {
   static Future<Map<String, dynamic>> addIssueImage(
     String issueId,
     String imageUrl, {
-    String? description,
+    String? description, // Keep for compatibility but won't be used
   }) async {
     try {
       await _supabase.from('issue_images').insert({
         'issue_id': issueId,
         'image_url': imageUrl,
-        'description': description,
+        // Removed 'description' field since it doesn't exist in the database table
       });
 
       return {'success': true, 'message': 'เพิ่มรูปภาพสำเร็จ'};
@@ -625,6 +625,124 @@ class IssueService {
 
       return {
         'total': allIssues.length,
+        'pending': pending,
+        'in_progress': inProgress,
+        'resolved': resolved,
+        'cancelled': cancelled,
+      };
+    } catch (e) {
+      throw Exception('เกิดข้อผิดพลาดในการโหลดสถิติ: $e');
+    }
+  }
+
+  /// Get issue statistics by user role and permissions
+  static Future<Map<String, dynamic>> getIssueStatisticsByUser({
+    String? branchId,
+  }) async {
+    try {
+      final currentUser = await AuthService.getCurrentUser();
+
+      if (currentUser == null) {
+        return {
+          'total': 0,
+          'pending': 0,
+          'in_progress': 0,
+          'resolved': 0,
+          'cancelled': 0,
+        };
+      }
+
+      List<Map<String, dynamic>> issues;
+
+      // SuperAdmin can see all issues across all branches
+      if (currentUser.userRole == UserRole.superAdmin) {
+        // Use existing getIssueStatistics for superadmin (no additional filtering needed)
+        return await getIssueStatistics(branchId: branchId);
+      }
+
+      // Admin: only see issues in branches they manage
+      if (currentUser.userRole == UserRole.admin) {
+        final managedBranchIds = await _getManagedBranchIds(currentUser.userId);
+
+        if (managedBranchIds.isEmpty) {
+          return {
+            'total': 0,
+            'pending': 0,
+            'in_progress': 0,
+            'resolved': 0,
+            'cancelled': 0,
+          };
+        }
+
+        // If a specific branch is requested, ensure it's managed by the admin
+        if (branchId != null && branchId.isNotEmpty) {
+          if (!managedBranchIds.contains(branchId)) {
+            return {
+              'total': 0,
+              'pending': 0,
+              'in_progress': 0,
+              'resolved': 0,
+              'cancelled': 0,
+            };
+          }
+          // Return statistics only for that managed branch
+          return await getIssueStatistics(branchId: branchId);
+        }
+
+        // Otherwise, fetch all issues and filter to managed branches
+        var query = _supabase.from('issue_reports').select('''
+          issue_status,
+          rooms!inner(branch_id)
+        ''');
+
+        final allIssues = await query.order('created_at', ascending: false);
+
+        // Filter to only managed branches
+        issues = allIssues
+            .where((issue) =>
+                managedBranchIds.contains(issue['rooms']['branch_id']))
+            .toList();
+      }
+
+      // Tenant can only see their own issues
+      else if (currentUser.userRole == UserRole.tenant &&
+          currentUser.tenantId != null) {
+        var query = _supabase.from('issue_reports').select('''
+          issue_status,
+          rooms!inner(branch_id)
+        ''').eq('tenant_id', currentUser.tenantId!);
+
+        issues = await query.order('created_at', ascending: false);
+      }
+
+      // Other users with view permission can see issues in their assigned branch
+      else if (currentUser.branchId != null) {
+        return await getIssueStatistics(branchId: currentUser.branchId);
+      }
+
+      // Default: no access
+      else {
+        return {
+          'total': 0,
+          'pending': 0,
+          'in_progress': 0,
+          'resolved': 0,
+          'cancelled': 0,
+        };
+      }
+
+      // Calculate statistics from filtered issues
+      final pending =
+          issues.where((i) => i['issue_status'] == 'pending').length;
+      final inProgress =
+          issues.where((i) => i['issue_status'] == 'in_progress').length;
+      final resolved =
+          issues.where((i) => i['issue_status'] == 'resolved').length;
+      final cancelled =
+          issues.where((i) => i['issue_status'] == 'cancelled').length;
+
+      return {
+        'total': issues.length,
         'pending': pending,
         'in_progress': inProgress,
         'resolved': resolved,

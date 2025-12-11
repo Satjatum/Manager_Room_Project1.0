@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:manager_room_project/views/widgets/colors.dart';
 
 import 'widgets/mainnavbar.dart';
 // Models //
@@ -466,7 +467,10 @@ class _SettingUiState extends State<SettingUi> {
     if (isLoading) {
       return const Scaffold(
         backgroundColor: Colors.white,
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(
+            child: CircularProgressIndicator(
+          color: AppTheme.primary,
+        )),
       );
     }
     if (currentUser == null) {
@@ -802,6 +806,7 @@ class _FullWidthButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
+      height: 48,
       child: ElevatedButton.icon(
         onPressed: onPressed,
         icon: Icon(icon),

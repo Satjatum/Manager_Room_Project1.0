@@ -178,8 +178,8 @@ class _MainnavbarState extends State<Mainnavbar> {
             height: 20,
             width: 20,
             child: CircularProgressIndicator(
+              color: AppTheme.primary,
               strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.grey),
             ),
           ),
         ),

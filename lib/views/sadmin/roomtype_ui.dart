@@ -6,7 +6,11 @@ import '../widgets/colors.dart';
 import '../widgets/snack_message.dart';
 
 class RoomTypesUi extends StatefulWidget {
-  const RoomTypesUi({Key? key}) : super(key: key);
+  final String? branchId;
+  final String? branchName;
+
+  const RoomTypesUi({Key? key, this.branchId, this.branchName})
+      : super(key: key);
 
   @override
   State<RoomTypesUi> createState() => _RoomTypesUiState();
@@ -17,6 +21,8 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
   List<Map<String, dynamic>> _filteredRoomTypes = [];
   bool _isLoading = true;
   String _searchQuery = '';
+  String? _selectedBranchId;
+  // String _selectedBranchName = '';
   final TextEditingController _searchController = TextEditingController();
 
   // Icon options for room types (similar style to amenities)
@@ -128,7 +134,7 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context, false),
+                      onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.grey[700],
                         side: BorderSide(color: Colors.grey[300]!, width: 1.5),
@@ -155,6 +161,8 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
   @override
   void initState() {
     super.initState();
+    _selectedBranchId = widget.branchId;
+    // _selectedBranchName = widget.branchName ?? '';
     _loadRoomTypes();
   }
 
@@ -171,9 +179,16 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
     try {
       final roomTypes = await RoomService.getRoomTypes();
       if (mounted) {
+        // Filter by branchId if provided
+        final filteredByBranch = _selectedBranchId != null
+            ? roomTypes.where((type) {
+                return type['branch_id']?.toString() == _selectedBranchId;
+              }).toList()
+            : roomTypes;
+
         setState(() {
-          _roomTypes = roomTypes;
-          _filteredRoomTypes = roomTypes;
+          _roomTypes = filteredByBranch;
+          _filteredRoomTypes = filteredByBranch;
           _isLoading = false;
         });
       }
@@ -288,7 +303,7 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
                 TextField(
                   controller: nameController,
                   decoration: InputDecoration(
-                    labelText: 'ชื่อประเภทห้อง *',
+                    labelText: 'ชื่อประเภทห้อง',
                     labelStyle: TextStyle(
                       color: Colors.grey[700],
                     ),
@@ -410,7 +425,17 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
             data,
           );
         } else {
-          response = await RoomService.createRoomType(data);
+          // Validate branch selection for create operation
+          if (_selectedBranchId == null) {
+            if (mounted) Navigator.pop(context);
+            if (mounted) {
+              SnackMessage.showError(
+                  context, 'กรุณาเลือกสาขา (branch) ก่อนเพิ่มประเภทห้อง');
+            }
+            return;
+          }
+          response = await RoomService.createRoomType(data,
+              branchId: _selectedBranchId);
         }
 
         if (mounted) Navigator.pop(context);
@@ -640,7 +665,7 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
                   ),
                   SizedBox(height: 20),
                   Text(
-                    'Deleting Room Type',
+                    'กำลังลบประเภทห้อง...',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -649,7 +674,7 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Please wait a moment...',
+                    'กรุณารอสักครู่...',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                 ],
@@ -926,7 +951,7 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
                                                               color:
                                                                   Colors.red),
                                                           SizedBox(width: 12),
-                                                          Text('ลบสาขา',
+                                                          Text('ลบ',
                                                               style: TextStyle(
                                                                   color: Colors
                                                                       .red)),
