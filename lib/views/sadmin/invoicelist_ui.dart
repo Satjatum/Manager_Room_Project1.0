@@ -54,7 +54,7 @@ class _InvoiceListUiState extends State<InvoiceListUi>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
       _load();
@@ -110,7 +110,7 @@ class _InvoiceListUiState extends State<InvoiceListUi>
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    if (mounted) setState(() => _loading = true);
     try {
       // อัปเดตสถานะบิลที่เกินกำหนดอัตโนมัติเมื่อเปิดหน้า
       try {
@@ -121,10 +121,12 @@ class _InvoiceListUiState extends State<InvoiceListUi>
       List<Map<String, dynamic>> invList = [];
 
       if (_currentUser == null) {
-        setState(() {
-          _invoices = [];
-          _loading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _invoices = [];
+            _loading = false;
+          });
+        }
         return;
       }
 
@@ -133,10 +135,12 @@ class _InvoiceListUiState extends State<InvoiceListUi>
         // ผู้เช่า: เห็นแค่ของตัวเอง
         final tenantId = _currentUser!.tenantId;
         if (tenantId == null) {
-          setState(() {
-            _invoices = [];
-            _loading = false;
-          });
+          if (mounted) {
+            setState(() {
+              _invoices = [];
+              _loading = false;
+            });
+          }
           return;
         }
 
@@ -185,12 +189,14 @@ class _InvoiceListUiState extends State<InvoiceListUi>
         );
       }
 
-      setState(() {
-        _invoices = invList;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _invoices = invList;
+          _loading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
       if (mounted) {
         debugPrint('เกิดข้อผิดพลาดในการโหลดข้อมูล: $e');
         SnackMessage.showError(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
@@ -216,14 +222,16 @@ class _InvoiceListUiState extends State<InvoiceListUi>
   String _invoiceTabStatus() {
     switch (_tabController.index) {
       case 0:
-        return 'pending';
+        return 'all';
       case 1:
-        return 'partial';
+        return 'pending';
       case 2:
-        return 'paid';
+        return 'partial';
       case 3:
-        return 'overdue';
+        return 'paid';
       case 4:
+        return 'overdue';
+      case 5:
         return 'cancelled';
       default:
         return 'pending';
@@ -358,6 +366,7 @@ class _InvoiceListUiState extends State<InvoiceListUi>
                   indicatorColor: AppTheme.primary,
                   indicatorWeight: 3,
                   tabs: const [
+                    Tab(text: 'ทั้งหมด'),
                     Tab(text: 'ค้างชำระ'),
                     Tab(text: 'ชำระบางส่วน'),
                     Tab(text: 'ชำระแล้ว'),
