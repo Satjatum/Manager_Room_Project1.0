@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:promptpay_qrcode_generate/promptpay_qrcode_generate.dart';
 // Services //
 import '../../services/invoice_service.dart';
 import '../../services/payment_service.dart';
@@ -40,6 +40,18 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
     if (v is num) return v.toDouble();
     if (v is String) return double.tryParse(v) ?? 0;
     return 0;
+  }
+
+  /// ตรวจสอบว่า account_number เป็น PromptPay ID หรือไม่
+  /// PromptPay ID = เลขโทรศัพท์ 10 หลัก หรือเลขบัตรประชาชน 13 หลัก
+  bool _isPromptPayId(String accountNumber) {
+    // ลบ - และ space ออก
+    final cleaned = accountNumber.replaceAll(RegExp(r'[-\s]'), '');
+    // ตรวจสอบว่าเป็นตัวเลขเท่านั้น
+    if (!RegExp(r'^\d+$').hasMatch(cleaned)) return false;
+    // เลขโทรศัพท์ 10 หลัก (ขึ้นต้นด้วย 0) หรือเลขบัตรประชาชน 13 หลัก
+    return (cleaned.length == 10 && cleaned.startsWith('0')) ||
+        cleaned.length == 13;
   }
 
   @override
@@ -509,7 +521,6 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       orElse: () => {},
     );
     final accNum = (acct['account_number'] ?? '').toString();
-    final bankName = (acct['bank_name'] ?? '').toString();
     final accName = (acct['account_name'] ?? '').toString();
     if (accNum.isEmpty) {
       debugPrint('กรุณาเลือกบัญชีธนาคาร');
@@ -517,52 +528,81 @@ class _TenantPayBillUiState extends State<TenantPayBillUi> {
       return;
     }
 
+    // ตรวจสอบว่าเป็น PromptPay ID หรือไม่
+    final isPromptPay = _isPromptPayId(accNum);
+    if (!isPromptPay) {
+      // ถ้าไม่ใช่ PromptPay ID ให้แสดงข้อความแจ้งเตือน
+      debugPrint(
+          'กรุณาใช้เบอร์โทรศัพท์ (10 หลัก) หรือเลขบัตรประชาชน (13 หลัก)');
+      SnackMessage.showError(context,
+          'กรุณาใช้เบอร์โทรศัพท์ (10 หลัก) หรือเลขบัตรประชาชน (13 หลัก) แทนเลขบัญชีธนาคาร');
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          content: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 360),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('QrCode',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: SizedBox(
-                      width: 240,
-                      height: 240,
-                      child:
-                          QrImageView(data: accNum, version: QrVersions.auto)),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            // Get payment amount from controller
+            final amount = double.tryParse(_amountCtrl.text) ?? 0;
+
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              content: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 360),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('ThaiQR (PromptPay)',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: QRCodeGenerate(
+                        key: ValueKey('qr_${accNum}_${amount}'),
+                        promptPayId: accNum,
+                        amount: amount > 0 ? amount : 0,
+                        width: 240,
+                        height: 240,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (accName.isNotEmpty)
+                      if (amount > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            'จำนวนเงิน: ${amount.toStringAsFixed(2)} บาท',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.primary,
+                            ),
+                          ),
+                        ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('ปิด'),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text('$bankName • $accNum',
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                if (accName.isNotEmpty)
-                  Text(accName, style: const TextStyle(color: Colors.black54)),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('ปิด'),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );

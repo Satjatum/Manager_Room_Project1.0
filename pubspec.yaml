@@ -55,6 +55,9 @@ dependencies:
   # QR code render (สำหรับแสดง QR พร้อมเพย์แบบมีจำนวนเงิน)
   qr_flutter: ^4.1.0
 
+  promptpay_qrcode_generate: ^1.0.2
+  
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

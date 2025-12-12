@@ -813,7 +813,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
               title: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: _getStatusColor('resolved').withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
@@ -824,64 +824,77 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                       size: 24,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child:
-                        Text('บันทึกการแก้ไข', style: TextStyle(fontSize: 16)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'บันทึกการแก้ไข',
+                          style: const TextStyle(
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              content: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // หมายเหตุ: ไม่บังคับกรอกข้อความหรือแนบรูป
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: textController,
-                      decoration: InputDecoration(
-                        hintText: 'รายละเอียดการแก้ไข...',
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              BorderSide(color: Color(0xFF10B981), width: 2),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // หมายเหตุ: ไม่บังคับกรอกข้อความหรือแนบรูป
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: textController,
+                        decoration: InputDecoration(
+                          hintText: 'รายละเอียดการแก้ไข...',
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:
+                                BorderSide(color: Color(0xFF10B981), width: 2),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide:
+                                BorderSide(color: Colors.grey[300]!, width: 1),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              BorderSide(color: Colors.grey[300]!, width: 1),
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey.shade50,
+                        maxLines: 4,
                       ),
-                      maxLines: 4,
-                    ),
-                    const SizedBox(height: 12),
-                    imagePreviews(),
-                    const SizedBox(height: 10),
+                      const SizedBox(height: 12),
+                      imagePreviews(),
+                      const SizedBox(height: 10),
 
-                    OutlinedButton(
-                      onPressed: localImages.length >= 10 ? null : pickImages,
-                      child: Text(
-                        'แนบรูป (${localImages.length}/10)',
-                        style: TextStyle(
-                          color: Colors.grey.shade700,
-                          fontWeight: FontWeight.w600,
+                      OutlinedButton(
+                        onPressed: localImages.length >= 10 ? null : pickImages,
+                        child: Text(
+                          'แนบรูป (${localImages.length}/10)',
+                          style: TextStyle(
+                            color: Colors.grey.shade700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          side: BorderSide(color: Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                       ),
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        side: BorderSide(color: Colors.grey.shade300),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               actions: [
@@ -918,7 +931,7 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
                                   images: List<XFile>.from(localImages)));
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _getStatusColor('resolved'),
+                          backgroundColor: AppTheme.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           elevation: 0,
@@ -1851,21 +1864,31 @@ class _IssueListDetailUiState extends State<IssueListDetailUi> {
         title: Row(
           children: [
             Container(
-              padding: EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Color(0xFF10B981).withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(Icons.person_add_outlined,
-                  color: Color(0xFF10B981), size: 20),
+              child: Icon(
+                Icons.person_add_outlined,
+                color: Color(0xFF10B981),
+                size: 24,
+              ),
             ),
-            SizedBox(width: 12),
-            Text(
-              'มอบหมายงาน',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'มอบหมายงาน',
+                    style: const TextStyle(
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

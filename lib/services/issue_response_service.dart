@@ -27,28 +27,101 @@ class IssueResponseService {
     required String createdBy,
   }) async {
     try {
+      // Debug information
+      print('🔍 Creating issue response:');
+      print('   Issue ID: $issueId');
+      print('   Created By: $createdBy');
+      print(
+          '   Response Text: ${responseText?.substring(0, responseText.length > 50 ? 50 : responseText.length)}...');
+      print('   Auth User: ${_supabase.auth.currentUser?.id}');
+
+      // Validate current user authentication
+      final currentUser = _supabase.auth.currentUser;
+      if (currentUser == null) {
+        return {
+          'success': false,
+          'message': 'ไม่มีการเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่',
+        };
+      }
+
+      // Verify user exists in users table
+      final userCheck = await _supabase
+          .from('users')
+          .select('user_id, user_name, role')
+          .eq('user_id', createdBy)
+          .maybeSingle();
+
+      if (userCheck == null) {
+        print('❌ User not found in database: $createdBy');
+        return {
+          'success': false,
+          'message': 'ไม่พบข้อมูลผู้ใช้ในระบบ',
+        };
+      }
+
+      print('✅ User found: ${userCheck['user_name']} (${userCheck['role']})');
+
+      // Verify issue exists
+      final issueCheck = await _supabase
+          .from('issue_reports')
+          .select('issue_id')
+          .eq('issue_id', issueId)
+          .maybeSingle();
+
+      if (issueCheck == null) {
+        print('❌ Issue not found: $issueId');
+        return {
+          'success': false,
+          'message': 'ไม่พบข้อมูลปัญหาในระบบ',
+        };
+      }
+
+      final insertData = {
+        'issue_id': issueId,
+        'response_text':
+            (responseText ?? '').trim().isEmpty ? null : responseText!.trim(),
+        'created_by': createdBy,
+      };
+
+      print('📤 Inserting data: $insertData');
+
       final inserted = await _supabase
           .from('issue_responses')
-          .insert({
-            'issue_id': issueId,
-            'response_text': (responseText ?? '').trim().isEmpty
-                ? null
-                : responseText!.trim(),
-            'created_by': createdBy,
-          })
+          .insert(insertData)
           .select()
           .single();
+
+      print('✅ Response created successfully: ${inserted['response_id']}');
 
       return {
         'success': true,
         'data': inserted,
       };
     } on PostgrestException catch (e) {
+      print('❌ PostgrestException: ${e.code} - ${e.message}');
+      print('❌ Details: ${e.details}');
+      print('❌ Hint: ${e.hint}');
+
+      String message = 'เกิดข้อผิดพลาด';
+
+      if (e.code == '42501' ||
+          e.message.contains('permission denied') ||
+          e.message.contains('insufficient_privilege')) {
+        message = 'ไม่มีสิทธิ์ในการบันทึกข้อมูล กรุณาติดต่อผู้ดูแลระบบ';
+      } else if (e.code == '23503') {
+        message = 'ข้อมูลอ้างอิงไม่ถูกต้อง';
+      } else if (e.code == '23505') {
+        message = 'ข้อมูลซ้ำในระบบ';
+      }
+
       return {
         'success': false,
-        'message': 'เกิดข้อผิดพลาด: ${e.message}',
+        'message': '$message (${e.code})',
+        'error_code': e.code,
+        'error_details': e.message,
       };
     } catch (e) {
+      print('❌ General Exception: $e');
       return {
         'success': false,
         'message': 'เกิดข้อผิดพลาดในการบันทึกการตอบกลับ: $e',
