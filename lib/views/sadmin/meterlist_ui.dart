@@ -827,9 +827,14 @@ class _MeterListUiState extends State<MeterListUi> {
   }
 
   void _initializeControllers() {
-    // Safely dispose existing controllers
-    final oldControllers =
-        Map<String, TextEditingController>.from(_controllers);
+    // Dispose existing controllers safely
+    for (final controller in _controllers.values) {
+      // Remove all listeners before disposing
+      controller.removeListener(() {});
+      if (!controller.hasListeners) {
+        controller.dispose();
+      }
+    }
     _controllers.clear();
 
     // Create new controllers for each room and rate
@@ -844,13 +849,6 @@ class _MeterListUiState extends State<MeterListUi> {
         }
       }
     }
-
-    // Dispose old controllers after creating new ones
-    Future.microtask(() {
-      for (final controller in oldControllers.values) {
-        controller.dispose();
-      }
-    });
   }
 
   Future<void> _showCreateDialog(Map<String, dynamic> room) async {

@@ -236,6 +236,40 @@ class InvoiceService {
       // สร้างเลขที่บิล
       final invoiceNumber = await _generateInvoiceNumber();
 
+      // ✅ Auto-assign payment_setting_id ถ้าไม่มี
+      if (invoiceData['payment_setting_id'] == null || 
+          invoiceData['payment_setting_id'].toString().isEmpty) {
+        try {
+          // หา branch_id จากข้อมูล room
+          final roomResponse = await _supabase
+              .from('rooms')
+              .select('branch_id')
+              .eq('room_id', invoiceData['room_id'])
+              .single();
+          
+          final branchId = roomResponse['branch_id'];
+          if (branchId != null) {
+            // หา active payment settings ของสาขา
+            final activeSettings = await _supabase
+                .from('payment_settings')
+                .select('setting_id')
+                .eq('branch_id', branchId)
+                .eq('is_active', true)
+                .maybeSingle();
+            
+            if (activeSettings != null) {
+              invoiceData['payment_setting_id'] = activeSettings['setting_id'];
+              print('✅ Auto-assigned payment_setting_id: ${activeSettings['setting_id']}');
+            } else {
+              print('⚠️ ไม่พบ Payment Settings ที่ active สำหรับสาขา: $branchId');
+            }
+          }
+        } catch (e) {
+          print('❌ ไม่สามารถ auto-assign payment_setting_id ได้: $e');
+          // ให้ดำเนินการต่อ ไม่หยุดการสร้างบิล
+        }
+      }
+
       // คำนวดยอดรวม (คำนวณในโค้ด ไม่อ้างอิงคอลัมน์ที่ตารางไม่มี)
       final roomRent = (invoiceData["room_rent"] ?? 0.0).toDouble();
       final waterCost = (invoiceData["water_cost"] ?? 0.0).toDouble();
@@ -1019,6 +1053,55 @@ class InvoiceService {
           'success': false,
           'message': 'ไม่สามารถออกบิลได้ กรุณาตรวจสอบการตั้งค่าอัตราค่าน้ำ-ไฟ'
         };
+      }
+
+      // ✅ Auto-assign payment_setting_id ถ้าไม่มี
+      final invoiceId = response['invoice_id'];
+      if (invoiceId != null) {
+        try {
+          // ตรวจสอบว่าบิลนี้มี payment_setting_id แล้วหรือไม่
+          final invoice = await _supabase
+              .from('invoices')
+              .select('payment_setting_id, room_id')
+              .eq('invoice_id', invoiceId)
+              .single();
+          
+          if (invoice['payment_setting_id'] == null || 
+              invoice['payment_setting_id'].toString().isEmpty) {
+            
+            // หา branch_id จากข้อมูล room
+            final roomResponse = await _supabase
+                .from('rooms')
+                .select('branch_id')
+                .eq('room_id', invoice['room_id'])
+                .single();
+            
+            final branchId = roomResponse['branch_id'];
+            if (branchId != null) {
+              // หา active payment settings ของสาขา
+              final activeSettings = await _supabase
+                  .from('payment_settings')
+                  .select('setting_id')
+                  .eq('branch_id', branchId)
+                  .eq('is_active', true)
+                  .maybeSingle();
+              
+              if (activeSettings != null) {
+                // อัปเดต payment_setting_id
+                await _supabase
+                    .from('invoices')
+                    .update({'payment_setting_id': activeSettings['setting_id']})
+                    .eq('invoice_id', invoiceId);
+                print('✅ Auto-assigned payment_setting_id: ${activeSettings['setting_id']} to invoice: $invoiceId');
+              } else {
+                print('⚠️ ไม่พบ Payment Settings ที่ active สำหรับสาขา: $branchId');
+              }
+            }
+          }
+        } catch (e) {
+          print('❌ ไม่สามารถ auto-assign payment_setting_id หลังออกบิลได้: $e');
+          // ให้ดำเนินการต่อ ไม่หยุดการทำงาน
+        }
       }
 
       return {

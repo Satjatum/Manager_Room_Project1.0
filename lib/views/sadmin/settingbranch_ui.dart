@@ -7,7 +7,7 @@ import 'amenities_ui.dart';
 import 'roomtype_ui.dart';
 import 'roomcate_ui.dart';
 // Utilit //
-import '../utility_setting_ui.dart';
+import 'utility_setting_ui.dart';
 // Widgets //
 import '../widgets/colors.dart';
 

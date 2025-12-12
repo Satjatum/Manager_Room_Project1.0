@@ -143,9 +143,9 @@ class PaymentService {
         return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
       }
 
-      // Business Rule C: Block resubmission when there is a PENDING or APPROVED slip
+      // Business Rule: Block resubmission when there is a PENDING slip or bill is FULLY PAID
       // - Pending: payment_id IS NULL AND verified_at IS NULL
-      // - Approved: payment_id IS NOT NULL
+      // - Allow resubmission if slip was approved/rejected but bill is not fully paid
       try {
         final pending = await _supabase
             .from('payment_slips')
@@ -163,19 +163,22 @@ class PaymentService {
           };
         }
 
-        final approved = await _supabase
-            .from('payment_slips')
-            .select('slip_id')
-            .eq('invoice_id', invoiceId)
-            .eq('tenant_id', tenantId)
-            .not('payment_id', 'is', null)
-            .limit(1)
-            .maybeSingle();
-        if (approved != null) {
-          return {
-            'success': false,
-            'message': 'บิลนี้มีสลิปที่อนุมัติแล้ว ไม่สามารถส่งซ้ำได้',
-          };
+        // Check if bill is fully paid
+        final invoice = await InvoiceService.getInvoiceById(invoiceId);
+        if (invoice != null) {
+          final total = (invoice['total_amount'] is num)
+              ? (invoice['total_amount'] as num).toDouble()
+              : double.tryParse(invoice['total_amount']?.toString() ?? '0') ??
+                  0;
+          final paid = (invoice['paid_amount'] is num)
+              ? (invoice['paid_amount'] as num).toDouble()
+              : double.tryParse(invoice['paid_amount']?.toString() ?? '0') ?? 0;
+          if (paid >= total) {
+            return {
+              'success': false,
+              'message': 'บิลนี้ชำระครบแล้ว',
+            };
+          }
         }
       } catch (_) {
         // If pre-check fails, continue to avoid blocking unexpectedly; server will still enforce constraints later if any
@@ -458,7 +461,6 @@ class PaymentService {
         }
       }
 
-      // Classify method via branch_payment_qr for those with qr_id
       final qrIds = slips
           .map((r) => r['qr_id'])
           .where((v) => v != null)
@@ -469,7 +471,7 @@ class PaymentService {
       if (qrIds.isNotEmpty) {
         final qrRows = await _supabase
             .from('branch_payment_qr')
-            .select('qr_id,promptpay_id,bank_name,account_name,account_number')
+            .select('qr_id,bank_name,account_name,account_number')
             .inFilter('qr_id', qrIds);
         qrsById = {
           for (final r in List<Map<String, dynamic>>.from(qrRows))

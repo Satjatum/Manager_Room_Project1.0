@@ -247,6 +247,7 @@ class UserService {
           'role': userData['role'] ?? 'tenant',
           'permissions': userData['permissions'] ?? ['view_own_data'],
           'is_active': userData['is_active'] ?? true,
+          'created_by': currentUser.userId,
         }).eq('auth_uid', authUid);
 
         // ⚠️ CRITICAL: Sign out the newly created user immediately
