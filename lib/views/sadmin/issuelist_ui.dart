@@ -163,7 +163,7 @@ class _IssueListUiState extends State<IssueListUi>
 
   void _applyFilters() {
     if (!mounted || _allIssues.isEmpty) {
-      setState(() => _filteredIssues = []);
+      if (mounted) setState(() => _filteredIssues = []);
       return;
     }
 
@@ -205,7 +205,7 @@ class _IssueListUiState extends State<IssueListUi>
       }).toList();
     }
 
-    setState(() => _filteredIssues = filtered);
+    if (mounted) setState(() => _filteredIssues = filtered);
   }
 
   String _getStatusFromTab(int index) {

@@ -173,29 +173,109 @@ class _PaymentVerificationDetailUiState
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
-        title: const Text('อนุมัติการชำระเงิน'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+        title: Row(
           children: [
-            TextField(
-              controller: amtCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'จำนวนเงิน',
-                border: OutlineInputBorder(),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.check_outlined,
+                color: AppTheme.primary,
+                size: 24,
               ),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: noteCtrl,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'หมายเหตุ',
-                border: OutlineInputBorder(),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'อนุมัติสลิปชำระเงิน',
+                    style: const TextStyle(
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
               ),
-            )
+            ),
           ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: amtCtrl,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'จำนวนเงิน',
+                    labelStyle: TextStyle(
+                      color: Colors.grey[700],
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 14,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: Colors.grey[300]!,
+                        width: 1.2,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: AppTheme.primary,
+                        width: 1.6,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: noteCtrl,
+                  maxLines: 5,
+                  decoration: InputDecoration(
+                    labelText: 'หมายเหตุ (ถ้ามี)',
+                    labelStyle: TextStyle(
+                      color: Colors.grey[700],
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 14,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: Colors.grey[300]!,
+                        width: 1.2,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        color: AppTheme.primary,
+                        width: 1.6,
+                      ),
+                    ),
+                  ),
+                )
+              ],
+            ),
+          ),
         ),
         actions: [
           Row(
@@ -303,15 +383,77 @@ class _PaymentVerificationDetailUiState
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
-        title: const Text('ปฏิเสธสลิป'),
-        content: TextField(
-          controller: reasonCtrl,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'ระบุเหตุผล',
-            border: OutlineInputBorder(),
-          ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.cancel_outlined,
+                color: Colors.red,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ยืนยันการปฏิเสธสลิปชำระเงิน',
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
+        content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: reasonCtrl,
+                    maxLines: 5,
+                    decoration: InputDecoration(
+                      labelText: 'ระบุเหตุผล',
+                      labelStyle: TextStyle(
+                        color: Colors.grey[700],
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1.2,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: AppTheme.primary,
+                          width: 1.6,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )),
         actions: [
           Row(
             children: [
@@ -370,8 +512,8 @@ class _PaymentVerificationDetailUiState
         reason: reasonCtrl.text.trim().isEmpty ? null : reasonCtrl.text.trim(),
       );
       if (mounted) {
-        debugPrint(result['message'] ?? 'อนุมัติสำเร็จ');
-        SnackMessage.showSuccess(context, 'อนุมัติสำเร็จ');
+        debugPrint(result['message'] ?? 'ปฏิเสธสำเร็จ');
+        SnackMessage.showSuccess(context, 'ปฏิเสธสำเร็จ');
       }
       await _load();
     } catch (e) {
@@ -502,7 +644,6 @@ class _PaymentVerificationDetailUiState
           Expanded(
             child: OutlinedButton.icon(
               onPressed: canAction ? _reject : null,
-              icon: const Icon(Icons.close, color: Colors.red),
               label: const Text('ปฏิเสธ', style: TextStyle(color: Colors.red)),
               style: OutlinedButton.styleFrom(
                 side: BorderSide(color: Colors.grey[300]!),
@@ -517,7 +658,6 @@ class _PaymentVerificationDetailUiState
           Expanded(
             child: ElevatedButton.icon(
               onPressed: canAction ? _approve : null,
-              icon: const Icon(Icons.check, color: Colors.white),
               label:
                   const Text('อนุมัติ', style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(

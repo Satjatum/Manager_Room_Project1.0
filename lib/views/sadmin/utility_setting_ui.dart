@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 // Models //
-import '../models/user_models.dart';
+import '../../models/user_models.dart';
 // Services //
-import '../services/utility_rate_service.dart';
-import '../services/branch_service.dart';
-import '../services/auth_service.dart';
+import '../../services/utility_rate_service.dart';
+import '../../services/branch_service.dart';
+import '../../services/auth_service.dart';
 // Widgets //
-import 'widgets/colors.dart';
-import 'widgets/snack_message.dart';
+import '../widgets/colors.dart';
+import '../widgets/snack_message.dart';
 
 class UtilityRatesManagementUi extends StatefulWidget {
   final String? branchId;
@@ -498,6 +498,7 @@ class _UtilityRatesManagementUiState extends State<UtilityRatesManagementUi> {
                                             additionalController.text) ??
                                         0,
                                     isActive: isActive,
+                                    createdBy: currentUser?.userId,
                                   );
                                 }
 
