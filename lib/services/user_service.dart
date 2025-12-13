@@ -1,3 +1,4 @@
+﻿import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import '../models/user_models.dart';
@@ -11,12 +12,12 @@ class UserService {
       // Check user permissions
       final currentUser = await AuthService.getCurrentUser();
       if (currentUser == null) {
-        throw Exception('กรุณาเข้าสู่ระบบใหม่');
+        throw Exception('กรุณาเข้าสู่ระบบก่อน');
       }
 
       // Only superadmin can see all admin users
       if (currentUser.userRole != UserRole.superAdmin) {
-        throw Exception('ไม่มีสิทธิ์ในการดูข้อมูลผู้ดูแล');
+        throw Exception('ไม่มีสิทธิ์ในการดูรายการผู้ดูแลระบบ');
       }
 
       // Query admin and superadmin users
@@ -30,7 +31,7 @@ class UserService {
 
       return List<Map<String, dynamic>>.from(result);
     } catch (e) {
-      throw Exception('เกิดข้อผิดพลาดในการโหลดข้อมูลผู้ดูแล: $e');
+      throw Exception('ไม่สามารถโหลดข้อมูลผู้ดูแลระบบ: $e');
     }
   }
 
@@ -39,7 +40,7 @@ class UserService {
     try {
       final currentUser = await AuthService.getCurrentUser();
       if (currentUser == null) {
-        throw Exception('กรุณาเข้าสู่ระบบใหม่');
+        throw Exception('กรุณาเข้าสู่ระบบก่อน');
       }
 
       final result = await _supabase
@@ -51,7 +52,7 @@ class UserService {
 
       return result;
     } catch (e) {
-      throw Exception('เกิดข้อผิดพลาดในการโหลดข้อมูลผู้ใช้: $e');
+      throw Exception('ไม่สามารถโหลดข้อมูลผู้ใช้งาน: $e');
     }
   }
 
@@ -67,12 +68,12 @@ class UserService {
     try {
       final currentUser = await AuthService.getCurrentUser();
       if (currentUser == null) {
-        throw Exception('กรุณาเข้าสู่ระบบใหม่');
+        throw Exception('กรุณาเข้าสู่ระบบก่อน');
       }
 
       // Only superadmin can see all users
       if (currentUser.userRole != UserRole.superAdmin) {
-        throw Exception('ไม่มีสิทธิ์ในการดูข้อมูลผู้ใช้ทั้งหมด');
+        throw Exception('ไม่มีสิทธิ์ในการดูรายการผู้ใช้งานทั้งหมด');
       }
 
       // Build query
@@ -96,7 +97,7 @@ class UserService {
 
       return List<Map<String, dynamic>>.from(result);
     } catch (e) {
-      throw Exception('เกิดข้อผิดพลาดในการโหลดข้อมูลผู้ใช้: $e');
+      throw Exception('ไม่สามารถโหลดข้อมูลผู้ใช้งาน: $e');
     }
   }
 
@@ -106,7 +107,7 @@ class UserService {
     try {
       final currentUser = await AuthService.getCurrentUser();
       if (currentUser == null) {
-        throw Exception('กรุณาเข้าสู่ระบบใหม่');
+        throw Exception('กรุณาเข้าสู่ระบบก่อน');
       }
 
       // Require manageIssues permission (Admin or SuperAdmin)
@@ -116,7 +117,7 @@ class UserService {
       ]);
 
       if (!canAssign) {
-        throw Exception('ไม่มีสิทธิ์ในการมอบหมายงาน');
+        throw Exception('ไม่มีสิทธิ์ในการมอบหมายเรื่อง');
       }
 
       final result = await _supabase
@@ -129,11 +130,11 @@ class UserService {
 
       return List<Map<String, dynamic>>.from(result);
     } catch (e) {
-      throw Exception('เกิดข้อผิดพลาดในการโหลดรายชื่อผู้รับมอบหมาย: $e');
+      throw Exception('ไม่สามารถโหลดข้อมูลชื่อผู้ใช้สำหรับมอบหมาย: $e');
     }
   }
 
-  /// Create new user (for superadmin only)
+  /// Create new user (for superadmin only) WITH session restore
   static Future<Map<String, dynamic>> createUser(
       Map<String, dynamic> userData) async {
     try {
@@ -141,7 +142,7 @@ class UserService {
       if (currentUser == null) {
         return {
           'success': false,
-          'message': 'กรุณาเข้าสู่ระบบใหม่',
+          'message': 'กรุณาเข้าสู่ระบบก่อน',
         };
       }
 
@@ -149,7 +150,19 @@ class UserService {
       if (currentUser.userRole != UserRole.superAdmin) {
         return {
           'success': false,
-          'message': 'ไม่มีสิทธิ์ในการสร้างผู้ใช้ใหม่',
+          'message': 'ไม่มีสิทธิ์ในการสร้างผู้ใช้งานใหม่',
+        };
+      }
+
+      // Store current admin session BEFORE creating new user
+      final adminSession = _supabase.auth.currentSession;
+      final adminAccessToken = adminSession?.accessToken;
+      final adminRefreshToken = adminSession?.refreshToken;
+
+      if (adminRefreshToken == null) {
+        return {
+          'success': false,
+          'message': 'ไม่พบ session ของผู้ดูแลระบบ กรุณาเข้าสู่ระบบใหม่',
         };
       }
 
@@ -158,7 +171,7 @@ class UserService {
           userData['user_name'].toString().trim().isEmpty) {
         return {
           'success': false,
-          'message': 'กรุณากรอกชื่อผู้ใช้',
+          'message': 'กรุณากรอกชื่อผู้ใช้งาน',
         };
       }
 
@@ -180,7 +193,7 @@ class UserService {
       if (existingUser != null) {
         return {
           'success': false,
-          'message': 'ชื่อผู้ใช้นี้มีอยู่แล้วในระบบ',
+          'message': 'ชื่อผู้ใช้งานนี้ถูกใช้งานแล้ว',
         };
       }
 
@@ -194,7 +207,7 @@ class UserService {
       if (existingEmail != null) {
         return {
           'success': false,
-          'message': 'อีเมลนี้มีอยู่แล้วในระบบ',
+          'message': 'อีเมลนี้ถูกใช้งานแล้ว',
         };
       }
 
@@ -209,75 +222,105 @@ class UserService {
         password = passwordResult as String;
       }
 
-      // Step 2: Create user in Supabase Auth WITHOUT hijacking current session
+      // Step 2: Create user in Supabase Auth (this WILL hijack current session)
       try {
-        // Create new user account (this will automatically log in the new user)
         final authResponse = await _supabase.auth.signUp(
           email: userData['user_email'].toString().trim(),
           password: password,
           data: {
             'username': userData['user_name'].toString().trim(),
-            'role': userData['role'] ?? 'tenant',
+            'role': userData['role'] ?? 'admin',
           },
         );
 
         if (authResponse.user == null) {
+          // Restore admin session before returning error
+          try {
+            await _supabase.auth.setSession(adminRefreshToken);
+          } catch (_) {}
+          
           return {
             'success': false,
-            'message': 'ไม่สามารถสร้างผู้ใช้ใน Auth System ได้',
+            'message': 'ไม่สามารถสร้างผู้ใช้งานใน Auth System ได้',
           };
         }
 
-        // Step 3: Wait a moment for trigger to create public.users record
+        // Step 3: Wait for trigger to create public.users record
         await Future.delayed(const Duration(milliseconds: 800));
 
-        // Step 4: Update public.users with additional info
+        // Step 4: Update public.users with additional info (while logged in as new user)
         final authUid = authResponse.user!.id;
 
-        // Get the created user data first (while we're logged in as the new user)
-        final result = await _supabase
+        final createdUser = await _supabase
             .from('users')
             .select('*')
             .eq('auth_uid', authUid)
             .single();
 
-        // Update user info
         await _supabase.from('users').update({
           'user_name': userData['user_name'].toString().trim(),
-          'role': userData['role'] ?? 'tenant',
+          'role': userData['role'] ?? 'admin',
           'permissions': userData['permissions'] ?? ['view_own_data'],
           'is_active': userData['is_active'] ?? true,
           'created_by': currentUser.userId,
         }).eq('auth_uid', authUid);
 
-        // ⚠️ CRITICAL: Sign out the newly created user immediately
-        await _supabase.auth.signOut();
+        // Step 5: CRITICAL - Restore admin session immediately
+        try {
+          await _supabase.auth.setSession(adminRefreshToken);
 
-        // Now the admin must log back in manually, OR we show a success message
-        // and redirect to login page
+          // Verify the session was restored correctly
+          final restoredUser = await AuthService.getCurrentUser();
+          if (restoredUser?.userId != currentUser.userId) {
+            // Session restore failed
+            await _supabase.auth.signOut();
+            return {
+              'success': true,
+              'message': 'สร้างผู้ใช้งานสำเร็จ แต่ไม่สามารถกู้คืน session ได้ กรุณาเข้าสู่ระบบใหม่',
+              'data': createdUser,
+              'password': password,
+              'requireRelogin': true,
+            };
+          }
+        } catch (e) {
+          debugPrint('ไม่สามารถกู้คืน session: $e');
+          await _supabase.auth.signOut();
+          return {
+            'success': true,
+            'message': 'สร้างผู้ใช้งานสำเร็จ แต่ไม่สามารถกู้คืน session ได้ กรุณาเข้าสู่ระบบใหม่',
+            'data': createdUser,
+            'password': password,
+            'requireRelogin': true,
+          };
+        }
 
         return {
           'success': true,
-          'message': 'สร้างผู้ใช้สำเร็จ - กรุณาเข้าสู่ระบบอีกครั้ง',
-          'data': result,
+          'message': 'สร้างผู้ใช้งานสำเร็จ',
+          'data': createdUser,
           'password': password,
-          'requireRelogin': true, // Flag to tell UI to redirect to login
         };
       } on AuthException catch (e) {
+        // Restore admin session on auth error
+        try {
+          await _supabase.auth.setSession(adminRefreshToken);
+        } catch (_) {}
+
+        debugPrint('ไม่สามารถสร้างผู้ใช้งานได้: รหัสผ่านไม่ปลอดภัย ');
         return {
           'success': false,
-          'message': 'ไม่สามารถสร้างผู้ใช้ได้: ${e.message}',
+          'message': 'ไม่สามารถสร้างผู้ใช้งานได้: ',
         };
       }
     } on PostgrestException catch (e) {
-      String message = 'เกิดข้อผิดพลาด: ${e.message}';
+      String message = 'ไม่สามารถบันทึกข้อมูล: ';
 
       if (e.code == '23505') {
         // Unique constraint violation
         if (e.message.contains('user_name')) {
-          message = 'ชื่อผู้ใช้นี้มีอยู่แล้วในระบบ';
+          message = 'ชื่อผู้ใช้งานนี้ถูกใช้งานแล้ว';
         } else if (e.message.contains('user_email')) {
-          message = 'อีเมลนี้มีอยู่แล้วในระบบ';
+          message = 'อีเมลนี้ถูกใช้งานแล้ว';
         }
       }
 
@@ -288,7 +331,7 @@ class UserService {
     } catch (e) {
       return {
         'success': false,
-        'message': 'เกิดข้อผิดพลาดในการสร้างผู้ใช้: $e',
+        'message': 'ไม่สามารถสร้างผู้ใช้งาน: $e',
       };
     }
   }
@@ -301,7 +344,7 @@ class UserService {
       if (currentUser == null) {
         return {
           'success': false,
-          'message': 'กรุณาเข้าสู่ระบบใหม่',
+          'message': 'กรุณาเข้าสู่ระบบก่อน',
         };
       }
 
@@ -315,7 +358,7 @@ class UserService {
           userData['user_name'].toString().trim().isEmpty) {
         return {
           'success': false,
-          'message': 'กรุณากรอกชื่อผู้ใช้',
+          'message': 'กรุณากรอกชื่อผู้ใช้งาน',
         };
       }
 
@@ -345,7 +388,7 @@ class UserService {
       if (existingUser != null) {
         return {
           'success': false,
-          'message': 'ชื่อผู้ใช้นี้มีอยู่แล้วในระบบ',
+          'message': 'ชื่อผู้ใช้งานนี้ถูกใช้งานแล้ว',
         };
       }
 
@@ -359,7 +402,7 @@ class UserService {
       if (existingEmail != null) {
         return {
           'success': false,
-          'message': 'อีเมลนี้มีอยู่แล้วในระบบ',
+          'message': 'อีเมลนี้ถูกใช้งานแล้ว',
         };
       }
 
@@ -381,7 +424,7 @@ class UserService {
         if (authResponse.user == null) {
           return {
             'success': false,
-            'message': 'ไม่สามารถสร้างผู้ใช้ใน Auth System ได้',
+            'message': 'ไม่สามารถสร้างผู้ใช้งานใน Auth System ได้',
           };
         }
 
@@ -418,7 +461,7 @@ class UserService {
               return {
                 'success': false,
                 'message':
-                    'สร้างผู้ใช้สำเร็จแต่ไม่สามารถกู้คืน session ได้ กรุณาเข้าสู่ระบบใหม่',
+                    'สร้างผู้ใช้งานสำเร็จแต่ไม่สามารถกู้คืน session ได้ กรุณาเข้าสู่ระบบใหม่',
                 'data': createdUser,
                 'requireRelogin': true,
               };
@@ -429,7 +472,7 @@ class UserService {
             return {
               'success': false,
               'message':
-                  'สร้างผู้ใช้สำเร็จแต่ไม่สามารถกู้คืน session ได้ กรุณาเข้าสู่ระบบใหม่',
+                  'สร้างผู้ใช้งานสำเร็จแต่ไม่สามารถกู้คืน session ได้ กรุณาเข้าสู่ระบบใหม่',
               'data': createdUser,
               'requireRelogin': true,
             };
@@ -440,7 +483,7 @@ class UserService {
           return {
             'success': false,
             'message':
-                'สร้างผู้ใช้สำเร็จแต่ไม่สามารถกู้คืน session ได้ กรุณาเข้าสู่ระบบใหม่',
+                'สร้างผู้ใช้งานสำเร็จแต่ไม่สามารถกู้คืน session ได้ กรุณาเข้าสู่ระบบใหม่',
             'data': createdUser,
             'requireRelogin': true,
           };
@@ -448,7 +491,7 @@ class UserService {
 
         return {
           'success': true,
-          'message': 'สร้างผู้ใช้สำเร็จ',
+          'message': 'สร้างผู้ใช้งานสำเร็จ',
           'data': createdUser,
         };
       } on AuthException catch (e) {
@@ -463,18 +506,18 @@ class UserService {
 
         return {
           'success': false,
-          'message': 'ไม่สามารถสร้างผู้ใช้ได้: ${e.message}',
+          'message': 'ไม่สามารถสร้างผู้ใช้งานได้: ',
         };
       }
     } on PostgrestException catch (e) {
-      String message = 'เกิดข้อผิดพลาด: ${e.message}';
+      String message = 'ไม่สามารถบันทึกข้อมูล: ';
 
       if (e.code == '23505') {
         // Unique constraint violation
         if (e.message.contains('user_name')) {
-          message = 'ชื่อผู้ใช้นี้มีอยู่แล้วในระบบ';
+          message = 'ชื่อผู้ใช้งานนี้ถูกใช้งานแล้ว';
         } else if (e.message.contains('user_email')) {
-          message = 'อีเมลนี้มีอยู่แล้วในระบบ';
+          message = 'อีเมลนี้ถูกใช้งานแล้ว';
         }
       }
 
@@ -485,7 +528,7 @@ class UserService {
     } catch (e) {
       return {
         'success': false,
-        'message': 'เกิดข้อผิดพลาดในการสร้างผู้ใช้: $e',
+        'message': 'ไม่สามารถสร้างผู้ใช้งาน: $e',
       };
     }
   }
@@ -500,7 +543,7 @@ class UserService {
       if (currentUser == null) {
         return {
           'success': false,
-          'message': 'กรุณาเข้าสู่ระบบใหม่',
+          'message': 'กรุณาเข้าสู่ระบบก่อน',
         };
       }
 
@@ -509,7 +552,7 @@ class UserService {
           currentUser.userId != userId) {
         return {
           'success': false,
-          'message': 'ไม่มีสิทธิ์ในการแก้ไขข้อมูลผู้ใช้',
+          'message': 'ไม่มีสิทธิ์ในการแก้ไขข้อมูลผู้ใช้งาน',
         };
       }
 
@@ -549,7 +592,7 @@ class UserService {
       if (updateData.isEmpty && newPassword == null) {
         return {
           'success': false,
-          'message': 'ไม่มีข้อมูลที่ต้องอัปเดต',
+          'message': 'ไม่มีข้อมูลที่ต้องการแก้ไข',
         };
       }
 
@@ -566,22 +609,22 @@ class UserService {
 
       return {
         'success': true,
-        'message': 'อัปเดตข้อมูลผู้ใช้สำเร็จ',
+        'message': 'แก้ไขข้อมูลผู้ใช้งานสำเร็จ',
         'data': result,
       };
     } on PostgrestException catch (e) {
-      String message = 'เกิดข้อผิดพลาด: ${e.message}';
+      String message = 'ไม่สามารถบันทึกข้อมูล: ';
 
       if (e.code == '23505') {
         // Unique constraint violation
         if (e.message.contains('user_name')) {
-          message = 'ชื่อผู้ใช้นี้มีอยู่แล้วในระบบ';
+          message = 'ชื่อผู้ใช้งานนี้ถูกใช้งานแล้ว';
         } else if (e.message.contains('user_email')) {
-          message = 'อีเมลนี้มีอยู่แล้วในระบบ';
+          message = 'อีเมลนี้ถูกใช้งานแล้ว';
         }
       } else if (e.code == 'PGRST116') {
         // Row not found
-        message = 'ไม่พบผู้ใช้ที่ต้องการแก้ไข';
+        message = 'ไม่พบผู้ใช้งานที่ต้องการแก้ไข';
       }
 
       return {
@@ -591,7 +634,7 @@ class UserService {
     } catch (e) {
       return {
         'success': false,
-        'message': 'เกิดข้อผิดพลาดในการอัปเดตข้อมูลผู้ใช้: $e',
+        'message': 'ไม่สามารถแก้ไขข้อมูลผู้ใช้งาน: $e',
       };
     }
   }
@@ -603,7 +646,7 @@ class UserService {
       if (currentUser == null) {
         return {
           'success': false,
-          'message': 'กรุณาเข้าสู่ระบบใหม่',
+          'message': 'กรุณาเข้าสู่ระบบก่อน',
         };
       }
 
@@ -611,7 +654,7 @@ class UserService {
       if (currentUser.userRole != UserRole.superAdmin) {
         return {
           'success': false,
-          'message': 'ไม่มีสิทธิ์ในการลบผู้ใช้',
+          'message': 'ไม่มีสิทธิ์ในการปิดการใช้งานผู้ใช้',
         };
       }
 
@@ -619,58 +662,48 @@ class UserService {
       if (currentUser.userId == userId) {
         return {
           'success': false,
-          'message': 'ไม่สามารถลบบัญชีของตัวเองได้',
+          'message': 'ไม่สามารถปิดการใช้งานตัวเองได้',
         };
       }
 
-      // Soft delete by setting is_active to false
+      // Deactivate user
       await _supabase
           .from('users')
           .update({'is_active': false}).eq('user_id', userId);
 
-      // Also deactivate all sessions for this user
-      await _supabase.from('user_sessions').delete().eq('user_id', userId);
-
       return {
         'success': true,
-        'message': 'ปิดใช้งานผู้ใช้สำเร็จ',
+        'message': 'ปิดการใช้งานผู้ใช้สำเร็จ',
       };
     } on PostgrestException catch (e) {
-      String message = 'เกิดข้อผิดพลาด: ${e.message}';
-
-      if (e.code == 'PGRST116') {
-        // Row not found
-        message = 'ไม่พบผู้ใช้ที่ต้องการลบ';
-      }
-
       return {
         'success': false,
-        'message': message,
+        'message': 'ไม่สามารถปิดการใช้งานได้: ',
       };
     } catch (e) {
       return {
         'success': false,
-        'message': 'เกิดข้อผิดพลาดในการลบผู้ใช้: $e',
+        'message': 'ไม่สามารถปิดการใช้งานผู้ใช้: $e',
       };
     }
   }
 
-  /// Permanently delete a user (SuperAdmin only)
+  /// Permanently delete user (for superadmin only)
   static Future<Map<String, dynamic>> deleteUser(String userId) async {
     try {
       final currentUser = await AuthService.getCurrentUser();
       if (currentUser == null) {
         return {
           'success': false,
-          'message': 'กรุณาเข้าสู่ระบบใหม่',
+          'message': 'กรุณาเข้าสู่ระบบก่อน',
         };
       }
 
-      // Only superadmin can delete users permanently
+      // Only superadmin can delete users
       if (currentUser.userRole != UserRole.superAdmin) {
         return {
           'success': false,
-          'message': 'ไม่มีสิทธิ์ในการลบผู้ใช้ถาวร',
+          'message': 'ไม่มีสิทธิ์ในการลบผู้ใช้',
         };
       }
 
@@ -678,44 +711,23 @@ class UserService {
       if (currentUser.userId == userId) {
         return {
           'success': false,
-          'message': 'ไม่สามารถลบบัญชีของตัวเองได้',
+          'message': 'ไม่สามารถลบตัวเองได้',
         };
       }
 
-      // Ensure target user exists and is not superadmin
-      final target = await _supabase
-          .from('users')
-          .select('user_id, role, user_name')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-      if (target == null) {
-        return {
-          'success': false,
-          'message': 'ไม่พบผู้ใช้ที่ต้องการลบ',
-        };
-      }
-
-      if ((target['role'] as String).toLowerCase() == 'superadmin') {
-        return {
-          'success': false,
-          'message': 'ไม่สามารถลบผู้ใช้ระดับ SuperAdmin ได้',
-        };
-      }
-
+      // Delete user
       await _supabase.from('users').delete().eq('user_id', userId);
 
       return {
         'success': true,
-        'message': 'ลบบัญชีผู้ใช้ "${target['user_name']}" ถาวรสำเร็จ',
+        'message': 'ลบผู้ใช้สำเร็จ',
       };
     } on PostgrestException catch (e) {
-      String message = 'เกิดข้อผิดพลาด: ${e.message}';
+      String message = 'ไม่สามารถลบผู้ใช้ได้: ';
 
-      if (e.code == 'PGRST116') {
-        message = 'ไม่พบผู้ใช้ที่ต้องการลบ';
-      } else if (e.code == '23503') {
-        message = 'ไม่สามารถลบผู้ใช้ได้ เนื่องจากยังมีข้อมูลที่เกี่ยวข้อง';
+      if (e.code == '23503') {
+        // Foreign key violation
+        message = 'ไม่สามารถลบผู้ใช้ได้ เนื่องจากมีข้อมูลที่เกี่ยวข้อง';
       }
 
       return {
@@ -725,94 +737,7 @@ class UserService {
     } catch (e) {
       return {
         'success': false,
-        'message': 'เกิดข้อผิดพลาดในการลบผู้ใช้: $e',
-      };
-    }
-  }
-
-  /// Search users by name or email
-  static Future<List<Map<String, dynamic>>> searchUsers(
-      String searchQuery) async {
-    try {
-      final currentUser = await AuthService.getCurrentUser();
-      if (currentUser == null) {
-        throw Exception('กรุณาเข้าสู่ระบบใหม่');
-      }
-
-      if (searchQuery.trim().isEmpty) {
-        return [];
-      }
-
-      final result = await _supabase
-          .from('users')
-          .select('user_id, user_name, user_email, role, is_active')
-          .or('user_name.ilike.%$searchQuery%,'
-              'user_email.ilike.%$searchQuery%')
-          .eq('is_active', true)
-          .order('user_name')
-          .limit(20);
-
-      return List<Map<String, dynamic>>.from(result);
-    } catch (e) {
-      throw Exception('เกิดข้อผิดพลาดในการค้นหาผู้ใช้: $e');
-    }
-  }
-
-  /// Send password reset email to user (for superadmin only)
-  static Future<Map<String, dynamic>> sendPasswordResetEmail(
-      String userId) async {
-    try {
-      final currentUser = await AuthService.getCurrentUser();
-      if (currentUser == null) {
-        return {
-          'success': false,
-          'message': 'กรุณาเข้าสู่ระบบใหม่',
-        };
-      }
-
-      // Only superadmin can send password reset emails
-      if (currentUser.userRole != UserRole.superAdmin) {
-        return {
-          'success': false,
-          'message': 'ไม่มีสิทธิ์ในการส่งอีเมลรีเซ็ตรหัสผ่าน',
-        };
-      }
-
-      // Get user email
-      final user = await _supabase
-          .from('users')
-          .select('user_email, user_name')
-          .eq('user_id', userId)
-          .single();
-
-      final userEmail = user['user_email'] as String;
-      final userName = user['user_name'] as String;
-
-      // Send password reset email via Supabase Auth
-      await _supabase.auth.resetPasswordForEmail(
-        userEmail,
-        redirectTo:
-            'your-app://reset-password', // Update with your redirect URL
-      );
-
-      return {
-        'success': true,
-        'message': 'ส่งอีเมลรีเซ็ตรหัสผ่านไปยัง $userName ($userEmail) แล้ว',
-      };
-    } on AuthException catch (e) {
-      return {
-        'success': false,
-        'message': 'ไม่สามารถส่งอีเมลได้: ${e.message}',
-      };
-    } on PostgrestException catch (e) {
-      return {
-        'success': false,
-        'message': 'ไม่พบผู้ใช้: ${e.message}',
-      };
-    } catch (e) {
-      return {
-        'success': false,
-        'message': 'เกิดข้อผิดพลาด: $e',
+        'message': 'ไม่สามารถลบผู้ใช้: $e',
       };
     }
   }
