@@ -1,4 +1,4 @@
-﻿-- ============================================
+-- ============================================
 -- Migration: Fix User Deletion to Include Auth
 -- Created: 2025-12-13
 -- Purpose: Ensure that when deleting a user from public.users,
@@ -15,7 +15,7 @@ CREATE OR REPLACE FUNCTION delete_user_completely(p_user_id UUID)
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $$
+AS $function$
 DECLARE
   v_auth_uid UUID;
   v_user_name TEXT;
@@ -30,7 +30,7 @@ BEGIN
   IF v_auth_uid IS NULL THEN
     RETURN json_build_object(
       'success', false,
-      'message', 'ไม่พบผู้ใช้ในระบบ'
+      'message', 'User not found in system'
     );
   END IF;
   
@@ -44,22 +44,22 @@ BEGIN
   -- Step 5: Return success
   RETURN json_build_object(
     'success', true,
-    'message', 'ลบผู้ใช้ ' || v_user_name || ' และข้อมูล Auth เรียบร้อยแล้ว'
+    'message', 'User ' || v_user_name || ' and Auth data deleted successfully'
   );
   
 EXCEPTION 
   WHEN foreign_key_violation THEN
     RETURN json_build_object(
       'success', false,
-      'message', 'ไม่สามารถลบผู้ใช้ได้ เนื่องจากมีข้อมูลที่เกี่ยวข้องอยู่'
+      'message', 'Cannot delete user due to related data'
     );
   WHEN OTHERS THEN
     RETURN json_build_object(
       'success', false,
-      'message', 'เกิดข้อผิดพลาด: ' || SQLERRM
+      'message', 'Error occurred: ' || SQLERRM
     );
 END;
-$$;
+$function$;
 
 -- Grant execute permission to authenticated users (optional, adjust as needed)
 -- GRANT EXECUTE ON FUNCTION delete_user_completely(UUID) TO authenticated;
@@ -74,5 +74,6 @@ $$;
 -- 
 -- TESTING:
 -- You can test the function with:
--- SELECT delete_user_completely('some-user-id-uuid');
+-- SELECT delete_user_completely('00000000-0000-0000-0000-000000000000'::UUID);
+-- Expected: {"success": false, "message": "User not found in system"}
 -- ============================================
