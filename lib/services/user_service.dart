@@ -691,13 +691,14 @@ class UserService {
   }
 
   /// Permanently delete user (for superadmin only)
+  /// This function deletes the user from both public.users AND auth.users
   static Future<Map<String, dynamic>> deleteUser(String userId) async {
     try {
       final currentUser = await AuthService.getCurrentUser();
       if (currentUser == null) {
         return {
           'success': false,
-          'message': 'กรุณาเข้าสู่ระบบก่อน',
+          'message': 'กรุณาเข้าสู่ระบบ',
         };
       }
 
@@ -705,7 +706,7 @@ class UserService {
       if (currentUser.userRole != UserRole.superAdmin) {
         return {
           'success': false,
-          'message': 'ไม่มีสิทธิ์ในการลบผู้ใช้',
+          'message': 'ไม่มีสิทธิ์ลบผู้ใช้',
         };
       }
 
@@ -717,19 +718,32 @@ class UserService {
         };
       }
 
-      // Delete user
-      await _supabase.from('users').delete().eq('user_id', userId);
+      // Call database function to delete user completely
+      // This deletes from both public.users AND auth.users
+      final result = await _supabase.rpc(
+        'delete_user_completely',
+        params: {'p_user_id': userId},
+      );
 
+      // The database function returns a JSON object with success and message
+      if (result is Map<String, dynamic>) {
+        return result;
+      }
+
+      // Fallback if result format is unexpected
       return {
         'success': true,
         'message': 'ลบผู้ใช้สำเร็จ',
       };
     } on PostgrestException catch (e) {
-      String message = 'ไม่สามารถลบผู้ใช้ได้: ';
+      String message = 'เกิดข้อผิดพลาด: ';
 
       if (e.code == '23503') {
         // Foreign key violation
-        message = 'ไม่สามารถลบผู้ใช้ได้ เนื่องจากมีข้อมูลที่เกี่ยวข้อง';
+        message = 'ไม่สามารถลบได้ มีข้อมูลที่เกี่ยวข้อง';
+      } else if (e.code == '42883') {
+        // Function does not exist
+        message = 'ฟังก์ชันฐานข้อมูลยังไม่ถูกติดตั้ง กรุณารัน migration SQL';
       }
 
       return {
@@ -739,7 +753,7 @@ class UserService {
     } catch (e) {
       return {
         'success': false,
-        'message': 'ไม่สามารถลบผู้ใช้: $e',
+        'message': 'เกิดข้อผิดพลาด: $e',
       };
     }
   }
