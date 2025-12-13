@@ -246,12 +246,21 @@ class AuthService {
     required String email,
   }) async {
     try {
-      // For Web: redirect to current origin + /reset-password
-      // For Mobile: use deep link manager-room://reset-password
-      final redirectUrl = Uri.base.origin.contains('localhost') || 
-                          Uri.base.origin.contains('http')
-          ? '${Uri.base.origin}/reset-password' // Web URL
-          : 'manager-room://reset-password'; // Deep Link for Mobile
+      // Determine redirect URL based on platform
+      String redirectUrl;
+
+      if (kIsWeb) {
+        // For Web: Use current origin WITHOUT hash fragment
+        // Supabase will append recovery tokens as query parameters
+        redirectUrl = Uri.base.origin;
+        debugPrint('🌐 Web platform detected');
+        debugPrint('🌐 Base URI: $Uri.base');
+        debugPrint('🌐 Origin: ${Uri.base.origin}');
+      } else {
+        // For Mobile: Use deep link
+        redirectUrl = 'manager-room://reset-password';
+        debugPrint('📱 Mobile platform detected');
+      }
 
       debugPrint('🔗 Reset password redirect URL: $redirectUrl');
 
@@ -268,6 +277,52 @@ class AuthService {
       return {
         'success': false,
         'message': 'เกิดข้อผิดพลาด: ${e.message}',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'เกิดข้อผิดพลาด: $e',
+      };
+    }
+  }
+
+  /// Verify recovery token and update password
+  /// This is called when user clicks the reset link from email
+  static Future<Map<String, dynamic>> verifyAndResetPassword({
+    required String newPassword,
+  }) async {
+    try {
+      // Check if user has recovery session (from email link)
+      final session = _supabase.auth.currentSession;
+
+      if (session == null) {
+        return {
+          'success': false,
+          'message': 'ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้องหรือหมดอายุ',
+        };
+      }
+
+      // Update password using the recovery session
+      await _supabase.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+
+      return {
+        'success': true,
+        'message': 'เปลี่ยนรหัสผ่านสำเร็จ',
+      };
+    } on AuthException catch (e) {
+      String message = 'เกิดข้อผิดพลาดในการเปลี่ยนรหัสผ่าน';
+
+      if (e.message.contains('Password should be at least')) {
+        message = 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+      } else if (e.message.contains('New password should be different')) {
+        message = 'รหัสผ่านใหม่ต้องไม่เหมือนรหัสผ่านเดิม';
+      }
+
+      return {
+        'success': false,
+        'message': message,
       };
     } catch (e) {
       return {

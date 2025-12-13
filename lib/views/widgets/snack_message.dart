@@ -69,13 +69,13 @@ class SnackMessage {
         ),
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 4),
-        action: SnackBarAction(
-          label: 'ปิด',
-          textColor: Colors.white,
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
-        ),
+        // action: SnackBarAction(
+        //   label: 'ปิด',
+        //   textColor: Colors.white,
+        //   onPressed: () {
+        //     ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        //   },
+        // ),
       ),
     );
   }

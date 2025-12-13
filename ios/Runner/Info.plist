@@ -49,5 +49,18 @@
 	<string>ต้องการใช้กล้องเพื่อถ่ายรูปภาพสำหรับรายงานปัญหาและเพิ่มรูปภาพสาขา</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>ต้องการเข้าถึงคลังรูปภาพเพื่อเลือกรูปภาพสำหรับรายงานปัญหาและเพิ่มรูปภาพสาขา</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.managerroom.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>manager-room</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
