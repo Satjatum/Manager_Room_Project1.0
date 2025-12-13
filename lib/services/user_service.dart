@@ -156,7 +156,6 @@ class UserService {
 
       // Store current admin session BEFORE creating new user
       final adminSession = _supabase.auth.currentSession;
-      final adminAccessToken = adminSession?.accessToken;
       final adminRefreshToken = adminSession?.refreshToken;
 
       if (adminRefreshToken == null) {
@@ -238,7 +237,7 @@ class UserService {
           try {
             await _supabase.auth.setSession(adminRefreshToken);
           } catch (_) {}
-          
+
           return {
             'success': false,
             'message': 'ไม่สามารถสร้างผู้ใช้งานใน Auth System ได้',
@@ -276,7 +275,8 @@ class UserService {
             await _supabase.auth.signOut();
             return {
               'success': true,
-              'message': 'สร้างผู้ใช้งานสำเร็จ แต่ไม่สามารถกู้คืน session ได้ กรุณาเข้าสู่ระบบใหม่',
+              'message':
+                  'สร้างผู้ใช้งานสำเร็จ แต่ไม่สามารถกู้คืน session ได้ กรุณาเข้าสู่ระบบใหม่',
               'data': createdUser,
               'password': password,
               'requireRelogin': true,
@@ -287,7 +287,8 @@ class UserService {
           await _supabase.auth.signOut();
           return {
             'success': true,
-            'message': 'สร้างผู้ใช้งานสำเร็จ แต่ไม่สามารถกู้คืน session ได้ กรุณาเข้าสู่ระบบใหม่',
+            'message':
+                'สร้างผู้ใช้งานสำเร็จ แต่ไม่สามารถกู้คืน session ได้ กรุณาเข้าสู่ระบบใหม่',
             'data': createdUser,
             'password': password,
             'requireRelogin': true,
@@ -306,10 +307,10 @@ class UserService {
           await _supabase.auth.setSession(adminRefreshToken);
         } catch (_) {}
 
-        debugPrint('ไม่สามารถสร้างผู้ใช้งานได้: รหัสผ่านไม่ปลอดภัย ');
+        debugPrint('ไม่สามารถสร้างผู้ใช้งานได้: $e ');
         return {
           'success': false,
-          'message': 'ไม่สามารถสร้างผู้ใช้งานได้: ',
+          'message': 'ไม่สามารถสร้างผู้ใช้งานได้: เนื่องจากมี่ข้อมูลอยู่แล้ว',
         };
       }
     } on PostgrestException catch (e) {
@@ -503,7 +504,7 @@ class UserService {
             // Ignore restore errors
           }
         }
-
+        debugPrint('ไม่สามารถสร้างผู้ใช้งานได้: $e ');
         return {
           'success': false,
           'message': 'ไม่สามารถสร้างผู้ใช้งานได้: ',
@@ -676,6 +677,7 @@ class UserService {
         'message': 'ปิดการใช้งานผู้ใช้สำเร็จ',
       };
     } on PostgrestException catch (e) {
+      debugPrint('ไม่สามารถปิดการใช้งานได้: $e ');
       return {
         'success': false,
         'message': 'ไม่สามารถปิดการใช้งานได้: ',

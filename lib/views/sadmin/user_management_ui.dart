@@ -352,7 +352,7 @@ class _UserManagementUiState extends State<UserManagementUi> {
 
               // Title
               const Text(
-                'ลบผู้ใช้นี้หรือไม่?',
+                'ลบผู้แอดมินหรือไม่?',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -872,7 +872,7 @@ class _UserManagementUiState extends State<UserManagementUi> {
                     children: [
                       Icon(Icons.delete_outline, size: 20, color: Colors.red),
                       SizedBox(width: 12),
-                      Text('ลบผู้ใช้', style: TextStyle(color: Colors.red)),
+                      Text('ลบ', style: TextStyle(color: Colors.red)),
                     ],
                   ),
                 ),

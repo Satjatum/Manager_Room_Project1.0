@@ -831,9 +831,10 @@ class _MeterListUiState extends State<MeterListUi> {
     for (final controller in _controllers.values) {
       // Remove all listeners before disposing
       controller.removeListener(() {});
-      if (!controller.hasListeners) {
-        controller.dispose();
-      }
+      // if (!controller.hasListeners) {
+      //   controller.dispose();
+      // }
+      controller.dispose();
     }
     _controllers.clear();
 
