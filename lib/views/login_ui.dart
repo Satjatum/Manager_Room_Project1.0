@@ -9,6 +9,7 @@ import '../../middleware/auth_middleware.dart';
 import '../services/auth_service.dart';
 // Page //
 import 'tenant/tenantdash_ui.dart';
+import 'forgot_password_ui.dart';
 // Widgets //
 import 'widgets/snack_message.dart';
 
@@ -301,7 +302,32 @@ class _LoginUiState extends State<LoginUi> {
             },
           ),
 
-          const SizedBox(height: 30),
+          const SizedBox(height: 10),
+
+          // Forgot Password Link
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ForgotPasswordUi(),
+                  ),
+                );
+              },
+              child: const Text(
+                'ลืมรหัสผ่าน?',
+                style: TextStyle(
+                  color: Color(0xff10B981),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
 
           // Enhanced Login Button
           SizedBox(

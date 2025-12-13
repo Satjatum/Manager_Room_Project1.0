@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import 'widgets/snack_message.dart';
 import 'widgets/colors.dart';
+import 'login_ui.dart';
 
 class ResetPasswordUi extends StatefulWidget {
   const ResetPasswordUi({Key? key}) : super(key: key);
@@ -17,12 +19,116 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  bool _hasValidRecoverySession = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkRecoverySession();
+  }
+
+  void _checkRecoverySession() {
+    // Check if we have a valid recovery session
+    final session = Supabase.instance.client.auth.currentSession;
+
+    if (session != null) {
+      final user = session.user;
+      debugPrint('🔍 Reset Password - User ID: ${user.id}');
+      debugPrint(
+          '🔍 Reset Password - Recovery sent at: ${user.recoverySentAt}');
+
+      // Check if this is a recent recovery session
+      if (user.recoverySentAt != null) {
+        final recoverySentAt = DateTime.parse(user.recoverySentAt!);
+        final now = DateTime.now();
+        final difference = now.difference(recoverySentAt);
+
+        debugPrint('🔍 Recovery sent ${difference.inMinutes} minutes ago');
+
+        if (difference.inMinutes < 60) {
+          setState(() {
+            _hasValidRecoverySession = true;
+          });
+          debugPrint('✅ Valid recovery session found');
+          return;
+        }
+      }
+    }
+
+    // No valid recovery session
+    debugPrint('❌ No valid recovery session found');
+    setState(() {
+      _hasValidRecoverySession = false;
+    });
+
+    // Show error and redirect to login
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        SnackMessage.showError(
+          context,
+          'ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้องหรือหมดอายุ',
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginUi()),
+        );
+      }
+    });
+  }
 
   @override
   void dispose() {
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Color(0xff10B981), size: 30),
+            SizedBox(width: 10),
+            Text('เปลี่ยนรหัสผ่านสำเร็จ'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'รหัสผ่านของคุณได้รับการเปลี่ยนแปลงเรียบร้อยแล้ว',
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 15),
+            Text(
+              'กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close dialog
+              // Navigate to login and clear all previous routes
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => const LoginUi()),
+                (route) => false,
+              );
+            },
+            child: const Text(
+              'ไปหน้าเข้าสู่ระบบ',
+              style: TextStyle(color: Color(0xff10B981), fontSize: 16),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _resetPassword() async {
@@ -39,11 +145,13 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
         setState(() => _isLoading = false);
 
         if (result['success']) {
+          // Sign out user after successful password reset
+          await AuthService.signOut();
+          debugPrint('✅ Password changed successfully, user signed out');
+
           SnackMessage.showSuccess(context, result['message']);
-          // Navigate back after success
-          Future.delayed(const Duration(seconds: 1), () {
-            if (mounted) Navigator.of(context).pop();
-          });
+          // Show success dialog and navigate to login
+          _showSuccessDialog();
         } else {
           SnackMessage.showError(context, result['message']);
         }
@@ -58,6 +166,26 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
 
   @override
   Widget build(BuildContext context) {
+    // Show loading state while checking session
+    if (!_hasValidRecoverySession) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 20),
+              Text(
+                'กำลังตรวจสอบสิทธิ์...',
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SafeArea(
@@ -67,10 +195,10 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Back Button
+                // Back Button (disabled during recovery)
                 IconButton(
-                  icon: Icon(Icons.arrow_back_ios_new, color: Colors.grey[700]),
-                  onPressed: () => Navigator.of(context).pop(),
+                  icon: Icon(Icons.arrow_back_ios_new, color: Colors.grey[400]),
+                  onPressed: null, // Disable back button during password reset
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
@@ -170,8 +298,8 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
                                 color: Colors.grey[600],
                                 size: 22,
                               ),
-                              onPressed: () => setState(
-                                  () => _obscureNewPassword = !_obscureNewPassword),
+                              onPressed: () => setState(() =>
+                                  _obscureNewPassword = !_obscureNewPassword),
                             ),
                             filled: true,
                             fillColor: Colors.grey[50],
@@ -247,7 +375,8 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
                                 size: 22,
                               ),
                               onPressed: () => setState(() =>
-                                  _obscureConfirmPassword = !_obscureConfirmPassword),
+                                  _obscureConfirmPassword =
+                                      !_obscureConfirmPassword),
                             ),
                             filled: true,
                             fillColor: Colors.grey[50],
@@ -351,7 +480,8 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
                                 : const Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.check_circle_outline, size: 20),
+                                      Icon(Icons.check_circle_outline,
+                                          size: 20),
                                       SizedBox(width: 8),
                                       Text(
                                         'ยืนยันการเปลี่ยนรหัสผ่าน',

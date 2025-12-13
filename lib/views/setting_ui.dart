@@ -715,15 +715,15 @@ class _SettingsGroup extends StatelessWidget {
             title: 'ตั้งค่าระบบ',
             tint: Colors.indigo),
         const SizedBox(height: 6),
-        const Divider(height: 20),
+        // const Divider(height: 20),
 
         // เมนูรีเซ็ตรหัสผ่าน - แสดงให้ทุกคน
-        _SettingTile(
-          icon: Icons.lock_reset,
-          title: 'รีเซ็ตรหัสผ่าน',
-          subtitle: 'เปลี่ยนรหัสผ่านของคุณ',
-          onTap: onResetPassword,
-        ),
+        // _SettingTile(
+        //   icon: Icons.lock_reset,
+        //   title: 'รีเซ็ตรหัสผ่าน',
+        //   subtitle: 'เปลี่ยนรหัสผ่านของคุณ',
+        //   onTap: onResetPassword,
+        // ),
 
         // เมนูจัดการผู้ใช้ - แสดงเฉพาะ SuperAdmin
         if (currentUser.userRole == UserRole.superAdmin) ...[
