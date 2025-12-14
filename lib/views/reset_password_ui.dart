@@ -33,9 +33,8 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
 
     if (session != null) {
       final user = session.user;
-      debugPrint('🔍 Reset Password - User ID: ${user.id}');
-      debugPrint(
-          '🔍 Reset Password - Recovery sent at: ${user.recoverySentAt}');
+      debugPrint('Reset Password - User ID: ${user.id}');
+      debugPrint('Reset Password - Recovery sent at: ${user.recoverySentAt}');
 
       // Check if this is a recent recovery session
       if (user.recoverySentAt != null) {
@@ -43,20 +42,20 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
         final now = DateTime.now();
         final difference = now.difference(recoverySentAt);
 
-        debugPrint('🔍 Recovery sent ${difference.inMinutes} minutes ago');
+        debugPrint('Recovery sent ${difference.inMinutes} minutes ago');
 
         if (difference.inMinutes < 60) {
           setState(() {
             _hasValidRecoverySession = true;
           });
-          debugPrint('✅ Valid recovery session found');
+          debugPrint('Valid recovery session found');
           return;
         }
       }
     }
 
     // No valid recovery session
-    debugPrint('❌ No valid recovery session found');
+    debugPrint('No valid recovery session found');
     setState(() {
       _hasValidRecoverySession = false;
     });
@@ -114,8 +113,7 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              // Navigate to login and clear all previous routes
+              Navigator.of(context).pop();
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => const LoginUi()),
                 (route) => false,
@@ -147,7 +145,7 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
         if (result['success']) {
           // Sign out user after successful password reset
           await AuthService.signOut();
-          debugPrint('✅ Password changed successfully, user signed out');
+          debugPrint('เปลี่ยนรหัสผ่านสำเร็จ, ลงชื่อออกเรียบร้อย');
 
           SnackMessage.showSuccess(context, result['message']);
           // Show success dialog and navigate to login
