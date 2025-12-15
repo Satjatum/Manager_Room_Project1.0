@@ -87,12 +87,31 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.check_circle, color: Color(0xff10B981), size: 30),
-            SizedBox(width: 10),
-            Text('เปลี่ยนรหัสผ่านสำเร็จ'),
+            Container(
+              padding: EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.check_circle_outline,
+                color: AppTheme.primary,
+                size: 24,
+              ),
+            ),
+            SizedBox(width: 8),
+            Text(
+              'เปลี่ยนรหัสผ่านสำเร็จ',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
           ],
         ),
         content: const Column(
@@ -103,26 +122,44 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
               'รหัสผ่านของคุณได้รับการเปลี่ยนแปลงเรียบร้อยแล้ว',
               style: TextStyle(fontSize: 16),
             ),
-            SizedBox(height: 15),
-            Text(
-              'กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const LoginUi()),
-                (route) => false,
-              );
-            },
-            child: const Text(
-              'ไปหน้าเข้าสู่ระบบ',
-              style: TextStyle(color: Color(0xff10B981), fontSize: 16),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (context) => const LoginUi()),
+                      (route) => false,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'ไปหน้าเข้าสู่ระบบ',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -143,12 +180,10 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
         setState(() => _isLoading = false);
 
         if (result['success']) {
-          // Sign out user after successful password reset
           await AuthService.signOut();
           debugPrint('เปลี่ยนรหัสผ่านสำเร็จ, ลงชื่อออกเรียบร้อย');
 
           SnackMessage.showSuccess(context, result['message']);
-          // Show success dialog and navigate to login
           _showSuccessDialog();
         } else {
           SnackMessage.showError(context, result['message']);
@@ -164,7 +199,6 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
 
   @override
   Widget build(BuildContext context) {
-    // Show loading state while checking session
     if (!_hasValidRecoverySession) {
       return Scaffold(
         backgroundColor: Colors.white,
@@ -185,7 +219,7 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -193,14 +227,13 @@ class _ResetPasswordUiState extends State<ResetPasswordUi> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Back Button (disabled during recovery)
-                IconButton(
-                  icon: Icon(Icons.arrow_back_ios_new, color: Colors.grey[400]),
-                  onPressed: null, // Disable back button during password reset
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(height: 24),
+                // IconButton(
+                //   icon: Icon(Icons.arrow_back_ios_new, color: Colors.grey[400]),
+                //   onPressed: null,
+                //   padding: EdgeInsets.zero,
+                //   constraints: const BoxConstraints(),
+                // ),
+                // const SizedBox(height: 24),
 
                 // Header
                 Center(

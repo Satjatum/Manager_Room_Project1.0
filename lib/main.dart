@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:manager_room_project/views/reset_password_ui.dart';
 import 'package:manager_room_project/views/splash_ui.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
@@ -39,12 +40,11 @@ class _ManagerRoomProjectState extends State<ManagerRoomProject> {
     // Listen for auth state changes (including password recovery)
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       final event = data.event;
-      debugPrint('🔐 Auth Event: $event');
+      debugPrint('เหตุการณ์การตรวจสอบสิทธิ์: $event');
 
       // Handle password recovery event
       if (event == AuthChangeEvent.passwordRecovery) {
-        debugPrint(
-            '🔑 Password recovery detected, navigating to reset password');
+        debugPrint('ตรวจพบการกู้คืนรหัสผ่าน กำลังนำไปยังหน้ารีเซ็ตรหัสผ่าน');
         _navigatorKey.currentState?.pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const ResetPasswordUi()),
           (route) => false,
@@ -58,7 +58,11 @@ class _ManagerRoomProjectState extends State<ManagerRoomProject> {
     return MaterialApp(
       navigatorKey: _navigatorKey,
       title: 'ระบบจัดการห้องเช่า',
-      theme: ThemeData(),
+      theme: ThemeData(
+        textTheme: GoogleFonts.kanitTextTheme(
+          Theme.of(context).textTheme,
+        ),
+      ),
       home: SplashUi(),
       debugShowCheckedModeBanner: false,
       routes: {

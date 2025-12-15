@@ -471,25 +471,13 @@ class _RoomCateUiState extends State<RoomCateUi> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            if (!isSubmitting)
-                              Icon(isEdit ? Icons.save_outlined : Icons.add),
-                            if (!isSubmitting) SizedBox(width: 8),
-                            isSubmitting
-                                ? SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : Text(
-                                    isEdit ? 'บันทึก' : 'เพิ่ม',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                            Text(
+                              isEdit ? 'บันทึก' : 'เพิ่ม',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ],
                         ),
                       ),

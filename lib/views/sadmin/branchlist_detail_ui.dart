@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:manager_room_project/views/widgets/colors.dart';
 // Model //
 import '../../models/user_models.dart';
 // Middleware //
@@ -613,26 +614,29 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
           ),
         );
 
-        final result = await BranchService.deleteBranch(widget.branchId);
-        if (mounted) Navigator.pop(context);
+        final result =
+            await BranchService.permanentDeleteBranch(widget.branchId);
+        if (mounted) Navigator.of(context).pop();
 
         if (mounted) {
           if (result['success']) {
-            Navigator.pop(context, true);
-            debugPrint(result['message'] ?? 'ลบสาขาเรียบร้อยแล้ว');
+            debugPrint(result['message'] ?? 'ลบสาขาสำเร็จ');
             SnackMessage.showSuccess(
-                context, result['message'] ?? 'ลบสาขาเรียบร้อยแล้ว');
+                context, result['message'] ?? 'ลบสาขาสำเร็จ');
           } else {
-            debugPrint(
-                "เกิดข้อผิดพลาด: ${result['message'] ?? 'ลบสาขาเรียบร้อยแล้ว'} ");
+            debugPrint(result['message']);
+            throw Exception(result['message']);
           }
         }
       } catch (e) {
-        if (mounted && Navigator.canPop(context)) {
-          Navigator.pop(context);
+        if (mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
         }
         if (mounted) {
-          debugPrint("เกิดข้อผิดพลาด: $e");
+          debugPrint(
+              'ไม่สามารถลบสาขาได้ เนื่องจากยังมีข้อมูลที่เกี่ยวข้อง: $e');
+          SnackMessage.showError(
+              context, 'ไม่สามารถลบสาขาได้ เนื่องจากยังมีข้อมูลที่เกี่ยวข้อง');
         }
       }
     }
@@ -653,16 +657,24 @@ class _BranchlistDetailUiState extends State<BranchlistDetailUi>
     return false;
   }
 
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(color: AppTheme.primary),
+          const SizedBox(height: 16),
+          const Text('กำลังโหลดข้อมูล...'),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
-          child: CircularProgressIndicator(
-              color: Color(0xFF10B981), strokeWidth: 3),
-        ),
-      );
+          backgroundColor: Colors.white, body: _buildLoadingState());
     }
 
     if (_branchData == null) {

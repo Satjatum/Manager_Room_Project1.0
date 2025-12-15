@@ -47,6 +47,7 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
   Map<String, dynamic>? _paymentSettings;
 
   // Form data
+  int? _paymentDay;
   String? _selectedBranchId;
   String? _selectedRoomId;
   String? _selectedTenantId;
@@ -291,10 +292,13 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           _selectedContractId = selectedContract['contract_id'];
           _selectedTenantId = selectedContract['tenant_id'];
 
-          // ⭐ ดึงค่าเช่าจาก contract
+// ดึงราคาเช่าและวันชำระจาก contract
           _rentalAmount =
               (selectedContract['contract_price'] ?? 0.0).toDouble();
-          debugPrint('เลือกสัญญา: $_selectedContractId, เช่า: $_rentalAmount');
+          _paymentDay = selectedContract['payment_day'] as int?;
+          _calculateDueDate(); // คำนวณวันครบกำหนดใหม่
+          debugPrint(
+              'เลือกสัญญา: $_selectedContractId, เช่า: $_rentalAmount, วันชำระ: $_paymentDay');
         } else {
           // ⭐ ถ้ามี contract_id แล้ว ให้ดึงค่าเช่าจาก contract ที่เลือก
           final selectedContract = _contracts.firstWhere(
@@ -304,7 +308,10 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
           if (selectedContract.isNotEmpty) {
             _rentalAmount =
                 (selectedContract['contract_price'] ?? 0.0).toDouble();
-            debugPrint('ค่าเช่าจากสัญญา: $_rentalAmount');
+            _paymentDay = selectedContract['payment_day'] as int?;
+            _calculateDueDate(); // คำนวณวันครบกำหนดใหม่
+            debugPrint(
+                'ใช้ราคาเช่าจากสัญญา: $_rentalAmount, วันชำระ: $_paymentDay');
           }
         }
       }
@@ -343,16 +350,20 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
         _selectedContractId = selectedContract['contract_id'];
         _selectedTenantId = selectedContract['tenant_id'];
 
-        // ⭐ ดึงค่าเช่า
+// ดึงราคาเช่าและวันชำระ
         _rentalAmount = (selectedContract['contract_price'] ?? 0.0).toDouble();
+        _paymentDay = selectedContract['payment_day'] as int?;
+        _calculateDueDate(); // คำนวณวันครบกำหนดใหม่
       } else if (_selectedContractId != null) {
         final contract = _contracts.firstWhere(
           (c) => c['contract_id'] == _selectedContractId,
           orElse: () => {},
         );
         if (contract.isNotEmpty) {
-          // ⭐ ดึงค่าเช่า
+          // ดึงราคาเช่าและวันชำระ
           _rentalAmount = (contract['contract_price'] ?? 0.0).toDouble();
+          _paymentDay = contract['payment_day'] as int?;
+          _calculateDueDate(); // คำนวณวันครบกำหนดใหม่
         }
       }
 
@@ -389,6 +400,42 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
     _lateFeeAmountController.text = '0.00';
 
     return baseTotal + _lateFeeAmount;
+  }
+
+  // คำนวณวันครบกำหนดชำระจาก payment_day
+  void _calculateDueDate() {
+    if (_paymentDay != null) {
+      // สร้างวันที่จาก invoice month/year และ payment_day
+      try {
+        // ตรวจสอบว่า payment_day ไม่เกินวันสุดท้ายของเดือน
+        final lastDayOfMonth = DateTime(_invoiceYear, _invoiceMonth + 1, 0).day;
+        final day =
+            _paymentDay! > lastDayOfMonth ? lastDayOfMonth : _paymentDay!;
+
+        _dueDate = DateTime(_invoiceYear, _invoiceMonth, day);
+
+        // ถ้าวันครบกำหนดผ่านไปแล้ว ให้เลื่อนไปเดือนถัดไป
+        if (_dueDate.isBefore(DateTime.now())) {
+          final nextMonth = _invoiceMonth == 12 ? 1 : _invoiceMonth + 1;
+          final nextYear =
+              _invoiceMonth == 12 ? _invoiceYear + 1 : _invoiceYear;
+          final lastDayOfNextMonth = DateTime(nextYear, nextMonth + 1, 0).day;
+          final nextDay = _paymentDay! > lastDayOfNextMonth
+              ? lastDayOfNextMonth
+              : _paymentDay!;
+          _dueDate = DateTime(nextYear, nextMonth, nextDay);
+        }
+
+        debugPrint('คำนวณวันครบกำหนด: $_dueDate (payment_day: $_paymentDay)');
+      } catch (e) {
+        debugPrint('เกิดข้อผิดพลาดในการคำนวณวันครบกำหนด: $e');
+        // ถ้าเกิดข้อผิดพลาด ใช้ +7 วันเป็นค่าเริ่มต้น
+        _dueDate = DateTime.now().add(const Duration(days: 7));
+      }
+    } else {
+      // ถ้าไม่มี payment_day ใช้ +7 วันเป็นค่าเริ่มต้น
+      _dueDate = DateTime.now().add(const Duration(days: 7));
+    }
   }
 
   void _nextStep() {
@@ -1219,7 +1266,10 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   onChanged: _isFromMeterReading
                       ? null
                       : (value) {
-                          setState(() => _invoiceMonth = value!);
+                          setState(() {
+                            _invoiceMonth = value!;
+                            _calculateDueDate();
+                          });
                         },
                   validator: (value) =>
                       value == null ? 'กรุณาเลือกเดือน' : null,
@@ -1246,7 +1296,10 @@ class _InvoiceAddPageState extends State<InvoiceAddPage> {
                   onChanged: _isFromMeterReading
                       ? null
                       : (value) {
-                          setState(() => _invoiceYear = value!);
+                          setState(() {
+                            _invoiceYear = value!;
+                            _calculateDueDate();
+                          });
                         },
                   validator: (value) => value == null ? 'กรุณาเลือกปี' : null,
                 ),

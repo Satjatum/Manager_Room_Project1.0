@@ -552,9 +552,34 @@ class _TenantAddUIState extends State<TenantAddUI>
 
           return false;
         }
-        if (_userPasswordController.text.trim().isEmpty) {
+        final password = _userPasswordController.text.trim();
+        if (password.isEmpty) {
           debugPrint('กรุณากรอกรหัสผ่าน');
           SnackMessage.showError(context, 'กรุณากรอกรหัสผ่าน');
+
+          return false;
+        }
+        if (password.length < 6) {
+          debugPrint('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+          SnackMessage.showError(context, 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+
+          return false;
+        }
+        if (!password.contains(RegExp(r'[a-z]'))) {
+          debugPrint('รหัสผ่านควรมีตัวอักษรพิมพ์เล็ก');
+          SnackMessage.showError(context, 'รหัสผ่านควรมีตัวอักษรพิมพ์เล็ก');
+
+          return false;
+        }
+        if (!password.contains(RegExp(r'[A-Z]'))) {
+          debugPrint('รหัสผ่านควรมีตัวอักษรพิมพ์ใหญ่');
+          SnackMessage.showError(context, 'รหัสผ่านควรมีตัวอักษรพิมพ์ใหญ่');
+
+          return false;
+        }
+        if (!password.contains(RegExp(r'[0-9]'))) {
+          debugPrint('รหัสผ่านควรมีตัวเลข');
+          SnackMessage.showError(context, 'รหัสผ่านควรมีตัวเลข');
 
           return false;
         }
@@ -840,8 +865,7 @@ class _TenantAddUIState extends State<TenantAddUI>
                 'ไม่สามารถสร้างบัญชีผู้ใช้ได้: ${userResult['message']}');
             SnackMessage.showError(context,
                 'ไม่สามารถสร้างบัญชีผู้ใช้ได้: ${userResult['message']}');
-
-            // If session was lost, redirect to login
+            // ตรวจสอบว่าต้องให้ผู้ใช้ล็อกอินใหม่หรือไม่
             if (userResult['requireRelogin'] == true) {
               Navigator.of(context).pushNamedAndRemoveUntil(
                 '/login',
@@ -1600,48 +1624,101 @@ class _TenantAddUIState extends State<TenantAddUI>
               const SizedBox(height: 16),
 
               // รหัสผ่าน
-              TextFormField(
-                controller: _userPasswordController,
-                decoration: InputDecoration(
-                  labelText: 'รหัสผ่าน',
-                  prefixIcon: const Icon(Icons.lock),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _showPassword ? Icons.visibility_off : Icons.visibility,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    controller: _userPasswordController,
+                    decoration: InputDecoration(
+                      labelText: 'รหัสผ่าน',
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _showPassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _showPassword = !_showPassword;
+                          });
+                        },
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                            color: Color(0xff10B981), width: 2),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide:
+                            BorderSide(color: Colors.grey[300]!, width: 1),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _showPassword = !_showPassword;
-                      });
-                    },
+                    obscureText: !_showPassword,
+                    validator: _createUserAccount
+                        ? (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'กรุณากรอกรหัสผ่าน';
+                            }
+                            if (value.length < 6) {
+                              return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+                            }
+                            // ตรวจสอบว่ามีตัวพิมพ์เล็ก
+                            if (!value.contains(RegExp(r'[a-z]'))) {
+                              return 'รหัสผ่านควรมีตัวอักษรพิมพ์เล็ก';
+                            }
+                            // ตรวจสอบว่ามีตัวพิมพ์ใหญ่
+                            if (!value.contains(RegExp(r'[A-Z]'))) {
+                              return 'รหัสผ่านควรมีตัวอักษรพิมพ์ใหญ่';
+                            }
+                            // ตรวจสอบว่ามีตัวเลข
+                            if (!value.contains(RegExp(r'[0-9]'))) {
+                              return 'รหัสผ่านควรมีตัวเลข';
+                            }
+                            return null;
+                          }
+                        : null,
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.blue[200]!,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          color: Colors.blue[700],
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร และควรมีตัวอักษรพิมพ์ใหญ่ พิมพ์เล็ก และตัวเลขผสมกัน',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue[900],
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: Color(0xff10B981), width: 2),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
-                ),
-                obscureText: !_showPassword,
-                validator: _createUserAccount
-                    ? (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'กรุณากรอกรหัสผ่าน';
-                        }
-                        if (value.length < 6) {
-                          return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
-                        }
-                        return null;
-                      }
-                    : null,
+                ],
               ),
               SizedBox(
                 height: 16,

@@ -821,7 +821,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
           ),
         );
 
-        final result = await BranchService.deleteBranch(branchId);
+        final result = await BranchService.permanentDeleteBranch(branchId);
         if (mounted) Navigator.of(context).pop();
 
         if (mounted) {
@@ -832,7 +832,7 @@ class _BranchlistUiState extends State<BranchlistUi> {
 
             await _loadBranches();
           } else {
-            debugPrint('เกิดข้อผิดพลาด: ${result['message']}');
+            debugPrint(result['message']);
             throw Exception(result['message']);
           }
         }
@@ -841,8 +841,10 @@ class _BranchlistUiState extends State<BranchlistUi> {
           Navigator.of(context).pop();
         }
         if (mounted) {
-          debugPrint('เกิดข้อผิดพลาด: $e');
-          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
+          debugPrint(
+              'ไม่สามารถลบสาขาได้ เนื่องจากยังมีข้อมูลที่เกี่ยวข้อง: $e');
+          SnackMessage.showError(
+              context, 'ไม่สามารถลบสาขาได้ เนื่องจากยังมีข้อมูลที่เกี่ยวข้อง');
         }
       }
     }

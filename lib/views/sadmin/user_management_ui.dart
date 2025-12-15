@@ -917,7 +917,41 @@ class _AddUserDialogState extends State<AddUserDialog> {
     super.dispose();
   }
 
+  bool _validatePassword() {
+    final password = _passwordController.text;
+
+    if (password.isEmpty) {
+      SnackMessage.showError(context, 'กรุณากรอกรหัสผ่าน');
+      return false;
+    }
+
+    if (password.length < 6) {
+      SnackMessage.showError(context, 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+      return false;
+    }
+
+    if (!password.contains(RegExp(r'[a-z]'))) {
+      SnackMessage.showError(context, 'รหัสผ่านควรมีตัวอักษรพิมพ์เล็ก');
+      return false;
+    }
+
+    if (!password.contains(RegExp(r'[A-Z]'))) {
+      SnackMessage.showError(context, 'รหัสผ่านควรมีตัวอักษรพิมพ์ใหญ่');
+      return false;
+    }
+
+    if (!password.contains(RegExp(r'[0-9]'))) {
+      SnackMessage.showError(context, 'รหัสผ่านควรมีตัวเลข');
+      return false;
+    }
+
+    return true;
+  }
+
   Future<void> _submitForm() async {
+    // ตรวจสอบรหัสผ่านก่อน
+    if (!_validatePassword()) return;
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -1107,31 +1141,81 @@ class _AddUserDialogState extends State<AddUserDialog> {
                     },
                   ),
                   const SizedBox(height: 20),
-                  _buildFormField(
-                    label: 'รหัสผ่าน *',
-                    hint: 'กรอกรหัสผ่าน',
-                    controller: _passwordController,
-                    icon: Icons.lock_outline_rounded,
-                    obscureText: _obscurePassword,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                        color: Colors.grey.shade600,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildFormField(
+                        label: 'รหัสผ่าน *',
+                        hint: 'กรอกรหัสผ่าน',
+                        controller: _passwordController,
+                        icon: Icons.lock_outline_rounded,
+                        obscureText: _obscurePassword,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                            color: Colors.grey.shade600,
+                          ),
+                          onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'กรุณากรอกรหัสผ่าน';
+                          }
+                          if (value.length < 6) {
+                            return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+                          }
+                          // ตรวจสอบว่ามีตัวพิมพ์เล็ก
+                          if (!value.contains(RegExp(r'[a-z]'))) {
+                            return 'รหัสผ่านควรมีตัวอักษรพิมพ์เล็ก';
+                          }
+                          // ตรวจสอบว่ามีตัวพิมพ์ใหญ่
+                          if (!value.contains(RegExp(r'[A-Z]'))) {
+                            return 'รหัสผ่านควรมีตัวอักษรพิมพ์ใหญ่';
+                          }
+                          // ตรวจสอบว่ามีตัวเลข
+                          if (!value.contains(RegExp(r'[0-9]'))) {
+                            return 'รหัสผ่านควรมีตัวเลข';
+                          }
+                          return null;
+                        },
                       ),
-                      onPressed: () =>
-                          setState(() => _obscurePassword = !_obscurePassword),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'กรุณากรอกรหัสผ่าน';
-                      }
-                      if (value.length < 6) {
-                        return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
-                      }
-                      return null;
-                    },
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.blue[200]!,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.info_outline_rounded,
+                              color: Colors.blue[700],
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร และควรมีตัวอักษรพิมพ์ใหญ่ พิมพ์เล็ก และตัวเลขผสมกัน',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.blue[900],
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 20),
                   Container(
@@ -1285,7 +1369,42 @@ class _EditUserDialogState extends State<EditUserDialog> {
     super.dispose();
   }
 
+  bool _validatePassword() {
+    final password = _passwordController.text;
+
+    // ถ้าไม่ได้กรอกรหัสผ่านให้ผ่านเลย (เพราะไม่บังคับ)
+    if (password.isEmpty) {
+      return true;
+    }
+
+    // ถ้ากรอกรหัสผ่านแล้วต้องตรวจสอบ
+    if (password.length < 6) {
+      SnackMessage.showError(context, 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+      return false;
+    }
+
+    if (!password.contains(RegExp(r'[a-z]'))) {
+      SnackMessage.showError(context, 'รหัสผ่านควรมีตัวอักษรพิมพ์เล็ก');
+      return false;
+    }
+
+    if (!password.contains(RegExp(r'[A-Z]'))) {
+      SnackMessage.showError(context, 'รหัสผ่านควรมีตัวอักษรพิมพ์ใหญ่');
+      return false;
+    }
+
+    if (!password.contains(RegExp(r'[0-9]'))) {
+      SnackMessage.showError(context, 'รหัสผ่านควรมีตัวเลข');
+      return false;
+    }
+
+    return true;
+  }
+
   Future<void> _submitForm() async {
+    // ตรวจสอบรหัสผ่านก่อน (ถ้ามีการกรอก)
+    if (!_validatePassword()) return;
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -1463,30 +1582,59 @@ class _EditUserDialogState extends State<EditUserDialog> {
                     },
                   ),
                   const SizedBox(height: 20),
-                  _buildFormField(
-                    label: 'รหัสผ่านใหม่ (ไม่บังคับ)',
-                    hint: 'เว้นว่างไว้หากไม่ต้องการเปลี่ยน',
-                    controller: _passwordController,
-                    icon: Icons.lock_outline_rounded,
-                    obscureText: _obscurePassword,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                        color: Colors.grey.shade600,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildFormField(
+                        label: 'รหัสผ่านใหม่ (ไม่บังคับ)',
+                        hint: 'เว้นว่างไว้หากไม่ต้องการเปลี่ยน',
+                        controller: _passwordController,
+                        icon: Icons.lock_outline_rounded,
+                        obscureText: _obscurePassword,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                            color: Colors.grey.shade600,
+                          ),
+                          onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
+                        ),
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty) {
+                            if (value.length < 6) {
+                              return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+                            }
+                            // ตรวจสอบว่ามีตัวพิมพ์เล็ก
+                            if (!value.contains(RegExp(r'[a-z]'))) {
+                              return 'รหัสผ่านควรมีตัวอักษรพิมพ์เล็ก';
+                            }
+                            // ตรวจสอบว่ามีตัวพิมพ์ใหญ่
+                            if (!value.contains(RegExp(r'[A-Z]'))) {
+                              return 'รหัสผ่านควรมีตัวอักษรพิมพ์ใหญ่';
+                            }
+                            // ตรวจสอบว่ามีตัวเลข
+                            if (!value.contains(RegExp(r'[0-9]'))) {
+                              return 'รหัสผ่านควรมีตัวเลข';
+                            }
+                          }
+                          return null;
+                        },
                       ),
-                      onPressed: () =>
-                          setState(() => _obscurePassword = !_obscurePassword),
-                    ),
-                    validator: (value) {
-                      if (value != null &&
-                          value.isNotEmpty &&
-                          value.length < 6) {
-                        return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
-                      }
-                      return null;
-                    },
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Text(
+                          'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร และควรมีตัวอักษรพิมพ์ใหญ่ พิมพ์เล็ก และตัวเลขผสมกัน',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 20),
                   Container(

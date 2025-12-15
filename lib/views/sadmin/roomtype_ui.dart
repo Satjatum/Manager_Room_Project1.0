@@ -381,8 +381,6 @@ class _RoomTypesUiState extends State<RoomTypesUi> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(isEdit ? Icons.save_outlined : Icons.add),
-                            SizedBox(width: 8),
                             Text(
                               isEdit ? 'บันทึก' : 'เพิ่ม',
                               style: TextStyle(

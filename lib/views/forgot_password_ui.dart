@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:manager_room_project/views/widgets/colors.dart';
 import '../services/auth_service.dart';
 import 'widgets/snack_message.dart';
 
@@ -55,12 +56,31 @@ class _ForgotPasswordUiState extends State<ForgotPasswordUi> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.check_circle, color: Color(0xff10B981), size: 30),
-            SizedBox(width: 10),
-            Text('ส่งอีเมลสำเร็จ'),
+            Container(
+              padding: EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.check_circle_outline,
+                color: AppTheme.primary,
+                size: 24,
+              ),
+            ),
+            SizedBox(width: 8),
+            Text(
+              'ส่งอีเมลสำเร็จ',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
           ],
         ),
         content: const Column(
@@ -88,15 +108,38 @@ class _ForgotPasswordUiState extends State<ForgotPasswordUi> {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).pop(); // Go back to login
-            },
-            child: const Text(
-              'เข้าใจแล้ว',
-              style: TextStyle(color: Color(0xff10B981), fontSize: 16),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close dialog
+                    Navigator.of(context).pop(); // Go back to login
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'เข้าใจแล้ว',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -107,14 +150,14 @@ class _ForgotPasswordUiState extends State<ForgotPasswordUi> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      // appBar: AppBar(
+      //   backgroundColor: Colors.transparent,
+      //   elevation: 0,
+      //   leading: IconButton(
+      //     icon: const Icon(Icons.arrow_back, color: Colors.black87),
+      //     onPressed: () => Navigator.pop(context),
+      //   ),
+      // ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

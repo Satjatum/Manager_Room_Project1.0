@@ -815,18 +815,19 @@ class _RoomListUiState extends State<RoomListUi> {
             SnackMessage.showSuccess(context, result['message']);
             await _loadRooms();
           } else {
-            debugPrint("เกิดข้อผิดพลาด {$result['message']}");
+            debugPrint("$result['message']");
             throw Exception(result['message']);
           }
         }
       } catch (e) {
-        if (mounted && Navigator.of(context).canPop()) {
-          Navigator.of(context).pop();
-        }
+        // if (mounted && Navigator.of(context).canPop()) {
+        //   Navigator.of(context).pop();
+        // }
 
         if (mounted) {
           debugPrint('เกิดข้อผิดพลาด: $e');
-          SnackMessage.showError(context, 'เกิดข้อผิดพลาด');
+          SnackMessage.showError(context,
+              ' ไม่สามารถลบห้องพักได้ เนื่องจากยังมีข้อมูลที่เกี่ยวข้อง');
         }
       }
     }

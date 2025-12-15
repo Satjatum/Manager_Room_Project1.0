@@ -951,7 +951,7 @@ class _AmenitiesUIState extends State<AmenitiesUI> {
 
                               return SingleChildScrollView(
                                 physics: AlwaysScrollableScrollPhysics(),
-                                padding: EdgeInsets.fromLTRB(20, 8, 20, 24),
+                                padding: EdgeInsets.fromLTRB(20, 16, 20, 20),
                                 child: Wrap(
                                   spacing: 16,
                                   runSpacing: 16,

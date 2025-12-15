@@ -1150,9 +1150,9 @@ class _QrEditorDialogState extends State<_QrEditorDialog> {
         'bank_name': _bankCtrl.text.trim(),
         'account_name': _accNameCtrl.text.trim(),
         'account_number': _accNumCtrl.text.trim(),
-        'promptpay_type': null,
+        // 'promptpay_type': null,
         'promptpay_id': null,
-        'qr_code_image': '',
+        // 'qr_code_image': '',
         'is_active': _isActive,
       };
 
