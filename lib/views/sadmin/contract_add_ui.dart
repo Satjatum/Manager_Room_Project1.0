@@ -43,7 +43,7 @@ class _ContractAddUIState extends State<ContractAddUI> {
   DateTime? _startDate;
   DateTime? _endDate;
   int _paymentDay = 1;
-  bool _advancePayment = false;
+  bool _advancePayment = true;
 
   // เอกสารสัญญา
   String? _documentName;

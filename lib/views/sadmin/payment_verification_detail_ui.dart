@@ -17,7 +17,7 @@ class PaymentVerificationDetailUi extends StatefulWidget {
     this.slipId,
     this.invoiceId,
   }) : assert(slipId != null || invoiceId != null,
-            'Either slipId or invoiceId must be provided');
+            'ต้องระบุ slipId หรือ invoiceId อย่างน้อยหนึ่งค่า');
 
   @override
   State<PaymentVerificationDetailUi> createState() =>
