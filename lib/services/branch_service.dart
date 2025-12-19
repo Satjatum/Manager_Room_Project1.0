@@ -885,7 +885,31 @@ class BranchService {
             .eq('branch_id', branchId);
       } catch (_) {}
 
-      // 9) Branch manager links (keep manager users)
+      // 9) Delete amenities (after rooms deleted)
+      try {
+        await _supabase
+            .from('amenities')
+            .delete()
+            .eq('branch_id', branchId);
+      } catch (_) {}
+
+      // 10) Delete room types (after rooms deleted)
+      try {
+        await _supabase
+            .from('room_types')
+            .delete()
+            .eq('branch_id', branchId);
+      } catch (_) {}
+
+      // 11) Delete room categories (after rooms deleted)
+      try {
+        await _supabase
+            .from('room_categories')
+            .delete()
+            .eq('branch_id', branchId);
+      } catch (_) {}
+
+      // 12) Branch manager links (keep manager users)
       try {
         await _supabase
             .from('branch_managers')
@@ -893,7 +917,7 @@ class BranchService {
             .eq('branch_id', branchId);
       } catch (_) {}
 
-      // 10) Delete tenants of this branch
+      // 13) Delete tenants of this branch
       try {
         if (tenantIds.isNotEmpty) {
           await _supabase
@@ -903,7 +927,7 @@ class BranchService {
         }
       } catch (_) {}
 
-      // 11) Delete tenant user accounts (role=tenant) that are not branch managers anywhere
+      // 14) Delete tenant user accounts (role=tenant) that are not branch managers anywhere
       try {
         // collect user_ids from tenants
         final tenantUserIds = tenantRows
@@ -953,7 +977,7 @@ class BranchService {
         }
       } catch (_) {}
 
-      // 12) Finally delete the branch itself
+      // 15) Finally delete the branch itself
       await _supabase.from('branches').delete().eq('branch_id', branchId);
 
       return {

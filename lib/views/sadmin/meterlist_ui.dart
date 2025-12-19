@@ -322,7 +322,7 @@ class _MeterListUiState extends State<MeterListUi> {
             children: [
               Icon(Icons.delete_outline, size: 20, color: Colors.red),
               SizedBox(width: 12),
-              Text('ลบสาขา', style: TextStyle(color: Colors.red)),
+              Text('ลบ', style: TextStyle(color: Colors.red)),
             ],
           ),
         ),

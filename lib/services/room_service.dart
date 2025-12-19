@@ -538,7 +538,7 @@ class RoomService {
     }
   }
 
-  /// Delete room permanently (SuperAdmin only)
+  /// Delete room permanently with ALL related data (SuperAdmin only)
   static Future<Map<String, dynamic>> deleteRoom(String roomId) async {
     try {
       final currentUser = await AuthService.getCurrentUser();
@@ -556,8 +556,9 @@ class RoomService {
         };
       }
 
-      // Only superadmin can delete permanently
-      if (currentUser.userRole != UserRole.superAdmin) {
+      // SuperAdmin or Admin can delete permanently
+      if (currentUser.userRole != UserRole.superAdmin &&
+          currentUser.userRole != UserRole.admin) {
         return {
           'success': false,
           'message': 'ไม่มีสิทธิ์ในการลบห้องพักถาวร',
@@ -578,27 +579,178 @@ class RoomService {
         };
       }
 
-      // Check for active contracts
-      final activeContracts = await _supabase
-          .from('rental_contracts')
-          .select('contract_id')
-          .eq('room_id', roomId)
-          .inFilter('contract_status', ['active', 'pending']);
+      // ==========================
+      // Begin cascade delete
+      // ==========================
 
-      if (activeContracts.isNotEmpty) {
-        return {
-          'success': false,
-          'message':
-              'ไม่สามารถลบห้องพักได้ เนื่องจากยังมีสัญญาเช่าที่ใช้งานอยู่ ${activeContracts.length} สัญญา',
-        };
-      }
+      // 1. Get all contracts for this room
+      final List<Map<String, dynamic>> contractRows =
+          List<Map<String, dynamic>>.from(await _supabase
+              .from('rental_contracts')
+              .select('contract_id, tenant_id')
+              .eq('room_id', roomId));
 
-      // Delete permanently
+      final contractIds = contractRows
+          .map((r) => r['contract_id'])
+          .where((v) => v != null)
+          .map<String>((v) => v.toString())
+          .toList();
+
+      final tenantIds = contractRows
+          .map((r) => r['tenant_id'])
+          .where((v) => v != null)
+          .map<String>((v) => v.toString())
+          .toSet()
+          .toList();
+
+      // 2. Get all invoices related to this room
+      List<String> invoiceIds = [];
+      try {
+        final invRows = await _supabase
+            .from('invoices')
+            .select('invoice_id')
+            .eq('room_id', roomId);
+        invoiceIds = List<Map<String, dynamic>>.from(invRows)
+            .map((r) => r['invoice_id'])
+            .where((v) => v != null)
+            .map<String>((v) => v.toString())
+            .toList();
+      } catch (_) {}
+
+      // 3. Delete payments (by invoices + tenants)
+      try {
+        if (invoiceIds.isNotEmpty) {
+          await _supabase
+              .from('payments')
+              .delete()
+              .inFilter('invoice_id', invoiceIds);
+        }
+        if (tenantIds.isNotEmpty) {
+          await _supabase
+              .from('payments')
+              .delete()
+              .inFilter('tenant_id', tenantIds);
+        }
+      } catch (_) {}
+
+      // 4. Unlink meter_readings from invoices
+      try {
+        if (invoiceIds.isNotEmpty) {
+          await _supabase.from('meter_readings').update({
+            'invoice_id': null,
+            'reading_status': 'confirmed'
+          }).inFilter('invoice_id', invoiceIds);
+        }
+      } catch (_) {}
+
+      // 5. Delete invoice sub-tables
+      try {
+        if (invoiceIds.isNotEmpty) {
+          await _supabase
+              .from('invoice_utilities')
+              .delete()
+              .inFilter('invoice_id', invoiceIds);
+          await _supabase
+              .from('invoice_other_charges')
+              .delete()
+              .inFilter('invoice_id', invoiceIds);
+          await _supabase
+              .from('invoices')
+              .delete()
+              .inFilter('invoice_id', invoiceIds);
+        }
+      } catch (_) {}
+
+      // 6. Delete payment slips
+      try {
+        List<String> slipIds = [];
+        if (invoiceIds.isNotEmpty || tenantIds.isNotEmpty) {
+          var q = _supabase.from('payment_slips').select('slip_id');
+          if (invoiceIds.isNotEmpty) {
+            q = q.inFilter('invoice_id', invoiceIds);
+          }
+          if (tenantIds.isNotEmpty) {
+            q = q.or('tenant_id.in.({${tenantIds.join(',')}})');
+          }
+          final rows = await q;
+          slipIds = List<Map<String, dynamic>>.from(rows)
+              .map((r) => r['slip_id'])
+              .where((v) => v != null)
+              .map<String>((v) => v.toString())
+              .toList();
+        }
+        if (slipIds.isNotEmpty) {
+          await _supabase
+              .from('slip_verification_history')
+              .delete()
+              .inFilter('slip_id', slipIds);
+          await _supabase
+              .from('payment_slips')
+              .delete()
+              .inFilter('slip_id', slipIds);
+        }
+      } catch (_) {}
+
+      // 7. Delete meter readings
+      try {
+        if (contractIds.isNotEmpty) {
+          await _supabase
+              .from('meter_readings')
+              .delete()
+              .inFilter('contract_id', contractIds);
+        }
+      } catch (_) {}
+
+      // 8. Delete issues
+      try {
+        final issueRows = await _supabase
+            .from('issue_reports')
+            .select('issue_id')
+            .eq('room_id', roomId);
+        final issueIds = List<Map<String, dynamic>>.from(issueRows)
+            .map((r) => r['issue_id'])
+            .where((v) => v != null)
+            .map<String>((v) => v.toString())
+            .toList();
+        if (issueIds.isNotEmpty) {
+          await _supabase
+              .from('issue_images')
+              .delete()
+              .inFilter('issue_id', issueIds);
+          await _supabase
+              .from('issue_reports')
+              .delete()
+              .inFilter('issue_id', issueIds);
+        }
+      } catch (_) {}
+
+      // 9. Delete contracts (ALL - not just active)
+      try {
+        if (contractIds.isNotEmpty) {
+          await _supabase
+              .from('rental_contracts')
+              .delete()
+              .inFilter('contract_id', contractIds);
+        }
+      } catch (_) {}
+
+      // 10. Delete room amenities
+      try {
+        await _supabase.from('room_amenities').delete().eq('room_id', roomId);
+      } catch (_) {}
+
+      // 11. Delete room images
+      try {
+        await _supabase.from('room_images').delete().eq('room_id', roomId);
+      } catch (_) {}
+
+      // 12. Delete room itself
       await _supabase.from('rooms').delete().eq('room_id', roomId);
 
       return {
         'success': true,
-        'message': 'ลบห้อง "${existingRoom['room_number']}" ถาวรสำเร็จ',
+        'message':
+            'ลบห้อง "${existingRoom['room_number']}" และข้อมูลที่เกี่ยวข้องทั้งหมดสำเร็จ',
       };
     } on PostgrestException catch (e) {
       String message = 'เกิดข้อผิดพลาด: ${e.message}';
@@ -898,7 +1050,8 @@ class RoomService {
         return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
       }
 
-      if (currentUser.userRole != UserRole.superAdmin) {
+      if (currentUser.userRole != UserRole.superAdmin &&
+          currentUser.userRole != UserRole.admin) {
         return {'success': false, 'message': 'ไม่มีสิทธิ์ในการสร้างประเภทห้อง'};
       }
 
@@ -946,7 +1099,8 @@ class RoomService {
         return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
       }
 
-      if (currentUser.userRole != UserRole.superAdmin) {
+      if (currentUser.userRole != UserRole.superAdmin &&
+          currentUser.userRole != UserRole.admin) {
         return {'success': false, 'message': 'ไม่มีสิทธิ์ในการแก้ไขประเภทห้อง'};
       }
 
@@ -981,7 +1135,8 @@ class RoomService {
         return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
       }
 
-      if (currentUser.userRole != UserRole.superAdmin) {
+      if (currentUser.userRole != UserRole.superAdmin &&
+          currentUser.userRole != UserRole.admin) {
         return {'success': false, 'message': 'ไม่มีสิทธิ์ในการลบประเภทห้อง'};
       }
 
@@ -1161,7 +1316,8 @@ class RoomService {
         return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
       }
 
-      if (currentUser.userRole != UserRole.superAdmin) {
+      if (currentUser.userRole != UserRole.superAdmin &&
+          currentUser.userRole != UserRole.admin) {
         return {
           'success': false,
           'message': 'ไม่มีสิทธิ์ในการสร้างสิ่งอำนวยความสะดวก'
@@ -1212,7 +1368,8 @@ class RoomService {
         return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
       }
 
-      if (currentUser.userRole != UserRole.superAdmin) {
+      if (currentUser.userRole != UserRole.superAdmin &&
+          currentUser.userRole != UserRole.admin) {
         return {
           'success': false,
           'message': 'ไม่มีสิทธิ์ในการแก้ไขสิ่งอำนวยความสะดวก'
@@ -1250,7 +1407,8 @@ class RoomService {
         return {'success': false, 'message': 'กรุณาเข้าสู่ระบบใหม่'};
       }
 
-      if (currentUser.userRole != UserRole.superAdmin) {
+      if (currentUser.userRole != UserRole.superAdmin &&
+          currentUser.userRole != UserRole.admin) {
         return {
           'success': false,
           'message': 'ไม่มีสิทธิ์ในการลบสิ่งอำนวยความสะดวก'

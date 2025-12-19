@@ -738,7 +738,7 @@ class _TenantListUIState extends State<TenantListUI> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
+                      color: Colors.red.shade50,
                       shape: BoxShape.circle,
                     ),
                     child: Stack(
@@ -748,13 +748,13 @@ class _TenantListUIState extends State<TenantListUI> {
                           width: 50,
                           height: 50,
                           child: CircularProgressIndicator(
-                            color: Colors.orange.shade600,
+                            color: Colors.red.shade600,
                             strokeWidth: 3,
                           ),
                         ),
                         Icon(
                           Icons.delete_outline,
-                          color: Colors.orange.shade600,
+                          color: Colors.red.shade600,
                           size: 28,
                         ),
                       ],

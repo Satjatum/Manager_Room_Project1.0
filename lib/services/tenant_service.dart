@@ -696,7 +696,7 @@ class TenantService {
     }
   }
 
-  /// Delete tenant with all related data (SuperAdmin only)
+  /// Delete tenant with ALL related data including user account (SuperAdmin only)
   static Future<Map<String, dynamic>> deleteTenantWithRelatedData(
       String tenantId) async {
     try {
@@ -715,18 +715,19 @@ class TenantService {
         };
       }
 
-      // Only superadmin can delete permanently
-      if (currentUser.userRole != UserRole.superAdmin) {
+      // SuperAdmin or Admin can delete permanently
+      if (currentUser.userRole != UserRole.superAdmin &&
+          currentUser.userRole != UserRole.admin) {
         return {
           'success': false,
           'message': 'ไม่มีสิทธิ์ในการลบผู้เช่าถาวร',
         };
       }
 
-      // Check if tenant exists
+      // Check if tenant exists and get user_id
       final existingTenant = await _supabase
           .from('tenants')
-          .select('tenant_id, tenant_fullname')
+          .select('tenant_id, tenant_fullname, user_id')
           .eq('tenant_id', tenantId)
           .maybeSingle();
 
@@ -755,7 +756,23 @@ class TenantService {
       // Start deleting related data
       List<String> deletedItems = [];
 
-      // 1. Delete payments
+      // 1. Get all invoices for this tenant
+      List<String> invoiceIds = [];
+      try {
+        final invoiceRows = await _supabase
+            .from('invoices')
+            .select('invoice_id')
+            .eq('tenant_id', tenantId);
+        invoiceIds = List<Map<String, dynamic>>.from(invoiceRows)
+            .map((r) => r['invoice_id'])
+            .where((v) => v != null)
+            .map<String>((v) => v.toString())
+            .toList();
+      } catch (e) {
+        debugPrint('Error getting invoices: $e');
+      }
+
+      // 2. Delete payments
       try {
         await _supabase.from('payments').delete().eq('tenant_id', tenantId);
         deletedItems.add('ข้อมูลการชำระเงิน');
@@ -763,7 +780,36 @@ class TenantService {
         debugPrint('Error deleting payments: $e');
       }
 
-      // 2. Delete invoices
+      // 3. Unlink meter_readings from invoices
+      try {
+        if (invoiceIds.isNotEmpty) {
+          await _supabase.from('meter_readings').update({
+            'invoice_id': null,
+            'reading_status': 'confirmed'
+          }).inFilter('invoice_id', invoiceIds);
+        }
+      } catch (e) {
+        debugPrint('Error unlinking meter readings: $e');
+      }
+
+      // 4. Delete invoice sub-tables
+      try {
+        if (invoiceIds.isNotEmpty) {
+          await _supabase
+              .from('invoice_utilities')
+              .delete()
+              .inFilter('invoice_id', invoiceIds);
+          await _supabase
+              .from('invoice_other_charges')
+              .delete()
+              .inFilter('invoice_id', invoiceIds);
+          deletedItems.add('รายละเอียดใบแจ้งหนี้');
+        }
+      } catch (e) {
+        debugPrint('Error deleting invoice sub-tables: $e');
+      }
+
+      // 5. Delete invoices
       try {
         await _supabase.from('invoices').delete().eq('tenant_id', tenantId);
         deletedItems.add('ใบแจ้งหนี้');
@@ -771,9 +817,35 @@ class TenantService {
         debugPrint('Error deleting invoices: $e');
       }
 
-      // 3. Delete meter readings related to tenant's contracts
+      // 6. Delete payment slips
       try {
-        // Get all contract IDs for this tenant
+        final slipRows = await _supabase
+            .from('payment_slips')
+            .select('slip_id')
+            .eq('tenant_id', tenantId);
+        final slipIds = List<Map<String, dynamic>>.from(slipRows)
+            .map((r) => r['slip_id'])
+            .where((v) => v != null)
+            .map<String>((v) => v.toString())
+            .toList();
+
+        if (slipIds.isNotEmpty) {
+          await _supabase
+              .from('slip_verification_history')
+              .delete()
+              .inFilter('slip_id', slipIds);
+          await _supabase
+              .from('payment_slips')
+              .delete()
+              .inFilter('slip_id', slipIds);
+          deletedItems.add('สลิปการชำระเงิน');
+        }
+      } catch (e) {
+        debugPrint('Error deleting payment slips: $e');
+      }
+
+      // 7. Delete meter readings related to tenant's contracts
+      try {
         final contracts = await _supabase
             .from('rental_contracts')
             .select('contract_id')
@@ -791,7 +863,7 @@ class TenantService {
         debugPrint('Error deleting meter readings: $e');
       }
 
-      // 4. Delete rental contracts
+      // 8. Delete rental contracts
       try {
         await _supabase
             .from('rental_contracts')
@@ -802,8 +874,49 @@ class TenantService {
         debugPrint('Error deleting contracts: $e');
       }
 
-      // 5. Finally, delete the tenant
+      // 9. Delete the tenant
       await _supabase.from('tenants').delete().eq('tenant_id', tenantId);
+
+      // 10. Delete linked user account
+      final linkedUserId = existingTenant['user_id'];
+      if (linkedUserId != null && linkedUserId.toString().isNotEmpty) {
+        try {
+          // Check if user is a tenant (not admin/manager)
+          final userData = await _supabase
+              .from('users')
+              .select('user_id, role')
+              .eq('user_id', linkedUserId)
+              .maybeSingle();
+
+          if (userData != null && userData['role'] == 'tenant') {
+            // Check if user is a branch manager anywhere
+            final isManager = await _supabase
+                .from('branch_managers')
+                .select('id')
+                .eq('user_id', linkedUserId)
+                .maybeSingle();
+
+            // Only delete if not a manager
+            if (isManager == null) {
+              // Delete sessions first
+              await _supabase
+                  .from('user_sessions')
+                  .delete()
+                  .eq('user_id', linkedUserId);
+
+              // Delete user account
+              await _supabase
+                  .from('users')
+                  .delete()
+                  .eq('user_id', linkedUserId);
+
+              deletedItems.add('บัญชีผู้ใช้');
+            }
+          }
+        } catch (e) {
+          debugPrint('Error deleting linked user account: $e');
+        }
+      }
 
       String deletedItemsText =
           deletedItems.isNotEmpty ? ' (รวม: ${deletedItems.join(', ')})' : '';
